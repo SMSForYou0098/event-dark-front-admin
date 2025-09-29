@@ -1,0 +1,331 @@
+@import url('./datepicker.css');
+@import url('./scrollbar.css');
+@import url('./input.css');
+@import url('./sidebar.css');
+@import url('./drawer.css');
+@import url('./notication.css');
+/* Custom Glassmorphism Components */
+.glassmorphism-card {
+background: transparent !important;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  /* transition: all 0.3s ease; */
+}
+
+/* .glassmorphism-card:hover {
+  background: transparent !important;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+} */
+
+/* Enhanced ApexCharts Tooltips */
+.apexcharts-tooltip {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  color: var(--text-white) !important;
+}
+
+.apexcharts-tooltip.apexcharts-theme-light {
+  background: rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.apexcharts-tooltip-title {
+  background: rgba(181, 21, 21, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 8px 8px 0 0 !important;
+  font-weight: 600 !important;
+  padding: 8px 12px !important;
+}
+
+.apexcharts-tooltip-series-group {
+  background: transparent !important;
+  padding: 6px 12px !important;
+}
+
+.apexcharts-tooltip-text-y-label,
+.apexcharts-tooltip-text-y-value {
+  color: var(--text-color) !important;
+}
+
+/* Enhanced Ant Design Select */
+.ant-select-selector {
+  background-color: transparent !important;
+}
+
+.ant-select-dropdown {
+  background: transparent !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--border-secondary) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+  color: var(--text-color) !important;
+}
+
+.ant-select-dropdown .ant-select-item {
+  color: var(--text-color) !important;
+  background: transparent !important;
+  border-radius: 8px !important;
+  margin: 2px 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.ant-select-dropdown .ant-select-item:hover {
+  background: var(--select-hover-bg) !important;
+  color: white !important;
+}
+
+.ant-select-dropdown .ant-select-item-option-selected {
+  background: var(--select-selected-bg) !important;
+  border-radius: 10px !important;
+  color: white !important;
+  font-weight: 600 !important;
+}
+
+.ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-selected),
+.ant-cascader-menu-item-active
+{
+  background: var(--primary-color) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+
+}
+
+
+/* Enhanced Popover */
+.ant-popover-content {
+  /* background: var(--secondary-color) !important; */
+  backdrop-filter: blur(15px) !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+  overflow: hidden !important;
+}
+
+.ant-popover-inner {
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+}
+
+.ant-popover-title {
+  background: rgba(181, 21, 21, 0.8) !important;
+  color: white !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  padding: 8px 16px !important;
+  margin: 0 !important;
+  font-weight: 600 !important;
+}
+
+.ant-popover-inner-content {
+  background: transparent !important;
+  color: var(--text-color) !important;
+  padding: 12px 16px !important;
+}
+
+.ant-popover-arrow {
+  display: none !important;
+}
+
+/* Custom Animation Classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Custom Utility Classes */
+.blur-bg {
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.text-glow {
+  text-shadow: 0 0 10px var(--primary-color);
+}
+
+.border-glow {
+  box-shadow: 0 0 20px rgba(181, 21, 21, 0.3);
+}
+
+
+
+
+/* ant defualt element change */
+
+.ant-card {
+    margin-bottom: 20px;
+    /* //custom */
+     background-color: rgb(255 255 255 / 6%) !important; 
+    /*border : none; */
+}
+.ant-btn {
+    /* background-color: rgb(255 255 255 / 6%) !important;  */
+}
+.ant-table{
+    background-color: transparent !important; 
+}
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead >tr>th {
+    background-color:  transparent !important; 
+}
+
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr.ant-table-row-selected >th, :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr.ant-table-row-selected >td {
+    background-color:  #181818 !important;
+}
+
+table tr border change
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr>th, :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr>td {
+    border-bottom: 1px solid #4d5b7556 !important;
+}
+
+/* ant table tr hover bg color change */
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr:hover >th, :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr:hover >td {
+    background-color:  #181818 !important;
+}
+
+/* ant chebox bg transparent */
+.ant-checkbox-inner {
+    background-color: transparent !important;
+}
+/* checkbox checked then bg color primary color */
+.ant-checkbox-checked .ant-checkbox-inner {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+}
+/* ant-dropdown  menu bg color bg-secondary  */
+.ant-dropdown-menu {
+    background-color: var(--bg-secondary) !important;
+    /* bg blur */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+
+
+
+/* ant-upload bg remove and text white  */
+.ant-upload {
+    background-color: transparent !important;
+    color: var(--text-white) !important;
+}
+
+:where(.css-dev-only-do-not-override-1u1move).ant-btn-default {
+    background-color: transparent !important;
+    border-color: var(--border-secondary) !important;
+    color: var(--text-white) !important;
+    &:hover, &:focus {
+        border-color: var(--primary-color) !important;
+        color: var(--primary-color) !important;
+    }
+}
+.ant-upload-text:hover , .ant-upload-text:focus {
+    color: var(--primary-color) !important;
+}
+.css-158is76-DemoCard , .css-cma18s {
+    background-color: rgb(255 255 255 / 6%) !important; 
+    border: none !important;
+}
+
+/* ant card border remove  */
+.ant-card-bordered {
+    border: none !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
+    border-radius: .625rem !important;
+    background-color: var(--bg-secondary) !important;
+}
+
+
+/* ant badge border remvoe */
+.ant-badge-count {
+    border: none !important;
+    box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
+    /* background-color: var(--primary-color) !important; */
+}
+
+
+
+
+/* .apexcharts-tooltip {
+    box-shadow: #aeaeae 0 0 10px !important
+}
+
+.apexcharts-tooltip.apexcharts-theme-light {
+    border: 0 !important;
+    background: #fff !important
+}
+
+.apexcharts-tooltip.apexcharts-theme-light .apexcharts-tooltip-title {
+    background: 0 0 !important;
+    border-bottom: 0 !important
+}
+
+.apexcharts-datalabel-value {
+    fill: #fff !important
+}
+
+.apexcharts-datalabel-label {
+    fill: #b4bed2 !important
+}
+
+.apexcharts-tooltip-title {
+    margin-bottom: 0 !important
+}
+
+.apexcharts-gridline {
+    stroke: #4d5b75
+}
+
+.apexcharts-text tspan {
+    fill: #b4bed2
+}
+
+.apexcharts-menu-item {
+    text-align: left
+}
+
+.apexcharts-xaxistooltip {
+    opacity: 0;
+    padding: 9px 10px;
+    pointer-events: none;
+    color: #373d3f;
+    font-size: 13px;
+    text-align: center;
+    border-radius: 2px;
+    position: absolute;
+    z-index: 10;
+    background: #eceff1;
+    border: 1px solid #90a4ae;
+    transition: .15s ease all
+}
+
+.apexcharts-legend-text {
+    color: #b4bed2 !important;
+    font-size: 14px !important;
+    font-weight: 400 !important;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji' !important
+} */

@@ -1,0 +1,276 @@
+/* Enhanced Ant Design Notification Styling with Glassmorphism */
+
+/* Main notification container */
+.ant-notification {
+    position: fixed !important;
+    z-index: 1050 !important;
+}
+
+/* Individual notification item */
+.ant-notification-notice {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+    color: var(--text-white) !important;
+    margin-bottom: 16px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.ant-notification-notice:hover {
+    transform: translateX(-4px) !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Notification content wrapper */
+.ant-notification-notice-content {
+    padding: 16px 20px !important;
+    background: transparent !important;
+}
+
+/* Notification with icon */
+.ant-notification-notice-with-icon .ant-notification-notice-content {
+    padding: 16px 20px 16px 52px !important;
+}
+
+/* Notification message/title */
+.ant-notification-notice-message {
+    color: var(--text-white) !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    line-height: 1.5 !important;
+    margin-bottom: 4px !important;
+}
+
+/* Notification description */
+.ant-notification-notice-description {
+    color: rgba(255, 255, 255, 0.85) !important;
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+}
+
+/* Notification close button */
+.ant-notification-notice-close {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    background: transparent !important;
+    border: none !important;
+    width: 24px !important;
+    height: 24px !important;
+    border-radius: 4px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+}
+
+.ant-notification-notice-close:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+}
+
+.ant-notification-notice-close .anticon {
+    font-size: 12px !important;
+}
+
+/* Notification icons */
+.ant-notification-notice-icon {
+    position: absolute !important;
+    left: 20px !important;
+    top: 18px !important;
+    font-size: 20px !important;
+}
+
+/* Success notification */
+.ant-notification-notice-success {
+    border-left: 4px solid #52c41a !important;
+}
+
+.ant-notification-notice-success .ant-notification-notice-icon {
+    color: #52c41a !important;
+}
+
+/* Info notification */
+.ant-notification-notice-info {
+    border-left: 4px solid #1890ff !important;
+}
+
+.ant-notification-notice-info .ant-notification-notice-icon {
+    color: #1890ff !important;
+}
+
+/* Warning notification */
+.ant-notification-notice-warning {
+    border-left: 4px solid #faad14 !important;
+}
+
+.ant-notification-notice-warning .ant-notification-notice-icon {
+    color: #faad14 !important;
+}
+
+/* Error notification */
+.ant-notification-notice-error {
+    border-left: 4px solid var(--primary-color) !important;
+}
+
+.ant-notification-notice-error .ant-notification-notice-icon {
+    color: var(--primary-color) !important;
+}
+
+/* Custom primary notification */
+.ant-notification-notice-primary {
+    border-left: 4px solid var(--primary-color) !important;
+    background: rgba(181, 21, 21, 0.1) !important;
+}
+
+.ant-notification-notice-primary .ant-notification-notice-icon {
+    color: var(--primary-color) !important;
+}
+
+/* Notification button styling */
+.ant-notification-notice .ant-btn {
+    margin-top: 12px !important;
+    margin-right: 8px !important;
+}
+
+.ant-notification-notice .ant-btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+.ant-notification-notice .ant-btn-primary:hover {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    opacity: 0.9 !important;
+}
+
+.ant-notification-notice .ant-btn-default {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    color: var(--text-white) !important;
+}
+
+.ant-notification-notice .ant-btn-default:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+}
+
+/* Notification positioning */
+.ant-notification-topRight {
+    top: 24px !important;
+    right: 24px !important;
+}
+
+.ant-notification-topLeft {
+    top: 24px !important;
+    left: 24px !important;
+}
+
+.ant-notification-bottomRight {
+    bottom: 24px !important;
+    right: 24px !important;
+}
+
+.ant-notification-bottomLeft {
+    bottom: 24px !important;
+    left: 24px !important;
+}
+
+/* Custom progress bar for notifications with duration */
+.ant-notification-notice::before {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    height: 2px !important;
+    background: var(--primary-color) !important;
+    width: 0% !important;
+    transition: width linear !important;
+}
+
+/* Animation for entering notifications */
+@keyframes notificationSlideIn {
+    0% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes notificationSlideOut {
+    0% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.ant-notification-notice {
+    animation: notificationSlideIn 0.3s ease-out !important;
+}
+
+.ant-notification-notice-close-pending {
+    animation: notificationSlideOut 0.3s ease-in !important;
+}
+
+/* Custom notification actions */
+.ant-notification-notice-btn {
+    margin-top: 12px !important;
+    display: flex !important;
+    gap: 8px !important;
+}
+
+/* Responsive notifications */
+@media (max-width: 768px) {
+    .ant-notification {
+        left: 16px !important;
+        right: 16px !important;
+        width: calc(100% - 32px) !important;
+    }
+    
+    .ant-notification-notice {
+        margin-bottom: 12px !important;
+    }
+    
+    .ant-notification-notice-content {
+        padding: 12px 16px !important;
+    }
+    
+    .ant-notification-notice-with-icon .ant-notification-notice-content {
+        padding: 12px 16px 12px 44px !important;
+    }
+    
+    .ant-notification-notice-icon {
+        left: 16px !important;
+        top: 14px !important;
+        font-size: 18px !important;
+    }
+    
+    .ant-notification-notice-close {
+        top: 8px !important;
+        right: 8px !important;
+    }
+}
+
+/* Dark mode specific enhancements */
+@media (prefers-color-scheme: dark) {
+    .ant-notification-notice {
+        border-color: rgba(255, 255, 255, 0.15) !important;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6) !important;
+    }
+}

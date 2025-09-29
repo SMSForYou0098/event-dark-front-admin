@@ -1,0 +1,254 @@
+/* Enhanced Date Picker Styling */
+.ant-picker {
+    background-color: transparent !important;
+    border: 1px solid var(--border-secondary) !important;
+    color: #ffff !important;
+    box-shadow: none !important;
+}
+
+.ant-picker:hover, .ant-picker-focused {
+    border-color: var(--primary-color) !important;
+}
+
+.ant-picker:focus,
+.ant-picker-focused {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(181, 21, 21, 0.2) !important;
+}
+
+.ant-picker-panel-container {
+    background: transparent !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid var(--border-secondary) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+    color: var(--text-color) !important;
+}
+
+/* Date picker panel styling */
+.ant-picker-panel {
+    background: transparent !important;
+    border: none !important;
+}
+
+.ant-picker-header {
+    border-bottom: 1px solid var(--border-secondary) !important;
+}
+
+.ant-picker-header-view {
+    color: var(--text-white) !important;
+}
+
+.ant-picker-prev-icon,
+.ant-picker-next-icon,
+.ant-picker-super-prev-icon,
+.ant-picker-super-next-icon {
+    color: var(--text-white) !important;
+}
+
+/* Calendar cells */
+.ant-picker-cell {
+    font-weight: 500 !important;
+    color: var(--text-white) !important;
+}
+
+.ant-picker-cell-inner {
+    color: var(--text-white) !important;
+    border-radius: 6px !important;
+    transition: all 0.2s ease !important;
+    &:hover {
+        background: var(--primary-color) !important;
+    }
+}
+
+/* Range selection background fix */
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-start:not(.ant-picker-cell-range-start-single)::before,
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-start:not(.ant-picker-cell-range-start-single)::after,
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-range-end:not(.ant-picker-cell-range-end-single)::before,
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-cell-in-view.ant-picker-cell-in-range::before {
+    background-color: rgba(181, 21, 21, 0.15) !important;
+}
+
+/* Range selection - only for dates in view */
+.ant-picker-cell-in-range .ant-picker-cell-inner {
+    background: transparent !important;
+}
+
+.ant-picker-cell-in-range.ant-picker-cell-in-view .ant-picker-cell-inner {
+    background-color: rgba(181, 21, 21, 0.15) !important;
+    border-radius: 0 !important;
+}
+
+/* Remove range styling from cells that are not in view */
+.ant-picker-cell:not(.ant-picker-cell-in-view).ant-picker-cell-in-range .ant-picker-cell-inner {
+    background: transparent !important;
+}
+
+/* Remove all default hover effects first */
+.ant-picker-cell:hover .ant-picker-cell-inner {
+    background: transparent !important;
+    border: none !important;
+    color: var(--text-white) !important;
+}
+
+.ant-picker-cell-range-start-hover ,
+.ant-picker-cell-range-hover ,
+.ant-picker-cell-range-end-hover {
+    background: transparent !important;
+    border: none !important;
+    color: var(--primary-color) !important;
+}
+/* Remove blue hover from range cells */
+.ant-picker-cell-in-range:hover .ant-picker-cell-inner {
+    background-color: rgba(181, 21, 21, 0.15) !important;
+    border: none !important;
+    color: var(--text-white) !important;
+}
+
+/* Range hover effects - separate from regular hover */
+.ant-picker-cell-range-hover:not(.ant-picker-cell-range-start):not(.ant-picker-cell-range-end) .ant-picker-cell-inner {
+    background-color: rgba(181, 21, 21, 0.25) !important;
+    border: none !important;
+    color: var(--primary-color) !important;
+}
+
+/* Selected date - background primary */
+.ant-picker-cell-selected .ant-picker-cell-inner,
+.ant-picker-cell-range-end .ant-picker-cell-inner,
+.ant-picker-cell-range-start .ant-picker-cell-inner {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    border: 2px solid var(--primary-color) !important;
+}
+
+/* Range start and end styling with proper borders */
+.ant-picker-cell-range-start .ant-picker-cell-inner {
+    border-radius: 6px 0 0 6px !important;
+}
+
+.ant-picker-cell-range-end .ant-picker-cell-inner {
+    border-radius: 0 6px 6px 0 !important;
+}
+
+/* Single date selection (when start and end are same) */
+.ant-picker-cell-range-start.ant-picker-cell-range-end .ant-picker-cell-inner {
+    border-radius: 6px !important;
+}
+
+/* Today date styling */
+.ant-picker-cell-today .ant-picker-cell-inner::before {
+    border: 1px solid var(--primary-color) !important;
+    border-radius: 6px !important;
+}
+
+.ant-picker-cell-today .ant-picker-cell-inner {
+    color: var(--primary-color) !important;
+}
+
+/* Selected today date */
+.ant-picker-cell-today.ant-picker-cell-selected .ant-picker-cell-inner,
+.ant-picker-cell-today.ant-picker-cell-selected .ant-picker-cell-inner::before {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Disabled dates */
+.ant-picker-cell-disabled .ant-picker-cell-inner {
+    color: var(--text-disabled) !important;
+    background: transparent !important;
+}
+
+/* Remove range styling from disabled dates */
+.ant-picker-cell-disabled.ant-picker-cell-in-range .ant-picker-cell-inner {
+    background: transparent !important;
+}
+
+/* Footer styling */
+.ant-picker-footer {
+    border-top: 1px solid var(--border-secondary) !important;
+    background: transparent !important;
+}
+
+.ant-picker-today-btn {
+    color: var(--primary-color) !important;
+}
+
+.ant-picker-today-btn:hover {
+    color: var(--primary-color) !important;
+    background: rgba(181, 21, 21, 0.1) !important;
+}
+
+/* Time panel if using datetime picker */
+.ant-picker-time-panel {
+    border-left: 1px solid var(--border-secondary) !important;
+}
+
+.ant-picker-time-panel-column {
+    border-right: 1px solid var(--border-secondary) !important;
+}
+
+.ant-picker-time-panel-cell {
+    color: var(--text-color) !important;
+}
+
+.ant-picker-time-panel-cell:hover {
+    background: rgba(181, 21, 21, 0.1) !important;
+}
+
+.ant-picker-time-panel-cell-selected {
+    /* background-color: var(--primary-color) !important; */
+    color: white !important;
+}
+
+/* Force remove all default Ant Design hover effects */
+.ant-picker-cell:hover,
+.ant-picker-cell-range-hover-start,
+.ant-picker-cell-range-hover-end,
+.ant-picker-cell-range-hover {
+    background: transparent !important;
+}
+
+/* Override any blue hover colors with important specificity */
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-cell:hover .ant-picker-cell-inner {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* More specific overrides for range hover */
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-cell-in-range:hover .ant-picker-cell-inner {
+    background-color: rgba(181, 21, 21, 0.15) !important;
+}
+
+/* Ensure no blue backgrounds on any hover states */
+.ant-picker-cell-inner:hover,
+.ant-picker-cell:hover .ant-picker-cell-inner,
+.ant-picker-dropdown .ant-picker-cell:hover .ant-picker-cell-inner {
+    background: transparent !important;
+    border: none !important;
+}
+.ant-picker-time-panel-cell-selected .ant-picker-time-panel-cell-inner,
+.ant-picker-time-panel-cell-inner {
+    color: var(--text-white) !important;
+}
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-time-panel-column >li.ant-picker-time-panel-cell-selected .ant-picker-time-panel-cell-inner,
+:where(.css-dev-only-do-not-override-1u1move).ant-picker-dropdown .ant-picker-time-panel-column >li.ant-picker-time-panel-cell .ant-picker-time-panel-cell-inner:hover
+{
+    color: var(--text-white) !important;
+    transition: all 0.2s ease !important;
+    background: var(--primary-color) !important;
+}
+
+
+
+.ant-picker-cell-today .ant-picker-cell-inner{
+    color: var(--text-white) !important;
+}
+
+
+.ant-picker-dropdown .ant-picker-week-panel-row:hover td:before,
+.ant-picker-week-panel-row-range-hover td:before
+{
+    background-color: var(--primary-color) !important;
+}

@@ -1,0 +1,270 @@
+/* Enhanced Drawer Styling with Glassmorphism */
+
+/* Main drawer container */
+.ant-drawer {
+    background: transparent !important;
+}
+
+/* Drawer content wrapper */
+.ant-drawer-content-wrapper {
+    background: transparent !important;
+}
+
+/* Drawer content */
+.ant-drawer-content {
+    background: transparent !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+    color: var(--text-white) !important;
+}
+
+/* Drawer header */
+.ant-drawer-header {
+    background: transparent !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    padding: 16px 24px !important;
+}
+
+/* Drawer title */
+.ant-drawer-title {
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+}
+
+/* Drawer close button */
+.ant-drawer-close {
+    color: white !important;
+    background: transparent !important;
+    border: none !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 6px !important;
+    transition: all 0.3s ease !important;
+}
+
+.ant-drawer-close:hover {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+.ant-drawer-close .anticon {
+    color: white !important;
+    font-size: 14px !important;
+}
+
+/* Drawer body */
+.ant-drawer-body {
+    background: transparent !important;
+    color: var(--text-white) !important;
+    padding: 24px !important;
+}
+
+/* Drawer footer */
+.ant-drawer-footer {
+    background: rgba(255, 255, 255, 0.05) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-white) !important;
+    padding: 16px 24px !important;
+}
+
+/* Drawer mask/overlay */
+.ant-drawer-mask {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* Drawer content text elements */
+.ant-drawer-body p,
+.ant-drawer-body span,
+.ant-drawer-body div,
+.ant-drawer-body label {
+    color: var(--text-white) !important;
+}
+
+/* Drawer content headings */
+.ant-drawer-body h1,
+.ant-drawer-body h2,
+.ant-drawer-body h3,
+.ant-drawer-body h4,
+.ant-drawer-body h5,
+.ant-drawer-body h6 {
+    color: var(--text-white) !important;
+    font-weight: 600 !important;
+}
+
+/* Drawer content links */
+.ant-drawer-body a {
+    color: var(--primary-color) !important;
+    transition: all 0.3s ease !important;
+}
+
+.ant-drawer-body a:hover {
+    color: white !important;
+}
+
+/* Drawer list items */
+.ant-drawer-body .ant-list-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: var(--text-white) !important;
+}
+
+.ant-drawer-body .ant-list-item:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Drawer form elements */
+.ant-drawer-body .ant-form-item-label > label {
+    color: var(--text-white) !important;
+}
+
+.ant-drawer-body .ant-form-item-explain,
+.ant-drawer-body .ant-form-item-extra {
+    color: var(--text-secondary) !important;
+}
+
+/* Drawer buttons in content */
+.ant-drawer-body .ant-btn-primary {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+.ant-drawer-body .ant-btn-primary:hover {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    opacity: 0.9 !important;
+    color: white !important;
+}
+
+.ant-drawer-body .ant-btn-default {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid var(--border-secondary) !important;
+    color: var(--text-white) !important;
+}
+
+.ant-drawer-body .ant-btn-default:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: var(--primary-color) !important;
+    color: var(--primary-color) !important;
+}
+
+/* Drawer divider */
+.ant-drawer-body .ant-divider {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-drawer-body .ant-divider-inner-text {
+    color: var(--text-white) !important;
+}
+
+/* Drawer tabs if present */
+.ant-drawer-body .ant-tabs-tab {
+    color: var(--text-white) !important;
+}
+
+.ant-drawer-body .ant-tabs-tab:hover {
+    color: var(--primary-color) !important;
+}
+
+.ant-drawer-body .ant-tabs-tab-active {
+    color: var(--primary-color) !important;
+}
+
+.ant-drawer-body .ant-tabs-content {
+    color: var(--text-white) !important;
+}
+
+/* Drawer collapse/accordion */
+.ant-drawer-body .ant-collapse {
+    background: transparent !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-drawer-body .ant-collapse-item {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.ant-drawer-body .ant-collapse-header {
+    background: rgba(255, 255, 255, 0.05) !important;
+    color: var(--text-white) !important;
+}
+
+.ant-drawer-body .ant-collapse-content {
+    background: transparent !important;
+    color: var(--text-white) !important;
+}
+
+/* Right drawer specific positioning */
+
+
+.ant-drawer-right .ant-drawer-content {
+    border-radius: 20px 0 0 20px !important; /* Rounded left side */
+}
+
+.ant-drawer-left .ant-drawer-content {
+    border-radius: 0 20px 20px 0 !important; /* Rounded right side */
+}
+
+.ant-drawer-top .ant-drawer-content {
+    border-radius: 0 0 20px 20px !important; /* Rounded bottom side */
+}
+
+.ant-drawer-bottom .ant-drawer-content {
+    border-radius: 20px 20px 0 0 !important; /* Rounded top side */
+}
+
+/* Drawer animation enhancement */
+.ant-drawer-content-wrapper {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Scrollbar styling for drawer */
+.ant-drawer-body::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.ant-drawer-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 3px !important;
+}
+
+.ant-drawer-body::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 3px !important;
+}
+
+.ant-drawer-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Responsive drawer */
+@media (max-width: 768px) {
+    .ant-drawer-content-wrapper {
+        width: 100% !important;
+        max-width: 100vw !important;
+    }
+    
+    .ant-drawer-body {
+        padding: 16px !important;
+    }
+    
+    .ant-drawer-header {
+        padding: 12px 16px !important;
+    }
+    
+    .ant-drawer-footer {
+        padding: 12px 16px !important;
+    }
+}
