@@ -1,0 +1,162 @@
+/* Dark Theme Tag Styles */
+
+/* Base tag styles */
+.ant-tag {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px !important;
+  color: #ffffff;
+  padding: 2px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.ant-tag:hover {
+  opacity: 0.85;
+}
+
+/* Ready status - Blue theme */
+.ant-tag-blue {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+/* Shipped status - Cyan/Teal theme */
+.ant-tag-cyan,
+.ant-tag-geekblue {
+  background-color: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.3);
+  color: #22d3ee;
+}
+
+/* Paid status - Green theme */
+.ant-tag-green,
+.ant-tag-success {
+  background-color: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+/* Pending status - Orange/Yellow theme */
+.ant-tag-orange,
+.ant-tag-gold,
+.ant-tag-warning {
+  background-color: rgba(251, 146, 60, 0.15);
+  border-color: rgba(251, 146, 60, 0.3);
+  color: #fb923c;
+}
+
+/* Expired status - Red theme */
+.ant-tag-red,
+.ant-tag-error {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+/* Additional status colors */
+.ant-tag-purple {
+  background-color: rgba(168, 85, 247, 0.15);
+  border-color: rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+}
+
+.ant-tag-magenta {
+  background-color: rgba(236, 72, 153, 0.15);
+  border-color: rgba(236, 72, 153, 0.3);
+  color: #f472b6;
+}
+
+.ant-tag-volcano {
+  background-color: rgba(251, 113, 133, 0.15);
+  border-color: rgba(251, 113, 133, 0.3);
+  color: #fb7185;
+}
+
+.ant-tag-lime {
+  background-color: rgba(163, 230, 53, 0.15);
+  border-color: rgba(163, 230, 53, 0.3);
+  color: #a3e635;
+}
+
+/* Close icon styling */
+.ant-tag-close-icon {
+  color: rgba(255, 255, 255, 0.65);
+  margin-left: 4px;
+  font-size: 11px;
+  transition: color 0.3s ease;
+}
+
+.ant-tag-close-icon:hover {
+  color: #ffffff;
+}
+
+/* Checkable tags */
+.ant-tag-checkable {
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+}
+
+.ant-tag-checkable:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.ant-tag-checkable-checked {
+  background-color: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+/* Hidden tag */
+.ant-tag-hidden {
+  display: none;
+}
+
+/* Status indicator dot styles (if using with icons) */
+.ant-tag .anticon {
+  margin-right: 4px;
+  font-size: 10px;
+}
+
+/* Custom status classes for your specific use case */
+.status-ready {
+  background-color: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+.status-shipped {
+  background-color: rgba(6, 182, 212, 0.15);
+  border-color: rgba(6, 182, 212, 0.3);
+  color: #22d3ee;
+}
+
+.status-paid {
+  background-color: rgba(34, 197, 94, 0.15);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #4ade80;
+}
+
+.status-pending {
+  background-color: rgba(251, 146, 60, 0.15);
+  border-color: rgba(251, 146, 60, 0.3);
+  color: #fb923c;
+}
+
+.status-expired {
+  background-color: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #f87171;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ant-tag {
+    font-size: 12px;
+    padding: 1px 10px;
+  }
+}

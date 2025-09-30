@@ -115,7 +115,7 @@ const SearchInput = props => {
 					width: 100%;
 			
 					.ant-input-affix-wrapper {
-						background-color: ${mode === 'light' ? '#1b2531' : BODY_BACKGROUND};
+						background-color: ${mode === 'light' ? '#000' : BODY_BACKGROUND};
 			
 						.ant-input {
 							background-color: transparent;

@@ -1,0 +1,18 @@
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead >tr>td {
+    background-color:  transparent !important;
+}
+
+.ant-pagination .ant-pagination-item-active{
+    border : none !important;
+}
+
+/* //all the text in the table :default color white */
+.ant-table-wrapper .ant-table-tbody > tr > td {
+    color: white !important;
+}
+
+/* for header text color white with bold */
+.ant-table-wrapper .ant-table-thead > tr > th {
+    color: white !important;
+    font-weight: bold !important;
+}

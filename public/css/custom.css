@@ -1,12 +1,37 @@
 @import url('./datepicker.css');
 @import url('./scrollbar.css');
 @import url('./input.css');
-@import url('./sidebar.css');
+/* @import url('./sidebar.css'); */
 @import url('./drawer.css');
 @import url('./notication.css');
+@import url('./table.css');
+@import url('./tag.css');
+
+.css-hrcas2-PageHeaderAlt {
+  background-color: var(--bg-secondary) !important;
+  border: none !important;
+  border-bottom: none !important;
+}
+
+.ant-menu-item-selected,
+.ant-menu-submenu-selected>.ant-menu-submenu-title {
+  color: var(--primary-color) !important;
+}
+
+.ant-menu-submenu-popup,
+.ant-menu-light.ant-menu-submenu>.ant-menu 
+{
+  background: transparent !important;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
 /* Custom Glassmorphism Components */
 .glassmorphism-card {
-background: transparent !important;
+  background: transparent !important;
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
   border-radius: 16px;
@@ -95,12 +120,11 @@ background: transparent !important;
 }
 
 .ant-select-dropdown .ant-select-item-option-active:not(.ant-select-item-option-selected),
-.ant-cascader-menu-item-active
-{
+.ant-cascader-menu-item-active {
   background: var(--primary-color) !important;
-    color: white !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
+  color: white !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
 
 }
 
@@ -146,8 +170,15 @@ background: transparent !important;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .slide-up {
@@ -155,8 +186,15 @@ background: transparent !important;
 }
 
 @keyframes slideUp {
-  from { transform: translateY(100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Custom Utility Classes */
@@ -179,50 +217,57 @@ background: transparent !important;
 /* ant defualt element change */
 
 .ant-card {
-    margin-bottom: 20px;
-    /* //custom */
-     background-color: rgb(255 255 255 / 6%) !important; 
-    /*border : none; */
+  margin-bottom: 20px;
+  /* //custom */
+  background-color: rgb(255 255 255 / 6%) !important;
+  /*border : none; */
 }
+
 .ant-btn {
-    /* background-color: rgb(255 255 255 / 6%) !important;  */
-}
-.ant-table{
-    background-color: transparent !important; 
-}
-:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead >tr>th {
-    background-color:  transparent !important; 
+  /* background-color: rgb(255 255 255 / 6%) !important;  */
 }
 
-:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr.ant-table-row-selected >th, :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr.ant-table-row-selected >td {
-    background-color:  #181818 !important;
+.ant-table {
+  background-color: transparent !important;
 }
 
-table tr border change
-:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr>th, :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr>td {
-    border-bottom: 1px solid #4d5b7556 !important;
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead>tr>th {
+  background-color: transparent !important;
+}
+
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr.ant-table-row-selected>th,
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr.ant-table-row-selected>td {
+  background-color: #181818 !important;
+}
+
+table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr>th,
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr>td {
+  border-bottom: 1px solid #4d5b7556 !important;
 }
 
 /* ant table tr hover bg color change */
-:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr:hover >th, :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody >tr:hover >td {
-    background-color:  #181818 !important;
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr:hover>th,
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr:hover>td {
+  background-color: #181818 !important;
 }
 
 /* ant chebox bg transparent */
 .ant-checkbox-inner {
-    background-color: transparent !important;
+  background-color: transparent !important;
 }
+
 /* checkbox checked then bg color primary color */
 .ant-checkbox-checked .ant-checkbox-inner {
-    background-color: var(--primary-color) !important;
-    border-color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
 }
+
 /* ant-dropdown  menu bg color bg-secondary  */
 .ant-dropdown-menu {
-    background-color: var(--bg-secondary) !important;
-    /* bg blur */
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+  background-color: var(--bg-secondary) !important;
+  /* bg blur */
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 
@@ -230,41 +275,48 @@ table tr border change
 
 /* ant-upload bg remove and text white  */
 .ant-upload {
-    background-color: transparent !important;
-    color: var(--text-white) !important;
+  background-color: transparent !important;
+  color: var(--text-white) !important;
 }
 
 :where(.css-dev-only-do-not-override-1u1move).ant-btn-default {
-    background-color: transparent !important;
-    border-color: var(--border-secondary) !important;
-    color: var(--text-white) !important;
-    &:hover, &:focus {
-        border-color: var(--primary-color) !important;
-        color: var(--primary-color) !important;
-    }
+  background-color: transparent !important;
+  border-color: var(--border-secondary) !important;
+  color: var(--text-white) !important;
+  font-weight: bold !important;
+
+  &:hover,
+  &:focus {
+    border-color: var(--primary-color) !important;
+    /* color: var(--primary-color) !important; */
+  }
 }
-.ant-upload-text:hover , .ant-upload-text:focus {
-    color: var(--primary-color) !important;
+
+.ant-upload-text:hover,
+.ant-upload-text:focus {
+  color: var(--primary-color) !important;
 }
-.css-158is76-DemoCard , .css-cma18s {
-    background-color: rgb(255 255 255 / 6%) !important; 
-    border: none !important;
+
+.css-158is76-DemoCard,
+.css-cma18s {
+  background-color: rgb(255 255 255 / 6%) !important;
+  border: none !important;
 }
 
 /* ant card border remove  */
 .ant-card-bordered {
-    border: none !important;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
-    border-radius: .625rem !important;
-    background-color: var(--bg-secondary) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
+  border-radius: .625rem !important;
+  background-color: var(--bg-secondary) !important;
 }
 
 
 /* ant badge border remvoe */
 .ant-badge-count {
-    border: none !important;
-    box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
-    /* background-color: var(--primary-color) !important; */
+  border: none !important;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
+  /* background-color: var(--primary-color) !important; */
 }
 
 

@@ -91,7 +91,7 @@ const ProductForm = props => {
 					weightUnit: 'kg'
 				}}
 			>
-				<PageHeaderAlt className="border-bottom" overlap>
+				<PageHeaderAlt overlap>
 					<div className="container">
 						<Flex className="py-2" mobileFlex={false} justifyContent="space-between" alignItems="center">
 							<h2 className="mb-3">{mode === 'ADD'? 'Add New Product' : `Edit Product`} </h2>

@@ -9,10 +9,10 @@ import { useSelector } from 'react-redux';
 const ErrorOne = () => {
 	const theme = useSelector(state => state.theme.currentTheme)
 	return (
-		<div className={`h-100 ${theme === 'light' ? 'bg-white' : ''}`}>
-			<div className="container-fluid d-flex flex-column justify-content-between h-100 px-md-4 pb-md-4 pt-md-1">
+		<div className={`h-100 bg-dark`}>
+			<div className="container-fluid d-flex flex-column justify-content-between h-100 px-md-4 pb-md-4 pt-md-1 dark">
 				<div>
-					<img className="img-fluid" src={`/img/${theme === 'light' ? 'logo.png': 'logo-white.png'}`} alt="" />
+					<img className="img-fluid" src={`/img/logo-white.png`} alt="" />
 				</div>
 				<div className="container">
 					<Row align="middle">

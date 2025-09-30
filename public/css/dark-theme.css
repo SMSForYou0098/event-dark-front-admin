@@ -39,6 +39,9 @@
   --select-selected-bg: var(--primary-color);
 }
 
+.bg-dark {
+  background-color: var(--body-bg) !important;
+}
 
 /* span {
     color: var(--text-white) !important;
@@ -77,7 +80,9 @@
 }
 
 
-
+body {
+    background: var(--body-bg);
+}
 
 .h1,
 .h2,
@@ -2361,7 +2366,7 @@ button.bg-gray-lightest:hover {
 
 .bg-dark,
 .bg-white {
-    background-color: #fff !important
+    /* background-color: #fff !important */
 }
 
 a.bg-dark:focus,
@@ -2384,20 +2389,20 @@ button.bg-dark:hover {
 }
 
 .border-bottom {
-    border-bottom: 1px solid #4d5b75 !important
+    border-bottom: 1px solid var(--border-color) !important
 }
 
 .dir-ltr .border-right {
-    border-right: 1px solid #4d5b75 !important
+    border-right: 1px solid var(--border-color) !important
 }
 
 .dir-ltr .border-left,
 .dir-rtl .border-right {
-    border-left: 1px solid #4d5b75 !important
+    border-left: 1px solid var(--border-color) !important
 }
 
 .dir-rtl .border-left {
-    border-right: 1px solid #4d5b75 !important
+    border-right: 1px solid var(--border-color) !important
 }
 
 .border-0 {
