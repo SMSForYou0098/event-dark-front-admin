@@ -13,6 +13,7 @@ import Flex from 'components/shared-components/Flex';
 import { signOut } from 'store/slices/authSlice';
 import styled from '@emotion/styled';
 import { FONT_WEIGHT, MEDIA_QUERIES, SPACER, FONT_SIZES } from 'constants/ThemeConstant'
+import { useMyContext } from 'Context/MyContextProvider';
 
 const Icon = styled.div(() => ({
 	fontSize: FONT_SIZES.LG
@@ -90,16 +91,24 @@ const items = [
 ]
 
 export const NavProfile = ({mode}) => {
+	const {UserData} = useMyContext();
 	return (
 		<Dropdown placement="bottomRight" menu={{items}} trigger={["click"]}>
 			<NavItem mode={mode}>
 				<Profile>
-					<Avatar src="/img/avatars/thumb-1.jpg" />
-					<UserInfo className="profile-text">
-						<Name>Charlie Howard</Name>
-						<Title>Frontend Developer</Title>
-					</UserInfo>
-				</Profile>
+  <Avatar 
+    src={UserData?.photo}
+    style={{ 
+      backgroundColor: UserData?.photo ? 'transparent' : '#1890ff' 
+    }}
+  >
+    {!UserData?.photo && UserData?.name?.charAt(0).toUpperCase()}
+  </Avatar>
+  <UserInfo className="profile-text">
+    <Name>{UserData?.name}</Name>
+    <Title>{UserData?.role}</Title>
+  </UserInfo>
+</Profile>
 			</NavItem>
 		</Dropdown>
 	);

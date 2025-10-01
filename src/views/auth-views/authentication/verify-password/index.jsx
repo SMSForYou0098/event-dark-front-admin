@@ -1,0 +1,232 @@
+import React, { memo, Fragment, useState, useEffect, useCallback, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { logout, signIn } from '../../../../store/slices/authSlice';
+
+// Ant Design
+import { Row, Col } from 'antd';
+import { Card, Form, Input, Button, Alert, Typography, message } from 'antd';
+import { ArrowLeftOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { persistor } from 'store';
+import { AUTH_PREFIX_PATH } from 'configs/AppConfig';
+
+const { Title, Paragraph } = Typography;
+
+const VerifyPassword = memo(() => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const location = useLocation();
+
+  // Pulled from navigation state
+  const number = location?.state?.info?.data;
+  const session_id = location?.state?.info?.session_id;
+//   const passwordRequired = location?.state?.info?.password_required;
+  const auth_session = location?.state?.info?.auth_session;
+
+  const [password, setPassword] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Ref to prevent duplicate dispatches
+  const isVerifyingRef = useRef(false);
+
+  // Ensure we have the number, otherwise bounce to sign-in
+  useEffect(() => {
+    if (!number) {
+      navigate(`${AUTH_PREFIX_PATH}/sign-in`);
+    }
+  }, [number, navigate]);
+
+  // Leave protection + local state reset
+  useEffect(() => {
+    setPassword('');
+    setAttempts(0);
+    setError('');
+    setLoading(false);
+
+    const isConfirmedLeave = sessionStorage.getItem('isConfirmedLeave');
+    if (isConfirmedLeave) {
+      navigate(`${AUTH_PREFIX_PATH}/sign-in`);
+      sessionStorage.removeItem('isConfirmedLeave');
+    }
+
+    const handleBeforeUnload = (event) => {
+      const confirmationMessage =
+        'Are you sure you want to leave? Your current data will be lost.';
+      event.returnValue = confirmationMessage;
+      return confirmationMessage;
+    };
+
+    const handleUnload = () => {
+      sessionStorage.setItem('isConfirmedLeave', 'true');
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('unload', handleUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('unload', handleUnload);
+    };
+  }, [navigate]);
+
+  // Memoized verify password handler with ref guard
+  const handleVerifyPassword = useCallback(async () => {
+    // Guard against duplicate calls
+    if (isVerifyingRef.current) {
+      return;
+    }
+
+    if (!password) {
+      setAttempts((prev) => {
+        const newAttempts = prev + 1;
+        if (newAttempts >= 3) {
+          dispatch(logout());
+          persistor.purge();
+          navigate(`${AUTH_PREFIX_PATH}/sign-in`);
+        }
+        return newAttempts;
+      });
+      return;
+    }
+
+    try {
+      isVerifyingRef.current = true;
+      setLoading(true);
+      setError('');
+
+      const details = {
+        password,
+        number,
+        session_id,
+        auth_session,
+        passwordRequired: true,
+      };
+
+      const action = await dispatch(signIn(details));
+
+      if (action?.type === 'login/fulfilled') {
+        message.success('Login successful');
+        navigate('/dashboard');
+      } else {
+        setError(action?.payload || 'Invalid password');
+      }
+    } catch (e) {
+      console.error('Verify password error:', e);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+      isVerifyingRef.current = false;
+    }
+  }, [password, number, session_id, auth_session, dispatch, navigate]);
+
+  // Memoized key handler
+  const handleKeyDown = useCallback(
+    (event) => {
+      if (event.key === 'Enter' && password && !isVerifyingRef.current) {
+        handleVerifyPassword();
+      }
+    },
+    [password, handleVerifyPassword]
+  );
+
+  // Memoized back handler
+  const handleBack = useCallback(() => {
+    navigate(`${AUTH_PREFIX_PATH}/sign-in`);
+  }, [navigate]);
+
+  // Memoized password change handler
+  const handlePasswordChange = useCallback((e) => {
+    setPassword(e.target.value);
+    if (error) setError(''); // Clear error on input
+  }, [error]);
+
+  return (
+    <Fragment>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
+        <Row justify="end" style={{ width: '100%', margin: 0 }}>
+          <Col xs={22} sm={18} md={14} lg={10} xl={8} xxl={6}>
+            <Card
+              bordered
+              style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.08)', borderRadius: 16 }}
+            >
+              <div style={{ marginBottom: 16 }}>
+                <Button
+                  type="link"
+                  onClick={handleBack}
+                  icon={<ArrowLeftOutlined />}
+                  style={{ padding: 0 }}
+                >
+                  Back to Sign In
+                </Button>
+              </div>
+
+              <Title level={3} style={{ marginBottom: 8 }}>
+                Password Verification
+              </Title>
+              <Paragraph type="secondary" style={{ marginBottom: 24 }}>
+                Enter your password to continue to your account.
+              </Paragraph>
+
+              {error && (
+                <Alert
+                  type="error"
+                  showIcon
+                  icon={<ExclamationCircleOutlined />}
+                  message={error}
+                  closable
+                  onClose={() => setError('')}
+                  style={{ marginBottom: 16 }}
+                />
+              )}
+
+              <Form layout="vertical" onFinish={handleVerifyPassword}>
+                <Form.Item
+                  label="Password"
+                  name="password"
+                  validateStatus={error ? 'error' : ''}
+                  help={attempts > 0 && !password ? `Please enter password (Attempt ${attempts}/3)` : ''}
+                >
+                  <Input.Password
+                    size="large"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={handlePasswordChange}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    disabled={loading}
+                  />
+                </Form.Item>
+
+                <Form.Item>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    block
+                    loading={loading}
+                    disabled={!password}
+                  >
+                    {loading ? 'Verifying...' : 'Continue'}
+                  </Button>
+                </Form.Item>
+              </Form>
+
+              {attempts > 0 && (
+                <div style={{ textAlign: 'center', marginTop: 8 }}>
+                  <Typography.Text type="danger">
+                    Failed attempts: {attempts}/3
+                  </Typography.Text>
+                </div>
+              )}
+            </Card>
+          </Col>
+        </Row>
+      </div>
+    </Fragment>
+  );
+});
+
+VerifyPassword.displayName = 'VerifyPassword';
+export default VerifyPassword;

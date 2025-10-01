@@ -232,6 +232,22 @@ const appsNavTree = [{
       submenu: []
     },
     {
+      key: 'apps-users',
+      path: `${APP_PREFIX_PATH}/apps/users`,
+      title: 'sidenav.apps.users',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-organizers',
+      path: `${APP_PREFIX_PATH}/apps/organizers`,
+      title: 'sidenav.apps.organizers',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
       key: 'apps-calendar',
       path: `${APP_PREFIX_PATH}/apps/calendar`,
       title: 'sidenav.apps.calendar',

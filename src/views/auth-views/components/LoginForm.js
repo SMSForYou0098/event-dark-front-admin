@@ -1,196 +1,130 @@
-import React, { useEffect } from 'react';
-import { connect } from 'react-redux';
-import { Button, Form, Input, Divider, Alert } from 'antd';
-import { MailOutlined, LockOutlined } from '@ant-design/icons';
-import PropTypes from 'prop-types';
-import { GoogleSVG, FacebookSVG } from 'assets/svg/icon';
-import CustomIcon from 'components/util-components/CustomIcon'
-import { 
-	signIn, 
-	showLoading, 
-	showAuthMessage, 
-	hideAuthMessage, 
-	signInWithGoogle, 
-	signInWithFacebook 
-} from 'store/slices/authSlice';
-import { useNavigate } from 'react-router-dom'
-import { motion } from "framer-motion"
+import React, { useEffect, useState } from 'react';
+import { Button, Form, Input, Alert } from 'antd';
+import { MailOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from 'constants/ApiConstant';
+import { AUTH_PREFIX_PATH } from 'configs/AppConfig';
 
-export const LoginForm = props => {
-	
-	const navigate = useNavigate();
+const LoginForm = ({
+  showForgetPassword = false,   // kept for API-compat with your props
+  otherSignIn = false,          // turn off social here by default
+  extra = null,                 // any extra JSX you were injecting
+}) => {
+  const navigate = useNavigate();
 
-	const { 
-		otherSignIn, 
-		showForgetPassword, 
-		hideAuthMessage,
-		onForgetPasswordClick,
-		showLoading,
-		signInWithGoogle,
-		signInWithFacebook,
-		extra, 
-		signIn, 
-		token, 
-		loading,
-		redirect,
-		showMessage,
-		message,
-		allowRedirect = true
-	} = props
+  const [loading, setLoading] = useState(false);
+  const [showMessage, setShowMessage] = useState(false);
+  const [message, setMessage] = useState('');
 
-	const initialCredential = {
-		email: 'user1@themenate.net',
-		password: '2005ipo'
-	}
+  const onLogin = async (values) => {
+    const { data } = values; // "data" = email or mobile (same as your working file)
+    if (!data) {
+      setMessage('Please enter your email or mobile number.');
+      setShowMessage(true);
+      return;
+    }
 
-	const onLogin = values => {
-		showLoading()
-		signIn(values);
-	};
+    try {
+      setLoading(true);
+      const response = await axios.post(`${API_BASE_URL}verify-user`, { data });
 
-	const onGoogleLogin = () => {
-		showLoading()
-		signInWithGoogle()
-	}
+      if (response?.data?.status) {
+        const isPassReq = response?.data?.pass_req;
+        if (isPassReq === true) {
+          const session_id = response?.data?.session_id;
+          const auth_session = response?.data?.auth_session;
+          const info = { data, password_required: isPassReq, session_id, auth_session };
+          navigate(`${AUTH_PREFIX_PATH}/verify-password`, { state: { info } });
+        } else {
+          navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data } });
+        }
+      } else {
+        // Non-true status but no thrown error – mirror original behavior (just stop loading)
+		// navigate(`${AUTH_PREFIX_PATH}/register-1`, { state: { data } });
+      }
+    } catch (err) {
+      // If API returns { status:false } => go to sign-up with prefilled data
+      const status = err?.response?.data?.status;
+      const apiMsg = err?.response?.data?.message || err?.response?.data?.error;
 
-	const onFacebookLogin = () => {
-		showLoading()
-		signInWithFacebook()
-	}
+      if (status === false) {
+        navigate(`${AUTH_PREFIX_PATH}/register-1`, { state: { data } });
+      }
 
-	useEffect(() => {
-		if (token !== null && allowRedirect) {
-			navigate(redirect)
-		}
-		if (showMessage) {
-			const timer = setTimeout(() => hideAuthMessage(), 3000)
-			return () => {
-				clearTimeout(timer);
-			};
-		}
-	}, []);
-	
-	const renderOtherSignIn = (
-		<div>
-			<Divider>
-				<span className="text-muted font-size-base font-weight-normal">or connect with</span>
-			</Divider>
-			<div className="d-flex justify-content-center">
-				<Button 
-					onClick={() => onGoogleLogin()} 
-					className="mr-2" 
-					disabled={loading} 
-					icon={<CustomIcon svg={GoogleSVG}/>}
-				>
-					Google
-				</Button>
-				<Button 
-					onClick={() => onFacebookLogin()} 
-					icon={<CustomIcon svg={FacebookSVG}/>}
-					disabled={loading} 
-				>
-					Facebook
-				</Button>
-			</div>
-		</div>
-	)
+      setMessage(apiMsg || 'Something went wrong. Please try again.');
+      setShowMessage(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-	return (
-		<>
-			<motion.div 
-				initial={{ opacity: 0, marginBottom: 0 }} 
-				animate={{ 
-					opacity: showMessage ? 1 : 0,
-					marginBottom: showMessage ? 20 : 0 
-				}}> 
-				<Alert type="error" showIcon message={message}></Alert>
-			</motion.div>
-			<Form 
-				layout="vertical" 
-				name="login-form" 
-				initialValues={initialCredential}
-				onFinish={onLogin}
-			>
-				<Form.Item 
-					name="email" 
-					label="Email" 
-					rules={[
-						{ 
-							required: true,
-							message: 'Please input your email',
-						},
-						{ 
-							type: 'email',
-							message: 'Please enter a validate email!'
-						}
-					]}>
-					<Input prefix={<MailOutlined className="text-primary" />}/>
-				</Form.Item>
-				<Form.Item 
-					name="password" 
-					label={
-						<div className={`${showForgetPassword? 'd-flex justify-content-between w-100 align-items-center' : ''}`}>
-							<span>Password</span>
-							{
-								showForgetPassword && 
-								<span 
-									onClick={() => onForgetPasswordClick} 
-									className="cursor-pointer font-size-sm font-weight-normal text-muted"
-								>
-									Forget Password?
-								</span>
-							} 
-						</div>
-					} 
-					rules={[
-						{ 
-							required: true,
-							message: 'Please input your password',
-						}
-					]}
-				>
-					<Input.Password prefix={<LockOutlined className="text-primary" />}/>
-				</Form.Item>
-				<Form.Item>
-					<Button type="primary" htmlType="submit" block loading={loading}>
-						Sign In
-					</Button>
-				</Form.Item>
-				{
-					otherSignIn ? renderOtherSignIn : null
-				}
-				{ extra }
-			</Form>
-		</>
-	)
-}
+  // auto-hide alert like your original pattern
+  useEffect(() => {
+    if (showMessage) {
+      const t = setTimeout(() => setShowMessage(false), 3000);
+      return () => clearTimeout(t);
+    }
+  }, [showMessage]);
 
-LoginForm.propTypes = {
-	otherSignIn: PropTypes.bool,
-	showForgetPassword: PropTypes.bool,
-	extra: PropTypes.oneOfType([
-		PropTypes.string,
-		PropTypes.element
-	]),
+  // simple validator: allow email OR digits (mobile)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const phoneRegex = /^[0-9]{6,15}$/; // adjust if you want stricter
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, marginBottom: 0 }}
+        animate={{
+          opacity: showMessage ? 1 : 0,
+          marginBottom: showMessage ? 20 : 0,
+        }}
+      >
+        <Alert type="error" showIcon message={message} style={{ visibility: showMessage ? 'visible' : 'hidden' }} />
+      </motion.div>
+
+      <Form
+        layout="vertical"
+        name="login-form"
+        onFinish={onLogin}
+        autoComplete="on"
+      >
+        <Form.Item
+          name="data"
+          label="Email or mobile number"
+          rules={[
+            { required: true, message: 'Please enter your email or mobile number.' },
+            {
+              validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                const v = String(value).trim();
+                if (emailRegex.test(v) || phoneRegex.test(v)) return Promise.resolve();
+                return Promise.reject(new Error('Enter a valid email or mobile number'));
+              },
+            },
+          ]}
+        >
+          <Input
+            size="large"
+            placeholder="Email or mobile number"
+            prefix={<MailOutlined className="text-primary" />}
+          />
+        </Form.Item>
+
+        {/* Password field removed to mirror the verify-first flow.
+            If pass is required, we navigate to /verify-password exactly like your working component. */}
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit" block size="large" loading={loading}>
+            {loading ? 'Signing in...' : 'Sign In'}
+          </Button>
+        </Form.Item>
+
+        {extra}
+      </Form>
+    </>
+  );
 };
 
-LoginForm.defaultProps = {
-	otherSignIn: true,
-	showForgetPassword: false
-};
-
-const mapStateToProps = ({auth}) => {
-	const {loading, message, showMessage, token, redirect} = auth;
-  return {loading, message, showMessage, token, redirect}
-}
-
-const mapDispatchToProps = {
-	signIn,
-	showAuthMessage,
-	showLoading,
-	hideAuthMessage,
-	signInWithGoogle,
-	signInWithFacebook
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(LoginForm)
+export default LoginForm;

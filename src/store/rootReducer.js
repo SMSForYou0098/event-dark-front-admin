@@ -1,14 +1,17 @@
+// rootReducer.js
 import { combineReducers } from 'redux'
 import theme from './slices/themeSlice'
 import auth from './slices/authSlice'
 
-const rootReducer = (asyncReducers) => (state, action) => {
-    const combinedReducer = combineReducers({
-        theme,
-        auth,
-        ...asyncReducers,
-    })
-    return combinedReducer(state, action)
-}
-  
-export default rootReducer
+/**
+ * Creates the combined reducer given asyncReducers.
+ * This stays pure and just returns the combined reducer function.
+ */
+const createRootReducer = (asyncReducers = {}) =>
+  combineReducers({
+    theme,
+    auth,
+    ...asyncReducers,
+  })
+
+export default createRootReducer

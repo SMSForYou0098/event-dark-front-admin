@@ -18,6 +18,16 @@ export const publicRoutes = [
         component: React.lazy(() => import('views/auth-views/authentication/login-2')),
     },
     {
+        key: 'two-factor',
+        path: `${AUTH_PREFIX_PATH}/two-factor`,
+        component: React.lazy(() => import('views/auth-views/authentication/two-factor')),
+    },
+    {
+        key: 'verify-password',
+        path: `${AUTH_PREFIX_PATH}/verify-password`,
+        component: React.lazy(() => import('views/auth-views/authentication/verify-password')),
+    },
+    {
         key: 'register-1',
         path: `${AUTH_PREFIX_PATH}/register-1`,
         component: React.lazy(() => import('views/auth-views/authentication/register-1')),
@@ -69,6 +79,16 @@ export const protectedRoutes = [
         key: 'apps.mail',
         path: `${APP_PREFIX_PATH}/apps/mail/*`,
         component: React.lazy(() => import('views/app-views/apps/mail')),
+    },
+    {
+        key: 'apps.users',
+        path: `${APP_PREFIX_PATH}/apps/users`,
+        component: React.lazy(() => import('views/events/users/Users')),
+    },
+    {
+        key: 'apps.organizers',
+        path: `${APP_PREFIX_PATH}/apps/organizers`,
+        component: React.lazy(() => import('views/events/users/Organizers')),
     },
     {
         key: 'apps.chat',
