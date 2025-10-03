@@ -38,6 +38,12 @@
   --select-active-bg: rgba(181, 21, 21, 0.15);
   --select-selected-bg: var(--primary-color);
 }
+
+.ant-badge .ant-badge-count {
+    background-color: var(--primary-color);
+    color: var(--text-white);
+    box-shadow: 0 0 0 1px var(--body-bg);
+}
 :where(.css-dev-only-do-not-override-1u1move).ant-form-item .ant-form-item-label >label.ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
     color: var(--primary-color) !important;
 }

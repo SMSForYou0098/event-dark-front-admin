@@ -27,7 +27,7 @@ td
 {
     background-color: transparent !important;
 }
-.action-btn button {
+.ant-btn {
     line-height: 0% !important;
 }
 .ant-table-cell-fix-right, .ant-table-cell-fix-left {
@@ -35,3 +35,6 @@ td
    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
+
+
+

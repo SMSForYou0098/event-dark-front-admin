@@ -36,30 +36,13 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { persistor } from "store";
 import PermissionChecker from "layouts/PermissionChecker";
 
-// Format authentication status
-const formatAuthentication = (auth) => {
-  if (auth === 1) return <Tag color="green">Enabled</Tag>;
-  if (auth === 0) return <Tag color="orange">Pending</Tag>;
-  return <Tag color="default">Not Set</Tag>;
-};
-
-// Format date
-const formatDate = (dateString) => {
-  if (!dateString) return "N/A";
-  return new Date(dateString).toLocaleDateString();
-};
-
 const Users = () => {
   const navigate = useNavigate();
   const {
     UserPermissions,
     userRole,
     formatDateTime,
-    successAlert,
-    ErrorAlert,
-    authToken,
     auth_session,
-    UserData,
     session_id,
     loader,
   } = useMyContext();
@@ -202,8 +185,20 @@ const Users = () => {
   // Update handleDelete to use Ant Design Modal
   const handleDelete = useCallback((id) => {
     if (!id) return;
-    setConfirmDeleteModal({ visible: true, userId: id });
-  }, []);
+
+    Modal.confirm({
+      title: 'Are you sure?',
+      content: "You won't be able to revert this!",
+      okText: 'Yes, delete it!',
+      cancelText: 'Cancel',
+      centered: true,
+      confirmLoading: mutationLoading,
+      onOk: () => {
+        setMutationLoading(true);
+        deleteUserMutation.mutate(id);
+      }
+    });
+  }, [deleteUserMutation, mutationLoading]);
 
   // Confirm deletion handler
   const confirmDeleteUser = () => {
@@ -428,52 +423,61 @@ const Users = () => {
         {
           title: "Actions",
           key: "actions",
-          // sticky right
           fixed: "right",
+          width: 150,
           render: (_, record) => {
             const isDisabled = record?.is_deleted || record?.status === "1";
+
+            const actions = [
+              {
+                permission: "Update User",
+                tooltip: "Manage User",
+                icon: <Settings size={14} />,
+                onClick: () => handleAssignCredit(record.id),
+                type: "default",
+              },
+              {
+                permission: "Delete User",
+                tooltip: "Delete User",
+                icon: <Trash2 size={14} />,
+                onClick: () => handleDelete(record.id),
+                type: "default",
+                danger: true,
+                loading: deleteUserMutation.isPending,
+              },
+              {
+                permission: "Impersonet",
+                tooltip: `Login as ${record.name}`,
+                icon: <LogIn size={14} />,
+                onClick: () => handleImpersonate(record.id),
+                type: "primary",
+                loading: impersonateMutation.isPending,
+              }
+            ];
 
             return (
               <div className="action-btn">
                 <Space>
-                  <PermissionChecker permission="Update User">
-                    <Tooltip title="Manage User">
-                      <Button
-                        size="small"
-                        icon={<Settings size={14} />}
-                        onClick={() => handleAssignCredit(record.id)}
-                        title="Manage User"
-                        disabled={isDisabled || mutationLoading}
-                      />
-                    </Tooltip>
-                  </PermissionChecker>
-                  <PermissionChecker permission="Delete User">
-                    <Button
-                      size="small"
-                      danger
-                      icon={<Trash2 size={14} />}
-                      onClick={() => handleDelete(record.id)}
-                      title="Delete User"
-                      disabled={isDisabled || mutationLoading}
-                      loading={deleteUserMutation.isPending}
-                    />
-                  </PermissionChecker>
-                  <PermissionChecker permission="Impersonet">
-                    <Button
-                      size="small"
-                      type="primary"
-                      icon={<LogIn size={14} />}
-                      onClick={() => handleImpersonate(record.id)}
-                      title={`Login as ${record.name}`}
-                      disabled={isDisabled || mutationLoading}
-                      loading={impersonateMutation.isPending}
-                    />
-                  </PermissionChecker>
+                  {actions.map((action, index) => (
+                    <PermissionChecker key={index} permission={action.permission}>
+                      <Tooltip title={action.tooltip}>
+                        <Button
+                          size="small"
+                          type={action.type}
+                          danger={action.danger}
+                          icon={action.icon}
+                          onClick={action.onClick}
+                          disabled={isDisabled || mutationLoading}
+                          loading={action.loading}
+                        />
+                      </Tooltip>
+                    </PermissionChecker>
+                  ))}
                 </Space>
               </div>
             );
-          },
-        },
+          }
+        }
       ]
       : []),
   ];
@@ -490,21 +494,7 @@ const Users = () => {
       (deleteUserMutation.isPending || impersonateMutation.isPending)
     ) {
       return (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(255, 255, 255, 0.7)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 10000,
-            pointerEvents: "none",
-          }}
-        >
+        <div>
           <div style={{ pointerEvents: "auto", zIndex: 10001 }}>
             <Image
               src={loader}
@@ -598,22 +588,33 @@ const Users = () => {
         error={usersError}
         // Refresh handler
         onRefresh={handleRefresh}
+        extraHeaderContent={
+          <PermissionChecker permission="Add User">
+            <Tooltip title={"Add User"}>
+              <Button
+                type="primary"
+                icon={<PlusIcon size={16} />}
+                onClick={handleAddUser}
+              />
+            </Tooltip>
+          </PermissionChecker>
+        }
         // Table customization
         tableProps={{
           scroll: { x: 1500 },
           size: "middle",
         }}
       >
-        <PermissionChecker permission="Add User">
-          <Button
-            type="primary"
-            icon={<PlusIcon size={16} />}
-            onClick={handleAddUser}
-            style={{ marginBottom: 16 }}
-          >
-            New User
-          </Button>
-        </PermissionChecker>
+        {/* <PermissionChecker permission="Create User"> */}
+        <Button
+          type="primary"
+          icon={<PlusIcon size={16} />}
+          onClick={handleAddUser}
+          style={{ marginBottom: 16 }}
+        >
+          New User
+        </Button>
+        {/* </PermissionChecker> */}
       </DataTable>
     </>
   );

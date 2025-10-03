@@ -2,28 +2,29 @@ import React, { memo, Fragment, useRef, useState, useCallback } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import DataTable from "../common/DataTable";
-import { Send, Ticket, CheckCircle, XCircle, CircleCheckBig, FileIcon, FileText, Eye, Printer } from 'lucide-react';
+import { Send, Ticket, CheckCircle, XCircle, Printer, PlusIcon } from 'lucide-react';
 import { Button, Tag, Image, Space, Tooltip, Dropdown } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import PermissionChecker from "layouts/PermissionChecker";
 
 const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorporate = false, isPos = false }) => {
-    const { 
-        api, 
-        UserData, 
-        formatDateTime, 
-        sendTickets, 
-        authToken, 
-        truncateString, 
-        isMobile, 
-        formatDateRange, 
-        convertTo12HourFormat, 
-        userRole, 
-        UserPermissions, 
-        ErrorAlert 
+    const {
+        api,
+        UserData,
+        formatDateTime,
+        sendTickets,
+        authToken,
+        truncateString,
+        isMobile,
+        formatDateRange,
+        convertTo12HourFormat,
+        userRole,
+        UserPermissions,
+        ErrorAlert
     } = useMyContext();
-    
+
     // State declarations
     const [stickerData, setStickerData] = useState({});
     const [openStickerModal, setOpenStickerModal] = useState(false);
@@ -40,12 +41,12 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
     const exportRoute = isPos
         ? 'export-posBooking'
         : isSponser
-        ? 'export-sponsorBooking'
-        : isAccreditation
-        ? 'export-accreditationBooking'
-        : isCorporate 
-        ? 'export-corporateBooking'
-        : 'export-agentBooking';
+            ? 'export-sponsorBooking'
+            : isAccreditation
+                ? 'export-accreditationBooking'
+                : isCorporate
+                    ? 'export-corporateBooking'
+                    : 'export-agentBooking';
 
     // API URL
     const getUrl = useCallback(() => {
@@ -293,7 +294,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                         key: 'generate',
                         label: 'Generate Ticket',
                         icon: <Ticket size={14} />,
-                        onClick: () => {}, // Add your generate logic here
+                        onClick: () => { }, // Add your generate logic here
                         disabled: isDisabled,
                     });
                 }
@@ -354,12 +355,12 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
     const exportPermission = isPos
         ? 'Export POS Bookings'
         : isAccreditation
-        ? 'Export Accreditation Bookings'
-        : isSponser
-        ? 'Export Sponsor Bookings'
-        : isCorporate
-        ? 'Export Corporate Bookings'
-        : 'Export Agent Bookings';
+            ? 'Export Accreditation Bookings'
+            : isSponser
+                ? 'Export Sponsor Bookings'
+                : isCorporate
+                    ? 'Export Corporate Bookings'
+                    : 'Export Agent Bookings';
 
     return (
         <Fragment>
@@ -371,13 +372,17 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                 showRefresh={true}
                 showTotal={true}
                 showAddButton={true}
-                addButtonProps={{
-                    text: 'New Booking',
-                    onClick: () => window.open('new', '_self'),
-                    buttonProps: {
-                        type: 'primary',
-                    }
-                }}
+                extraHeaderContent={
+                    <PermissionChecker permission="New Booking">
+                        <Tooltip title={"Add Booking"}>
+                            <Button
+                                type="primary"
+                                icon={<PlusIcon size={16} />}
+                                // onClick={handleBookings}
+                            />
+                        </Tooltip>
+                    </PermissionChecker>
+                }
                 dateRange={dateRange}
                 onDateRangeChange={handleDateRangeChange}
                 loading={isLoading}

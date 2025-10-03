@@ -176,14 +176,6 @@ const Organizers = () => {
         </div>
       ) : 'N/A'
     },
-    // {
-    //   title: 'Created At',
-    //   dataIndex: 'created_at',
-    //   key: 'created_at',
-    //   sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-    //   render: (date) => formatDateTime ? formatDateTime(date) : new Date(date).toLocaleDateString(),
-    //   searchable: false,
-    // },
   ];
 
   const actionColumns = [];
@@ -191,6 +183,7 @@ const Organizers = () => {
   actionColumns.push({
     title: 'Actions',
     key: 'actions',
+    align: 'center',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
         <PermissionChecker permission="Impersonet">
