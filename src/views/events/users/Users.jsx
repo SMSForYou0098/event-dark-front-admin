@@ -1,6 +1,17 @@
 // Users.js
 import React, { useCallback, useState, useEffect } from "react";
-import { Tag, Button, Space, Modal, Row, Col, Image, Badge, message } from "antd";
+import {
+  Tag,
+  Button,
+  Space,
+  Modal,
+  Row,
+  Col,
+  Image,
+  Badge,
+  message,
+  Tooltip,
+} from "antd";
 import {
   ShoppingCart,
   UsersRound,
@@ -129,7 +140,9 @@ const Users = () => {
       setMutationLoading(false);
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || err.message || "An error occurred");
+      message.error(
+        err.response?.data?.message || err.message || "An error occurred"
+      );
       setMutationLoading(false);
     },
   });
@@ -171,7 +184,9 @@ const Users = () => {
         persistor.purge();
         navigate("/sign-in");
       }
-      message.error(err.response?.data?.error || err.message || "Unexpected error occurred");
+      message.error(
+        err.response?.data?.error || err.message || "Unexpected error occurred"
+      );
       setMutationLoading(false);
     },
   });
@@ -185,13 +200,10 @@ const Users = () => {
   );
 
   // Update handleDelete to use Ant Design Modal
-  const handleDelete = useCallback(
-    (id) => {
-      if (!id) return;
-      setConfirmDeleteModal({ visible: true, userId: id });
-    },
-    []
-  );
+  const handleDelete = useCallback((id) => {
+    if (!id) return;
+    setConfirmDeleteModal({ visible: true, userId: id });
+  }, []);
 
   // Confirm deletion handler
   const confirmDeleteUser = () => {
@@ -218,9 +230,9 @@ const Users = () => {
     setDateRange(
       dates
         ? {
-            startDate: dates[0].format("YYYY-MM-DD"),
-            endDate: dates[1].format("YYYY-MM-DD"),
-          }
+          startDate: dates[0].format("YYYY-MM-DD"),
+          endDate: dates[1].format("YYYY-MM-DD"),
+        }
         : null
     );
   }, []);
@@ -279,129 +291,128 @@ const Users = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      width: 80,
-      sorter: (a, b) => a.id - b.id,
+      width: "6%",
+      render: (text, record, index) => index + 1,
       searchable: false,
     },
     {
       title: "Name",
       dataIndex: "name",
       key: "name",
-      width: "15%",
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
     },
     ...(UserPermissions?.includes("View Contact") || userRole === "Admin"
       ? [
-          {
-            title: "Contact",
-            dataIndex: "contact",
-            key: "contact",
-            width: "12%",
-            searchable: true,
-            render: (cell) => {
-              const contactStr = cell?.toString() || "";
-              const masked =
-                contactStr.length > 5 ? "**" + contactStr.slice(5) : "**";
-              return <CustomTooltip text={contactStr}>{masked}</CustomTooltip>;
-            },
+        {
+          title: "Contact",
+          dataIndex: "contact",
+          key: "contact",
+          searchable: true,
+          render: (cell) => {
+            const contactStr = cell?.toString() || "";
+            const masked =
+              contactStr.length > 5 ? "**" + contactStr.slice(5) : "**";
+            return <CustomTooltip text={contactStr}>{masked}</CustomTooltip>;
           },
-        ]
+        },
+      ]
       : []),
     ...(userRole === "Admin" || UserPermissions?.includes("View Email")
       ? [
-          {
-            title: "Email",
-            dataIndex: "email",
-            key: "email",
-            width: "20%",
-            searchable: true,
-            render: (email) => {
-              if (!email) return "N/A";
-              const firstChar = email.charAt(0);
-              const lastChar = email.charAt(email.length - 1);
-              const maskedEmail = `${firstChar}...${lastChar}`;
-              return <CustomTooltip text={email}>{maskedEmail}</CustomTooltip>;
-            },
+        {
+          title: "Email",
+          dataIndex: "email",
+          key: "email",
+          searchable: true,
+          render: (email) => {
+            if (!email) return "N/A";
+            const firstChar = email.charAt(0);
+            const lastChar = email.charAt(email.length - 1);
+            const maskedEmail = `${firstChar}...${lastChar}`;
+            return <CustomTooltip text={email}>{maskedEmail}</CustomTooltip>;
           },
-        ]
+        },
+      ]
       : []),
     {
       title: "Authentication",
       dataIndex: "authentication",
       key: "authentication",
-      width: "10%",
       render: (cell) => (parseInt(cell) === 1 ? "Password" : "OTP"),
       searchable: false,
     },
     {
-  title: "Role",
-  dataIndex: "role_name",
-  key: "role_name",
-  width: "12%",
-  render: (role) => {
-    // Map roles to Ant Design tag colors
-    const tagColorMap = {
-      Admin: "success",
-      Organizer: "geekblue",
-      User: "gold",
-      Agent: "red",
-      "Support Executive": "green",
-    };
-    const color = tagColorMap[role] || "default";
-    return (
-      <Tag
-        color={color}  // Use the color variable, not 'cyan'
-        bordered={false}
-      >
-        {role}
-      </Tag>
-    );
-  },
-  searchable: true,
-},
+      title: 'Role',
+      dataIndex: 'role_name',
+      key: 'role_name',
+      render: (role, record) => {
+        const roleColors = {
+          'User': 'red',
+          'Admin': 'magenta',
+          'Organizer': 'blue',
+          'POS': 'green',
+          'Agent': 'cyan',
+          'Scanner': 'purple',
+          'Support-Executive': 'orange',
+          'Shop-Keeper': 'gold',
+          'Box-Office-Manager': 'geekblue',
+          'Sponsor': 'volcano',
+          'Sub Admin': 'red',
+          'Accreditation': 'lime'
+        };
+
+        const roleColor = roleColors[record.role_name] || 'default';
+
+        return (
+          <span>
+            {Array.isArray(role) ? (
+              role.map((roleName, index) => (
+                <Tag color={roleColors[roleName] || 'default'} key={index}>
+                  {roleName}
+                </Tag>
+              ))
+            ) : (
+              <Tag color={roleColor}>
+                {record.role_name || 'N/A'}
+              </Tag>
+            )}
+          </span>
+        );
+      }
+    },
+    // {
+    //   title: 'Tags',
+    //   render: tags => (
+    //     <span>
+    //       <Tag color={'geekblue'} >
+    //         {'okay'}
+    //       </Tag>
+    //     </span>
+    //   )
+    // },
     ...(userRole === "Admin"
       ? [
-          {
-            title: "Organisation",
-            dataIndex: "organisation",
-            key: "organisation",
-            width: "15%",
-            searchable: true,
-            render: (org) => org || "N/A",
-          },
-        ]
+        {
+          title: "Organisation",
+          dataIndex: "organisation",
+          key: "organisation",
+          searchable: true,
+          render: (org) => org || "N/A",
+        },
+      ]
       : []),
     ...(userRole === "Admin" || userRole === "Organizer"
       ? [
-          {
-            title: "Reporting User",
-            dataIndex: "reporting_user",
-            key: "reporting_user",
-            width: "15%",
-            searchable: true,
-            render: (user) => user || "N/A",
-          },
-        ]
+        {
+          title: "Reporting User",
+          dataIndex: "reporting_user",
+          key: "reporting_user",
+          searchable: true,
+          render: (user) => user || "N/A",
+        },
+      ]
       : []),
-    // {
-    //   title: "Status",
-    //   dataIndex: "status",
-    //   key: "status",
-    //   width: "8%",
-    //   render: (cell) => {
-    //     const circleClass = cell === "0" ? "bg-danger" : "bg-success";
-    //     const statusText = cell === "0" ? "Deactive" : "Active";
-    //     return (
-    //       <span
-    //         className={`d-inline-block rounded-circle ${circleClass}`}
-    //         style={{ width: "12px", height: "12px" }}
-    //         title={statusText}
-    //       />
-    //     );
-    //   },
-    //   searchable: false,
-    // },
     {
       title: "Created At",
       dataIndex: "created_at",
@@ -414,23 +425,27 @@ const Users = () => {
     // Actions column
     ...(canUpdate || canDelete || canImpersonate
       ? [
-          {
-            title: "Actions",
-            key: "actions",
-            width: "15%",
-            render: (_, record) => {
-              const isDisabled = record?.is_deleted || record?.status === "1";
+        {
+          title: "Actions",
+          key: "actions",
+          // sticky right
+          fixed: "right",
+          render: (_, record) => {
+            const isDisabled = record?.is_deleted || record?.status === "1";
 
-              return (
+            return (
+              <div className="action-btn">
                 <Space>
                   <PermissionChecker permission="Update User">
-                    <Button
-                      size="small"
-                      icon={<Settings size={14} />}
-                      onClick={() => handleAssignCredit(record.id)}
-                      title="Manage User"
-                      disabled={isDisabled || mutationLoading}
-                    />
+                    <Tooltip title="Manage User">
+                      <Button
+                        size="small"
+                        icon={<Settings size={14} />}
+                        onClick={() => handleAssignCredit(record.id)}
+                        title="Manage User"
+                        disabled={isDisabled || mutationLoading}
+                      />
+                    </Tooltip>
                   </PermissionChecker>
                   <PermissionChecker permission="Delete User">
                     <Button
@@ -455,10 +470,11 @@ const Users = () => {
                     />
                   </PermissionChecker>
                 </Space>
-              );
-            },
+              </div>
+            );
           },
-        ]
+        },
+      ]
       : []),
   ];
 

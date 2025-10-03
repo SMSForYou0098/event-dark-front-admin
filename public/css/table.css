@@ -1,4 +1,8 @@
-:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead >tr>td {
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead >tr>td,
+table , 
+th,
+td
+{
     background-color:  transparent !important;
 }
 
@@ -15,4 +19,19 @@
 .ant-table-wrapper .ant-table-thead > tr > th {
     color: white !important;
     font-weight: bold !important;
+}
+
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr.ant-table-placeholder,
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-cell-fix-right,
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-cell-fix-left
+{
+    background-color: transparent !important;
+}
+.action-btn button {
+    line-height: 0% !important;
+}
+.ant-table-cell-fix-right, .ant-table-cell-fix-left {
+   background-color: transparent !important;
+   backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
 }

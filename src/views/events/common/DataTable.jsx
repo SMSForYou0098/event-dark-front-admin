@@ -37,7 +37,7 @@ const DataTable = ({
   const [exportLoading, setExportLoading] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
   const searchInput = useRef(null);
-  
+
   const screens = useBreakpoint();
   const isMobile = !screens.md;
   const isTablet = screens.md && !screens.lg;
@@ -61,7 +61,7 @@ const DataTable = ({
     try {
       const response = await api.post(
         exportRoute,
-        { date: `${dateRange.startDate},${dateRange.endDate}` },
+        { date: dateRange },
         { responseType: "blob" }
       );
 
@@ -77,10 +77,10 @@ const DataTable = ({
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
       link.click();
-      
+
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-      
+
     } catch (error) {
       console.error("Download failed:", error);
     } finally {
@@ -149,16 +149,16 @@ const DataTable = ({
       ) : (text),
   });
 
-  const enhancedColumns = enableSearch 
+  const enhancedColumns = enableSearch
     ? columns.map((column) => {
-        if (column.searchable) {
-          return {
-            ...column,
-            ...getColumnSearchProps(column.dataIndex),
-          };
-        }
-        return column;
-      })
+      if (column.searchable) {
+        return {
+          ...column,
+          ...getColumnSearchProps(column.dataIndex),
+        };
+      }
+      return column;
+    })
     : columns;
 
   // Mobile Filter Drawer Content
@@ -176,9 +176,9 @@ const DataTable = ({
             size="middle"
           />
           {dateRange && (
-            <Button 
-              onClick={clearDateFilter} 
-              size="small" 
+            <Button
+              onClick={clearDateFilter}
+              size="small"
               style={{ marginTop: 8 }}
               block
             >
@@ -189,7 +189,7 @@ const DataTable = ({
       )}
 
       {showTotal && (
-        <div style={{ 
+        <div style={{
           padding: '12px 16px',
           background: '#f5f5f5',
           borderRadius: 8,
@@ -202,8 +202,8 @@ const DataTable = ({
 
       <Space direction="vertical" style={{ width: '100%' }} size="middle">
         {enableExport && ExportPermission && exportRoute && (
-          <Button 
-            type="default" 
+          <Button
+            type="default"
             icon={<ExportOutlined />}
             onClick={() => {
               handleExport();
@@ -259,8 +259,8 @@ const DataTable = ({
             size={isTablet ? 'small' : 'middle'}
           />
           {dateRange && (
-            <Button 
-              onClick={clearDateFilter} 
+            <Button
+              onClick={clearDateFilter}
               size={isTablet ? 'small' : 'middle'}
             >
               Clear
@@ -272,8 +272,8 @@ const DataTable = ({
       {extraHeaderContent}
 
       {enableExport && ExportPermission && exportRoute && (
-        <Button 
-          type="default" 
+        <Button
+          type="default"
           icon={<ExportOutlined />}
           onClick={handleExport}
           loading={exportLoading}
@@ -297,7 +297,7 @@ const DataTable = ({
       )}
 
       {showTotal && (
-        <span style={{ 
+        <span style={{
           fontSize: isTablet ? 13 : 14,
           whiteSpace: 'nowrap',
           color: '#666'
@@ -312,17 +312,17 @@ const DataTable = ({
   const renderMobileHeaderControls = () => (
     <Space size="small">
       {showTotal && (
-        <span style={{ 
-          fontSize: isSmallMobile ? 11 : 12, 
+        <span style={{
+          fontSize: isSmallMobile ? 11 : 12,
           whiteSpace: 'nowrap',
           color: '#666'
         }}>
           Total: <strong>{data.length}</strong>
         </span>
       )}
-      
-      <Button 
-        icon={<FilterOutlined />} 
+
+      <Button
+        icon={<FilterOutlined />}
         onClick={() => setFilterDrawerVisible(true)}
         size={isSmallMobile ? 'small' : 'middle'}
         type="default"
@@ -352,11 +352,11 @@ const DataTable = ({
   // Error display
   const renderError = () =>
     error ? (
-      <div style={{ 
-        marginBottom: 16, 
-        padding: isMobile ? 12 : 16, 
-        borderRadius: 8, 
-        background: '#fff1f0', 
+      <div style={{
+        marginBottom: 16,
+        padding: isMobile ? 12 : 16,
+        borderRadius: 8,
+        background: '#fff1f0',
         border: '1px solid #ffccc7',
         color: '#cf1322',
         fontSize: isMobile ? 13 : 14
@@ -364,9 +364,9 @@ const DataTable = ({
         <div style={{ marginBottom: 8, fontWeight: 600 }}>
           Error: {error?.message ?? 'Failed to fetch data'}
         </div>
-        <Button 
-          type="primary" 
-          onClick={onRefresh} 
+        <Button
+          type="primary"
+          onClick={onRefresh}
           size={isMobile ? 'small' : 'middle'}
           danger
         >
@@ -376,185 +376,74 @@ const DataTable = ({
     ) : null;
 
   return (
-    <>
-      <style>
-        {`
-          /* Responsive table improvements */
-          .table-responsive {
-            width: 100%;
-          }
-
-          /* Mobile table adjustments */
-          @media (max-width: 768px) {
-            .ant-table {
-              font-size: 12px;
-            }
-            
-            .ant-table-thead > tr > th {
-              padding: 8px 4px;
-              font-size: 12px;
-            }
-            
-            .ant-table-tbody > tr > td {
-              padding: 8px 4px;
-              font-size: 12px;
-            }
-            
-            .ant-table-pagination {
-              margin: 12px 0 !important;
-            }
-          }
-
-          /* Small mobile adjustments */
-          @media (max-width: 576px) {
-            .ant-table {
-              font-size: 11px;
-            }
-            
-            .ant-table-thead > tr > th {
-              padding: 6px 3px;
-              font-size: 11px;
-            }
-            
-            .ant-table-tbody > tr > td {
-              padding: 6px 3px;
-              font-size: 11px;
-            }
-          }
-
-          /* Card responsive padding */
-          @media (max-width: 768px) {
-            .ant-card-body {
-              padding: 12px !important;
-            }
-          }
-
-          @media (max-width: 576px) {
-            .ant-card-body {
-              padding: 8px !important;
-            }
-          }
-
-          /* Smooth scrolling */
-          .table-responsive {
-            -webkit-overflow-scrolling: touch;
-          }
-        `}
-      </style>
-      
-      <Card 
-        bordered={!isMobile}
-        style={{ 
-          boxShadow: isMobile ? 'none' : undefined,
-          borderRadius: isMobile ? 0 : 8
-        }}
-      >
-        <div className="table-responsive">
-          {/* Header Section */}
-          <div style={{ 
-            marginBottom: isMobile ? 12 : 16, 
-            display: 'flex', 
-            flexDirection: isMobile ? 'column' : 'row',
-            justifyContent: 'space-between', 
-            alignItems: isMobile ? 'stretch' : 'center',
-            gap: isMobile ? 8 : 16
-          }}>
-            {/* Title Section */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: isMobile ? 8 : 12,
-              justifyContent: 'space-between',
-              flexWrap: 'wrap'
-            }}>
-              <h2 style={{ 
-                margin: 0, 
-                fontSize: isSmallMobile ? 16 : (isMobile ? 18 : 22),
-                lineHeight: 1.3,
-                fontWeight: 600
-              }}>
-                {title}
-              </h2>
-              {loading && (
-                <span style={{ 
-                  fontSize: isSmallMobile ? 10 : 11, 
-                  color: '#999',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}>
-                  <Spin size="small" /> Loading...
-                </span>
-              )}
-            </div>
-
-            {/* Controls Section */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: isMobile ? 'space-between' : 'flex-end',
-              alignItems: 'center',
-              gap: 8,
-              flexWrap: 'wrap'
-            }}>
-              {isMobile ? renderMobileHeaderControls() : renderDesktopHeaderControls()}
-              {renderAddButton()}
-            </div>
-          </div>
-
-          {renderError()}
-
-          {/* Table Section */}
-          <div style={{ 
-            overflowX: 'auto',
-            WebkitOverflowScrolling: 'touch',
-            margin: isMobile ? '-12px -12px 0' : 0,
-            padding: isMobile ? '0 12px' : 0
-          }}>
-            <Table
-              columns={enhancedColumns}
-              dataSource={data}
-              loading={loading}
-              pagination={{
-                pageSize: isMobile ? 5 : 10,
-                showSizeChanger: !isMobile,
-                showQuickJumper: !isMobile,
-                showTotal: (total, range) => 
-                  isMobile 
-                    ? `${range[0]}-${range[1]}/${total}`
-                    : `Showing ${range[0]}-${range[1]} of ${total} items`,
-                size: isMobile ? 'small' : 'default',
-                simple: isSmallMobile,
-                responsive: true,
-                position: isMobile ? ['bottomCenter'] : ['bottomRight']
-              }}
-              locale={{ emptyText }}
-              scroll={{ 
-                x: isMobile ? 'max-content' : 1200,
-                y: isMobile ? undefined : undefined 
-              }}
-              size={isSmallMobile ? 'small' : (isMobile ? 'middle' : 'middle')}
-              sticky={!isMobile}
-              {...tableProps}
-            />
+    <Card
+      bordered={false}
+      style={{
+        boxShadow: isMobile ? 'none' : undefined,
+        borderRadius: isMobile ? 0 : 8
+      }}
+    >
+      <div className="table-responsive">
+        {/* Header Section */}
+        <div className='d-flex justify-content-between align-items-center'>
+          {/* Title Section */}
+            <h2>
+              {title}
+            </h2>
+          {/* Controls Section */}
+          <div>
+            {isMobile ? renderMobileHeaderControls() : renderDesktopHeaderControls()}
+            {renderAddButton()}
           </div>
         </div>
 
-        {/* Mobile Filter Drawer */}
-        <Drawer
-          title="Filters & Actions"
-          placement="bottom"
-          height="auto"
-          onClose={() => setFilterDrawerVisible(false)}
-          open={filterDrawerVisible}
-          styles={{
-            body: { paddingTop: 16 }
-          }}
-        >
-          {renderMobileFilters()}
-        </Drawer>
-      </Card>
-    </>
+        {renderError()}
+
+        {/* Table Section */}
+        <div>
+          <Table
+            columns={enhancedColumns}
+            dataSource={data}
+            loading={loading}
+            pagination={{
+              pageSize: isMobile ? 5 : 10,
+              // showSizeChanger: !isMobile,
+              // showQuickJumper: !isMobile,
+              showTotal: (total, range) =>
+                isMobile
+                  ? `${range[0]}-${range[1]}/${total}`
+                  : `Showing ${range[0]}-${range[1]} of ${total} items`,
+              size: isMobile ? 'small' : 'default',
+              simple: isSmallMobile,
+              responsive: true,
+              position: isMobile ? ['bottomCenter'] : ['bottomRight']
+            }}
+            locale={{ emptyText }}
+            scroll={{
+              x: isMobile ? 'max-content' : 1200,
+              y: isMobile ? undefined : undefined
+            }}
+            size={isSmallMobile ? 'small' : (isMobile ? 'middle' : 'middle')}
+            sticky={!isMobile}
+            {...tableProps}
+          />
+        </div>
+      </div>
+
+      {/* Mobile Filter Drawer */}
+      <Drawer
+        title="Filters & Actions"
+        placement="bottom"
+        height="auto"
+        onClose={() => setFilterDrawerVisible(false)}
+        open={filterDrawerVisible}
+        styles={{
+          body: { paddingTop: 16 }
+        }}
+      >
+        {renderMobileFilters()}
+      </Drawer>
+    </Card>
   );
 };
 
