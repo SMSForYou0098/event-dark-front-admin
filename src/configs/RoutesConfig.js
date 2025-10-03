@@ -1,6 +1,6 @@
 import React from 'react'
 import { AUTH_PREFIX_PATH, APP_PREFIX_PATH } from 'configs/AppConfig'
-import AgentBooking from 'views/events/agent/AgentBooking'
+import BookingList from 'views/events/Bookings/BookingList'
 
 export const publicRoutes = [
     {
@@ -96,7 +96,7 @@ export const protectedRoutes = [
     path: `${APP_PREFIX_PATH}/apps/agents`,
     component: (props) => (
         <React.Suspense fallback={<div>Loading...</div>}>
-            <AgentBooking {...props} />
+            <BookingList {...props} />
         </React.Suspense>
     ),
 },
@@ -105,7 +105,7 @@ export const protectedRoutes = [
     path: `${APP_PREFIX_PATH}/apps/sponsors`,
     component: (props) => (
         <React.Suspense fallback={<div>Loading...</div>}>
-            <AgentBooking {...props} isSponser={true} />
+            <BookingList {...props} isSponser={true} />
         </React.Suspense>
     ),
 },
@@ -114,7 +114,7 @@ export const protectedRoutes = [
     path: `${APP_PREFIX_PATH}/apps/pos`,
     component: (props) => (
         <React.Suspense fallback={<div>Loading...</div>}>
-            <AgentBooking {...props} isPos={true} />
+            <BookingList {...props} isPos={true} />
         </React.Suspense>
     ),
 },

@@ -8,7 +8,7 @@ import { MoreOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-const AgentBooking = memo(({ isSponser = false, isAccreditation = false, isCorporate = false, isPos = false }) => {
+const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorporate = false, isPos = false }) => {
     const { 
         api, 
         UserData, 
@@ -398,5 +398,5 @@ const AgentBooking = memo(({ isSponser = false, isAccreditation = false, isCorpo
     );
 });
 
-AgentBooking.displayName = "AgentBooking";
-export default AgentBooking;
+BookingList.displayName = "BookingList";
+export default BookingList;
