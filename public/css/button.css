@@ -1,0 +1,24 @@
+.ant-btn:disabled,
+.ant-btn[disabled],
+.ant-btn.disabled {
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+    pointer-events: none !important;
+    background-color: inherit !important;
+}
+
+/* Hover state for disabled buttons */
+.ant-btn:disabled:hover,
+.ant-btn[disabled]:hover,
+.ant-btn.disabled:hover {
+    opacity: 0.6 !important;
+    background-color: inherit !important;
+}
+
+/* Active state for disabled buttons */
+.ant-btn:disabled:active,
+.ant-btn[disabled]:active,
+.ant-btn.disabled:active {
+    pointer-events: none !important;
+    background-color: inherit !important;
+}

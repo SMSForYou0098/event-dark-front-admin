@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { connect } from 'react-redux'
-import { LockOutlined, MailOutlined, UserOutlined, PhoneOutlined, HomeOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Alert, Typography } from "antd";
+import { LockOutlined, MailOutlined, UserOutlined, PhoneOutlined, HomeOutlined, BankOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Alert, Typography, Row, Col } from "antd";
 import { signUp, showAuthMessage, showLoading, hideAuthMessage } from '../../../store/slices/authSlice';
 import { useNavigate, useLocation, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from "framer-motion"
@@ -12,7 +12,7 @@ const { Text } = Typography;
 
 const rules = {
 	name: [
-		{ 
+		{
 			required: true,
 			message: 'Please input your full name'
 		},
@@ -26,7 +26,7 @@ const rules = {
 		}
 	],
 	number: [
-		{ 
+		{
 			required: true,
 			message: 'Please input your phone number'
 		},
@@ -36,13 +36,37 @@ const rules = {
 		}
 	],
 	email: [
-		{ 
+		{
 			required: true,
 			message: 'Please input your email address'
 		},
-		{ 
+		{
 			type: 'email',
 			message: 'Please enter a valid email!'
+		}
+	],
+	company: [
+		{
+			required: true,
+			message: 'Please input your company name'
+		},
+		{
+			min: 2,
+			message: 'Company name must be at least 2 characters'
+		}
+	],
+	city: [
+		{
+			required: true,
+			message: 'Please input your city'
+		},
+		{
+			min: 2,
+			message: 'City name must be at least 2 characters'
+		},
+		{
+			pattern: /^[A-Za-z ]+$/,
+			message: 'City can only contain letters and spaces'
 		}
 	]
 }
@@ -63,7 +87,7 @@ export const RegisterForm = (props) => {
 			const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 			const isEmail = emailRegex.test(data);
 			const isPhone = /^\d{10}$/.test(data) || /^\d{12}$/.test(data);
-			
+
 			if (isEmail) {
 				form.setFieldsValue({ email: data });
 			} else if (isPhone) {
@@ -106,15 +130,15 @@ export const RegisterForm = (props) => {
 			if (response.data.status) {
 				const isPassReq = response.data?.pass_req;
 				const path = '/';
-				
+
 				if (isPassReq === true) {
 					const session_id = response.data.session_id;
 					const auth_session = response.data.auth_session;
-					const info = { 
-						data: phoneNumber, 
-						password_required: isPassReq, 
-						session_id, 
-						auth_session 
+					const info = {
+						data: phoneNumber,
+						password_required: isPassReq,
+						session_id,
+						auth_session
 					};
 					navigate(`${AUTH_PREFIX_PATH}/verify-password`, { state: { info } });
 				} else {
@@ -137,12 +161,14 @@ export const RegisterForm = (props) => {
 				email: values.email,
 				number: values.number,
 				name: values.name,
+				company: values.company,
+				city: values.city,
 				password: values.number, // Using phone number as password
 				role_id: 4
 			};
 
 			const response = await axios.post(`${API_BASE_URL}create-user`, formData);
-			
+
 			if (response.data.status) {
 				const phoneNumber = response.data.user?.number;
 				handleLogin(phoneNumber);
@@ -150,8 +176,8 @@ export const RegisterForm = (props) => {
 			setFormLoading(false);
 		} catch (err) {
 			setError(
-				err.response?.data?.error || 
-				err.response?.data?.message || 
+				err.response?.data?.error ||
+				err.response?.data?.message ||
 				'Something went wrong'
 			);
 			setFormLoading(false);
@@ -165,21 +191,21 @@ export const RegisterForm = (props) => {
 			console.log('Validate Failed:', info);
 		});
 	};
-	
+
 	return (
 		<>
 			<AnimatePresence>
 				{(showMessage || error) && (
-					<motion.div 
-						initial={{ opacity: 0, y: -20 }} 
+					<motion.div
+						initial={{ opacity: 0, y: -20 }}
 						animate={{ opacity: 1, y: 0 }}
 						exit={{ opacity: 0, y: -20 }}
 						transition={{ duration: 0.3 }}
 						style={{ marginBottom: 20 }}
 					>
-						<Alert 
-							type="error" 
-							showIcon 
+						<Alert
+							type="error"
+							showIcon
 							message={error || message}
 							closable
 							onClose={() => {
@@ -191,75 +217,80 @@ export const RegisterForm = (props) => {
 				)}
 			</AnimatePresence>
 
-			<Form 
-				form={form} 
-				layout="vertical" 
-				name="register-form" 
+			<Form
+				form={form}
+				layout="vertical"
+				name="register-form"
 				onFinish={onSignUp}
 			>
-				<Form.Item 
-					name="name" 
-					label="Full Name" 
-					rules={rules.name}
-					hasFeedback
-				>
-					<Input 
-						prefix={<UserOutlined className="text-primary" />}
-						placeholder="Enter your full name"
-						size="large"
-					/>
-				</Form.Item>
+				<Row gutter={16}>
+					<Col xs={24} sm={12}>
+						<Form.Item
+							name="name"
+							label="Full Name"
+							rules={rules.name}
+							hasFeedback
+						>
+							<Input
+								prefix={<UserOutlined className="text-primary" />}
+								placeholder="Enter your full name"
+								size="large"
+							/>
+						</Form.Item>
+					</Col>
 
-				<Form.Item 
-					name="number" 
-					label="Phone Number" 
-					rules={rules.number}
-					hasFeedback
-				>
-					<Input 
-						prefix={<PhoneOutlined className="text-primary" />}
-						placeholder="Enter 10 or 12 digit phone number"
-						maxLength={12}
-						size="large"
-					/>
-				</Form.Item>
+					<Col xs={24} sm={12}>
+						<Form.Item
+							name="number"
+							label="Phone Number"
+							rules={rules.number}
+							hasFeedback
+						>
+							<Input
+								prefix={<PhoneOutlined className="text-primary" />}
+								placeholder="Enter 10 or 12 digit phone number"
+								maxLength={12}
+								size="large"
+							/>
+						</Form.Item>
+					</Col>
 
-				<Form.Item 
-					name="email" 
-					label="Email Address" 
-					rules={rules.email}
-					hasFeedback
-				>
-					<Input 
-						prefix={<MailOutlined className="text-primary" />}
-						placeholder="Enter your email address"
-						size="large"
-					/>
-				</Form.Item>
+					<Col xs={24} sm={12}>
+						<Form.Item
+							name="email"
+							label="Email Address"
+							rules={rules.email}
+							hasFeedback
+						>
+							<Input
+								prefix={<MailOutlined className="text-primary" />}
+								placeholder="Enter your email address"
+								size="large"
+							/>
+						</Form.Item>
+					</Col>
 
-				<div style={{ 
-					display: 'flex', 
-					justifyContent: 'space-between', 
-					alignItems: 'center',
-					marginBottom: 24 
-				}}>
-					<Link to="/sign-in">
-						<Text>
-							Already have an account? <Text strong type="primary">Sign in</Text>
-						</Text>
-					</Link>
-					
-					<Link to="/" style={{ display: 'flex', alignItems: 'center' }}>
-						<HomeOutlined style={{ marginRight: 4 }} />
-						<Text>Home</Text>
-					</Link>
-				</div>
+					<Col xs={24} sm={12}>
+						<Form.Item
+							name="company"
+							label="Company Name"
+							rules={rules.company}
+							hasFeedback
+						>
+							<Input
+								prefix={<BankOutlined className="text-primary" />}
+								placeholder="Enter your company name"
+								size="large"
+							/>
+						</Form.Item>
+					</Col>
+				</Row>
 
 				<Form.Item>
-					<Button 
-						type="primary" 
-						htmlType="submit" 
-						block 
+					<Button
+						type="primary"
+						htmlType="submit"
+						block
 						loading={loading || formLoading}
 						size="large"
 					>
@@ -271,7 +302,7 @@ export const RegisterForm = (props) => {
 	)
 }
 
-const mapStateToProps = ({auth}) => {
+const mapStateToProps = ({ auth }) => {
 	const { loading, message, showMessage, token, redirect } = auth;
 	return { loading, message, showMessage, token, redirect }
 }

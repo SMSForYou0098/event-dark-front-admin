@@ -38,6 +38,9 @@
   --select-active-bg: rgba(181, 21, 21, 0.15);
   --select-selected-bg: var(--primary-color);
 }
+:where(.css-dev-only-do-not-override-1u1move).ant-form-item .ant-form-item-label >label.ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
+    color: var(--primary-color) !important;
+}
 
 .bg-dark {
   background-color: var(--body-bg) !important;
@@ -95,11 +98,12 @@ h2,
 h3,
 h4,
 h5,
+.ant-typography,
 h6 {
     margin-bottom: .5rem;
     font-family: inherit;
     line-height: 1.5;
-    color: #d6d7dc
+    color: var(--text-white) !important;
 }
 
 .h1,
@@ -185,7 +189,7 @@ hr {
 
 body,
 p {
-    color: #b4bed2
+    color: var(--text-white) !important;
 }
 
 .avatar-status-name {

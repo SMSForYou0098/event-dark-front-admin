@@ -13,6 +13,7 @@
     "@testing-library/user-event": "^12.1.10",
     "@visx/pattern": "2.10.0",
     "antd": "^5.3.0",
+    "antd-input-otp": "^2.1.0",
     "apexcharts": "^3.23.0",
     "axios": "^0.21.0",
     "concurrently": "^5.3.0",

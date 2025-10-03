@@ -6,6 +6,8 @@
 @import url('./notication.css');
 @import url('./table.css');
 @import url('./tag.css');
+@import url('./button.css`');
+@import url('./alert.css');
 
 .css-hrcas2-PageHeaderAlt {
   background-color: var(--bg-secondary) !important;
@@ -31,13 +33,13 @@
 
 /* Custom Glassmorphism Components */
 .glassmorphism-card {
-  background: transparent !important;
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-  /* transition: all 0.3s ease; */
+    border-radius: 16px;
+    background-color: transparent !important;
+    background: linear-gradient(135deg, rgba(40, 40, 40, 0.1) 0%, rgba(80, 80, 80, 0.25) 100%);
+    box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.55), 0 4px 16px 0 rgba(0, 0, 0, 0.65), 0 2px 8px rgba(229, 9, 20, 0.18) !important;
+    backdrop-filter: blur(15px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
+    transition: box-shadow 0.3s, background 0.3s;
 }
 
 /* .glassmorphism-card:hover {
@@ -219,7 +221,7 @@
 .ant-card {
   margin-bottom: 20px;
   /* //custom */
-  background-color: rgb(255 255 255 / 6%) !important;
+  background-color: rgb(255 255 255 / 6%);
   /*border : none; */
 }
 
@@ -305,10 +307,10 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
 
 /* ant card border remove  */
 .ant-card-bordered {
-  border: none !important;
+  border: 1px solid var(--border-secondary) !important;
   box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
   border-radius: .625rem !important;
-  background-color: var(--bg-secondary) !important;
+  background-color: var(--bg-secondary);
 }
 
 
