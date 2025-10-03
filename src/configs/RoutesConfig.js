@@ -1,5 +1,6 @@
 import React from 'react'
 import { AUTH_PREFIX_PATH, APP_PREFIX_PATH } from 'configs/AppConfig'
+import AgentBooking from 'views/events/agent/AgentBooking'
 
 export const publicRoutes = [
     {
@@ -90,6 +91,33 @@ export const protectedRoutes = [
         path: `${APP_PREFIX_PATH}/apps/organizers`,
         component: React.lazy(() => import('views/events/users/Organizers')),
     },
+{
+    key: 'apps.agents',
+    path: `${APP_PREFIX_PATH}/apps/agents`,
+    component: (props) => (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <AgentBooking {...props} />
+        </React.Suspense>
+    ),
+},
+{
+    key: 'apps.sponsors',
+    path: `${APP_PREFIX_PATH}/apps/sponsors`,
+    component: (props) => (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <AgentBooking {...props} isSponser={true} />
+        </React.Suspense>
+    ),
+},
+{
+    key: 'apps.pos',
+    path: `${APP_PREFIX_PATH}/apps/pos`,
+    component: (props) => (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <AgentBooking {...props} isPos={true} />
+        </React.Suspense>
+    ),
+},
     {
         key: 'apps.chat',
         path: `${APP_PREFIX_PATH}/apps/chat/*`,

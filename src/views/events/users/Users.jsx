@@ -1,6 +1,6 @@
 // Users.js
 import React, { useCallback, useState, useEffect } from "react";
-import { Tag, Button, Space, Modal, Row, Col, Image } from "antd";
+import { Tag, Button, Space, Modal, Row, Col, Image, Badge, message } from "antd";
 import {
   ShoppingCart,
   UsersRound,
@@ -23,7 +23,7 @@ import { authenticated, logout, updateUser } from "store/slices/authSlice";
 import { useDispatch } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { persistor } from "store";
-import Swal from "sweetalert2";
+import PermissionChecker from "layouts/PermissionChecker";
 
 // Format authentication status
 const formatAuthentication = (auth) => {
@@ -57,6 +57,12 @@ const Users = () => {
   const [dateRange, setDateRange] = useState(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [mutationLoading, setMutationLoading] = useState(false);
+
+  // Add state for modal
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState({
+    visible: false,
+    userId: null,
+  });
 
   const canUpdate = UserPermissions?.includes("Update User");
   const canDelete = UserPermissions?.includes("Delete User");
@@ -115,23 +121,15 @@ const Users = () => {
     mutationFn: async (userId) => {
       const res = await api.delete(`user-delete/${userId}`);
       console.log("Delete response:", res);
-
-      //   if (!res?.status) {
-      //     throw new Error(res.data?.message || 'Failed to delete user');
-      //   }
-
       return res.data;
     },
     onSuccess: () => {
-      // Refetch users after successful deletion
       refetchUsers();
-      successAlert("Success", "User Deleted successfully.");
+      message.success("User Deleted successfully.");
       setMutationLoading(false);
     },
     onError: (err) => {
-      ErrorAlert(
-        err.response?.data?.message || err.message || "An error occurred"
-      );
+      message.error(err.response?.data?.message || err.message || "An error occurred");
       setMutationLoading(false);
     },
   });
@@ -142,19 +140,14 @@ const Users = () => {
       if (!session_id || !auth_session) {
         throw new Error("Session expired. Please login again.");
       }
-
-      // Remove destructuring since the interceptor already returns data directly
       const response = await api.post(`impersonate`, {
         session_id,
         auth_session: `${auth_session}`,
         user_id: userId,
       });
-
-      // The interceptor returns response.data directly, so 'response' is already the data
       if (!response.status) {
         throw new Error(response?.error || "Login failed.");
       }
-
       return response;
     },
     onSuccess: (data) => {
@@ -167,9 +160,8 @@ const Users = () => {
           isImpersonating: true,
         })
       );
-      console.log("data", data.user);
       dispatch(updateUser(data.user));
-      successAlert("Success", "Logged in successfully");
+      message.success("Logged in successfully");
       navigate("/dashboard");
       setMutationLoading(false);
     },
@@ -179,9 +171,7 @@ const Users = () => {
         persistor.purge();
         navigate("/sign-in");
       }
-      ErrorAlert(
-        err.response?.data?.error || err.message || "Unexpected error occurred"
-      );
+      message.error(err.response?.data?.error || err.message || "Unexpected error occurred");
       setMutationLoading(false);
     },
   });
@@ -194,25 +184,26 @@ const Users = () => {
     [navigate]
   );
 
+  // Update handleDelete to use Ant Design Modal
   const handleDelete = useCallback(
-    async (id) => {
+    (id) => {
       if (!id) return;
-
-      const result = await Swal.fire({
-        title: "Are you sure?",
-        text: "You won't be able to revert this!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonText: "Yes, delete it!",
-      });
-
-      if (result.isConfirmed) {
-        setMutationLoading(true);
-        deleteUserMutation.mutate(id);
-      }
+      setConfirmDeleteModal({ visible: true, userId: id });
     },
-    [deleteUserMutation]
+    []
   );
+
+  // Confirm deletion handler
+  const confirmDeleteUser = () => {
+    setMutationLoading(true);
+    deleteUserMutation.mutate(confirmDeleteModal.userId);
+    setConfirmDeleteModal({ visible: false, userId: null });
+  };
+
+  // Cancel deletion handler
+  const cancelDeleteUser = () => {
+    setConfirmDeleteModal({ visible: false, userId: null });
+  };
 
   const handleImpersonate = useCallback(
     async (id) => {
@@ -344,38 +335,31 @@ const Users = () => {
       searchable: false,
     },
     {
-      title: "Role",
-      dataIndex: "role_name",
-      key: "role_name",
-      width: "12%",
-      filters: [
-        { text: "Admin", value: "Admin" },
-        { text: "User", value: "User" },
-        { text: "Organizer", value: "Organizer" },
-        { text: "Agent", value: "Agent" },
-        { text: "POS", value: "POS" },
-        { text: "Sponsor", value: "Sponsor" },
-        { text: "Corporate", value: "Corporate" },
-        { text: "Sub Admin", value: "Sub Admin" },
-      ],
-      onFilter: (value, record) => record.role_name === value,
-      render: (role) => {
-        const badgeClass =
-          {
-            Admin: "bg-info",
-            Organizer: "bg-primary",
-            User: "bg-warning",
-            Agent: "bg-danger",
-            "Support Executive": "bg-success",
-          }[role] || "bg-secondary";
-        return (
-          <span className={`badge p-2 fw-normal ls-1 ${badgeClass} w-100`}>
-            {role}
-          </span>
-        );
-      },
-      searchable: false,
-    },
+  title: "Role",
+  dataIndex: "role_name",
+  key: "role_name",
+  width: "12%",
+  render: (role) => {
+    // Map roles to Ant Design tag colors
+    const tagColorMap = {
+      Admin: "success",
+      Organizer: "geekblue",
+      User: "gold",
+      Agent: "red",
+      "Support Executive": "green",
+    };
+    const color = tagColorMap[role] || "default";
+    return (
+      <Tag
+        color={color}  // Use the color variable, not 'cyan'
+        bordered={false}
+      >
+        {role}
+      </Tag>
+    );
+  },
+  searchable: true,
+},
     ...(userRole === "Admin"
       ? [
           {
@@ -439,7 +423,7 @@ const Users = () => {
 
               return (
                 <Space>
-                  {canUpdate && (
+                  <PermissionChecker permission="Update User">
                     <Button
                       size="small"
                       icon={<Settings size={14} />}
@@ -447,8 +431,8 @@ const Users = () => {
                       title="Manage User"
                       disabled={isDisabled || mutationLoading}
                     />
-                  )}
-                  {canDelete && (
+                  </PermissionChecker>
+                  <PermissionChecker permission="Delete User">
                     <Button
                       size="small"
                       danger
@@ -458,8 +442,8 @@ const Users = () => {
                       disabled={isDisabled || mutationLoading}
                       loading={deleteUserMutation.isPending}
                     />
-                  )}
-                  {canImpersonate && (
+                  </PermissionChecker>
+                  <PermissionChecker permission="Impersonet">
                     <Button
                       size="small"
                       type="primary"
@@ -469,7 +453,7 @@ const Users = () => {
                       disabled={isDisabled || mutationLoading}
                       loading={impersonateMutation.isPending}
                     />
-                  )}
+                  </PermissionChecker>
                 </Space>
               );
             },
@@ -523,6 +507,20 @@ const Users = () => {
     <>
       {renderMutationLoader()}
 
+      {/* Delete Confirmation Modal */}
+      <Modal
+        title="Are you sure?"
+        open={confirmDeleteModal.visible}
+        onOk={confirmDeleteUser}
+        onCancel={cancelDeleteUser}
+        okText="Yes, delete it!"
+        cancelText="Cancel"
+        confirmLoading={mutationLoading}
+        centered
+      >
+        <p>You won't be able to revert this!</p>
+      </Modal>
+
       {/* Role Selection Modal */}
       <Modal
         title="Select User Type"
@@ -570,15 +568,8 @@ const Users = () => {
         showDateRange={true}
         showRefresh={true}
         showTotal={true}
-        showAddButton={canAdd}
-        // Add button configuration
-        addButtonProps={{
-          text: "New User",
-          onClick: handleAddUser,
-          buttonProps: {
-            icon: <PlusIcon size={16} />,
-          },
-        }}
+        showAddButton={false} // hide default
+        addButtonProps={null}
         // Date range
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
@@ -596,7 +587,18 @@ const Users = () => {
           scroll: { x: 1500 },
           size: "middle",
         }}
-      />
+      >
+        <PermissionChecker permission="Add User">
+          <Button
+            type="primary"
+            icon={<PlusIcon size={16} />}
+            onClick={handleAddUser}
+            style={{ marginBottom: 16 }}
+          >
+            New User
+          </Button>
+        </PermissionChecker>
+      </DataTable>
     </>
   );
 };

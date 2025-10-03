@@ -248,6 +248,30 @@ const appsNavTree = [{
       submenu: []
     },
     {
+      key: 'apps-agents',
+      path: `${APP_PREFIX_PATH}/apps/agents`,
+      title: 'sidenav.apps.agents',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-pos',
+      path: `${APP_PREFIX_PATH}/apps/pos`,
+      title: 'sidenav.apps.pos',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-sponsors',
+      path: `${APP_PREFIX_PATH}/apps/sponsors`,
+      title: 'sidenav.apps.sponsors', // <-- correct spelling
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
       key: 'apps-calendar',
       path: `${APP_PREFIX_PATH}/apps/calendar`,
       title: 'sidenav.apps.calendar',

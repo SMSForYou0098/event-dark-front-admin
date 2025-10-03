@@ -1,8 +1,7 @@
 // Impersonate.jsx
 import React from 'react';
-import { Button } from 'antd';
+import { Button, message } from 'antd'; // <-- use message instead of notification
 import api from 'auth/FetchInterceptor';
-import { useMyContext } from 'Context/MyContextProvider';
 import { UserMinus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -33,7 +32,7 @@ const Impersonate = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { session_id, auth_session, successAlert, ErrorAlert } = useMyContext();
+  const { session_id, auth_session } = auth;
 
   // ✅ FIXED: React Query v5 syntax - pass object with mutationFn
   const revertMutation = useMutation({
@@ -68,7 +67,7 @@ const Impersonate = () => {
         })
       );
       dispatch(updateUser(data.user));
-      successAlert('Success', 'Reverted back to original user');
+      message.success('Reverted back to original user');
 
       // refresh relevant queries so UI reflects original user
       queryClient.invalidateQueries(); // or narrow to specific queries
@@ -92,7 +91,7 @@ const Impersonate = () => {
       }
 
       // Show error to user
-      ErrorAlert(msg);
+      message.error(msg);
     },
   });
 
