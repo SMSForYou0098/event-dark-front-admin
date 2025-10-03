@@ -118,6 +118,15 @@ export const protectedRoutes = [
         </React.Suspense>
     ),
 },
+{
+    key: 'apps.corporate',
+    path: `${APP_PREFIX_PATH}/apps/corporate`,
+    component: (props) => (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <BookingList {...props}     isCorporate={true} />
+        </React.Suspense>
+    ),
+},
     {
         key: 'apps.chat',
         path: `${APP_PREFIX_PATH}/apps/chat/*`,

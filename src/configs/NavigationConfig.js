@@ -264,6 +264,14 @@ const appsNavTree = [{
       submenu: []
     },
     {
+      key: 'apps-pos',
+      path: `${APP_PREFIX_PATH}/apps/corporate`,
+      title: 'sidenav.apps.corporate',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
       key: 'apps-sponsors',
       path: `${APP_PREFIX_PATH}/apps/sponsors`,
       title: 'sidenav.apps.sponsors', // <-- correct spelling

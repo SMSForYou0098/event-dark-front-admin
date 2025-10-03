@@ -168,7 +168,6 @@ const Organizers = () => {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      width: '20%',
       searchable: true,
       render: (email) => email ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
@@ -177,15 +176,14 @@ const Organizers = () => {
         </div>
       ) : 'N/A'
     },
-    {
-      title: 'Created At',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: '12%',
-      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-      render: (date) => formatDateTime ? formatDateTime(date) : new Date(date).toLocaleDateString(),
-      searchable: false,
-    },
+    // {
+    //   title: 'Created At',
+    //   dataIndex: 'created_at',
+    //   key: 'created_at',
+    //   sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+    //   render: (date) => formatDateTime ? formatDateTime(date) : new Date(date).toLocaleDateString(),
+    //   searchable: false,
+    // },
   ];
 
   const actionColumns = [];
@@ -193,7 +191,6 @@ const Organizers = () => {
   actionColumns.push({
     title: 'Actions',
     key: 'actions',
-    width: '10%',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
         <PermissionChecker permission="Impersonet">

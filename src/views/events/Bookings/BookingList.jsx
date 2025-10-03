@@ -172,7 +172,6 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             title: '#',
             dataIndex: 'id',
             key: 'id',
-            width: 60,
             align: 'center',
             render: (_, __, index) => index + 1,
             searchable: false,
@@ -263,7 +262,6 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             title: 'Actions',
             key: 'actions',
             align: 'center',
-            width: 150,
             searchable: false,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
