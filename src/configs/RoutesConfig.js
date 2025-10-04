@@ -135,19 +135,19 @@ export const protectedRoutes = [
 },
 {
     key: 'apps.new-user',
-    path: `${APP_PREFIX_PATH}/apps/edit-user/:id`,
+    path: `${APP_PREFIX_PATH}/apps/users/new`,
     component: (props) => (
         <React.Suspense fallback={<div>Loading...</div>}>
-            <UserForm mode="edit"/>
+            <UserForm mode="create"/>
         </React.Suspense>
     ),
 },
 {
     key: 'apps.edit-user',
-    path: `${APP_PREFIX_PATH}/apps/new-user`,
+    path: `${APP_PREFIX_PATH}/apps/users/edit/:id`,
     component: (props) => (
         <React.Suspense fallback={<div>Loading...</div>}>
-            <UserForm mode="create"/>
+            <UserForm mode="edit"/>
         </React.Suspense>
     ),
 },

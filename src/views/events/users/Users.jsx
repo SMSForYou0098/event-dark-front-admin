@@ -178,7 +178,7 @@ const Users = () => {
   // Action handlers
   const handleAssignCredit = useCallback(
     (id) => {
-      navigate(`${APP_PREFIX_PATH}/apps/edit-user/${id}`);
+      navigate(`${APP_PREFIX_PATH}/apps/users/edit/${id}`);
     },
     [navigate]
   );
@@ -260,14 +260,14 @@ const Users = () => {
 
   const handleRoleSelect = (roleKey) => {
     setShowRoleModal(false);
-    navigate(`/dashboard/users/new?type=${roleKey}`);
+    navigate(`${APP_PREFIX_PATH}/apps/users/new?type=${roleKey}`);
   };
 
   const handleAddUser = () => {
     if (userRole === "Organizer") {
       setShowRoleModal(true);
     } else {
-      navigate("new");
+      navigate(`${APP_PREFIX_PATH}/apps/users/new`);
     }
   };
 

@@ -11,9 +11,9 @@ import {
     Select, 
     Switch, 
     Radio, 
-    
     Spin,
-    
+    Space,
+    notification,
 } from "antd";
 import {
     ArrowLeftOutlined,
@@ -22,34 +22,27 @@ import {
     WalletOutlined,
     TransactionOutlined,
     SafetyCertificateOutlined,
-    
 } from '@ant-design/icons';
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import apiClient from "auth/FetchInterceptor";
-// import BookingList from "../Events/Bookings/BookingList";
 import { useDispatch } from "react-redux";
 import { useMyContext } from "Context/MyContextProvider";
 import { updateUser } from "store/slices/authSlice";
 import { Key, Shield } from "lucide-react";
-// import { PasswordField } from "../CustomUtils/CustomFormFields";
-// import TransactionHistory from "./Transaction/TransactionHistory";
-// import RolePermission from "../RolePermission/RolePermission";
+import UserBookings from "../Bookings/UserBookings";
+import Transactions from "./wallet/Transaction";
 
 const { Option } = Select;
-// const { TabPane } = Tabs;
-// const { TextArea } = Input;
 
 const UserForm = memo(({ mode = "edit" }) => {
     const { 
         api, 
         authToken, 
-        successAlert, 
         userRole, 
         UserData, 
         UserList, 
         OrganizerList, 
-        ErrorAlert, 
         HandleBack, 
         UserPermissions 
     } = useMyContext();
@@ -57,7 +50,6 @@ const UserForm = memo(({ mode = "edit" }) => {
     const dispatch = useDispatch();
     const { id } = useParams();
     const location = useLocation();
-    // const navigate = useNavigate();
     const [form] = Form.useForm();
 
     // Single form state object
@@ -114,17 +106,14 @@ const UserForm = memo(({ mode = "edit" }) => {
     });
 
     // Other states
-    // const [bookings, setBookings] = useState([]);
     const [roles, setRoles] = useState([]);
     const [events, setEvents] = useState([]);
-    const [errorTimeout, setErrorTimeout] = useState(null);
     const [selectedEvents, setSelectedEvents] = useState([]);
     const [loading] = useState(false);
     const [gates] = useState([]);
     const [selectedGates, setSelectedGates] = useState([]);
-    // const [ticketGroup, setTicketGroup] = useState([]);
+    const [ticketGroup, setTicketGroup] = useState([]);
     const [selectedTickets, setSelectedTickets] = useState([]);
-    // const [validated, setValidated] = useState(false);
     const [disableOrg, setDisableOrg] = useState(false);
     const [disable, setDisable] = useState(false);
     const [showAM, setShowAM] = useState(false);
@@ -137,6 +126,7 @@ const UserForm = memo(({ mode = "edit" }) => {
             ...updates
         }));
     };
+
     // Conditional validator helper for antd Form
     const requiredIf = (condition, message) => ({
         validator(_, value) {
@@ -146,23 +136,11 @@ const UserForm = memo(({ mode = "edit" }) => {
         }
     });
 
-    // Update nested agreement details
-    // const updateAggrementDetails = (updates) => {
-    //     setFormState(prev => ({
-    //         ...prev,
-    //         aggrementDetails: {
-    //             ...prev.aggrementDetails,
-    //             ...updates
-    //         }
-    //     }));
-    // };
-
-    // Common functions
+    // Fetch roles
     const { data: rolesData } = useQuery({
         queryKey: ["roles"],
         queryFn: async () => {
             const res = await apiClient.get(`role-list`);
-            // Expecting { role: [...] }
             return (res?.role || []).slice().reverse();
         },
         staleTime: 5 * 60 * 1000,
@@ -180,7 +158,6 @@ const UserForm = memo(({ mode = "edit" }) => {
             const queryParams = new URLSearchParams(location.search);
             const typeParam = queryParams.get('type');
             updateFormState({ userType: typeParam?.replace(/-/g, ' ') });
-            // roles are loaded via query
             
             if (userRole === 'Organizer') {
                 updateFormState({ 
@@ -191,24 +168,13 @@ const UserForm = memo(({ mode = "edit" }) => {
             }
         }
     }, [mode, location.search, userRole, UserData]);
-    //     const { data: userData, isLoading: userLoading } = useQuery({
-    //     queryKey: ["user", id],
-    //     enabled: mode === "edit" && Boolean(id),
-    //     queryFn: async () => {
-    //         const res = await apiClient.get(`edit-user/${id}`);
-    //         if (!res?.status) {
-    //             throw new Error(res?.message || res?.error || 'Failed to load user');
-    //         }
-    //         return res;
-    //     },
-    // });
 
-     const { data: userData, isLoading: userLoading } = useQuery({
+    // Fetch user data in edit mode
+    const { data: userData, isLoading: userLoading } = useQuery({
         queryKey: ["user", id],
         enabled: mode === "edit" && Boolean(id),
         queryFn: async () => {
             const res = await apiClient.get(`edit-user/${id}`);
-            // Expecting { status: true, user: {...}, roles: [...] }
             if (!res?.status) {
                 throw new Error(res?.message || res?.error || 'Failed to load user');
             }
@@ -216,7 +182,89 @@ const UserForm = memo(({ mode = "edit" }) => {
         },
     });
 
-    
+    // Handle edit mode data initialization
+    useEffect(() => {
+        if (mode === "edit" && userData?.user) {
+            const data = userData.user;
+            
+            // Set reporting user properly
+            let reportingUserObj = null;
+            if (data.reporting_user_id && UserList) {
+                reportingUserObj = UserList.find((item) => item?.value === data.reporting_user_id);
+            }
+            
+            // Map events properly
+            const mappedEvents = data?.events?.map(event => ({
+                value: event.id,
+                label: event.name,
+                tickets: event?.tickets || []
+            })) || [];
+            
+            // Map tickets properly
+            const mappedTickets = data?.agentTicket || [];
+            
+            const formUpdates = {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                number: data.phone_number,
+                paymentMethod: data?.payment_method || 'Cash',
+                organisation: data?.organisation,
+                altNumber: data?.alt_number,
+                pincode: data?.pincode,
+                auth: data?.authentication === 1,
+                state: data?.state,
+                city: data?.city,
+                qrLength: data.qrLength,
+                bankName: data.bank_name,
+                bankNumber: data.bank_number,
+                bankIfsc: data.bank_ifsc,
+                bankBranch: data.bank_branch,
+                status: data.status === 1 ? 'Active' : 'Deative',
+                bankMicr: data.bank_micr,
+                orgGstNumber: data.org_gst_no || "",
+                roleName: data?.role?.name,
+                roleId: data?.role?.id,
+                shopName: data?.shop?.shop_name || '',
+                shopNumber: data?.shop?.shop_no || '',
+                gstNumber: data?.shop?.gst_no || '',
+                agreementStatus: data?.agreement_status,
+                agentDiscount: data?.agent_disc === 1,
+                reportingUser: reportingUserObj,
+                aggrementDetails: {
+                    org_office_address: data.org_office_address || "",
+                    org_name_signatory: data?.org_name_signatory || "",
+                    pan_no: data?.pan_no,
+                    account_holder: data?.account_holder || "",
+                    org_type_of_company: data?.org_type_of_company || "",
+                    org_signature_type: data?.org_signature_type || ""
+                }
+            };
+            
+            updateFormState(formUpdates);
+            setSelectedEvents(mappedEvents);
+            setSelectedTickets(mappedTickets);
+            
+            // Update the antd form instance
+            form.setFieldsValue({
+                ...formUpdates,
+                events: mappedEvents,
+                tickets: mappedTickets
+            });
+            
+            // Set roles if available
+            if (userData?.roles) {
+                setRoles(userData.roles);
+            }
+            
+            // Fetch reporting user role if needed
+            if (data.reporting_user_id) {
+                fetchUserRole(data.reporting_user_id);
+            }
+        }
+    }, [mode, userData, UserList]);
+
+    // Auto-select role in create mode
     useEffect(() => {
         if (mode === "create" && formState.userType && roles?.length) {
             const matchedRole = roles.find((r) => r?.name === formState.userType);
@@ -225,59 +273,13 @@ const UserForm = memo(({ mode = "edit" }) => {
             }
         }
     }, [mode, formState.userType, roles, formState.roleId]);
-    
-// Replace the problematic section with this useEffect:
 
-useEffect(() => {
-    if (mode === "edit" && userData?.user) {
-        const data = userData.user;
-        const formUpdates = {
-            name: data.name,
-            email: data.email,
-            password: data.password,
-            number: data.phone_number,
-            paymentMethod: data?.payment_method || 'Cash',
-            organisation: data?.organisation,
-            altNumber: data?.alt_number,
-            pincode: data?.pincode,
-            auth: data?.authentication === 1,
-            state: data?.state,
-            city: data?.city,
-            qrLength: data.qrLength,
-            bankName: data.bank_name,
-            bankNumber: data.bank_number,
-            bankIfsc: data.bank_ifsc,
-            bankBranch: data.bank_branch,
-            status: data.status === 1 ? 'Active' : 'Deative',
-            bankMicr: data.bank_micr,
-            orgGstNumber: data.org_gst_no || "",
-            roleName: data?.role?.name,
-            roleId: data?.role?.id,
-            shopName: data?.shop?.shop_name || '',
-            shopNumber: data?.shop?.shop_no || '',
-            gstNumber: data?.shop?.gst_no || '',
-            agreementStatus: data?.agreement_status,
-            agentDiscount: data?.agent_disc === 1,
-            aggrementDetails: {
-                org_office_address: data.org_office_address || "",
-                org_name_signatory: data?.org_name_signatory || "",
-                pan_no: data?.pan_no,
-                account_holder: data?.account_holder || "",
-                org_type_of_company: data?.org_type_of_company || "",
-                org_signature_type: data?.org_signature_type || ""
-            }
-        };
-        
-        updateFormState(formUpdates);
-        
-        // Also update the antd form instance
-        form.setFieldsValue(formUpdates);
-    }
-}, [mode, userData, form]); // Dependencies: only run when these change
-
-// Remove the old if(userData) block entirely
+    // Fetch events when needed
     const needsEvents = formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation';
-    const reportingUserId = formState.reportingUser?.value || formState.reportingUser?.key;
+    const reportingUserId = mode === "create" 
+        ? (userRole === 'Organizer' ? UserData?.id : formState.reportingUser?.value)
+        : (formState.reportingUser?.value || formState.reportingUser?.key);
+    
     const { data: eventsData } = useQuery({
         queryKey: ["org-events", reportingUserId],
         enabled: Boolean(needsEvents && reportingUserId),
@@ -295,17 +297,44 @@ useEffect(() => {
         }
     }, [eventsData]);
 
+    // Generate ticket groups when selected events change
+    useEffect(() => {
+        if (selectedEvents && selectedEvents.length > 0) {
+            const groupedEventTicketOptions = selectedEvents.map(event => ({
+                label: event?.label,
+                value: event?.value,
+                options: event?.tickets?.map(ticket => ({
+                    value: ticket?.id,
+                    label: ticket?.name,
+                    eventId: event?.value
+                })) || []
+            }));
+            setTicketGroup(groupedEventTicketOptions);
+        } else {
+            setTicketGroup([]);
+        }
+    }, [selectedEvents]);
+
+    // Unified function to fetch user role data
     const fetchUserRole = async (reportingId) => {
         if (!reportingId) return;
+        
         try {
             const res = await apiClient.get(`edit-user/${reportingId}`);
             if (res?.status) {
                 const data = res?.user;
-                const eventOptions = data.events.map(event => ({
-                    value: event.id,
-                    label: event.name
-                }));
-                setSelectedEvents(eventOptions);
+                
+                // Map events if they exist
+                if (data.events && data.events.length > 0) {
+                    const eventOptions = data.events.map(event => ({
+                        value: event.id,
+                        label: event.name,
+                        tickets: event.tickets || []
+                    }));
+                    setSelectedEvents(eventOptions);
+                }
+                
+                // Update organisation if user is Organizer
                 if (data?.role?.name === 'Organizer') {
                     updateFormState({ 
                         organisation: data?.organisation || formState.organisation 
@@ -316,21 +345,75 @@ useEffect(() => {
                 }
             }
         } catch (error) {
-            ErrorAlert(error.response?.data?.error || error.response?.data?.message);
+            // ErrorAlert(error.response?.data?.error || error.response?.data?.message);
+            notification.error({
+              message: "Error",
+              description:
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                "Something went wrong!",
+            });
         }
     };
 
-    console.log('events',events)
+    // Custom filter for tickets search
+    const customTicketFilter = (input, option) => {
+        const searchTerm = input.toLowerCase().trim();
+        if (!searchTerm) return true;
 
-
-    const showDelayedError = (errorMessage) => {
-        if (errorTimeout) {
-            clearTimeout(errorTimeout);
+        // If searching within an option group item
+        if (option?.label) {
+            return option.label.toLowerCase().includes(searchTerm);
         }
-        const timeout = setTimeout(() => {
-            ErrorAlert(errorMessage);
-        }, 1000);
-        setErrorTimeout(timeout);
+
+        // If searching the group label itself
+        return false;
+    };
+
+    // Handle event selection change
+    const handleEventChange = (selectedValues) => {
+        // Map selected values to full event objects with tickets
+        const selectedEventObjects = selectedValues.map(value => 
+            events.find(e => e.value === value)
+        ).filter(Boolean);
+        
+        setSelectedEvents(selectedEventObjects);
+        
+        // Filter out tickets that no longer belong to selected events
+        const validEventIds = selectedEventObjects.map(e => e.value);
+        const filteredTickets = selectedTickets.filter(ticket => 
+            validEventIds.includes(ticket.eventId)
+        );
+        
+        if (filteredTickets.length !== selectedTickets.length) {
+            setSelectedTickets(filteredTickets);
+            form.setFieldValue('tickets', filteredTickets.map(t => t.value));
+        }
+    };
+
+    // Handle ticket selection change
+    const handleTicketChange = (selectedValues) => {
+        // Map selected values to full ticket objects from ticketGroup
+        const selectedTicketObjects = [];
+        ticketGroup.forEach(eventGroup => {
+            eventGroup.options.forEach(ticket => {
+                if (selectedValues.includes(ticket.value)) {
+                    selectedTicketObjects.push(ticket);
+                }
+            });
+        });
+        
+        setSelectedTickets(selectedTicketObjects);
+    };
+
+    // Handle gate selection change
+    const handleGateChange = (selectedValues) => {
+        // Map selected values to full gate objects
+        const selectedGateObjects = selectedValues.map(value => 
+            gates.find(g => g.value === value)
+        ).filter(Boolean);
+        
+        setSelectedGates(selectedGateObjects);
     };
 
     // Handle role change
@@ -344,8 +427,6 @@ useEffect(() => {
 
         const rolesToDisable = ['POS', 'Agent', 'Scanner'];
         setShowAM(rolesToDisable?.includes(roleName));
-
-        // Optionally fetch users by role in future
     };
 
     // Handle reporting user change
@@ -362,20 +443,21 @@ useEffect(() => {
 
     // Handle form submission
     const handleSubmit = async (values) => {
-        if (!formState.email) {
-            ErrorAlert('Please enter email');
-            return;
-        }
+        // if (!formState.email) {
+        //     // ErrorAlert('Please enter email');
+        //     ErrorAlert('Please enter email');
+        //     return;
+        // }
         
-        if (!/^\d{10}$|^\d{12}$/.test(formState.number)) {
-            ErrorAlert('Mobile number must be 10 or 12 digits only');
-            return;
-        }
+        // if (!/^\d{10}$|^\d{12}$/.test(formState.number)) {
+        //     ErrorAlert('Mobile number must be 10 or 12 digits only');
+        //     return;
+        // }
         
-        if (mode === "create" && formState.password !== formState.repeatPassword) {
-            ErrorAlert('Password Do not Match');
-            return;
-        }
+        // if (mode === "create" && formState.password !== formState.repeatPassword) {
+        //     ErrorAlert('Password Do not Match');
+        //     return;
+        // }
             
         const userData = {
             name: formState.name,
@@ -402,8 +484,13 @@ useEffect(() => {
             gst_no: formState.gstNumber,
             status: formState.status === 'Active' ? 1 : 0,
             agent_disc: formState.agentDiscount ? 1 : 0,
-            events: (formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation') ? selectedEvents.map(event => event.value) : [],
+            events: (formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation') 
+                ? selectedEvents.map(event => event.value) 
+                : [],
             tickets: selectedTickets,
+            gates: formState.roleName === 'Scanner' 
+                ? selectedGates.map(gate => gate.value) 
+                : [],
             agreement_status: formState.agreementStatus,
             payment_method: formState.paymentMethod,
             org_gst_no: formState.orgGstNumber,
@@ -428,13 +515,22 @@ useEffect(() => {
                     dispatch(updateUser(response.data.user));
                     HandleBack();
                 }
-                successAlert(`User ${mode === "create" ? "created" : "updated"}`, response.data.message);
+                // successAlert(`User ${mode === "create" ? "created" : "updated"}`, response.data.message);
+                notification.success({
+  message: `User ${mode === "create" ? "created" : "updated"}`,
+  description: response.data.message,
+});
+
                 if (mode === "create") {
                     HandleBack();
                 }
             }
         } catch (error) {
-            ErrorAlert(error.response?.data?.error || error.response?.data?.message);
+            notification.error({
+  message: 'Error',
+  description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
+});
+
         }
     };
 
@@ -446,14 +542,6 @@ useEffect(() => {
     const handlePaymentMethodChange = (e) => {
         updateFormState({ paymentMethod: e.target.value });
     };
-
-    const HandleUserAuthType = () => {
-        updateFormState({ auth: !formState.auth });
-    };
-
-    // const HandleTickets = (data) => {
-    //     setSelectedTickets(data);
-    // };
 
     // Tab items
     const tabItems = [
@@ -485,8 +573,7 @@ useEffect(() => {
                     Wallet
                 </span>
             ),
-            // children: <AgentCredit id={id} />,
-            children: <>Agent credit</>
+            children: <>Agent credit component here</>,
         }] : []),
         {
             key: "4",
@@ -496,8 +583,7 @@ useEffect(() => {
                     Transactions
                 </span>
             ),
-            // children: <TransactionHistory id={id} />,
-            children: <>transactions</>,
+            children: <Transactions userId={id} />,
         },
         ...((userRole === "Admin" || UserPermissions.includes("Assign Permissions")) ? [{
             key: "5",
@@ -507,8 +593,7 @@ useEffect(() => {
                     Permissions
                 </span>
             ),
-            // children: <RolePermission isUser={true} />,
-            children: <>role permissons</>,
+            children: <>Role permissions component here</>,
         }] : [])
     ];
 
@@ -525,41 +610,46 @@ useEffect(() => {
             >
                 <Row gutter={[16, 16]}>
                     {/* Left Column - Basic Info */}
+                    
                     <Col xs={24} lg={12}>
-                        {/* In create mode, ensure role is chosen first */}
-                        {/* {showRoleGate ? ( */}
-                            <Card title="Select User Role">
-                                <Row gutter={[16, 16]}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="User Role"
-                                            name="roleId"
-                                            rules={[{ required: true, message: 'Please select role' }]}
+                        <Card title="Select User Role">
+                            <Row gutter={[16, 16]}>
+                                <Col xs={24} md={12}>
+                                    <Form.Item
+                                        label="User Role"
+                                        name="roleId"
+                                        rules={[{ required: true, message: 'Please select role' }]}
+                                    >
+                                        <Select
+                                            placeholder="Select role"
+                                            value={formState.roleId}
+                                            onChange={handleRoleChange}
                                         >
-                                            <Select
-                                                placeholder="Select role"
-                                                value={formState.roleId}
-                                                onChange={handleRoleChange}
-                                            >
-                                                {roles?.map((item) => (
-                                                    <Option key={item.id} value={item.id}>
-                                                        {item.name}
-                                                    </Option>
-                                                ))}
-                                            </Select>
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </Card>
-                        {/* // ) : ( */}
-                            <Card 
-                                title="Basic Information" 
-                                extra={
-                                    <Button type="primary" htmlType="submit">
-                                        Save
-                                    </Button>
-                                }
-                            >
+                                            {roles?.map((item) => (
+                                                <Option key={item.id} value={item.id}>
+                                                    {item.name}
+                                                </Option>
+                                            ))}
+                                        </Select>
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Card>
+
+                        <Card 
+                            title="Basic Information"
+                            // extra={
+                            //     <Space>
+                            //         <Button 
+                            //             type="primary" 
+                            //             htmlType="submit"
+                            //             loading={loading}
+                            //         >
+                            //             Save
+                            //         </Button>
+                            //     </Space>
+                            // }
+                        >
                             <Row gutter={[16, 16]}>
                                 <Col xs={24} md={12}>
                                     <Form.Item
@@ -609,7 +699,24 @@ useEffect(() => {
                                     </Form.Item>
                                 </Col>
 
-                                {userRole !== 'User' && (
+                                {formState.roleName === 'Organizer' && (
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Agreement Status"
+                                            name="agreementStatus"
+                                            valuePropName="checked"
+                                        >
+                                            <Switch
+                                                checked={formState.agreementStatus}
+                                                onChange={(checked) => handleInputChange('agreementStatus', checked)}
+                                                checkedChildren="Active"
+                                                unCheckedChildren="Inactive"
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                )}
+
+                                {formState.roleName === 'Organizer' && (
                                     <>
                                         <Col xs={24} md={12}>
                                             <Form.Item
@@ -647,13 +754,18 @@ useEffect(() => {
                                         {/* Role-specific fields */}
                                         {formState.roleName === 'Scanner' && (
                                             <Col xs={24} md={12}>
-                                                <Form.Item label="Event Gates">
+                                                <Form.Item 
+                                                    label="Event Gates"
+                                                    name="gates"
+                                                >
                                                     <Select
                                                         mode="multiple"
                                                         placeholder="Select gates"
                                                         options={gates}
-                                                        value={selectedGates}
-                                                        onChange={setSelectedGates}
+                                                        value={selectedGates.map(g => g.value)}
+                                                        onChange={handleGateChange}
+                                                        optionFilterProp="label"
+                                                        showSearch
                                                     />
                                                 </Form.Item>
                                             </Col>
@@ -678,9 +790,44 @@ useEffect(() => {
                                                             mode="multiple"
                                                             placeholder="Select events"
                                                             options={events}
-                                                            value={selectedEvents}
-                                                            onChange={setSelectedEvents}
+                                                            value={selectedEvents.map(e => e.value)}
+                                                            onChange={handleEventChange}
+                                                            optionFilterProp="label"
+                                                            showSearch
                                                         />
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col xs={24} md={12}>
+                                                    <Form.Item 
+                                                        label="Assign Tickets"
+                                                        name="tickets"
+                                                    >
+                                                        <Select
+                                                            mode="multiple"
+                                                            placeholder="Select tickets"
+                                                            value={selectedTickets.map(t => t.value)}
+                                                            onChange={handleTicketChange}
+                                                            filterOption={customTicketFilter}
+                                                            showSearch
+                                                            disabled={selectedEvents.length === 0}
+                                                        >
+                                                            {ticketGroup.map(eventGroup => (
+                                                                <Select.OptGroup 
+                                                                    key={eventGroup.value} 
+                                                                    label={eventGroup.label}
+                                                                >
+                                                                    {eventGroup.options.map(ticket => (
+                                                                        <Option 
+                                                                            key={ticket.value} 
+                                                                            value={ticket.value}
+                                                                            label={ticket.label}
+                                                                        >
+                                                                            {ticket.label}
+                                                                        </Option>
+                                                                    ))}
+                                                                </Select.OptGroup>
+                                                            ))}
+                                                        </Select>
                                                     </Form.Item>
                                                 </Col>
                                                 <Col xs={24} md={12}>
@@ -710,7 +857,6 @@ useEffect(() => {
                                                         placeholder="Enter your password"
                                                         value={formState.password}
                                                         onChange={(e) => handleInputChange('password', e.target.value)}
-                                                        // onKeyDown={handleKeyDown}
                                                         autoFocus
                                                         disabled={loading}
                                                     />
@@ -781,8 +927,6 @@ useEffect(() => {
                                 )}
                             </Row>
                         </Card>
-                        {/* // )} */}
-
                     </Col>
 
                     {/* Right Column - Additional Details */}
@@ -843,7 +987,7 @@ useEffect(() => {
 
                         {/* Address Section */}
                         {!showRoleGate && (
-                        <Card title="Address" style={{ marginTop: 16 }}>
+                        <Card title="Address" >
                             <Row gutter={[16, 16]}>
                                 <Col xs={24} md={12}>
                                     <Form.Item label="City">
@@ -933,51 +1077,53 @@ useEffect(() => {
                         <Card title="Status & Security">
                             {(userRole === 'Admin' || userRole === 'Organizer') && (
                                 <Form.Item label="User Status">
-                                    <Select
-                                        value={formState.status}
-                                        onChange={(value) => handleInputChange('status', value)}
-                                    >
-                                        <Option value="Active">Active</Option>
-                                        <Option value="Deative">Deactive</Option>
-                                    </Select>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <Switch
+                                            checked={formState.status === 'Active'}
+                                            onChange={(checked) => handleInputChange('status', checked ? 'Active' : 'Deative')}
+                                            checkedChildren="Active"
+                                            unCheckedChildren="Inactive"
+                                        />
+                                        <span style={{ color: formState.status === 'Active' ? '#52c41a' : '#ff4d4f' }}>
+                                            {formState.status === 'Active' ? 'User is Active' : 'User is Inactive'}
+                                        </span>
+                                    </div>
                                 </Form.Item>
                             )}
 
                             {userRole !== 'User' && mode === 'edit' && (
-                                <Card 
-                                    type="inner" 
-                                    title="Account Security" 
-                                    extra={
-                                        <Button type="primary" onClick={HandleUserAuthType}>
-                                            {formState.auth ? "Enable OTP" : "Enable Password"}
-                                        </Button>
-                                    }
-                                >
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <SafetyCertificateOutlined style={{ color: '#52c41a' }} />
-                                        <span>
-                                            {formState.auth
-                                                ? "Your account is secured using a password. Click to enable OTP authentication instead."
-                                                : "Your account is secured using OTP. Click to enable password authentication instead."}
-                                        </span>
+                                <Form.Item label="Authentication Method">
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                        <Switch
+                                            checked={formState.auth}
+                                            onChange={(checked) => handleInputChange('auth', checked)}
+                                            checkedChildren="Password"
+                                            unCheckedChildren="OTP"
+                                        />
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <SafetyCertificateOutlined style={{ color: '#52c41a' }} />
+                                            <span>
+                                                {formState.auth ? "Password Auth" : "OTP Auth"}
+                                            </span>
+                                        </div>
                                     </div>
-                                </Card>
+                                </Form.Item>
                             )}
 
                             {mode === 'create' && (
-                                <Card type="inner" title="Authentication">
+                                <Form.Item label="Authentication Method">
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                                         <Switch
                                             checked={formState.enablePasswordAuth}
                                             onChange={(checked) => handleInputChange('enablePasswordAuth', checked)}
+                                            checkedChildren="Password"
+                                            unCheckedChildren="OTP"
                                         />
                                         <span>
-                                            {formState.enablePasswordAuth
-                                                ? "Password authentication enabled for this user."
-                                                : "OTP authentication will be used unless password auth is enabled."}
+                                            {formState.enablePasswordAuth ? "Password Auth" : "OTP Auth"}
                                         </span>
                                     </div>
-                                </Card>
+                                </Form.Item>
                             )}
                         </Card>
                         )}
@@ -989,16 +1135,16 @@ useEffect(() => {
 
     function renderBookingsTab() {
         return (
-            <Card>
+            <>
                 {/* <BookingList bookings={bookings} loading={loading} setLoading={setLoading} /> */}
+                <UserBookings id={id} activeTab={activeTab}/>
                 <div style={{ textAlign: 'center', marginTop: 16 }}>
-                    <Button type="primary">Load More</Button>
                 </div>
-            </Card>
+            </>
         );
     }
 
-    if (loading) {
+    if (userLoading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
                 <Spin size="large" />
@@ -1008,20 +1154,36 @@ useEffect(() => {
 
     return (
         <Fragment>
-            <Card>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Button 
-                            type="text" 
-                            icon={<ArrowLeftOutlined />} 
-                            onClick={HandleBack}
-                            style={{ padding: 0, height: 'auto' }}
-                        />
-                        <h2 style={{ margin: 0 }}>
-                            {mode === "create" ? "Create User" : `Manage User - ${formState.roleName}`}
-                        </h2>
-                    </div>
-                </div>
+
+<Card
+  title={
+    <div className="d-flex align-items-center gap-2">
+      <Button
+        type="text"
+        icon={<ArrowLeftOutlined />}
+        onClick={HandleBack}
+        style={{ padding: 0, height: "auto" }}
+      />
+      <span>
+        {mode === "create"
+          ? "Create User"
+          : `Manage User - ${formState.roleName}`}
+      </span>
+    </div>
+  }
+  extra={
+    activeTab === "1" && (
+    <Button
+      type="primary"
+      htmlType="submit"
+      loading={loading}
+      onClick={() => form.submit()}
+    >
+      {mode === "create" ? "Create" : "Update"}
+    </Button>
+    )
+  }
+>
 
                 {mode === "edit" ? (
                     <Tabs
