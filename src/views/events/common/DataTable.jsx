@@ -115,8 +115,7 @@ const DataTable = ({
       const contentDisposition = response.headers["content-disposition"];
       const fileName =
         contentDisposition?.split("filename=")[1]?.replace(/"/g, "") ||
-        `${title.replace(/\s+/g, "_")}_${
-          new Date().toISOString().split("T")[0]
+        `${title.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]
         }.xlsx`;
 
       link.setAttribute("download", fileName);
@@ -213,14 +212,14 @@ const DataTable = ({
 
   const enhancedColumns = enableSearch
     ? columns.map((column) => {
-        if (column.searchable) {
-          return {
-            ...column,
-            ...getColumnSearchProps(column.dataIndex),
-          };
-        }
-        return column;
-      })
+      if (column.searchable) {
+        return {
+          ...column,
+          ...getColumnSearchProps(column.dataIndex),
+        };
+      }
+      return column;
+    })
     : columns;
 
   // Desktop header controls
@@ -242,23 +241,7 @@ const DataTable = ({
           />
         </Space.Compact>
       )}
-
-      {extraHeaderContent}
-
-      {enableExport && ExportPermission && exportRoute && (
-        <Tooltip title="Export Data">
-          <Button
-            type="primary"
-            icon={<CloudUploadOutlined />}
-            onClick={handleExport}
-            loading={exportLoading}
-            disabled={exportLoading}
-            size={isTablet ? "small" : "middle"}
-          />
-        </Tooltip>
-      )}
-
-      {showRefresh && !isMobile && (
+      {showRefresh && (
         <Tooltip
           title={countdown ? `Wait ${countdown}s to refresh` : "Refresh Data"}
         >
@@ -272,6 +255,20 @@ const DataTable = ({
           </Button>
         </Tooltip>
       )}
+      {enableExport && ExportPermission && exportRoute && (
+        <Tooltip title="Export Data">
+          <Button
+            type="primary"
+            icon={<CloudUploadOutlined />}
+            onClick={handleExport}
+            loading={exportLoading}
+            disabled={exportLoading}
+            size={isTablet ? "small" : "middle"}
+          />
+        </Tooltip>
+      )}
+      {extraHeaderContent}
+
     </Space>
   );
 
@@ -328,7 +325,7 @@ const DataTable = ({
           <Col xs={24} sm={24} md={8} lg={8} xl={6}>
             <h2 className="m-0">{title}</h2>
           </Col>
-          {(!loading && data?.length > 0  ) && (
+          {(!loading) && (
             <Col xs={24} sm={24} md={16} lg={16} xl={18}>
               <motion.div
                 initial={{ opacity: 0, y: -20 }}

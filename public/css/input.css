@@ -1,20 +1,24 @@
 /* Enhanced Ant Design Input Styling */
-.ant-form-item .ant-form-item-label >label {
+.ant-form-item .ant-form-item-label>label {
     color: var(--text-white) !important;
 }
-.ant-input-number,.ant-input-number .ant-input-number-handler-wrap  {
+
+.ant-input-number,
+.ant-input-number .ant-input-number-handler-wrap {
     background-color: transparent !important;
     border: 1px solid var(--border-secondary) !important;
     color: #ffff !important;
     box-shadow: none !important;
     transition: all 0.3s ease !important;
 }
+
 .ant-upload-wrapper .ant-upload-drag {
-    border : 1px dashed var(--border-secondary) !important;
+    border: 1px dashed var(--border-secondary) !important;
 }
+
 /* Base states for all input types */
-.ant-input, 
-.ant-input-affix-wrapper, 
+.ant-input,
+.ant-input-affix-wrapper,
 .ant-input-group .ant-input,
 .ant-table-filter-dropdown,
 .ant-select-selector {
@@ -51,7 +55,7 @@
 }
 
 /* Remove inner input borders completely - but keep wrapper borders */
-.ant-input-affix-wrapper > input.ant-input,
+.ant-input-affix-wrapper>input.ant-input,
 .ant-input-group .ant-input {
     background: transparent !important;
     border: none !important;
@@ -99,23 +103,27 @@ input.ant-input:not(.ant-input-affix-wrapper > input) {
 /* Input group styling - Remove wrapper border */
 .ant-input-group {
     background: transparent !important;
-    border: none !important; /* Remove the wrapper border */
+    border: none !important;
+    /* Remove the wrapper border */
     border-radius: 6px !important;
 }
 
 .ant-input-group:hover {
-    border-color: transparent !important; /* Remove hover border */
+    border-color: transparent !important;
+    /* Remove hover border */
 }
 
 .ant-input-group:focus-within {
-    border-color: transparent !important; /* Remove focus border */
+    border-color: transparent !important;
+    /* Remove focus border */
     box-shadow: none !important;
 }
 
 /* Ensure input and addon have their own borders */
 .ant-input-group .ant-input {
     border: 1px solid var(--border-secondary) !important;
-    border-right: none !important; /* Remove right border when adjacent to addon */
+    border-right: none !important;
+    /* Remove right border when adjacent to addon */
     border-top-right-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
 }
@@ -179,7 +187,7 @@ input:-internal-autofill-previewed {
 }
 
 /* Force autofill text color for nested inputs */
-.ant-input-affix-wrapper > input:-webkit-autofill {
+.ant-input-affix-wrapper>input:-webkit-autofill {
     -webkit-text-fill-color: #ffffff !important;
     /* -webkit-box-shadow: 0 0 0 30px transparent inset !important; */
 }
@@ -237,6 +245,7 @@ input:-internal-autofill-previewed {
     border-color: var(--primary-color) !important;
     /* box-shadow: 0 0 0 2px rgba(181, 21, 21, 0.2) !important; */
 }
+
 .ant-radio-button-wrapper-checked:focus,
 .ant-radio-button-wrapper-checked.ant-radio-button-wrapper-focused {
     background-color: var(--primary-color) !important;
@@ -286,7 +295,7 @@ input:-internal-autofill-previewed {
 }
 
 /* Remove borders between adjacent radio buttons */
-.ant-radio-button-wrapper + .ant-radio-button-wrapper {
+.ant-radio-button-wrapper+.ant-radio-button-wrapper {
     margin-left: -1px !important;
 }
 
@@ -297,4 +306,20 @@ input:-internal-autofill-previewed {
     border-color: var(--primary-color) !important;
     transition: all 0.3s ease !important;
     opacity: 0.7;
+} */
+.ant-form-item-explain-error {
+    color: var(--primary-color) !important;
+}
+
+.ant-steps-item-wait .ant-steps-item-container .ant-steps-item-icon {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-secondary) !important;
+}
+/* 
+.ant-steps-item-icon {
+    background: transparent !important;
+}
+
+.ant-steps-item-icon .ant-steps-icon {
+    color: var(--text-white) !important;
 } */

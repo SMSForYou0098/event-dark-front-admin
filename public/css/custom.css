@@ -10,6 +10,18 @@
 @import url('./alert.css');
 @import url('./modal.css');
 
+/* change text selection bg color */
+::selection {
+  background: var(--primary-color);
+  color: white;
+}
+
+.ant-card .ant-card-actions{
+  background: transparent !important;
+  border-top: 1px dashed var(--border-secondary) !important;
+}
+
+
 .css-hrcas2-PageHeaderAlt {
   background-color: var(--bg-secondary) !important;
   border: none !important;

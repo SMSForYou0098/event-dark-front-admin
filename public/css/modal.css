@@ -42,7 +42,7 @@
 /* Modal footer */
 .ant-modal-footer {
   background: transparent !important;
-  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  /* border-top: 1px solid rgba(255, 255, 255, 0.1) !important; */
 }
 
 /* Close button */
@@ -101,4 +101,9 @@
 .ant-btn-primary{
   background: var(--primary-color) !important;
   color: #fff !important;
+}
+
+/* remove footer top border */
+.ant-modal-confirm .ant-modal-footer {
+  border-top: none !important;
 }

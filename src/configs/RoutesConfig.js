@@ -92,6 +92,11 @@ export const protectedRoutes = [
         path: `${APP_PREFIX_PATH}/apps/organizers`,
         component: React.lazy(() => import('views/events/users/Organizers')),
     },
+    {
+        key: 'apps.events',
+        path: `${APP_PREFIX_PATH}/apps/events`,
+        component: React.lazy(() => import('views/events/event/EventStepperForm')),
+    },
 {
     key: 'apps.agents',
     path: `${APP_PREFIX_PATH}/apps/agents`,

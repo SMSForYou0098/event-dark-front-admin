@@ -24,6 +24,10 @@
     border-radius: 12px !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
     color: var(--text-color) !important;
+    @media screen and (max-width: 425px) {
+        max-width: 25rem !important;
+        overflow-x: auto !important;
+    }
 }
 
 /* Date picker panel styling */

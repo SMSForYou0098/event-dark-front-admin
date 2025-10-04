@@ -248,6 +248,14 @@ const appsNavTree = [{
       submenu: []
     },
     {
+      key: 'apps-events',
+      path: `${APP_PREFIX_PATH}/apps/events`,
+      title: 'Events',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
       key: 'apps-agents',
       path: `${APP_PREFIX_PATH}/apps/agents`,
       title: 'sidenav.apps.agents',

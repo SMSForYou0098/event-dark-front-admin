@@ -183,6 +183,8 @@ const Organizers = () => {
   actionColumns.push({
     title: 'Actions',
     key: 'actions',
+    fixed : 'right',
+    width: 100,
     align: 'center',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
