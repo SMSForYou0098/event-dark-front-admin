@@ -35,6 +35,7 @@ import { useDispatch } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { persistor } from "store";
 import PermissionChecker from "layouts/PermissionChecker";
+import { APP_PREFIX_PATH } from "configs/AppConfig";
 
 const Users = () => {
   const navigate = useNavigate();
@@ -177,7 +178,7 @@ const Users = () => {
   // Action handlers
   const handleAssignCredit = useCallback(
     (id) => {
-      navigate(`manage/${id}`);
+      navigate(`${APP_PREFIX_PATH}/apps/edit-user/${id}`);
     },
     [navigate]
   );

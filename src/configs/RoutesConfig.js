@@ -1,6 +1,7 @@
 import React from 'react'
 import { AUTH_PREFIX_PATH, APP_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
+import UserForm from 'views/events/users/UserForm'
 
 export const publicRoutes = [
     {
@@ -124,6 +125,24 @@ export const protectedRoutes = [
     component: (props) => (
         <React.Suspense fallback={<div>Loading...</div>}>
             <BookingList {...props}     isCorporate={true} />
+        </React.Suspense>
+    ),
+},
+{
+    key: 'apps.new-user',
+    path: `${APP_PREFIX_PATH}/apps/edit-user/:id`,
+    component: (props) => (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <UserForm mode="edit"/>
+        </React.Suspense>
+    ),
+},
+{
+    key: 'apps.edit-user',
+    path: `${APP_PREFIX_PATH}/apps/new-user`,
+    component: (props) => (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <UserForm mode="create"/>
         </React.Suspense>
     ),
 },

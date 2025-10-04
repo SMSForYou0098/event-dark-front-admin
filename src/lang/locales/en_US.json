@@ -12,6 +12,7 @@
 
 
 	"sidenav.apps.users": "Users",
+	"sidenav.apps.new-user": "New User",
 	"sidenav.apps.agents": "Agent",
 	"sidenav.apps.pos": "POS",
 	"sidenav.apps.corporate": "Corporate",

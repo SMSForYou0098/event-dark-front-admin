@@ -264,7 +264,7 @@ const appsNavTree = [{
       submenu: []
     },
     {
-      key: 'apps-pos',
+      key: 'apps-corporate',
       path: `${APP_PREFIX_PATH}/apps/corporate`,
       title: 'sidenav.apps.corporate',
       icon: MessageOutlined,
