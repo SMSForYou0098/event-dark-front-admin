@@ -36,7 +36,7 @@ export const publicApi = axios.create({
 
 // Authenticated API instance
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_PATH || API_BASE_URL || '',
+  baseURL: process.env.REACT_APP_API_ENDPOINT_URL || API_BASE_URL || '',
   headers: { 'Content-Type': 'application/json' },
   timeout: DEFAULT_TIMEOUT,
 });

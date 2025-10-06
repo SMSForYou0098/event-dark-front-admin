@@ -14,6 +14,8 @@ import {
     Spin,
     Space,
     notification,
+    Divider,
+    Typography,
 } from "antd";
 import {
     ArrowLeftOutlined,
@@ -1155,37 +1157,34 @@ const UserForm = memo(({ mode = "edit" }) => {
 
     return (
         <Fragment>
-
-<Card
-  title={
-    <div className="d-flex align-items-center gap-2">
-      <Button
-        type="text"
-        icon={<ArrowLeftOutlined />}
-        onClick={HandleBack}
-        style={{ padding: 0, height: "auto" }}
-      />
-      <span>
-        {mode === "create"
-          ? "Create User"
-          : `Manage User - ${formState.roleName}`}
-      </span>
-    </div>
-  }
-  extra={
-    activeTab === "1" && (
-    <Button
-      type="primary"
-      htmlType="submit"
-      loading={loading}
-      onClick={() => form.submit()}
-    >
-      {mode === "create" ? "Create" : "Update"}
-    </Button>
-    )
-  }
->
-
+                <Row align="middle" justify="space-between" style={{ marginBottom: 16 }}>
+                    <Col>
+                        <Button
+                            type="text"
+                            icon={<ArrowLeftOutlined />}
+                            onClick={HandleBack}
+                            style={{ padding: 0, height: "auto", marginRight: 8 }}
+                        />
+                        <Typography.Title level={4} style={{ display: "inline", margin: 0 }}>
+                            {mode === "create"
+                                ? "Create User"
+                                : `Manage User - ${formState.roleName}`}
+                        </Typography.Title>
+                    </Col>
+                    <Col>
+                        {activeTab === "1" && (
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                loading={loading}
+                                onClick={() => form.submit()}
+                            >
+                                {mode === "create" ? "Create" : "Update"}
+                            </Button>
+                        )}
+                    </Col>
+                </Row>
+                <Divider />
                 {mode === "edit" ? (
                     <Tabs
                         activeKey={activeTab}
@@ -1195,8 +1194,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                 ) : (
                     renderProfileTab()
                 )}
-            </Card>
-        </Fragment>
+            </Fragment>
     );
 });
 

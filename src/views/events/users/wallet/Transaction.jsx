@@ -12,8 +12,14 @@ export const capitilize = (name) => {
 
 const Transactions = ({userId}) => {
     const { formatDateTime } = useMyContext();
-    const { data: transactions = [], isLoading, refetch } = useFetchTransactions( userId);
+    const { data, isLoading, refetch } = useFetchTransactions(userId);
+    
+    // Safely access transactions with fallback to empty array
+    const transactions = data || [];
+    
     console.log('transactions', transactions);
+    console.log('userId', userId); // Debug: check if userId is passed correctly
+    
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [selectedTransactionId, setSelectedTransactionId] = useState(null);
 
@@ -145,6 +151,7 @@ const Transactions = ({userId}) => {
             ),
         }
     ];
+    
     return (
         <>
             <TransactionReceiptModal
