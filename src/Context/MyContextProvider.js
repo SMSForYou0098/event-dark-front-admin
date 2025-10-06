@@ -54,6 +54,7 @@ export const MyContextProvider = ({ children }) => {
       console.log(err);
     }
   }
+
   const GetUsersList = async () => {
     try {
       const response = await axios.get(`${api}users/list`, {
@@ -97,7 +98,6 @@ export const MyContextProvider = ({ children }) => {
     }
   }
 
-
   const GetSystemSetting = async () => {
     // Load cached data first
     const cached = localStorage.getItem("system_setting");
@@ -128,9 +128,6 @@ export const MyContextProvider = ({ children }) => {
       console.error("Error fetching system settings:", err);
     }
   };
-
-
-
 
   const GetSystemVars = async () => {
     try {
@@ -507,7 +504,6 @@ export const MyContextProvider = ({ children }) => {
     let apiKey = config?.api_key
     let template = apiData?.template_name
     let vars = apiData?.variables
-    console.log("values", values)
 
     const valueMap = {
       ":C_Name": values?.name,

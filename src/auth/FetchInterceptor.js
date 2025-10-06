@@ -9,7 +9,7 @@ import { API_BASE_URL } from 'configs/AppConfig';
 
 const DEFAULT_TIMEOUT = 60000;
 // NOTE: you included 400 earlier — keep if you intentionally treat 400 as auth-related
-const unauthorizedCodes = [400, 401, 403];
+const unauthorizedCodes = [403];
 
 const getToken = () => {
   // Prefer Redux state token (keeps single source if auth is in store)

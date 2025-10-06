@@ -4,6 +4,7 @@ import { Modal, Form, Input, Select, Upload, message, Row, Col } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { TextArea } = Input;
 
@@ -27,7 +28,7 @@ const VENUE_TYPES = [
 ];
 
 const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
-    const { locationData, getCitiesByState, OrganizerList } = useMyContext();
+    const { locationData, getCitiesByState, OrganizerList, isMobile } = useMyContext();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [cities, setCities] = useState([]);
@@ -64,10 +65,10 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                     url: venueData.thumbnail,
                 }]);
             }
-
+            const vnimages = venueData?.venue_images?.split(',')
             // Set existing venue images
-            if (venueData.venue_images && Array.isArray(venueData.venue_images)) {
-                setVenueImagesFileList(venueData.venue_images.map((url, index) => ({
+            if (vnimages && Array.isArray(vnimages)) {
+                setVenueImagesFileList(vnimages?.map((url, index) => ({
                     uid: `-${index + 2}`,
                     name: `image-${index + 1}.jpg`,
                     status: 'done',
@@ -150,8 +151,6 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
         setCities([]);
         onCancel();
     };
-    console.log(OrganizerList)
-    // Thumbnail upload props
     const thumbnailUploadProps = {
         beforeUpload: (file) => {
             const isImage = file.type.startsWith('image/');
@@ -186,17 +185,22 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                 message.error('Image must be smaller than 5MB!');
                 return Upload.LIST_IGNORE;
             }
+            // Check if limit reached
+            if (venueImagesFileList.length >= 5) {
+                message.warning('Maximum 5 images allowed');
+                return Upload.LIST_IGNORE;
+            }
             return false;
         },
-        onChange: ({ fileList }) => setVenueImagesFileList(fileList),
+        onChange: ({ fileList }) => setVenueImagesFileList(fileList.slice(0, 5)), // Ensure max 5
         onRemove: (file) => {
             setVenueImagesFileList(prev => prev.filter(f => f.uid !== file.uid));
         },
         fileList: venueImagesFileList,
         multiple: true,
         listType: 'picture-card',
+        maxCount: 5, // Built-in max count
     };
-
     return (
         <Modal
             title={mode === 'edit' ? 'Edit Venue' : 'Create New Venue'}
@@ -204,8 +208,8 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
             onCancel={handleCancel}
             onOk={() => form.submit()}
             confirmLoading={loading}
-            style={{ top: 20 }}
             width={900}
+            style={{ top: 0 }}
             okText={mode === 'edit' ? 'Update' : 'Create'}
         >
             <Form
@@ -213,7 +217,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                 layout="vertical"
                 onFinish={handleSubmit}
             >
-                <Row gutter={16}>
+                <Row gutter={16} style={{ maxHeight: isMobile ? '30rem' : '100%', overflowX: 'auto' }}>
                     <Col xs={24} md={12}>
                         <Form.Item
                             label="Venue Name"
@@ -223,26 +227,27 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             <Input placeholder="Enter venue name" />
                         </Form.Item>
                     </Col>
+                    <PermissionChecker role="Admin">
+                        <Col xs={24} md={12}>
+                            <Form.Item
+                                label="Organization"
+                                name="org_id"
+                                rules={[{ required: true, message: 'Please select organization' }]}
+                            >
+                                <Select
+                                    showSearch
+                                    placeholder="Select organization"
+                                    options={OrganizerList?.map(org => ({
+                                        value: org.value,
+                                        label: `${org.organisation} (${org.label})`, // e.g., "Get Your Ticket (janak rana)"
+                                    }))}
+                                    optionFilterProp="label"
+                                />
+                            </Form.Item>
+                        </Col>
+                    </PermissionChecker>
 
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label="Organization"
-                            name="org_id"
-                            rules={[{ required: true, message: 'Please select organization' }]}
-                        >
-                            <Select
-                                showSearch
-                                placeholder="Select organization"
-                                options={OrganizerList?.map(org => ({
-                                    value: org.value,
-                                    label: `${org.organisation} (${org.label})`, // e.g., "Get Your Ticket (janak rana)"
-                                }))}
-                                optionFilterProp="label"
-                            />
-                        </Form.Item>
-                    </Col>
-
-                    <Col xs={24} md={12}>
+                    <Col xs={24} md={8}>
                         <Form.Item
                             label="Venue Type"
                             name="type"
@@ -256,7 +261,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                         </Form.Item>
                     </Col>
 
-                    <Col xs={24} md={12}>
+                    <Col xs={24} md={8}>
                         <Form.Item
                             label="State"
                             name="state"
@@ -272,7 +277,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                         </Form.Item>
                     </Col>
 
-                    <Col xs={24} md={12}>
+                    <Col xs={24} md={8}>
                         <Form.Item
                             label="City"
                             name="city"
@@ -282,7 +287,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                 showSearch
                                 placeholder="Select city"
                                 options={cities}
-                                disabled={!cities.length}
+                                // disabled={!cities.length}
                                 optionFilterProp="label"
                             />
                         </Form.Item>
@@ -294,11 +299,18 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             name="address"
                             rules={[{ required: true, message: 'Please enter address' }]}
                         >
-                            <Input placeholder="Enter full address" />
+                            <Input.TextArea placeholder="Enter full address" />
                         </Form.Item>
                     </Col>
-
-                    <Col xs={12}>
+                    <Col xs={24} md={12}>
+                        <Form.Item
+                            label="Map URL"
+                            name="map_url"
+                        >
+                            <Input placeholder="Enter map URL" />
+                        </Form.Item>
+                    </Col>
+                    <Col xs={12} md={4}>
                         <Form.Item
                             label="Thumbnail Image"
                             name="thumbnail"
@@ -310,7 +322,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             ]}
                         >
                             <Upload {...thumbnailUploadProps}>
-                                {thumbnailFileList.length < 1 && (
+                                {thumbnailFileList?.length < 1 && (
                                     <div>
                                         <PlusOutlined />
                                         <div style={{ marginTop: 8 }}>Upload</div>
@@ -320,16 +332,18 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                         </Form.Item>
                     </Col>
 
-                    <Col xs={12}>
+                    <Col xs={24} md={20}>
                         <Form.Item
-                            label="Venue Images (Multiple)"
+                            label="Venue Images (Maximum 5)"
                             name="venue_images"
                         >
                             <Upload {...venueImagesUploadProps}>
-                                <div>
-                                    <PlusOutlined />
-                                    <div style={{ marginTop: 8 }}>Upload</div>
-                                </div>
+                                {venueImagesFileList.length < 5 && ( // Hide uploader when 5 images uploaded
+                                    <div>
+                                        <PlusOutlined />
+                                        <div style={{ marginTop: 8 }}>Upload</div>
+                                    </div>
+                                )}
                             </Upload>
                         </Form.Item>
                     </Col>
@@ -346,14 +360,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                         </Form.Item>
                     </Col>
 
-                    <Col xs={24}>
-                        <Form.Item
-                            label="Map URL"
-                            name="map_url"
-                        >
-                            <Input placeholder="Enter map URL" />
-                        </Form.Item>
-                    </Col>
+
                 </Row>
             </Form>
         </Modal>

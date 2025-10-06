@@ -10,8 +10,6 @@ import {
   Grid,
   Card,
   Tooltip,
-  Row,
-  Col,
   Alert,
 } from "antd";
 import {
@@ -25,7 +23,6 @@ import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
-import { ROW_GUTTER } from "constants/ThemeConstant";
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
