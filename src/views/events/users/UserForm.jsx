@@ -110,11 +110,6 @@ const UserForm = memo(({ mode = "edit" }) => {
         }
     });
 
-    const navigate = useNavigate();
-//   if (id !== UserData?.id && userRole !== 'Admin' && userRole !== 'Organizer') {
-//   navigate(-1);
-// }
-
     // Other states
     const [roles, setRoles] = useState([]);
     const [events, setEvents] = useState([]);

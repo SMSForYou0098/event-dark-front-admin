@@ -3,11 +3,10 @@ import axios from 'axios';
 import { useSelector } from 'react-redux';
 import Swal from 'sweetalert2';
 import * as XLSX from 'xlsx';
-// import loader from '../assets/event/stock/loader111.gif';
 import loader from '../assets/event/stock/loader111.gif';
 import currencyData from '../JSON/currency.json';
-import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from 'configs/AppConfig';
+import { fetchLocationData, getCitiesForState, loadLocationFromCache } from 'JSON/location';
 
 
 // Create a context
@@ -15,6 +14,12 @@ const MyContext = createContext();
 
 export const MyContextProvider = ({ children }) => {
 
+  const [locationData, setLocationData] = useState({
+    states: [],
+    citiesCache: {},
+    isInitialized: false,
+    loading: false
+  });
   const [smsConfig, setSmsConfig] = useState([]);
   const [currencyMaster, setCurrencyMaster] = useState([]);
   const [UserList, setUserList] = useState([]);
@@ -25,13 +30,13 @@ export const MyContextProvider = ({ children }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
   const [hideMobileMenu, setHideMobileMenu] = useState(false);
-  const api =API_BASE_URL;
+  const api = API_BASE_URL;
   const UserData = useSelector((auth) => auth?.auth?.user);
   const UserPermissions = useSelector((auth) => auth?.auth?.user?.permissions)
   const authToken = useSelector((auth) => auth?.auth?.token);
   const session_id = useSelector((state) => state.auth.session_id);
   const auth_session = useSelector((state) => state.auth.auth_session);
-  const isLoggedIn  = UserData && Object.keys(UserData)?.length > 0
+  const isLoggedIn = UserData && Object.keys(UserData)?.length > 0
   const userRole = UserData?.role;
   // template list 
   const GetEventSmsConfig = async (id) => {
@@ -58,30 +63,31 @@ export const MyContextProvider = ({ children }) => {
       });
       if (response.data.status) {
         let data = response.data.users;
+        let organizer = response.data?.organizers
         setUserList(data);
         // setOrganizerList(response?.data?.organizers || [])
         setUserList(data);
         // setOrganizerList(response?.data?.organizers || []);
         const filterOrganizerList = (data, UserRole) => {
-            if (UserRole === "Admin") {
-              // Include both Admin and Organizer
-              return data.filter(
-                (item) =>
-                  item.role_name &&
-                  (item.role_name.toLowerCase() === "admin" ||
-                    item.role_name.toLowerCase() === "organizer")
-              );
-            } else {
-              // Only include Organizer
-              return data.filter(
-                (item) =>
-                  item.role_name && item.role_name.toLowerCase() === "organizer"
-              );
-            }
-          };
-          // Usage (replace "Admin" with the actual role as needed)
-          const filteredList = filterOrganizerList(data, UserData.role);
-          setOrganizerList(filteredList ?? []);
+          if (UserRole === "Admin") {
+            // Include both Admin and Organizer
+            return data.filter(
+              (item) =>
+                item.role_name &&
+                (item.role_name.toLowerCase() === "admin" ||
+                  item.role_name.toLowerCase() === "organizer")
+            );
+          } else {
+            // Only include Organizer
+            return data.filter(
+              (item) =>
+                item.role_name && item.role_name.toLowerCase() === "organizer"
+            );
+          }
+        };
+        // Usage (replace "Admin" with the actual role as needed)
+        const filteredList = filterOrganizerList(data, UserData.role);
+        setOrganizerList(organizer);
         return data;
       } else {
         console.log('Unexpected API status:', response.data.status);
@@ -93,72 +99,37 @@ export const MyContextProvider = ({ children }) => {
 
 
   const GetSystemSetting = async () => {
-  // Load cached data first
-  const cached = localStorage.getItem("system_setting");
-  if (cached) {
-  try {
-    const settingData = JSON.parse(cached);
-    setSystemSetting(settingData);
-  } catch (e) {
-    console.warn("Invalid cached system_setting, clearing it");
-    localStorage.removeItem("system_setting");
-  }
-}
-  // Fetch from API and replace cache
-  try {
-    const res = await axios.get(`${api}settings`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
-    if (res.data.status) {
-      const settingData = res.data.data;
-      setSystemSetting(settingData);
-      localStorage.setItem("system_setting", JSON.stringify(settingData));
-      return settingData;
+    // Load cached data first
+    const cached = localStorage.getItem("system_setting");
+    if (cached) {
+      try {
+        const settingData = JSON.parse(cached);
+        setSystemSetting(settingData);
+      } catch (e) {
+        console.warn("Invalid cached system_setting, clearing it");
+        localStorage.removeItem("system_setting");
+      }
     }
-  } catch (err) {
-    console.error("Error fetching system settings:", err);
-  }
-};
+    // Fetch from API and replace cache
+    try {
+      const res = await axios.get(`${api}settings`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (res.data.status) {
+        const settingData = res.data.data;
+        setSystemSetting(settingData);
+        localStorage.setItem("system_setting", JSON.stringify(settingData));
+        return settingData;
+      }
+    } catch (err) {
+      console.error("Error fetching system settings:", err);
+    }
+  };
 
 
-// System settings query
-// const systemSettingsQuery = useQuery({
-//   queryKey: ['systemSettings', authToken],
-//   queryFn: async () => {
-//     // const cached = localStorage.getItem("system_setting");
-//     // if (cached) {
-//     //   try {
-//     //     return JSON.parse(cached);
-//     //   } catch {
-//     //     localStorage.removeItem("system_setting");
-//     //   }
-//     // }
-
-//     const res = await axios.get(`${api}settings`, {
-//       headers: { Authorization: `Bearer ${authToken}` },
-//     });
-
-//     if (res.data.status) {
-//       const settingData = res.data.data;
-//       localStorage.setItem("system_setting", JSON.stringify(settingData));
-//       return settingData;
-//     }
-
-//     throw new Error("Failed to fetch system settings");
-//   },
-//   enabled: !!authToken, // only fetch if token exists
-//   staleTime: 1000 * 60 * 5, // cache 5 min
-// });
-
-// const GetSystemSetting = async () => {
-//   console.log("ss");
-//   const result = await systemSettingsQuery.refetch(); // refetch always triggers
-//   setSystemSetting(result.data); // update local state in context
-//   return result.data;
-// };
 
 
   const GetSystemVars = async () => {
@@ -174,7 +145,40 @@ export const MyContextProvider = ({ children }) => {
     }
   }
 
+
+  const initializeLocationData = async () => {
+    // Try cache first
+    const cachedData = loadLocationFromCache();
+
+    if (cachedData) {
+      setLocationData({
+        ...cachedData,
+        isInitialized: true,
+        loading: false
+      });
+      return;
+    }
+
+    // Fetch if no cache
+    setLocationData(prev => ({ ...prev, loading: true }));
+
+    try {
+      const data = await fetchLocationData('India');
+      setLocationData({
+        ...data,
+        isInitialized: true,
+        loading: false
+      });
+    } catch (err) {
+      setLocationData(prev => ({ ...prev, loading: false }));
+    }
+  };
+  // Helper to get cities
+  const getCitiesByState = (stateName) => {
+    return getCitiesForState(locationData.citiesCache, stateName);
+  };
   useEffect(() => {
+    initializeLocationData();
     const fetchData = async () => {
       if (UserData && Object.keys(UserData)?.length > 0) {
         await GetUsersList();
@@ -184,7 +188,6 @@ export const MyContextProvider = ({ children }) => {
     GetSystemSetting()
     fetchData();
     setCurrencyMaster(currencyData)
-    const userAgent = navigator.userAgent;
   }, []);
 
   useEffect(() => {
@@ -286,13 +289,13 @@ export const MyContextProvider = ({ children }) => {
   }, []);
 
   const WarningAlert = useCallback((warning) => {
-  Swal.fire({
-    icon: "warning",
-    title: "Warning",
-    text: warning,
-    backdrop: `rgba(60,60,60,0.8)`,
-  });
-}, []);
+    Swal.fire({
+      icon: "warning",
+      title: "Warning",
+      text: warning,
+      backdrop: `rgba(60,60,60,0.8)`,
+    });
+  }, []);
 
 
   const AskAlert = (title, buttonText, SuccessMessage) => {
@@ -422,7 +425,7 @@ export const MyContextProvider = ({ children }) => {
 
     const sendSMSAndAlert = async () => {
       try {
-         await HandleSendSMS(number,token, encodedMessage, organizerApiKey, organizerSenderId, config_status, name, qty, ticketName, eventName,whts_note,insta_whts_url, 'Online Booking Template');
+        await HandleSendSMS(number, token, encodedMessage, organizerApiKey, organizerSenderId, config_status, name, qty, ticketName, eventName, whts_note, insta_whts_url, 'Online Booking Template');
 
         const values = {
           name,
@@ -438,8 +441,8 @@ export const MyContextProvider = ({ children }) => {
           ticketName: ticketName,
           eventDate: formateTemplateTime(eventDate),
           eventTime: eventTime,
-          whts_note:whts_note,
-          insta_whts_url:insta_whts_url,
+          whts_note: whts_note,
+          insta_whts_url: insta_whts_url,
         };
         await handleWhatsappAlert(number, values, template, thumbnail, Organizer);
         return Promise.resolve();
@@ -505,7 +508,7 @@ export const MyContextProvider = ({ children }) => {
     let template = apiData?.template_name
     let vars = apiData?.variables
     console.log("values", values)
-  
+
     const valueMap = {
       ":C_Name": values?.name,
       ":C_number": values?.number,
@@ -535,7 +538,7 @@ export const MyContextProvider = ({ children }) => {
     }
     let value = finalValues.join(",");
     let url
-   
+
     const buttonValue = `${values?.token},${values?.insta_whts_url}`;
     if (mediaurl) {
       url = `https://waba.smsforyou.biz/api/send-messages?apikey=${apiKey}&to=${modifiedNumber}&type=T&tname=${template}&values=${value}&media_url=${mediaurl}&button_value=${buttonValue}`
@@ -555,7 +558,7 @@ export const MyContextProvider = ({ children }) => {
     const { protocol, host } = window.location;
     return `${protocol}//${host}`;
   };
-  const HandleSendSMS = async (number,token, message, api_key, sender_id, config_status, name, qty, ticketName, eventName,whts_note, insta_whts_url,template) => {
+  const HandleSendSMS = async (number, token, message, api_key, sender_id, config_status, name, qty, ticketName, eventName, whts_note, insta_whts_url, template) => {
     let modifiedNumber = modifyNumber(number);
     const currentUrl = getCurrentHostUrl()
     try {
@@ -704,7 +707,7 @@ export const MyContextProvider = ({ children }) => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-  
+
   const UserCredits = async (id) => {
     if (id) {
       try {
@@ -714,28 +717,30 @@ export const MyContextProvider = ({ children }) => {
               'Authorization': 'Bearer ' + authToken,
             }
           });
-         setAmount(response.data.balance.total_credits || 0);
+        setAmount(response.data.balance.total_credits || 0);
         return response.data.balance.total_credits || 0;
       } catch {
         // Handle error
-      } 
+      }
     }
   }
 
 
   // Helper function to format amount with commas
-const formatAmountWithCommas = (amount) => {
-  if (!amount) return '0.00';
-  
-  const parts = amount.toString().split('.');
-  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  const decimalPart = parts[1] ? parts[1].padEnd(2, '0') : '00';
-  
-  return `${integerPart}.${decimalPart}`;
-};
+  const formatAmountWithCommas = (amount) => {
+    if (!amount) return '0.00';
+
+    const parts = amount.toString().split('.');
+    const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    const decimalPart = parts[1] ? parts[1].padEnd(2, '0') : '00';
+
+    return `${integerPart}.${decimalPart}`;
+  };
 
 
   const contextValue = {
+    getCitiesByState,
+    locationData,
     HandleBack,
     formatAmountWithCommas,
     api,

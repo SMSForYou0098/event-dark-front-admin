@@ -98,64 +98,69 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/event/list')),
     },
     {
+        key: 'apps.venues',
+        path: `${APP_PREFIX_PATH}/apps/venues`,
+        component: React.lazy(() => import('views/events/Venues/index')),
+    },
+    {
         key: 'apps.events.create',
         path: `${APP_PREFIX_PATH}/apps/events/create`,
         component: React.lazy(() => import('views/events/event/EventStepperForm')),
     },
-{
-    key: 'apps.agents',
-    path: `${APP_PREFIX_PATH}/apps/agents`,
-    component: (props) => (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <BookingList {...props} />
-        </React.Suspense>
-    ),
-},
-{
-    key: 'apps.sponsors',
-    path: `${APP_PREFIX_PATH}/apps/sponsors`,
-    component: (props) => (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <BookingList {...props} isSponser={true} />
-        </React.Suspense>
-    ),
-},
-{
-    key: 'apps.pos',
-    path: `${APP_PREFIX_PATH}/apps/pos`,
-    component: (props) => (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <BookingList {...props} isPos={true} />
-        </React.Suspense>
-    ),
-},
-{
-    key: 'apps.corporate',
-    path: `${APP_PREFIX_PATH}/apps/corporate`,
-    component: (props) => (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <BookingList {...props}     isCorporate={true} />
-        </React.Suspense>
-    ),
-},
-{
-    key: 'apps.new-user',
-    path: `${APP_PREFIX_PATH}/apps/users/new`,
-    component: (props) => (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <UserForm mode="create"/>
-        </React.Suspense>
-    ),
-},
-{
-    key: 'apps.edit-user',
-    path: `${APP_PREFIX_PATH}/apps/users/edit/:id`,
-    component: (props) => (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <UserForm mode="edit"/>
-        </React.Suspense>
-    ),
-},
+    {
+        key: 'apps.agents',
+        path: `${APP_PREFIX_PATH}/apps/agents`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'apps.sponsors',
+        path: `${APP_PREFIX_PATH}/apps/sponsors`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} isSponser={true} />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'apps.pos',
+        path: `${APP_PREFIX_PATH}/apps/pos`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} isPos={true} />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'apps.corporate',
+        path: `${APP_PREFIX_PATH}/apps/corporate`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} isCorporate={true} />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'apps.new-user',
+        path: `${APP_PREFIX_PATH}/apps/users/new`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <UserForm mode="create" />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'apps.edit-user',
+        path: `${APP_PREFIX_PATH}/apps/users/edit/:id`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <UserForm mode="edit" />
+            </React.Suspense>
+        ),
+    },
     {
         key: 'apps.chat',
         path: `${APP_PREFIX_PATH}/apps/chat/*`,
