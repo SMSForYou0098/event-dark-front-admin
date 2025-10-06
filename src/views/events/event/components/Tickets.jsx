@@ -63,7 +63,7 @@ const TicketsStep = ({ tickets, onAddTicket, onDeleteTicket }) => {
             </div>
 
             <Form.Item
-                name="ticketTerms"
+                name="ticket_terms"
                 label="Ticket Terms & Conditions"
                 rules={[{ required: true, message: 'Please enter ticket terms' }]}
             >

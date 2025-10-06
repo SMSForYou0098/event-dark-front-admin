@@ -32,7 +32,7 @@ const PublishStep = ({ formData }) => (
             <Space direction="vertical" style={{ width: '100%' }} size="small">
                 <div>
                     <Text strong>Event Name:</Text>{' '}
-                    <Text>{formData.eventName || 'N/A'}</Text>
+                    <Text>{formData.name || 'N/A'}</Text>
                 </div>
                 <Divider style={{ margin: '8px 0' }} />
                 <div>

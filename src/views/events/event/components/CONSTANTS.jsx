@@ -35,7 +35,7 @@ export const CONSTANTS = {
             value: 'venue2',
             label: 'Wankhede Stadium',
             location: 'Mumbai',
-            address: 'Wankhede Stadium, D Road, Churchgate, Mumbai, Maharashtra 400020' 
+            address: 'Wankhede Stadium, D Road, Churchgate, Mumbai, Maharashtra 400020'
         },
         {
             value: 'venue3',
@@ -45,8 +45,8 @@ export const CONSTANTS = {
         },
     ],
     userDataOptions: [
-        { value: 'user', label: 'User Detail' },
-        { value: 'attendee', label: 'Attendee Detail' },
-        { value: 'both', label: 'Both' },
+        { value: 0, label: 'User Detail Only' },
+        { value: 1, label: 'Attendee Detail Only' },
+        { value: 2, label: 'Both' },
     ],
 };

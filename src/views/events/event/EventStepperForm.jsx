@@ -23,6 +23,7 @@ import SEOStep from './components/SEOStep';
 import PublishStep from './components/PublishStep';
 import { useNavigate } from 'react-router-dom';
 import ArtistStep from './components/ArtistStep';
+import { buildEventFormData, useCreateEvent } from './hooks/useEventOptions';
 
 const { Step } = Steps;
 const { Title } = Typography;
@@ -129,23 +130,37 @@ const EventStepperForm = () => {
         message.success('Draft saved successfully!');
     };
 
-    const handleSubmit = async () => {
-        try {
-            const values = await form.validateFields();
-            const finalData = { ...formData, ...values, tickets };
-            console.log('Final Event Data:', finalData);
-            message.success('Event published successfully!');
+const { mutateAsync: createEvent, isLoading: creating } = useCreateEvent({
+  onSuccess: (res) => {
+    message.success(res?.message || 'Event created successfully!');
+    form.resetFields();
+    setFormData({});
+    setTickets([]);
+    setCurrent(0);
+  },
+  onError: (error) => {
+    message.error(error?.message || 'Failed to create event');
+  },
+});
 
-            setTimeout(() => {
-                form.resetFields();
-                setFormData({});
-                setCurrent(0);
-                setTickets([]);
-            }, 2000);
-        } catch (error) {
-            message.error('Please complete all required fields');
-        }
+const handleSubmit = async () => {
+  try {
+    const values = await form.validateFields();
+
+    const merged = {
+      ...formData,
+      ...values,
+      tickets, // keep tickets in the payload; helper will JSON.stringify it
     };
+
+    const formDataBody = buildEventFormData(merged);
+    console.log('Submitting (multipart):', [...formDataBody.entries()]); // dev only
+    await createEvent(formDataBody);
+  } catch (error) {
+    message.error('Please complete all required fields before publishing.');
+  }
+};
+
 
     return (
         <div>
