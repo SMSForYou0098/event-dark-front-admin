@@ -723,8 +723,21 @@ export const MyContextProvider = ({ children }) => {
   }
 
 
+  // Helper function to format amount with commas
+const formatAmountWithCommas = (amount) => {
+  if (!amount) return '0.00';
+  
+  const parts = amount.toString().split('.');
+  const integerPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  const decimalPart = parts[1] ? parts[1].padEnd(2, '0') : '00';
+  
+  return `${integerPart}.${decimalPart}`;
+};
+
+
   const contextValue = {
     HandleBack,
+    formatAmountWithCommas,
     api,
     authToken,
     formatDateRange,

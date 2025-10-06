@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef } from 'react';
 import { Modal, Button, Spin } from 'antd';
 import { useReactToPrint } from 'react-to-print';
-import { useMyContext } from '../../../../Context/MyContextProvider';
-import axios from 'axios';
+import { useQuery } from '@tanstack/react-query';
 import { capitilize } from './Transaction';
+import api from 'auth/FetchInterceptor';
 
 const printStyles = `
     @media print {
@@ -59,37 +59,21 @@ const printStyles = `
     }
 `;
 
+const fetchTransactionDetails = async (transactionId) => {
+    const response = await api.get(`/transactions-data/${transactionId}`);
+    return response?.data;
+};
+
 const TransactionReceiptModal = ({ show, onHide, transactionId }) => {
-    const { api, authToken } = useMyContext();
-    const [transaction, setTransaction] = useState(null);
-    const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        const fetchTransactionDetails = async () => {
-            if (transactionId && show) {
-                setLoading(true);
-                try {
-                    const response = await axios.get(`${api}transactions-data/${transactionId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${authToken}`
-                        }
-                    });
-                    setTransaction(response.data?.data);
-                } catch (error) {
-                    console.error('Error fetching transaction details:', error);
-                } finally {
-                    setLoading(false);
-                }
-            }
-        };
-
-        fetchTransactionDetails();
-        return () => {
-            setTransaction(null);
-        };
-    }, [transactionId, show, api, authToken]);
-
     const printRef = useRef();
+
+    const { data: transaction, isLoading } = useQuery({
+        queryKey: ['transaction-details', transactionId],
+        queryFn: () => fetchTransactionDetails(transactionId),
+        enabled: !!transactionId && show,
+        refetchOnWindowFocus: false,
+    });
+
     const handlePrint = useReactToPrint({
         content: () => printRef.current,
     });
@@ -111,7 +95,7 @@ const TransactionReceiptModal = ({ show, onHide, transactionId }) => {
             title="Transaction Receipt"
         >
             <style>{printStyles}</style>
-            {loading ? (
+            {isLoading ? (
                 <div style={{ textAlign: 'center', padding: 24 }}>
                     <Spin size="large" />
                 </div>

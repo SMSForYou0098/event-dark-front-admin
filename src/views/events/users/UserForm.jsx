@@ -1,5 +1,5 @@
 import React, { memo, Fragment, useState, useEffect } from "react";
-import { useParams, useLocation } from "react-router-dom";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { 
     Row, 
     Col, 
@@ -35,6 +35,8 @@ import { Key, Shield } from "lucide-react";
 import UserBookings from "../Bookings/UserBookings";
 import Transactions from "./wallet/Transaction";
 import usePermission from "utils/hooks/usePermission";
+import AssignCredit from "./wallet/AssignCredit";
+import PermissionChecker from "layouts/PermissionChecker";
 
 const { Option } = Select;
 
@@ -107,6 +109,11 @@ const UserForm = memo(({ mode = "edit" }) => {
             org_signature_type: ""
         }
     });
+
+    const navigate = useNavigate();
+//   if (id !== UserData?.id && userRole !== 'Admin' && userRole !== 'Organizer') {
+//   navigate(-1);
+// }
 
     // Other states
     const [roles, setRoles] = useState([]);
@@ -215,7 +222,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                 organisation: data?.organisation,
                 altNumber: data?.alt_number,
                 pincode: data?.pincode,
-                auth: data?.authentication === 1,
+                authentication: data?.authentication === 1,
                 state: data?.state,
                 city: data?.city,
                 qrLength: data.qrLength,
@@ -445,30 +452,14 @@ const UserForm = memo(({ mode = "edit" }) => {
     };
 
     // Handle form submission
-    const handleSubmit = async (values) => {
-        // if (!formState.email) {
-        //     // ErrorAlert('Please enter email');
-        //     ErrorAlert('Please enter email');
-        //     return;
-        // }
-        
-        // if (!/^\d{10}$|^\d{12}$/.test(formState.number)) {
-        //     ErrorAlert('Mobile number must be 10 or 12 digits only');
-        //     return;
-        // }
-        
-        // if (mode === "create" && formState.password !== formState.repeatPassword) {
-        //     ErrorAlert('Password Do not Match');
-        //     return;
-        // }
-            
+    const handleSubmit = async (values) => {            
         const userData = {
             name: formState.name,
             email: formState.email,
             number: formState.number,
             password: formState.password,
             organisation: formState.organisation,
-            authentication: mode === "create" ? formState.enablePasswordAuth : formState.auth,
+            authentication: formState.authentication ,
             alt_number: formState.altNumber,
             pincode: formState.pincode,
             state: formState.state,
@@ -514,15 +505,16 @@ const UserForm = memo(({ mode = "edit" }) => {
             });
             
             if (response.data?.status) {
-                if (userRole === 'User' && mode === "edit") {
+                if (id == UserData?.id) {
+                    console.log('user',response.data.user)
                     dispatch(updateUser(response.data.user));
                     HandleBack();
                 }
                 // successAlert(`User ${mode === "create" ? "created" : "updated"}`, response.data.message);
                 notification.success({
-  message: `User ${mode === "create" ? "created" : "updated"}`,
-  description: response.data.message,
-});
+                  message: `User ${mode === "create" ? "created" : "updated"}`,
+                  description: response.data.message,
+                });
 
                 if (mode === "create") {
                     HandleBack();
@@ -576,7 +568,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                     Wallet
                 </span>
             ),
-            children: <>Agent credit component here</>,
+            children: <AssignCredit id={id} />,
         }] : []),
         {
             key: "4",
@@ -615,29 +607,32 @@ const UserForm = memo(({ mode = "edit" }) => {
                     {/* Left Column - Basic Info */}
                     
                     <Col xs={24} lg={12}>
-                        <Card title="Select User Role">
-                            <Row gutter={[16, 16]}>
+                    
+                        <PermissionChecker role={['Admin', 'Organizer']}>
+                            <Card title="Select User Role">
+                                <Row gutter={[16, 16]}>
                                 <Col xs={24} md={12}>
                                     <Form.Item
-                                        label="User Role"
-                                        name="roleId"
-                                        rules={[{ required: true, message: 'Please select role' }]}
+                                    label="User Role"
+                                    name="roleId"
+                                    rules={[{ required: true, message: 'Please select role' }]}
                                     >
-                                        <Select
-                                            placeholder="Select role"
-                                            value={formState.roleId}
-                                            onChange={handleRoleChange}
-                                        >
-                                            {roles?.map((item) => (
-                                                <Option key={item.id} value={item.id}>
-                                                    {item.name}
-                                                </Option>
-                                            ))}
-                                        </Select>
+                                    <Select
+                                        placeholder="Select role"
+                                        value={formState.roleId}
+                                        onChange={handleRoleChange}
+                                    >
+                                        {roles?.map((item) => (
+                                        <Option key={item.id} value={item.id}>
+                                            {item.name}
+                                        </Option>
+                                        ))}
+                                    </Select>
                                     </Form.Item>
                                 </Col>
-                            </Row>
-                        </Card>
+                                </Row>
+                            </Card>
+                        </PermissionChecker>
 
                         <Card 
                             title="Basic Information"
@@ -719,8 +714,11 @@ const UserForm = memo(({ mode = "edit" }) => {
                                     </Col>
                                 )}
 
-                                {formState.roleName === 'Organizer' && (
                                     <>
+                                    <PermissionChecker role={['Admin', 'Organizer']}>
+                                    {
+                                        formState.roleName=== 'Organizer' && (
+
                                         <Col xs={24} md={12}>
                                             <Form.Item
                                                 label="Organisation"
@@ -734,8 +732,10 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                 />
                                             </Form.Item>
                                         </Col>
+                                        )
+                                    }
 
-                                        {!disableOrg && (
+                                        {!disableOrg && (formState.roleName==='Agent' || formState.roleName==='POS' || formState.roleName==='Sponsor' || formState.roleName==='Corporate') &&(
                                             <Col xs={24} md={12}>
                                                 <Form.Item
                                                     label="Account Manager"
@@ -833,6 +833,9 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                         </Select>
                                                     </Form.Item>
                                                 </Col>
+                                                {
+                                                    formState.roleName === 'Agent' && (
+
                                                 <Col xs={24} md={12}>
                                                     <Form.Item label="Agent Discount">
                                                         <Switch
@@ -841,61 +844,67 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                         />
                                                     </Form.Item>
                                                 </Col>
+                                                    )
+                                                }
                                             </>
                                         )}
 
-                                        {(userRole === 'Admin' || userRole === 'Organizer') && (
+                                        
+                                            {/* Password field */}
                                             <Col xs={24} md={12}>
-                                                <Form.Item 
-                                                    label="Password"
-                                                    name="password"
-                                                    rules={[
-                                                        requiredIf(mode === 'create', 'Please enter password'),
-                                                        ...(mode === 'create' ? [{ min: 6, message: 'Password must be at least 6 characters' }] : [])
-                                                    ]}
+                                                <Form.Item
+                                                label="Password"
+                                                name="password"
+                                                rules={[
+                                                    requiredIf(mode === 'create', 'Please enter password'),
+                                                    ...(mode === 'create'
+                                                    ? [{ min: 6, message: 'Password must be at least 6 characters' }]
+                                                    : [])
+                                                ]}
                                                 >
-                                                    <Input.Password
-                                                        prefix={<Key className="text-primary" size={16} />}
-                                                        size="large"
-                                                        placeholder="Enter your password"
-                                                        value={formState.password}
-                                                        onChange={(e) => handleInputChange('password', e.target.value)}
-                                                        autoFocus
-                                                        disabled={loading}
-                                                    />
+                                                <Input.Password
+                                                    prefix={<Key className="text-primary" size={16} />}
+                                                    size="large"
+                                                    placeholder="Enter your password"
+                                                    value={formState.password}
+                                                    onChange={(e) => handleInputChange('password', e.target.value)}
+                                                    autoFocus
+                                                    disabled={loading}
+                                                />
                                                 </Form.Item>
                                             </Col>
-                                        )}
 
-                                        {/* Create mode confirm password */}
-                                        {mode === 'create' && (
-                                            <Col xs={24} md={12}>
+                                            {/* Confirm Password field (only in create mode) */}
+                                            {mode === 'create' && (
+                                                <Col xs={24} md={12}>
                                                 <Form.Item
                                                     label="Confirm Password"
                                                     name="repeatPassword"
                                                     dependencies={["password"]}
                                                     rules={[
-                                                        requiredIf(true, 'Please confirm password'),
-                                                        ({ getFieldValue }) => ({
-                                                            validator(_, value) {
-                                                                if (!value || getFieldValue('password') === value) {
-                                                                    return Promise.resolve();
-                                                                }
-                                                                return Promise.reject(new Error('Passwords do not match'));
-                                                            }
-                                                        })
+                                                    requiredIf(true, 'Please confirm password'),
+                                                    ({ getFieldValue }) => ({
+                                                        validator(_, value) {
+                                                        if (!value || getFieldValue('password') === value) {
+                                                            return Promise.resolve();
+                                                        }
+                                                        return Promise.reject(new Error('Passwords do not match'));
+                                                        }
+                                                    })
                                                     ]}
                                                 >
                                                     <Input.Password
-                                                        size="large"
-                                                        placeholder="Re-enter your password"
-                                                        value={formState.repeatPassword}
-                                                        onChange={(e) => handleInputChange('repeatPassword', e.target.value)}
-                                                        disabled={loading}
+                                                    size="large"
+                                                    placeholder="Re-enter your password"
+                                                    value={formState.repeatPassword}
+                                                    onChange={(e) => handleInputChange('repeatPassword', e.target.value)}
+                                                    disabled={loading}
                                                     />
                                                 </Form.Item>
-                                            </Col>
-                                        )}
+                                                </Col>
+                                            )}
+                                            </PermissionChecker>
+
 
                                         {formState.roleName === 'Scanner' && !disableOrg && (
                                             <Col xs={24} md={12}>
@@ -927,7 +936,6 @@ const UserForm = memo(({ mode = "edit" }) => {
                                             </Col>
                                         )}
                                     </>
-                                )}
                             </Row>
                         </Card>
                     </Col>
@@ -1077,59 +1085,54 @@ const UserForm = memo(({ mode = "edit" }) => {
 
                         {/* Status and Security */}
                         {!showRoleGate && (
-                        <Card title="Status & Security">
-                            {(userRole === 'Admin' || userRole === 'Organizer') && (
-                                <Form.Item label="User Status">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <Switch
-                                            checked={formState.status === 'Active'}
-                                            onChange={(checked) => handleInputChange('status', checked ? 'Active' : 'Deative')}
-                                            checkedChildren="Active"
-                                            unCheckedChildren="Inactive"
-                                        />
-                                        <span style={{ color: formState.status === 'Active' ? '#52c41a' : '#ff4d4f' }}>
-                                            {formState.status === 'Active' ? 'User is Active' : 'User is Inactive'}
-                                        </span>
-                                    </div>
-                                </Form.Item>
-                            )}
+                            <PermissionChecker role={['Admin', 'Organizer']}>
+                                <Card title="Status & Security">
+                                    <Row gutter={[16, 16]}>
+                                        {/* User Status */}
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="User Status">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <Switch
+                                                        checked={formState.status === 'Active'}
+                                                        onChange={(checked) =>
+                                                            handleInputChange('status', checked ? 'Active' : 'Inactive')
+                                                        }
+                                                        checkedChildren="Active"
+                                                        unCheckedChildren="Inactive"
+                                                    />
+                                                    <span
+                                                        style={{
+                                                            color: formState.status === 'Active' ? '#52c41a' : '#ff4d4f',
+                                                        }}
+                                                    >
+                                                        {formState.status === 'Active'
+                                                            ? 'User is Active'
+                                                            : 'User is Inactive'}
+                                                    </span>
+                                                </div>
+                                            </Form.Item>
+                                        </Col>
 
-                            {userRole !== 'User' && mode === 'edit' && (
-                                <Form.Item label="Authentication Method">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <Switch
-                                            checked={formState.auth}
-                                            onChange={(checked) => handleInputChange('auth', checked)}
-                                            checkedChildren="Password"
-                                            unCheckedChildren="OTP"
-                                        />
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <SafetyCertificateOutlined style={{ color: '#52c41a' }} />
-                                            <span>
-                                                {formState.auth ? "Password Auth" : "OTP Auth"}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </Form.Item>
+                                        {/* Authentication Method */}
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="Authentication Method">
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                    <Switch
+                                                        checked={!!formState.authentication}
+                                                        onChange={(checked) => handleInputChange('authentication', checked)}
+                                                        checkedChildren="Password"
+                                                        unCheckedChildren="OTP"
+                                                    />
+                                                    <span>
+                                                        {formState.authentication ? 'Password Auth' : 'OTP Auth'}
+                                                    </span>
+                                                </div>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            </PermissionChecker>
                             )}
-
-                            {mode === 'create' && (
-                                <Form.Item label="Authentication Method">
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                        <Switch
-                                            checked={formState.enablePasswordAuth}
-                                            onChange={(checked) => handleInputChange('enablePasswordAuth', checked)}
-                                            checkedChildren="Password"
-                                            unCheckedChildren="OTP"
-                                        />
-                                        <span>
-                                            {formState.enablePasswordAuth ? "Password Auth" : "OTP Auth"}
-                                        </span>
-                                    </div>
-                                </Form.Item>
-                            )}
-                        </Card>
-                        )}
                     </Col>
                 </Row>
             </Form>
