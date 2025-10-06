@@ -32,6 +32,7 @@ import { updateUser } from "store/slices/authSlice";
 import { Key, Shield } from "lucide-react";
 import UserBookings from "../Bookings/UserBookings";
 import Transactions from "./wallet/Transaction";
+import usePermission from "utils/hooks/usePermission";
 
 const { Option } = Select;
 
@@ -585,11 +586,11 @@ const UserForm = memo(({ mode = "edit" }) => {
             ),
             children: <Transactions userId={id} />,
         },
-        ...((userRole === "Admin" || UserPermissions.includes("Assign Permissions")) ? [{
+        ...(usePermission("Assign Permissions", 'Admin') ? [{
             key: "5",
             label: (
                 <span>
-                    <Shield />
+                    <Shield size={16}/>
                     Permissions
                 </span>
             ),
