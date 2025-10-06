@@ -1,5 +1,5 @@
 // Users.js
-import React, { useCallback, useState, useEffect } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Tag,
   Button,
@@ -8,7 +8,6 @@ import {
   Row,
   Col,
   Image,
-  Badge,
   message,
   Tooltip,
 } from "antd";
@@ -36,6 +35,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { persistor } from "store";
 import PermissionChecker from "layouts/PermissionChecker";
 import { APP_PREFIX_PATH } from "configs/AppConfig";
+import usePermission from "utils/hooks/usePermission";
 
 const Users = () => {
   const navigate = useNavigate();
@@ -59,10 +59,10 @@ const Users = () => {
     userId: null,
   });
 
-  const canUpdate = UserPermissions?.includes("Update User");
-  const canDelete = UserPermissions?.includes("Delete User");
-  const canAdd = UserPermissions?.includes("Add User");
-  const canImpersonate = UserPermissions?.includes("Impersonet");
+  const canUpdate = usePermission("Update User");
+  const canDelete = usePermission("Delete User");
+  const canAdd = usePermission("Add User");
+  const canImpersonate = usePermission("Impersonet");
 
   // Fetch users data
   const fetchUsers = async () => {

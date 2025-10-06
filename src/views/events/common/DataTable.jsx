@@ -18,11 +18,14 @@ import {
   SearchOutlined,
   ReloadOutlined,
   CloudUploadOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import api from "auth/FetchInterceptor";
+import Flex from "components/shared-components/Flex";
+import { ROW_GUTTER } from "constants/ThemeConstant";
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
@@ -44,6 +47,7 @@ const DataTable = ({
   extraHeaderContent,
   emptyText = "No data",
   enableSearch = true,
+  showSearch = true,
   enableExport = false,
   exportRoute,
   ExportPermission = false,
@@ -54,6 +58,46 @@ const DataTable = ({
   const [searchedColumn, setSearchedColumn] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
+
+  const [filteredData, setFilteredData] = useState(data);
+  useEffect(() => {
+    setFilteredData(data);
+  }, [data]);
+
+  // Update the search handler
+  const handleGlobalSearch = (value) => {
+    setSearchText(value);
+
+    if (!value) {
+      setFilteredData(data);
+      return;
+    }
+
+    const searchLower = value.toLowerCase();
+    const filtered = data.filter((record) => {
+      // Search across all columns
+      return columns.some((column) => {
+        const dataIndex = column.dataIndex;
+        if (!dataIndex) return false;
+
+        // Handle nested dataIndex (e.g., ['user', 'name'])
+        let cellValue;
+        if (Array.isArray(dataIndex)) {
+          cellValue = dataIndex.reduce((obj, key) => obj?.[key], record);
+        } else {
+          cellValue = record[dataIndex];
+        }
+
+        // Convert to string and search
+        if (cellValue === null || cellValue === undefined) return false;
+        return String(cellValue).toLowerCase().includes(searchLower);
+      });
+    });
+
+    setFilteredData(filtered);
+  };
+
+
   const searchInput = useRef(null);
 
   const screens = useBreakpoint();
@@ -224,53 +268,60 @@ const DataTable = ({
 
   // Desktop header controls
   const renderDesktopHeaderControls = () => (
-    <Space wrap>
-      {showDateRange && (
-        <Space.Compact>
-          <RangePicker
-            value={
-              dateRange
-                ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
-                : null
-            }
-            onChange={handleDateRangeChange}
-            format="YYYY-MM-DD"
-            placeholder={["Start Date", "End Date"]}
-            style={{ width: isTablet ? 240 : 280 }}
-            size={isTablet ? "small" : "middle"}
-          />
-        </Space.Compact>
-      )}
-      {showRefresh && (
-        <Tooltip
-          title={countdown ? `Wait ${countdown}s to refresh` : "Refresh Data"}
+  <Space wrap size="middle">
+    {showSearch && (
+      <Input
+        placeholder="Search across..."
+        prefix={<SearchOutlined />}
+        value={searchText}
+        onChange={(e) => handleGlobalSearch(e.target.value)}
+        allowClear
+        style={{ width: isTablet ? 200 : 250 }}
+      />
+    )}
+    {showDateRange && (
+      <RangePicker
+        value={
+          dateRange
+            ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
+            : null
+        }
+        onChange={handleDateRangeChange}
+        format="YYYY-MM-DD"
+        placeholder={["Start Date", "End Date"]}
+        style={{ width: isTablet ? 240 : 280 }}
+        size={isTablet ? "small" : "middle"}
+      />
+    )}
+    {showRefresh && (
+      <Tooltip
+        title={countdown ? `Wait ${countdown}s to refresh` : "Refresh Data"}
+      >
+        <Button
+          type="primary"
+          onClick={handleRefreshWithCooldown}
+          disabled={loading || countdown !== null}
+          size={isTablet ? "small" : "middle"}
         >
-          <Button
-            type="primary"
-            onClick={handleRefreshWithCooldown}
-            disabled={loading || countdown !== null}
-            size={isTablet ? "small" : "middle"}
-          >
-            {loading ? <Spin size="small" /> : countdown || <ReloadOutlined />}
-          </Button>
-        </Tooltip>
-      )}
-      {enableExport && ExportPermission && exportRoute && (
-        <Tooltip title="Export Data">
-          <Button
-            type="primary"
-            icon={<CloudUploadOutlined />}
-            onClick={handleExport}
-            loading={exportLoading}
-            disabled={exportLoading}
-            size={isTablet ? "small" : "middle"}
-          />
-        </Tooltip>
-      )}
-      {extraHeaderContent}
-
-    </Space>
-  );
+          {loading ? <Spin size="small" /> : countdown || <ReloadOutlined />}
+        </Button>
+      </Tooltip>
+    )}
+    {enableExport && ExportPermission && exportRoute && (
+      <Tooltip title="Export Data">
+        <Button
+          type="primary"
+          icon={<CloudUploadOutlined />}
+          onClick={handleExport}
+          loading={exportLoading}
+          disabled={exportLoading}
+          size={isTablet ? "small" : "middle"}
+        />
+      </Tooltip>
+    )}
+    {extraHeaderContent}
+  </Space>
+);
 
   // Error display
   const renderError = () =>
@@ -309,47 +360,43 @@ const DataTable = ({
   return (
     <Card
       bordered={false}
+      title={
+        <Flex flexDirection="column" gap={filteredData.length > 0 ? 16 : 0} flexWrap="nowrap">
+          <Flex justifyContent="space-between" alignItems="center" width="100%">
+            <span className="font-weight-bold">{title}</span>
+            <div className="action">
+              <span className="d-block d-sm-none">
+                <Button
+                  icon={<FilterOutlined />}
+                  type="text"
+                  onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
+                />
+              </span>
+              {(!loading) && (
+                <span className="d-none d-sm-block">
+                  {renderDesktopHeaderControls()}
+                </span>
+              )}
+            </div>
+          </Flex>
+          <span className="d-block d-sm-none">
+            {filterDrawerVisible && renderDesktopHeaderControls()}
+          </span>
+        </Flex>
+      }
       style={{
         boxShadow: isMobile ? "none" : undefined,
         borderRadius: isMobile ? 0 : 8,
       }}
     >
       <div className="table-responsive">
-        {/* Header Section */}
-        <Row
-          gutter={[16, 16]}
-          align="middle"
-          justify="space-between"
-          className="mb-3"
-        >
-          <Col xs={24} sm={24} md={8} lg={8} xl={6}>
-            <h2 className="m-0">{title}</h2>
-          </Col>
-          {(!loading) && (
-            <Col xs={24} sm={24} md={16} lg={16} xl={18}>
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{
-                  duration: 0.7,
-                  ease: "easeOut",
-                }}
-                className="d-flex justify-content-md-end"
-              >
-                {renderDesktopHeaderControls()}
-              </motion.div>
-            </Col>
-          )}
-        </Row>
-
         {renderError()}
 
         {/* Table Section */}
         <div>
           <Table
             columns={enhancedColumns}
-            dataSource={data}
+            dataSource={filteredData}
             loading={loading && { indicator: customLoadingIndicator }}
             pagination={{
               pageSize: isMobile ? 5 : 10,

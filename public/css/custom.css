@@ -10,6 +10,10 @@
 @import url('./alert.css');
 @import url('./modal.css');
 
+.fw-bold {
+  font-weight: 700 !important;
+}
+
 /* change text selection bg color */
 ::selection {
   background: var(--primary-color);

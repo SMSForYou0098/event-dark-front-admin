@@ -3,7 +3,7 @@ import { fabric } from 'fabric-pure-browser';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Button, Col, Row, Spin } from 'antd'; // Use Ant Design components
 import axios from 'axios';
-import { ArrowBigDownDash, Printer } from 'lucide-react';
+import { CloudDownloadOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 
 const TicketCanvas = (props) => {
@@ -312,7 +312,7 @@ const TicketCanvas = (props) => {
               <Button
                 type="primary"
                 block
-                icon={<ArrowBigDownDash size={14} />}
+                icon={<CloudDownloadOutlined size={14} />}
                 loading={loading}
                 onClick={downloadCanvas}
                 disabled={loading}
@@ -323,8 +323,9 @@ const TicketCanvas = (props) => {
                 <Button
                   type="default"
                   block
-                  icon={<Printer size={18} />}
+                  icon={<PrinterOutlined size={18} />}
                   onClick={printCanvas}
+                  loading={loading}
                   disabled={loading}
                 >
                   Print

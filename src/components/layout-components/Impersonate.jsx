@@ -4,10 +4,10 @@ import { Button, message } from 'antd'; // <-- use message instead of notificati
 import api from 'auth/FetchInterceptor';
 import { UserMinus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
 import { persistor } from 'store';
 import { authenticated, logout, updateUser } from 'store/slices/authSlice';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import UseNavigation from 'utils/customNavigation';
 
 /**
  * Helpers
@@ -29,7 +29,6 @@ const getErrorMessage = (err) => {
 const Impersonate = () => {
   const auth = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { session_id, auth_session } = auth;
@@ -73,7 +72,7 @@ const Impersonate = () => {
       queryClient.invalidateQueries(); // or narrow to specific queries
 
       // navigate to desired page
-      navigate('/dashboard/organizers');
+      UseNavigation('/dashboard/organizers');
     },
     onError: (err) => {
       const msg = getErrorMessage(err);
@@ -86,7 +85,7 @@ const Impersonate = () => {
         } catch (e) {
           // ignore
         }
-        navigate('/sign-in');
+        UseNavigation('/sign-in');
         return;
       }
 

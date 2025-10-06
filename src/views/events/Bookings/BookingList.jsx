@@ -18,8 +18,6 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         authToken,
         truncateString,
         isMobile,
-        formatDateRange,
-        convertTo12HourFormat,
         userRole,
         UserPermissions,
         ErrorAlert

@@ -4,15 +4,14 @@ import { Badge, Input } from 'antd';
 import AvatarStatus from 'components/shared-components/AvatarStatus';
 import { COLOR_1 } from 'constants/ChartConstant';
 import { SearchOutlined } from '@ant-design/icons';
-import { useNavigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import UseNavigation from 'utils/customNavigation';
 
 const ChatMenu = () => {
 
 	const [list, setList] = useState(ChatData);
 
 	const location = useLocation()
-
-	let navigate = useNavigate();
 
 	const openChat = id => {
 
@@ -23,7 +22,7 @@ const ChatMenu = () => {
 			return elm
 		})
 		setList(data)
-		navigate(`${id}`)
+		UseNavigation(`${id}`)
 	}
 
 	const searchOnChange = e => {

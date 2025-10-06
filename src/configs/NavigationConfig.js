@@ -24,9 +24,11 @@ import {
   ShoppingCartOutlined,
   BookOutlined,
   FileUnknownOutlined,
-  ProfileOutlined
+  ProfileOutlined,
+  AimOutlined
 } from '@ant-design/icons';
 import { APP_PREFIX_PATH, AUTH_PREFIX_PATH } from 'configs/AppConfig'
+import { MapPin } from 'lucide-react';
 
 const extraNavTree = [
   {
@@ -244,6 +246,14 @@ const appsNavTree = [{
       path: `${APP_PREFIX_PATH}/apps/organizers`,
       title: 'sidenav.apps.organizers',
       icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-venues',
+      path: `${APP_PREFIX_PATH}/apps/venues`,
+      title: 'Venues',
+      icon: AimOutlined,
       breadcrumb: false,
       submenu: []
     },

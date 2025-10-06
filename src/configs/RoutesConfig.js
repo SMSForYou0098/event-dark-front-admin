@@ -95,6 +95,11 @@ export const protectedRoutes = [
     {
         key: 'apps.events',
         path: `${APP_PREFIX_PATH}/apps/events`,
+        component: React.lazy(() => import('views/events/event/list')),
+    },
+    {
+        key: 'apps.events.create',
+        path: `${APP_PREFIX_PATH}/apps/events/create`,
         component: React.lazy(() => import('views/events/event/EventStepperForm')),
     },
 {

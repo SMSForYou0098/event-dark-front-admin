@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Row, Col, Carousel } from 'antd'; // Added Carousel
-import { X, Youtube, Instagram } from 'lucide-react'; // Lucide icons
+import { YoutubeOutlined, InstagramOutlined } from '@ant-design/icons';
 // Removed Swiper import
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
@@ -100,8 +100,7 @@ const TicketModal = (props) => {
             onCancel={handleCloseModal}
             width={ticketType?.type === 'zip' ? 1200 : 600}
             footer={null}
-            centered
-            bodyStyle={{ padding: 0, position: 'relative' }}
+            style={{ top: -200 }}
         >
             <Row>
                 <Col span={24}>
@@ -110,7 +109,6 @@ const TicketModal = (props) => {
                             <Carousel
                                 autoplay
                                 dots
-                                style={{ width: '100%' }}
                             >
                                 {ticketData.bookings.map((item, index) => {
                                     const event = item?.ticket?.event || {};
@@ -234,28 +232,28 @@ const TicketModal = (props) => {
                     ) : null}
                 </Col>
             </Row>
-            <div style={{ textAlign: "center", color: "#888", fontSize: "13px", padding: "8px 0 0 0" }}>
+            <div style={{ textAlign: "center", fontSize: "13px", padding: "8px 0 0 0" }}>
                 <strong>Physical ticket not needed!</strong><br />
                 Download your pass from the button <strong>above</strong> and enjoy unlimited events with
-                <span style={{ color: "#1677ff", fontWeight: "bold" }}> getyourticket.in</span>.<br />
-                <span style={{ fontWeight: 500 }}>
+                <span className='text-primary fw-bold'> getyourticket.in</span>.<br />
+                <span className='fw-bold'>
                     Watch the video to get entry without any hassle
                     <a
                         href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: "#1677ff", textDecoration: "underline", marginLeft: 8, marginRight: 8 }}
+                        className='text-primary fw-bold'
                     >
-                        <Youtube size={16} style={{ marginRight: 4 }} />
+                        <YoutubeOutlined size={16} className='mx-2' />
                     </a>
                     &
                     <a
                         href="https://www.instagram.com/YOUR_INSTAGRAM_LINK"
                         target="_blank"
                         rel="noopener noreferrer"
-                        style={{ color: "#1677ff", textDecoration: "underline", marginLeft: 8 }}
+                        className='text-primary fw-bold'
                     >
-                        <Instagram size={16} style={{ marginRight: 4 }} />
+                        <InstagramOutlined size={16} className='mx-2' />
                     </a>
                 </span>
             </div>
