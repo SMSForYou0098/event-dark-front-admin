@@ -139,7 +139,7 @@ input.ant-input:not(.ant-input-affix-wrapper > input) {
 /* ...existing code... */
 
 /* Search input styling */
-.ant-input-search {
+.ant-input-search , .ant-input-number-affix-wrapper  {
     background-color: transparent !important;
 }
 
@@ -311,7 +311,7 @@ input:-internal-autofill-previewed {
     color: var(--primary-color) !important;
 }
 
-.ant-steps-item-wait .ant-steps-item-container .ant-steps-item-icon {
+.ant-steps-item-wait .ant-steps-item-container .ant-steps-item-icon{
     background: var(--bg-secondary) !important;
     border: 1px solid var(--border-secondary) !important;
 }

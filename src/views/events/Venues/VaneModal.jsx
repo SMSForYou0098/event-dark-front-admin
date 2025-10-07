@@ -5,6 +5,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { OrganisationList } from 'utils/CommonInputs';
 
 const { TextArea } = Input;
 
@@ -28,7 +29,7 @@ const VENUE_TYPES = [
 ];
 
 const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
-    const { locationData, getCitiesByState, OrganizerList, isMobile } = useMyContext();
+    const { locationData, getCitiesByState, isMobile } = useMyContext();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [cities, setCities] = useState([]);
@@ -229,21 +230,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                     </Col>
                     <PermissionChecker role="Admin">
                         <Col xs={24} md={12}>
-                            <Form.Item
-                                label="Organization"
-                                name="org_id"
-                                rules={[{ required: true, message: 'Please select organization' }]}
-                            >
-                                <Select
-                                    showSearch
-                                    placeholder="Select organization"
-                                    options={OrganizerList?.map(org => ({
-                                        value: org.value,
-                                        label: `${org.organisation} (${org.label})`, // e.g., "Get Your Ticket (janak rana)"
-                                    }))}
-                                    optionFilterProp="label"
-                                />
-                            </Form.Item>
+                            <OrganisationList />
                         </Col>
                     </PermissionChecker>
 

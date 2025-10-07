@@ -351,13 +351,13 @@ const EventList = () => {
             exportRoute={"export-users"}
             ExportPermission={usePermission("Export Users")}
             extraHeaderContent={
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined size={16} />}
-                    onClick={UseNavigation('create')}
-                >
-                    New Event
-                </Button>
+                <Tooltip title="New Event">
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined size={16} />}
+                        onClick={UseNavigation('create')}
+                    />
+                </Tooltip>
             }
             // Loading states
             loading={loading}

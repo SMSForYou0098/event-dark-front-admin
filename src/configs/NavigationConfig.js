@@ -25,7 +25,8 @@ import {
   BookOutlined,
   FileUnknownOutlined,
   ProfileOutlined,
-  AimOutlined
+  AimOutlined,
+  MonitorOutlined
 } from '@ant-design/icons';
 import { APP_PREFIX_PATH, AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import { MapPin } from 'lucide-react';
@@ -254,6 +255,14 @@ const appsNavTree = [{
       path: `${APP_PREFIX_PATH}/apps/venues`,
       title: 'Venues',
       icon: AimOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key : 'apps-artist',
+      path: `${APP_PREFIX_PATH}/apps/artist`,
+      title: 'Artist',
+      icon: MonitorOutlined,
       breadcrumb: false,
       submenu: []
     },

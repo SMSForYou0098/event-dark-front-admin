@@ -98,9 +98,19 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/event/list')),
     },
     {
+        key: 'apps.events',
+        path: `${APP_PREFIX_PATH}/apps/events/ticket/:id/:name`,
+        component: React.lazy(() => import('views/events/Tickets/TicketManager/TicketComponent')),
+    },
+    {
         key: 'apps.venues',
         path: `${APP_PREFIX_PATH}/apps/venues`,
         component: React.lazy(() => import('views/events/Venues/index')),
+    },
+    {
+        key : 'apps-artist',
+         path: `${APP_PREFIX_PATH}/apps/artist`,
+        component: React.lazy(() => import('views/events/Artist/index')),
     },
     {
         key: 'apps.events.create',
