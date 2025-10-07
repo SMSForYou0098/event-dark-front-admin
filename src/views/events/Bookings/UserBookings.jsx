@@ -8,7 +8,6 @@ import BookingsTab from "./BookingsTab";
 
 const fetchBookings = async (id) => {
   const res = await api.get(`/user-bookings/${id}`);
-  console.log('fetchBookings', res);
   if (!res?.status) {
     throw new Error(res?.message || "Failed to fetch bookings");
   }
@@ -16,7 +15,6 @@ const fetchBookings = async (id) => {
 };
 
 const UserBookings = ({ id, activeTab }) => {
-    console.log('UserBookings', {id, activeTab});
   const {
     data: bookings,
     isLoading,
@@ -44,8 +42,6 @@ const UserBookings = ({ id, activeTab }) => {
       />
     );
   }
-
-  console.log('bookings', bookings);
 
   return (
     <BookingsTab 

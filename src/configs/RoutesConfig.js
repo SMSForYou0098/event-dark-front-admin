@@ -2,6 +2,7 @@ import React from 'react'
 import { AUTH_PREFIX_PATH, APP_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
 import UserForm from 'views/events/users/UserForm'
+import EventStepperForm from 'views/events/event/EventStepperForm'
 
 export const publicRoutes = [
     {
@@ -96,6 +97,15 @@ export const protectedRoutes = [
         key: 'apps.events',
         path: `${APP_PREFIX_PATH}/apps/events`,
         component: React.lazy(() => import('views/events/event/list')),
+    },
+        {
+        key: 'apps.events.create',
+        path: `${APP_PREFIX_PATH}/apps/events/update/:id`,
+         component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <EventStepperForm  />
+            </React.Suspense>
+        ),
     },
     {
         key: 'apps.events',

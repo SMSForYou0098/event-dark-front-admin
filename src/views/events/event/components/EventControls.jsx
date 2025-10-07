@@ -1,40 +1,25 @@
 // EventControlsStep.jsx
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Form, Input, Select, Switch, Card, Row, Col, Space } from 'antd';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 
 const { TextArea } = Input;
 
-const EventControlsStep = ({ form }) => {
-  // helper to sync boolean → 0/1 for given field
-  const handleSwitchChange = (fieldName) => (checked) => {
-    form.setFieldsValue({ [fieldName]: checked ? 1 : 0 });
-  };
+// helpers — accept "1"/1 => true, "0"/0/undefined => false
+const toChecked = (v) => v === 1 || v === '1';
+const toNumber = (checked) => (checked ? 1 : 0);
 
-  // set default 0 for missing fields on mount (so backend always receives numeric)
-  useEffect(() => {
-    const numericDefaults = {
-      event_feature: 0,
-      status: 0,
-      house_full: 0,
-      online_att_sug: 0,
-      offline_att_sug: 0,
-      multi_scan: 0,
-      ticket_system: 0,
-      bookingBySeat: 0,
-    };
-    form.setFieldsValue(numericDefaults);
-  }, [form]);
-
+const EventControlsStep = ({ form, isEdit }) => {
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
+      {/* Top controls */}
       <Row gutter={ROW_GUTTER}>
         <Col xs={24} sm={12} lg={12}>
           <Form.Item
             name="scan_detail"
             label="User Data While Scan"
-            initialValue="both"
+            initialValue={null}
             rules={[{ required: true, message: 'Please select user data option' }]}
           >
             <Select options={CONSTANTS.userDataOptions} />
@@ -52,101 +37,43 @@ const EventControlsStep = ({ form }) => {
         </Col>
       </Row>
 
+      {/* Switch Section */}
       <Card title="Event Settings" size="small">
         <Row gutter={ROW_GUTTER}>
-          {/* Each Switch synced with hidden 0/1 field */}
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="High Demand" tooltip="Mark this event as high demand">
-              <Switch
-                onChange={handleSwitchChange('event_feature')}
-                checkedChildren="Yes"
-                unCheckedChildren="No"
-              />
-            </Form.Item>
-            <Form.Item name="event_feature" hidden><input /></Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="Event Status" tooltip="Enable or disable event">
-              <Switch
-                onChange={handleSwitchChange('status')}
-                checkedChildren="Active"
-                unCheckedChildren="Inactive"
-              />
-            </Form.Item>
-            <Form.Item name="status" hidden><input /></Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="House Full" tooltip="Mark event as sold out">
-              <Switch
-                onChange={handleSwitchChange('house_full')}
-                checkedChildren="Yes"
-                unCheckedChildren="No"
-              />
-            </Form.Item>
-            <Form.Item name="house_full" hidden><input /></Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="Hide Online Attendee Suggestion">
-              <Switch
-                onChange={handleSwitchChange('online_att_sug')}
-                checkedChildren="Hide"
-                unCheckedChildren="Show"
-              />
-            </Form.Item>
-            <Form.Item name="online_att_sug" hidden><input /></Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="Hide Agent Attendee Suggestion">
-              <Switch
-                onChange={handleSwitchChange('offline_att_sug')}
-                checkedChildren="Hide"
-                unCheckedChildren="Show"
-              />
-            </Form.Item>
-            <Form.Item name="offline_att_sug" hidden><input /></Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="Multi Scan Ticket" tooltip="Allow multiple scans">
-              <Switch
-                onChange={handleSwitchChange('multi_scan')}
-                checkedChildren="Yes"
-                unCheckedChildren="No"
-              />
-            </Form.Item>
-            <Form.Item name="multi_scan" hidden><input /></Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="Booking By Ticket">
-              <Switch
-                onChange={handleSwitchChange('ticket_system')}
-                checkedChildren="Yes"
-                unCheckedChildren="No"
-              />
-            </Form.Item>
-            <Form.Item name="ticket_system" hidden><input /></Form.Item>
-          </Col>
-
-          <Col xs={24} sm={12} lg={8}>
-            <Form.Item label="Booking By Seat">
-              <Switch
-                onChange={handleSwitchChange('bookingBySeat')}
-                checkedChildren="Yes"
-                unCheckedChildren="No"
-              />
-            </Form.Item>
-            <Form.Item name="bookingBySeat" hidden><input /></Form.Item>
-          </Col>
+          {[
+            { name: 'event_feature', label: 'High Demand', tooltip: 'Mark this event as high demand' },
+            { name: 'status', label: 'Event Status', tooltip: 'Enable or disable event', onLabels: ['Active', 'Inactive'] },
+            { name: 'house_full', label: 'House Full', tooltip: 'Mark event as sold out' },
+            { name: 'online_att_sug', label: 'Hide Online Attendee Suggestion' },
+            { name: 'offline_att_sug', label: 'Hide Agent Attendee Suggestion' },
+            { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans' },
+            { name: 'ticket_system', label: 'Booking By Ticket' },
+            { name: 'bookingBySeat', label: 'Booking By Seat' },
+          ].map((f) => (
+            <Col xs={24} sm={12} lg={8} key={f.name}>
+              <Form.Item
+                name={f.name}
+                label={f.label}
+                tooltip={f.tooltip}
+                valuePropName="checked"
+                // 👇 FIX: use checked, not value
+                getValueProps={(v) => ({ checked: toChecked(v) })}
+                getValueFromEvent={toNumber}
+                initialValue={0}
+              >
+                <Switch
+                  checkedChildren={f.onLabels?.[0] || 'Yes'}
+                  unCheckedChildren={f.onLabels?.[1] || 'No'}
+                />
+              </Form.Item>
+            </Col>
+          ))}
         </Row>
       </Card>
 
+      {/* WhatsApp Note */}
       <Form.Item
-        name="whatsappNote"
+        name="whts_note"
         label="WhatsApp Note"
         tooltip="This note will be sent via WhatsApp to attendees"
       >

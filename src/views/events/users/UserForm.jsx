@@ -501,7 +501,6 @@ const UserForm = memo(({ mode = "edit" }) => {
             
             if (response.data?.status) {
                 if (id == UserData?.id) {
-                    console.log('user',response.data.user)
                     dispatch(updateUser(response.data.user));
                     HandleBack();
                 }

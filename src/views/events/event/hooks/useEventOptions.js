@@ -77,9 +77,9 @@ export const useCities = (country, state) =>
   });
 
 
-  // -------venues by org id ----------
+// -------venues by org id ----------
 
-  export const useVenuesByOrganizer = (organizerId) =>
+export const useVenuesByOrganizer = (organizerId) =>
   useQuery({
     queryKey: ['venues-by-organizer', organizerId],
     enabled: !!organizerId, // only fetch when an organizer is selected
@@ -131,16 +131,16 @@ export const useEventCategories = (options = {}) =>
 
 
 
-  // sanitizing payload
-  const sanitize = (obj) =>
-  Object.fromEntries(
-    Object.entries(obj || {}).filter(
-      ([, v]) => v !== undefined && v !== null && v !== ''
-    )
-  );
+// sanitizing payload
+// const sanitize = (obj) =>
+//   Object.fromEntries(
+//     Object.entries(obj || {}).filter(
+//       ([, v]) => v !== undefined && v !== null && v !== ''
+//     )
+//   );
 
 
-  // --------- mutation hooks for edit ----------
+// --------- mutation hooks for edit ----------
 
 export const useCreateEvent = (options = {}) =>
   useMutation({
@@ -160,48 +160,200 @@ export const useCreateEvent = (options = {}) =>
   });
 
 
-  // helpers/formData.js
-export const buildEventFormData = (values = {}) => {
+// helpers/formData.js
+// buildEventFormData.js
+export function buildEventFormData(values) {
   const fd = new FormData();
 
-  // remove any accidental camelCase remnants
-  const {
-    event_thumbnail,            // antd fileList (array)
-    event_gallery,              // antd fileList (array)
-    instagram_thumbnail,
-    arena_layout,
-    tickets,
-    ...rest
-  } = values;
-
-  // Scalars / JSON
-  Object.entries(rest).forEach(([k, v]) => {
+  const appendIfDefined = (k, v) => {
     if (v === undefined || v === null) return;
-    if (typeof v === 'object') fd.append(k, JSON.stringify(v));
-    else fd.append(k, String(v));
-  });
-
-  // Tickets (array of objects)
-  if (Array.isArray(tickets)) fd.append('tickets', JSON.stringify(tickets));
-
-  // Single file helpers
-  const appendSingle = (key, list) => {
-    const file = Array.isArray(list) ? list[0]?.originFileObj : undefined;
-    if (file) fd.append(key, file, file.name);
+    fd.append(k, String(v));
   };
 
-  appendSingle('event_thumbnail', event_thumbnail);
-  appendSingle('instagram_thumbnail', instagram_thumbnail);
-  appendSingle('arena_layout', arena_layout);
+  const appendSingleUpload = (key, fileList) => {
+    if (!Array.isArray(fileList) || !fileList.length) return;
+    const f = fileList[0];
+    // when editing, an existing file shows as an item with `url` and NO originFileObj → skip
+    if (!f || !f.originFileObj) return;
+    const file = f.originFileObj;
+    const name = f.name || 'file';
+    fd.append(key, file, name);
+  };
 
-  // Multi-file gallery
-  if (Array.isArray(event_gallery)) {
-    event_gallery.forEach((fObj) => {
-      const file = fObj?.originFileObj;
-      if (file) fd.append('event_gallery[]', file, file.name);
+  // --- NEW: index-based multi upload for gallery (images_1..images_4) ---
+  const appendIndexedGalleryUploads = (fileList) => {
+    if (!Array.isArray(fileList) || !fileList.length) return;
+    let idx = 1;
+    for (const f of fileList) {
+      if (idx > 4) break; // controller loops images_1..images_4
+      if (f && f.originFileObj) {
+        const name = f.name || `image_${idx}`;
+        fd.append(`images_${idx}`, f.originFileObj, name);
+        idx += 1;
+      }
+    }
+  };
+
+  // --- NEW: keep existing gallery URLs (not removed) ---
+  // These are the Upload items that only have `url` (no originFileObj).
+  const appendExistingGalleryUrls = (fileList) => {
+    if (!Array.isArray(fileList)) return;
+    fileList.forEach((f) => {
+      if (f && f.url && !f.originFileObj) {
+        // Use an array param so backend can merge:
+        // Example controller: $keep = $request->input('existing_images', []);
+        fd.append('existing_images[]', f.url);
+      }
     });
+  };
+
+  // ---------- BASIC ----------
+  appendIfDefined('user_id', values.user_id);
+  appendIfDefined('category', values.category);
+  appendIfDefined('name', values.name);
+  appendIfDefined('country', 'India'); // fixed to India
+  appendIfDefined('country', values.country);
+  appendIfDefined('state', values.state);
+  appendIfDefined('city', values.city);
+  appendIfDefined('venue_id', values.venue_id);
+  appendIfDefined('description', values.description);
+
+  // ---------- CONTROLS ----------
+  appendIfDefined('scan_detail', values.scan_detail);
+  appendIfDefined('event_feature', values.event_feature ?? 0);
+  appendIfDefined('status', values.status ?? 0);
+  appendIfDefined('house_full', values.house_full ?? 0);
+  appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
+  appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
+  appendIfDefined('multi_scan', values.multi_scan ?? 0);
+  appendIfDefined('ticket_system', values.ticket_system ?? 0);
+  appendIfDefined('bookingBySeat', values.bookingBySeat ?? 0);
+  appendIfDefined('insta_whts_url', values.insta_whts_url);
+  appendIfDefined('whts_note', values.whatsappNote);
+  appendIfDefined('ticket_terms', values.ticket_terms);
+
+  // ---------- TIMING ----------
+  appendIfDefined('date_range', values.date_range); // "YYYY-MM-DD,YYYY-MM-DD"
+  appendIfDefined('entry_time', values.entry_time); // "HH:mm"
+  appendIfDefined('start_time', values.start_time); // "HH:mm"
+  appendIfDefined('end_time', values.end_time);     // "HH:mm"
+  appendIfDefined('event_type', values.event_type);
+  appendIfDefined('map_code', values.map_code);
+  appendIfDefined('address', values.address);
+
+  // ---------- SEO ----------
+  appendIfDefined('meta_title', values.meta_title);
+  appendIfDefined('meta_description', values.meta_description);
+  appendIfDefined('meta_tag', values.tags);
+  appendIfDefined('meta_keyword', values.keyword);
+
+  // ---------- TICKETS ----------
+  if (Array.isArray(values.tickets)) {
+    fd.append('tickets', JSON.stringify(values.tickets));
   }
 
+  // ---------- FILES (ANTD Upload fileList) ----------
+  if (Array.isArray(values.thumbnail)) {
+    appendSingleUpload('thumbnail', values.thumbnail);
+  }
+  if (Array.isArray(values.insta_thumb)) {
+    appendSingleUpload('insta_thumb', values.insta_thumb);
+  }
+  if (Array.isArray(values.layout_image)) {
+    appendSingleUpload('layout_image', values.layout_image);
+  }
+
+  // GALLERY:
+  // 1) Keep existing (non-removed) URLs so backend can merge
+  // 2) Send new uploads as images_1..images_4
+  if (Array.isArray(values.images)) {
+    appendExistingGalleryUrls(values.images);
+    appendIndexedGalleryUploads(values.images);
+  }
+
+  // Images the user removed in the UI (we put these in a hidden field in the form)
+  if (Array.isArray(values.remove_images)) {
+    values.remove_images.forEach((url) => fd.append('remove_images[]', url));
+  }
+
+  // ---------- URL fields ----------
+  appendIfDefined('youtube_url', values.youtube_url);
+  // Map to backend name:
+  appendIfDefined('insta_url', values.instagram_media_url);
+
   return fd;
+}
+
+
+
+
+export const useEventDetail = (id, options = {}) =>
+  useQuery({
+    queryKey: ['event-detail', id],
+    enabled: !!id, // Only run when ID is present
+    queryFn: async () => {
+      const res = await api.get(`event-detail/${id}`);
+
+      // Expected response structure:
+      // { status: true, message: "...", data: { ...eventData } }
+
+      if (!res?.status) {
+        const err = new Error(res?.message || 'Failed to fetch event details');
+        err.server = res;
+        throw err;
+      }
+
+      return res?.events || {}; // Return event data
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2; // Retry only on 5xx
+    },
+    ...options,
+  });
+
+
+
+// -------- -------- mutation hooks for edit ----------
+// hooks/useEventOptions.js (add this)
+export const useUpdateEvent = (options = {}) =>
+  useMutation({
+    mutationFn: async ({ id, body }) => {
+      // body is FormData
+      const res = await api.post(`/update-event/${id}`, body, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res?.status === false) {
+        const err = new Error(res?.message || 'Failed to update event');
+        err.server = res;
+        throw err;
+      }
+      return res;
+    },
+    ...options,
+  });
+
+
+  export const  toUploadFileList = (raw) => {
+  // raw can be array or JSON string; normalize to array of URLs
+  let urls = [];
+  if (Array.isArray(raw)) urls = raw;
+  else if (typeof raw === 'string') {
+    try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) urls = parsed; } catch(e) {}
+  }
+
+  // only keep up to 4 since backend expects images_1..images_4
+  return urls.slice(0, 4).map((url, i) => {
+    // try to extract a readable file name from the URL
+    const lastPart = String(url).split('/').pop() || `image-${i + 1}.jpg`;
+    return {
+      uid: `img-${i + 1}`,
+      name: lastPart,
+      status: 'done',
+      url,              // AntD will use this for preview
+    };
+  });
 };
+
 

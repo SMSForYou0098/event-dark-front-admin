@@ -8,7 +8,7 @@ const SEOStep = () => (
     <Row gutter={[16, 0]}>
         <Col xs={24}>
             <Form.Item
-                name="metaTitle"
+                name="meta_title"
                 label="Meta Title"
                 rules={[
                     { required: true, message: 'Please enter meta title' },
@@ -26,7 +26,7 @@ const SEOStep = () => (
 
         <Col xs={24}>
             <Form.Item
-                name="metaDescription"
+                name="meta_description"
                 label="Meta Description"
                 rules={[
                     { required: true, message: 'Please enter meta description' },
@@ -44,9 +44,21 @@ const SEOStep = () => (
 
         <Col xs={24}>
             <Form.Item
-                name="metaKeywords"
+                name="meta_keyword"
                 label="Meta Keywords"
                 tooltip="Separate keywords with commas"
+            >
+                <Input
+                    placeholder="event, music, concert, live show"
+                    size="large"
+                />
+            </Form.Item>
+        </Col>
+        <Col xs={24}>
+            <Form.Item
+                name="meta_tag"
+                label="Meta Tags"
+                tooltip="Separate tags with commas"
             >
                 <Input
                     placeholder="event, music, concert, live show"

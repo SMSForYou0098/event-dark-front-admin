@@ -1,17 +1,21 @@
 // BasicDetailsStep.jsx
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Form, Input, Select, Row, Col, Typography, Card, Space, Button, Spin, Alert
 } from 'antd';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { CompassOutlined, EnvironmentOutlined, HomeOutlined } from '@ant-design/icons';
-import { useOrganizers, useCountries, useStates, useCities, useVenuesByOrganizer, useEventCategories } from '../hooks/useEventOptions';
+import {
+  useOrganizers,
+  useVenuesByOrganizer,
+  useEventCategories
+} from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 
 const { TextArea } = Input;
 
-const BasicDetailsStep = ({ form }) => {
-  const { UserData } = useMyContext(); // expect something like { role: 'Organizer', organizerId: 123 }
+const BasicDetailsStep = ({ form, isEdit }) => {
+  const { UserData, locationData, getCitiesByState } = useMyContext();
 
   // organizers (only needed if NOT an organizer)
   const {
@@ -22,33 +26,101 @@ const BasicDetailsStep = ({ form }) => {
     refetch: refetchOrg,
   } = useOrganizers();
 
-  // compute the organizerId we should use for venues:
-  // - if user is Organizer → use their id
-  // - else → use the selected organizer from the form
+  // categories
+  const {
+    data: categories = [],
+    isLoading: catLoading,
+  } = useEventCategories();
+
+  // compute the organizerId for venues:
   const selectedOrganizerFromForm = Form.useWatch('user_id', form);
   const organizerId = useMemo(() => {
-    if (UserData?.role?.toLowerCase() === 'organizer') return UserData?.organizerId || UserData?.id;
+    if (UserData?.role?.toLowerCase() === 'organizer') {
+      return UserData?.organizerId || UserData?.id;
+    }
     return selectedOrganizerFromForm;
   }, [UserData, selectedOrganizerFromForm]);
 
-  // if user is organizer, set the organizer field once (for validation & submit)
+  // if user is organizer, set the organizer field once
   useEffect(() => {
     if (UserData?.role?.toLowerCase() === 'organizer') {
       const current = form.getFieldValue('user_id');
-      if (!current && organizerId) {
-        form.setFieldsValue({ user_id: organizerId });
+      if (!current && organizerId != null) {
+        form.setFieldsValue({ user_id: String(organizerId) });
       }
     }
   }, [UserData, organizerId, form]);
 
-  // country/state/city
-  const country = Form.useWatch('country', form);
-  const state = Form.useWatch('state', form);
-  const { data: countries = [], isLoading: ctryLoading } = useCountries();
-  const { data: states = [], isLoading: stateLoading } = useStates(country);
-  const { data: cities = [], isLoading: cityLoading } = useCities(country, state);
-  const { data: categories = [], isLoading, isError, refetch } = useEventCategories();
-  // venues by organizer id
+  // default country to India (no state/city API — we use context)
+  useEffect(() => {
+    const cur = form.getFieldValue('country');
+    if (!cur) {
+      form.setFieldsValue({ country: 'India' });
+    }
+  }, [form]);
+
+  // ----- State & City via useContext (no API) -----
+  const stateWatch = Form.useWatch('state', form);
+
+  // state & city options from context
+  const stateOptions = useMemo(() => {
+    // Prefer value === label to avoid mapping issues
+    // e.g., [{label: 'Andhra Pradesh', value: 'Andhra Pradesh'}, ...]
+    return Array.isArray(locationData?.states) ? locationData.states : [];
+  }, [locationData?.states]);
+
+  const [cityOptions, setCityOptions] = useState([]);
+
+  // Normalize STATE value in edit mode: if form has label but options use value
+  useEffect(() => {
+    const currentState = form.getFieldValue('state');
+    if (!currentState) return;
+    const hasExactValue = (stateOptions || []).some(
+      s => String(s.value) === String(currentState)
+    );
+    if (!hasExactValue) {
+      const byLabel = (stateOptions || []).find(
+        s => String(s.label) === String(currentState)
+      );
+      if (byLabel) {
+        form.setFieldsValue({ state: byLabel.value });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateOptions]);
+
+  // Rebuild CITY options whenever state changes; normalize city value on edit
+  useEffect(() => {
+    const stateVal = form.getFieldValue('state');
+    if (!stateVal) {
+      setCityOptions([]);
+      form.setFieldsValue({ city: undefined });
+      return;
+    }
+    const cities = typeof getCitiesByState === 'function' ? getCitiesByState(stateVal) : [];
+    setCityOptions(cities || []);
+
+    // normalize current city (label→value) if needed
+    const currentCity = form.getFieldValue('city');
+    if (!currentCity) return;
+
+    const hasExactCityValue = (cities || []).some(
+      c => String(c.value) === String(currentCity)
+    );
+    if (hasExactCityValue) return;
+
+    const byCityLabel = (cities || []).find(
+      c => String(c.label) === String(currentCity)
+    );
+    if (byCityLabel) {
+      form.setFieldsValue({ city: byCityLabel.value });
+    } else {
+      form.setFieldsValue({ city: undefined });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stateWatch, getCitiesByState]);
+
+  // venues by organizer
   const {
     data: venues = [],
     isLoading: venueLoading,
@@ -59,7 +131,9 @@ const BasicDetailsStep = ({ form }) => {
 
   const renderVenueOptionLabel = (v) => (
     <div>
-      <Typography.Text strong>{v?.name || v?.label || `Venue #${v?.id ?? ''}`}</Typography.Text>
+      <Typography.Text strong>
+        {v?.name || v?.label || `Venue #${v?.id ?? ''}`}
+      </Typography.Text>
       {(v?.location || v?.city || v?.state) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
           <EnvironmentOutlined />
@@ -74,18 +148,15 @@ const BasicDetailsStep = ({ form }) => {
     </div>
   );
 
-  // 👇 keep these near the top of the component
-const selectedVenueId = Form.useWatch('venue', form);
-
-const selectedVenue = React.useMemo(() => {
-  if (selectedVenueId === undefined || selectedVenueId === null || selectedVenueId === '') {
-    return undefined;
-  }
-  return venues.find(v =>
-    (v?.id != null && String(v.id) === String(selectedVenueId)) ||
-    (v?.value != null && String(v.value) === String(selectedVenueId))
-  );
-}, [selectedVenueId, venues]);
+  // selected venue for details card
+  const selectedVenueId = Form.useWatch('venue_id', form);
+  const selectedVenue = useMemo(() => {
+    if (selectedVenueId == null || selectedVenueId === '') return undefined;
+    return venues.find(v =>
+      (v?.id != null && String(v.id) === String(selectedVenueId)) ||
+      (v?.value != null && String(v.value) === String(selectedVenueId))
+    );
+  }, [selectedVenueId, venues]);
 
   const isUserOrganizer = UserData?.role?.toLowerCase() === 'organizer';
 
@@ -99,11 +170,7 @@ const selectedVenue = React.useMemo(() => {
             showIcon
             message="Failed to load organizers"
             description={orgErrObj?.message}
-            action={
-              <Button size="small" onClick={() => refetchOrg()}>
-                Retry
-              </Button>
-            }
+            action={<Button size="small" onClick={() => refetchOrg()}>Retry</Button>}
           />
         </Col>
       )}
@@ -114,11 +181,7 @@ const selectedVenue = React.useMemo(() => {
             showIcon
             message="Failed to load venues"
             description={venueErrObj?.message}
-            action={
-              <Button size="small" onClick={() => refetchVenues()}>
-                Retry
-              </Button>
-            }
+            action={<Button size="small" onClick={() => refetchVenues()}>Retry</Button>}
           />
         </Col>
       )}
@@ -134,24 +197,23 @@ const selectedVenue = React.useMemo(() => {
             <Select
               placeholder="Select Organizer"
               loading={orgLoading}
-              options={organizers.map((o) => ({ label: o.name, value: o.id }))}
-              notFoundContent={
-                orgLoading ? <Spin size="small" /> : "No organizers found"
-              }
+              disabled={isEdit} // disabled in edit mode
+              options={organizers.map((o) => ({
+                label: o.name,
+                value: String(o.id), // ensure string to match API "9287"
+              }))}
+              notFoundContent={orgLoading ? <Spin size="small" /> : "No organizers found"}
               showSearch
               filterOption={(input, option) =>
-                (option?.label ?? "")
-                  .toLowerCase()
-                  .includes(input.toLowerCase())
+                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
               }
-              onChange={() => form.setFieldsValue({ venue: undefined })}
+              onChange={() => form.setFieldsValue({ venue_id: undefined })}
             />
           </Form.Item>
         </Col>
       )}
 
-      {/* Event Categories */}
-
+      {/* Category */}
       <Col xs={24} md={8}>
         <Form.Item
           name="category"
@@ -160,13 +222,13 @@ const selectedVenue = React.useMemo(() => {
         >
           <Select
             placeholder="Select Category"
-            loading={isLoading}
+            loading={catLoading}
             options={categories}
             showSearch
             filterOption={(input, option) =>
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
-            notFoundContent={isLoading ? "Loading..." : "No categories found"}
+            notFoundContent={catLoading ? "Loading..." : "No categories found"}
           />
         </Form.Item>
       </Col>
@@ -184,51 +246,27 @@ const selectedVenue = React.useMemo(() => {
           <Input placeholder="Enter Event Name" />
         </Form.Item>
       </Col>
-
-      {/* Country */}
       <Col xs={24} md={8}>
         <Form.Item
-          name="country"
-          label="Country"
-          rules={[{ required: true, message: "Please select country" }]}
-        >
-          <Select
-            placeholder="Select Country"
-            options={countries}
-            loading={ctryLoading}
-            showSearch
-            filterOption={(i, o) =>
-              (o?.label ?? "").toLowerCase().includes(i.toLowerCase())
-            }
-            onChange={() =>
-              form.setFieldsValue({ state: undefined, city: undefined })
-            }
-          />
-        </Form.Item>
-      </Col>
-
-      {/* State */}
-      <Col xs={24} md={8}>
-        <Form.Item
-          name="state"
           label="State"
-          rules={[{ required: true, message: "Please select state" }]}
+          name="state"
+          rules={[{ required: true, message: 'Please select state' }]}
         >
           <Select
-            placeholder={country ? "Select State" : "Select country first"}
-            options={states}
-            loading={stateLoading}
-            disabled={!country}
             showSearch
-            filterOption={(i, o) =>
-              (o?.label ?? "").toLowerCase().includes(i.toLowerCase())
-            }
-            onChange={() => form.setFieldsValue({ city: undefined })}
+            placeholder="Select state"
+            options={stateOptions}
+            optionFilterProp="label"
+            onChange={(stateName) => {
+              form.setFieldValue('city', undefined);
+              const cities = typeof getCitiesByState === 'function' ? getCitiesByState(stateName) : [];
+              setCityOptions(cities || []);
+            }}
           />
         </Form.Item>
       </Col>
 
-      {/* City */}
+      {/* City (from useContext / computed) */}
       <Col xs={24} md={8}>
         <Form.Item
           name="city"
@@ -236,105 +274,88 @@ const selectedVenue = React.useMemo(() => {
           rules={[{ required: true, message: "Please select city" }]}
         >
           <Select
-            placeholder={state ? "Select City" : "Select state first"}
-            options={cities}
-            loading={cityLoading}
-            disabled={!state}
+            placeholder={stateWatch ? "Select City" : "Select state first"}
+            options={cityOptions}
+            disabled={!stateWatch}
             showSearch
-            filterOption={(i, o) =>
-              (o?.label ?? "").toLowerCase().includes(i.toLowerCase())
-            }
+            optionFilterProp="label"
           />
         </Form.Item>
       </Col>
 
-      {/* Venues — driven by organizerId (from user or select) */}
+      {/* Venues — driven by organizerId */}
       <Col xs={24} md={8}>
         <Form.Item
-          name="venue"
+          name="venue_id"
           label="Select Venue"
-          rules={[
-            {
-              required: true,
-              message: organizerId
-                ? "Please select venue"
-                : "Select organizer first",
-            },
-          ]}
+          rules={[{ required: true, message: organizerId ? "Please select venue" : "Select organizer first" }]}
         >
           <Select
-            placeholder={
-              organizerId
-                ? "Select Venue"
-                : isUserOrganizer
-                ? "No venues found"
-                : "Select organizer first"
-            }
+            placeholder={organizerId ? "Select Venue" : (isUserOrganizer ? "No venues found" : "Select organizer first")}
             loading={venueLoading}
             disabled={!organizerId}
             options={venues.map((v) => ({
-              value: v.id ?? v.value,
+              value:String(v.id) ?? String(v.value),
               label: renderVenueOptionLabel(v),
             }))}
             optionLabelProp="label"
             showSearch
             filterOption={(input, option) => {
               const text =
-                (option?.label?.props?.children?.[0]?.props?.children ?? "") +
-                " " +
-                (option?.label?.props?.children?.[1]?.props?.children?.[1] ??
-                  "") +
-                " " +
-                (option?.label?.props?.children?.[2]?.props?.children ?? "");
+                (option?.label?.props?.children?.[0]?.props?.children ?? '') + ' ' +
+                (option?.label?.props?.children?.[1]?.props?.children?.[1] ?? '') + ' ' +
+                (option?.label?.props?.children?.[2]?.props?.children ?? '');
               return text.toLowerCase().includes(input.toLowerCase());
             }}
-            style={{ width: "100%" }}
+            style={{ width: '100%' }}
           />
         </Form.Item>
       </Col>
 
       {/* Venue Details */}
       {selectedVenue && (
-      <Col xs={24}>
-  <Form.Item dependencies={['venue']} noStyle>
-    {() => selectedVenue ? (
-      <Card size="small" title="Venue Details">
-        <Space direction="vertical">
-          <Space size="large">
-            <Space>
-              <HomeOutlined className='text-white bg-primary p-2 rounded-circle' />
-              <Typography.Text>{selectedVenue?.name || selectedVenue?.label}</Typography.Text>
-            </Space>
-            {(selectedVenue?.location || selectedVenue?.city || selectedVenue?.state) && (
-              <Space>
-                <CompassOutlined className='text-white bg-primary p-2 rounded-circle' />
-                <Typography.Text>
-                  {selectedVenue?.location || [selectedVenue?.city, selectedVenue?.state].filter(Boolean).join(', ')}
-                </Typography.Text>
-              </Space>
-            )}
-          </Space>
-          {selectedVenue?.address && (
-            <Space>
-              <EnvironmentOutlined className='text-white bg-primary p-2 rounded-circle' />
-              <Typography.Text>{selectedVenue.address}</Typography.Text>
-            </Space>
-          )}
-        </Space>
-        {selectedVenue?.address && (
-          <Button
-            type="primary"
-            className='positive-absolute float-sm-center float-none float-sm-right mt-3'
-            icon={<EnvironmentOutlined />}
-            onClick={() => window.open(`https://maps.google.com/?q=${selectedVenue.address}`, '_blank')}
-          >
-            View Map
-          </Button>
-        )}
-      </Card>
-    ) : null}
-  </Form.Item>
-</Col>)}
+        <Col xs={24}>
+          <Form.Item dependencies={['venue_id']} noStyle>
+            {() => selectedVenue ? (
+              <Card size="small" title="Venue Details">
+                <Space direction="vertical">
+                  <Space size="large">
+                    <Space>
+                      <HomeOutlined className='text-white bg-primary p-2 rounded-circle' />
+                      <Typography.Text>{selectedVenue?.name || selectedVenue?.label}</Typography.Text>
+                    </Space>
+                    {(selectedVenue?.location || selectedVenue?.city || selectedVenue?.state) && (
+                      <Space>
+                        <CompassOutlined className='text-white bg-primary p-2 rounded-circle' />
+                        <Typography.Text>
+                          {selectedVenue?.location || [selectedVenue?.city, selectedVenue?.state].filter(Boolean).join(', ')}
+                        </Typography.Text>
+                      </Space>
+                    )}
+                  </Space>
+                  {selectedVenue?.address && (
+                    <Space>
+                      <EnvironmentOutlined className='text-white bg-primary p-2 rounded-circle' />
+                      <Typography.Text>{selectedVenue.address}</Typography.Text>
+                    </Space>
+                  )}
+                </Space>
+                {selectedVenue?.address && (
+                  <Button
+                    type="primary"
+                    className='positive-absolute float-sm-center float-none float-sm-right mt-3'
+                    icon={<EnvironmentOutlined />}
+                    // onClick={() => window.open(`https://maps.google.com/?q=${selectedVenue.address}`, '_blank')}
+                    onClick={() => window.open(`${selectedVenue?.map_url}`, '_blank')}
+                  >
+                    View Map
+                  </Button>
+                )}
+              </Card>
+            ) : null}
+          </Form.Item>
+        </Col>
+      )}
 
       {/* Description */}
       <Col xs={24}>
@@ -346,12 +367,7 @@ const selectedVenue = React.useMemo(() => {
             { min: 20, message: "Description must be at least 20 characters" },
           ]}
         >
-          <TextArea
-            rows={5}
-            placeholder="Enter detailed event description..."
-            showCount
-            maxLength={500}
-          />
+          <TextArea rows={5} placeholder="Enter detailed event description..." showCount maxLength={500} />
         </Form.Item>
       </Col>
     </Row>

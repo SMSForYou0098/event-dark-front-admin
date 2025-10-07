@@ -42,7 +42,7 @@ const PublishStep = ({ formData }) => (
                 <Divider style={{ margin: '8px 0' }} />
                 <div>
                     <Text strong>Venue:</Text>{' '}
-                    <Text>{formData.venue || 'N/A'}</Text>
+                    <Text>{formData.venue_id || 'N/A'}</Text>
                 </div>
                 <Divider style={{ margin: '8px 0' }} />
                 <div>

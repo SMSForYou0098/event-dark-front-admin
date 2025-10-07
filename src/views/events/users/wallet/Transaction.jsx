@@ -17,9 +17,6 @@ const Transactions = ({userId}) => {
     // Safely access transactions with fallback to empty array
     const transactions = data || [];
     
-    console.log('transactions', transactions);
-    console.log('userId', userId); // Debug: check if userId is passed correctly
-    
     const [showReceiptModal, setShowReceiptModal] = useState(false);
     const [selectedTransactionId, setSelectedTransactionId] = useState(null);
 

@@ -1,37 +1,89 @@
 // TimingStep.jsx
 import React from 'react';
-import { Form, DatePicker, TimePicker, Switch, Row, Col } from 'antd';
+import { Form, DatePicker, TimePicker, Switch, Row, Col, Input } from 'antd';
 import dayjs from 'dayjs';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import LocationStep from './LocationStep';
 
 const { RangePicker } = DatePicker;
+
+// Formats
+const FMT_DATE = 'YYYY-MM-DD';
 const FMT_DT = 'YYYY-MM-DD HH:mm';
 const FMT_T = 'HH:mm';
 
 const TimingStep = ({ form, ...props }) => {
+  // helper to build the picker value from stored fields
+  const buildRangePickerValue = (dateRangeStr, startTimeStr, endTimeStr) => {
+    if (typeof dateRangeStr !== 'string' || !dateRangeStr.includes(',')) return undefined;
+    const [d1, d2] = dateRangeStr.split(',').map(s => s.trim());
+    const sd = dayjs(d1, FMT_DATE, true);
+    const ed = dayjs(d2, FMT_DATE, true);
+    if (!sd.isValid() || !ed.isValid()) return undefined;
+
+    const st = (typeof startTimeStr === 'string' && dayjs(startTimeStr, FMT_T, true).isValid())
+      ? dayjs(startTimeStr, FMT_T)
+      : null;
+    const et = (typeof endTimeStr === 'string' && dayjs(endTimeStr, FMT_T, true).isValid())
+      ? dayjs(endTimeStr, FMT_T)
+      : null;
+
+    // Combine date + (optional) time when showing the picker
+    const start = st ? sd.hour(st.hour()).minute(st.minute()) : sd;
+    const end = et ? ed.hour(et.hour()).minute(et.minute()) : ed;
+
+    return [start, end];
+  };
+
+  // When RangePicker changes:
+  // - Save only dates to `date_range`
+  // - Save time parts to `start_time` / `end_time`
+  const onRangeChange = (range) => {
+    if (!Array.isArray(range) || !range[0] || !range[1]) {
+      form.setFieldsValue({ date_range: undefined, start_time: undefined, end_time: undefined });
+      return;
+    }
+    const [start, end] = range;
+    form.setFieldsValue({
+      date_range: `${start.format(FMT_DATE)},${end.format(FMT_DATE)}`,
+      start_time: start.format(FMT_T),
+      end_time: end.format(FMT_T),
+    });
+  };
+
+  // If user edits times independently, keep the RangePicker's displayed time in sync
+  const onTimeChange = (field /* 'start_time' | 'end_time' */) => (val) => {
+    const timeStr = val ? val.format(FMT_T) : undefined;
+    form.setFieldsValue({ [field]: timeStr });
+
+    // Rebuild RangePicker view (dates remain same, only time parts change)
+    const dr = form.getFieldValue('date_range');
+    const otherTime = form.getFieldValue(field === 'start_time' ? 'end_time' : 'start_time');
+    const rpValue = buildRangePickerValue(
+      dr,
+      field === 'start_time' ? timeStr : otherTime,
+      field === 'end_time' ? timeStr : otherTime
+    );
+    // Trigger rerender by touching date_range (no value change needed if string unchanged)
+    // AntD reads picker value from getValueProps below
+    form.setFieldsValue({ __force_rerender__: Date.now() }); // harmless hidden field trick
+  };
+
   return (
     <Row gutter={ROW_GUTTER}>
       <Col xs={24} lg={12}>
         <Row gutter={16}>
-          {/* date_range -> string "YYYY-MM-DD HH:mm,YYYY-MM-DD HH:mm" */}
+          {/* date_range -> "YYYY-MM-DD,YYYY-MM-DD" (dates only) + start/end times from RangePicker */}
           <Col xs={24} md={12}>
             <Form.Item
               name="date_range"
               label="Event Date Range"
               rules={[{ required: true, message: 'Please select date range' }]}
-              // convert stored string -> picker value
+              // Show RangePicker using stored dates + start/end_time for the time parts
               getValueProps={(value) => {
-                if (typeof value !== 'string' || !value.includes(',')) return { value: undefined };
-                const [s, e] = value.split(',').map(v => v.trim());
-                const sd = dayjs(s, [FMT_DT, 'YYYY-MM-DD'], true);
-                const ed = dayjs(e, [FMT_DT, 'YYYY-MM-DD'], true);
-                return { value: sd.isValid() && ed.isValid() ? [sd, ed] : undefined };
-              }}
-              // convert picker value -> stored string
-              getValueFromEvent={(range) => {
-                if (!Array.isArray(range) || !range[0] || !range[1]) return undefined;
-                return `${range[0].format(FMT_DT)},${range[1].format(FMT_DT)}`;
+                const startTime = form.getFieldValue('start_time');
+                const endTime = form.getFieldValue('end_time');
+                return { value: buildRangePickerValue(value, startTime, endTime) };
               }}
             >
               <RangePicker
@@ -39,6 +91,7 @@ const TimingStep = ({ form, ...props }) => {
                 style={{ width: '100%' }}
                 placeholder={['Start Date & Time', 'End Date & Time']}
                 format={FMT_DT}
+                onChange={onRangeChange}
               />
             </Form.Item>
           </Col>
@@ -50,9 +103,10 @@ const TimingStep = ({ form, ...props }) => {
               label="Entry Time"
               rules={[{ required: true, message: 'Please select entry time' }]}
               getValueProps={(value) => ({
-                value: typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
-                  ? dayjs(value, FMT_T)
-                  : undefined,
+                value:
+                  typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
+                    ? dayjs(value, FMT_T)
+                    : undefined,
               })}
               getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
             >
@@ -60,16 +114,14 @@ const TimingStep = ({ form, ...props }) => {
             </Form.Item>
           </Col>
 
-          {/* event_type -> "daily" / "seasonal" mapped to Switch */}
+          {/* event_type -> "daily" / "seasonal" via Switch */}
           <Col xs={12} md={6}>
             <Form.Item
               name="event_type"
               label="Event Type"
               tooltip="Choose between Daily or Seasonal event"
               rules={[{ required: true, message: 'Please choose event type' }]}
-              // string -> boolean for Switch checked
-              getValueProps={(value) => ({ value: value === 'daily' })}
-              // boolean -> string for storage
+              getValueProps={(v) => ({ value: v === 'daily' })}
               getValueFromEvent={(checked) => (checked ? 'daily' : 'seasonal')}
               initialValue="daily"
             >
@@ -77,45 +129,88 @@ const TimingStep = ({ form, ...props }) => {
             </Form.Item>
           </Col>
 
-          {/* start_time -> "HH:mm" */}
+          {/* start_time -> "HH:mm" (kept in sync with RangePicker) */}
           <Col xs={12} md={6}>
             <Form.Item
               name="start_time"
               label="Start Time"
               rules={[{ required: true, message: 'Please select start time' }]}
               getValueProps={(value) => ({
-                value: typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
-                  ? dayjs(value, FMT_T)
-                  : undefined,
+                value:
+                  typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
+                    ? dayjs(value, FMT_T)
+                    : undefined,
               })}
               getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
             >
-              <TimePicker style={{ width: '100%' }} format={FMT_T} placeholder="Start time" />
+              <TimePicker
+                style={{ width: '100%' }}
+                format={FMT_T}
+                placeholder="Start time"
+                onChange={onTimeChange('start_time')}
+              />
             </Form.Item>
           </Col>
 
-          {/* end_time -> "HH:mm" */}
+          {/* end_time -> "HH:mm" (kept in sync with RangePicker) */}
           <Col xs={12} md={6}>
             <Form.Item
               name="end_time"
               label="End Time"
               rules={[{ required: true, message: 'Please select end time' }]}
               getValueProps={(value) => ({
-                value: typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
-                  ? dayjs(value, FMT_T)
-                  : undefined,
+                value:
+                  typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
+                    ? dayjs(value, FMT_T)
+                    : undefined,
               })}
               getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
             >
-              <TimePicker style={{ width: '100%' }} format={FMT_T} placeholder="End time" />
+              <TimePicker
+                style={{ width: '100%' }}
+                format={FMT_T}
+                placeholder="End time"
+                onChange={onTimeChange('end_time')}
+              />
             </Form.Item>
           </Col>
+
+          {/* hidden to force rerender when only time changes */}
+          <Form.Item name="__force_rerender__" hidden><input /></Form.Item>
         </Row>
       </Col>
 
       <Col xs={24} lg={12}>
-        <LocationStep {...props} />
+        <LocationStep {...props} form={form} />
       </Col>
+      <Col xs={24} lg={12}>
+<Form.Item
+  name="address"
+  label="Event Address (use | instead of commas)"
+  tooltip="Commas are not allowed. Use | to separate address parts, e.g. 'Street | Area | City'."
+  normalize={(value) => {
+    // This automatically replaces commas with | before saving to form
+    return value ? value.replace(/,/g, '|') : value;
+  }}
+  rules={[
+    { required: true, message: 'Please enter event address' },
+  ]}
+>
+  <Input.TextArea
+    rows={4}
+    placeholder="Enter event address (e.g., 123 Main Road | Near Park | Mumbai)"
+    allowClear
+    onKeyDown={(e) => {
+      // Simply prevent comma input
+      if (e.key === ',') {
+        e.preventDefault();
+      }
+    }}
+  />
+</Form.Item>
+</Col>
+
+
     </Row>
   );
 };
