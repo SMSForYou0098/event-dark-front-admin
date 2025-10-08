@@ -1,6 +1,7 @@
 @import url('./datepicker.css');
 @import url('./scrollbar.css');
 @import url('./input.css');
+@import url('./margins.css');
 /* @import url('./sidebar.css'); */
 @import url('./drawer.css');
 @import url('./notication.css');
@@ -9,6 +10,13 @@
 @import url('./button.css`');
 @import url('./alert.css');
 @import url('./modal.css');
+
+
+/* accordion css  */
+.ant-collapse-header , .ant-collapse-content-box{
+  padding: inherit !important;
+}
+
 
 .fw-bold {
   font-weight: 700 !important;

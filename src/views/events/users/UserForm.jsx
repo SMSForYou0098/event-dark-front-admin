@@ -1,16 +1,16 @@
 import React, { memo, Fragment, useState, useEffect } from "react";
-import { useParams, useLocation } from "react-router-dom";
-import { 
-    Row, 
-    Col, 
-    Form, 
-    Button, 
-    Card, 
-    Tabs, 
-    Input, 
-    Select, 
-    Switch, 
-    Radio, 
+import { useParams, useLocation, useNavigate } from "react-router-dom";
+import {
+    Row,
+    Col,
+    Form,
+    Button,
+    Card,
+    Tabs,
+    Input,
+    Select,
+    Switch,
+    Radio,
     Spin,
     notification
 } from "antd";
@@ -36,22 +36,21 @@ import AssignCredit from "./wallet/AssignCredit";
 import PermissionChecker from "layouts/PermissionChecker";
 import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
 import Flex from "components/shared-components/Flex";
-import UseNavigation from "utils/customNavigation";
 
 const { Option } = Select;
 
 const UserForm = memo(({ mode = "edit" }) => {
-    const { 
-        api, 
-        authToken, 
-        userRole, 
-        UserData, 
-        UserList, 
-        OrganizerList, 
-        HandleBack, 
-        UserPermissions 
+    const {
+        api,
+        authToken,
+        userRole,
+        UserData,
+        UserList,
+        OrganizerList,
+        HandleBack,
+        UserPermissions
     } = useMyContext();
-    
+    const navigate = useNavigate()
     const dispatch = useDispatch();
     const { id } = useParams();
     const location = useLocation();
@@ -70,27 +69,27 @@ const UserForm = memo(({ mode = "edit" }) => {
         pincode: '',
         state: '',
         city: '',
-        
+
         // Role & Status
         roleId: '',
         roleName: '',
         reportingUser: null,
         userType: '',
         status: 'Active',
-        
+
         // Banking
         bankName: '',
         bankNumber: '',
         bankIfsc: '',
         bankBranch: '',
         bankMicr: '',
-        
+
         // Shop
         shopName: '',
         shopNumber: '',
         gstNumber: '',
         orgGstNumber: '',
-        
+
         // Settings
         qrLength: '',
         auth: false,
@@ -98,7 +97,7 @@ const UserForm = memo(({ mode = "edit" }) => {
         agreementStatus: false,
         paymentMethod: 'Cash',
         enablePasswordAuth: false,
-        
+
         // Agreement
         aggrementDetails: {
             org_office_address: "",
@@ -163,11 +162,11 @@ const UserForm = memo(({ mode = "edit" }) => {
             const queryParams = new URLSearchParams(location.search);
             const typeParam = queryParams.get('type');
             updateFormState({ userType: typeParam?.replace(/-/g, ' ') });
-            
+
             if (userRole === 'Organizer') {
-                updateFormState({ 
+                updateFormState({
                     reportingUser: { value: UserData?.id, label: UserData?.name || UserData?.id },
-                    organisation: UserData?.organisation 
+                    organisation: UserData?.organisation
                 });
                 setDisableOrg(true);
             }
@@ -191,23 +190,23 @@ const UserForm = memo(({ mode = "edit" }) => {
     useEffect(() => {
         if (mode === "edit" && userData?.user) {
             const data = userData.user;
-            
+
             // Set reporting user properly
             let reportingUserObj = null;
             if (data.reporting_user_id && UserList) {
                 reportingUserObj = UserList.find((item) => item?.value === data.reporting_user_id);
             }
-            
+
             // Map events properly
             const mappedEvents = data?.events?.map(event => ({
                 value: event.id,
                 label: event.name,
                 tickets: event?.tickets || []
             })) || [];
-            
+
             // Map tickets properly
             const mappedTickets = data?.agentTicket || [];
-            
+
             const formUpdates = {
                 name: data.name,
                 email: data.email,
@@ -245,23 +244,23 @@ const UserForm = memo(({ mode = "edit" }) => {
                     org_signature_type: data?.org_signature_type || ""
                 }
             };
-            
+
             updateFormState(formUpdates);
             setSelectedEvents(mappedEvents);
             setSelectedTickets(mappedTickets);
-            
+
             // Update the antd form instance
             form.setFieldsValue({
                 ...formUpdates,
                 events: mappedEvents,
                 tickets: mappedTickets
             });
-            
+
             // Set roles if available
             if (userData?.roles) {
                 setRoles(userData.roles);
             }
-            
+
             // Fetch reporting user role if needed
             if (data.reporting_user_id) {
                 fetchUserRole(data.reporting_user_id);
@@ -281,10 +280,10 @@ const UserForm = memo(({ mode = "edit" }) => {
 
     // Fetch events when needed
     const needsEvents = formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation';
-    const reportingUserId = mode === "create" 
+    const reportingUserId = mode === "create"
         ? (userRole === 'Organizer' ? UserData?.id : formState.reportingUser?.value)
         : (formState.reportingUser?.value || formState.reportingUser?.key);
-    
+
     const { data: eventsData } = useQuery({
         queryKey: ["org-events", reportingUserId],
         enabled: Boolean(needsEvents && reportingUserId),
@@ -323,12 +322,12 @@ const UserForm = memo(({ mode = "edit" }) => {
     // Unified function to fetch user role data
     const fetchUserRole = async (reportingId) => {
         if (!reportingId) return;
-        
+
         try {
             const res = await apiClient.get(`edit-user/${reportingId}`);
             if (res?.status) {
                 const data = res?.user;
-                
+
                 // Map events if they exist
                 if (data.events && data.events.length > 0) {
                     const eventOptions = data.events.map(event => ({
@@ -338,11 +337,11 @@ const UserForm = memo(({ mode = "edit" }) => {
                     }));
                     setSelectedEvents(eventOptions);
                 }
-                
+
                 // Update organisation if user is Organizer
                 if (data?.role?.name === 'Organizer') {
-                    updateFormState({ 
-                        organisation: data?.organisation || formState.organisation 
+                    updateFormState({
+                        organisation: data?.organisation || formState.organisation
                     });
                     setDisable(true);
                 } else {
@@ -352,11 +351,11 @@ const UserForm = memo(({ mode = "edit" }) => {
         } catch (error) {
             // ErrorAlert(error.response?.data?.error || error.response?.data?.message);
             notification.error({
-              message: "Error",
-              description:
-                error.response?.data?.error ||
-                error.response?.data?.message ||
-                "Something went wrong!",
+                message: "Error",
+                description:
+                    error.response?.data?.error ||
+                    error.response?.data?.message ||
+                    "Something went wrong!",
             });
         }
     };
@@ -378,18 +377,18 @@ const UserForm = memo(({ mode = "edit" }) => {
     // Handle event selection change
     const handleEventChange = (selectedValues) => {
         // Map selected values to full event objects with tickets
-        const selectedEventObjects = selectedValues.map(value => 
+        const selectedEventObjects = selectedValues.map(value =>
             events.find(e => e.value === value)
         ).filter(Boolean);
-        
+
         setSelectedEvents(selectedEventObjects);
-        
+
         // Filter out tickets that no longer belong to selected events
         const validEventIds = selectedEventObjects.map(e => e.value);
-        const filteredTickets = selectedTickets.filter(ticket => 
+        const filteredTickets = selectedTickets.filter(ticket =>
             validEventIds.includes(ticket.eventId)
         );
-        
+
         if (filteredTickets.length !== selectedTickets.length) {
             setSelectedTickets(filteredTickets);
             form.setFieldValue('tickets', filteredTickets.map(t => t.value));
@@ -407,24 +406,24 @@ const UserForm = memo(({ mode = "edit" }) => {
                 }
             });
         });
-        
+
         setSelectedTickets(selectedTicketObjects);
     };
 
     // Handle gate selection change
     const handleGateChange = (selectedValues) => {
         // Map selected values to full gate objects
-        const selectedGateObjects = selectedValues.map(value => 
+        const selectedGateObjects = selectedValues.map(value =>
             gates.find(g => g.value === value)
         ).filter(Boolean);
-        
+
         setSelectedGates(selectedGateObjects);
     };
 
     // Handle role change
     const handleRoleChange = async (value) => {
         const roleName = roles?.find((data) => data?.id === parseInt(value))?.name;
-        
+
         updateFormState({
             roleId: value,
             roleName: roleName
@@ -447,14 +446,14 @@ const UserForm = memo(({ mode = "edit" }) => {
     };
 
     // Handle form submission
-    const handleSubmit = async (values) => {            
+    const handleSubmit = async (values) => {
         const userData = {
             name: formState.name,
             email: formState.email,
             number: formState.number,
             password: formState.password,
             organisation: formState.organisation,
-            authentication: formState.authentication ,
+            authentication: formState.authentication,
             alt_number: formState.altNumber,
             pincode: formState.pincode,
             state: formState.state,
@@ -473,12 +472,12 @@ const UserForm = memo(({ mode = "edit" }) => {
             gst_no: formState.gstNumber,
             status: formState.status === 'Active' ? 1 : 0,
             agent_disc: formState.agentDiscount ? 1 : 0,
-            events: (formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation') 
-                ? selectedEvents.map(event => event.value) 
+            events: (formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation')
+                ? selectedEvents.map(event => event.value)
                 : [],
             tickets: selectedTickets,
-            gates: formState.roleName === 'Scanner' 
-                ? selectedGates.map(gate => gate.value) 
+            gates: formState.roleName === 'Scanner'
+                ? selectedGates.map(gate => gate.value)
                 : [],
             agreement_status: formState.agreementStatus,
             payment_method: formState.paymentMethod,
@@ -498,7 +497,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                     'Authorization': 'Bearer ' + authToken,
                 }
             });
-            
+
             if (response.data?.status) {
                 if (id == UserData?.id) {
                     dispatch(updateUser(response.data.user));
@@ -506,8 +505,8 @@ const UserForm = memo(({ mode = "edit" }) => {
                 }
                 // successAlert(`User ${mode === "create" ? "created" : "updated"}`, response.data.message);
                 notification.success({
-                  message: `User ${mode === "create" ? "created" : "updated"}`,
-                  description: response.data.message,
+                    message: `User ${mode === "create" ? "created" : "updated"}`,
+                    description: response.data.message,
                 });
 
                 if (mode === "create") {
@@ -516,9 +515,9 @@ const UserForm = memo(({ mode = "edit" }) => {
             }
         } catch (error) {
             notification.error({
-  message: 'Error',
-  description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
-});
+                message: 'Error',
+                description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
+            });
 
         }
     };
@@ -578,7 +577,7 @@ const UserForm = memo(({ mode = "edit" }) => {
             key: "5",
             label: (
                 <span>
-                    <Shield size={16}/>
+                    <Shield size={16} />
                     Permissions
                 </span>
             ),
@@ -599,48 +598,48 @@ const UserForm = memo(({ mode = "edit" }) => {
             >
                 <Row gutter={[16, 16]}>
                     {/* Left Column - Basic Info */}
-                    
+
                     <Col xs={24} lg={12}>
-                    
+
                         <PermissionChecker role={['Admin', 'Organizer']}>
                             <Card title="Select User Role">
                                 <Row gutter={[16, 16]}>
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                    label="User Role"
-                                    name="roleId"
-                                    rules={[{ required: true, message: 'Please select role' }]}
-                                    >
-                                    <Select
-                                        placeholder="Select role"
-                                        value={formState.roleId}
-                                        onChange={handleRoleChange}
-                                    >
-                                        {roles?.map((item) => (
-                                        <Option key={item.id} value={item.id}>
-                                            {item.name}
-                                        </Option>
-                                        ))}
-                                    </Select>
-                                    </Form.Item>
-                                </Col>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="User Role"
+                                            name="roleId"
+                                            rules={[{ required: true, message: 'Please select role' }]}
+                                        >
+                                            <Select
+                                                placeholder="Select role"
+                                                value={formState.roleId}
+                                                onChange={handleRoleChange}
+                                            >
+                                                {roles?.map((item) => (
+                                                    <Option key={item.id} value={item.id}>
+                                                        {item.name}
+                                                    </Option>
+                                                ))}
+                                            </Select>
+                                        </Form.Item>
+                                    </Col>
                                 </Row>
                             </Card>
                         </PermissionChecker>
 
-                        <Card 
+                        <Card
                             title="Basic Information"
-                            // extra={
-                            //     <Space>
-                            //         <Button 
-                            //             type="primary" 
-                            //             htmlType="submit"
-                            //             loading={loading}
-                            //         >
-                            //             Save
-                            //         </Button>
-                            //     </Space>
-                            // }
+                        // extra={
+                        //     <Space>
+                        //         <Button 
+                        //             type="primary" 
+                        //             htmlType="submit"
+                        //             loading={loading}
+                        //         >
+                        //             Save
+                        //         </Button>
+                        //     </Space>
+                        // }
                         >
                             <Row gutter={[16]}>
                                 <Col xs={24} md={12}>
@@ -649,14 +648,14 @@ const UserForm = memo(({ mode = "edit" }) => {
                                         name="name"
                                         rules={[{ required: true, message: 'Please enter name' }]}
                                     >
-                                        <Input 
+                                        <Input
                                             placeholder="Enter name"
                                             value={formState.name}
                                             onChange={(e) => handleInputChange('name', e.target.value)}
                                         />
                                     </Form.Item>
                                 </Col>
-                                
+
                                 <Col xs={24} md={12}>
                                     <Form.Item
                                         label="Email"
@@ -666,7 +665,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                                             { type: 'email', message: 'Please enter valid email' }
                                         ]}
                                     >
-                                        <Input 
+                                        <Input
                                             placeholder="Enter email"
                                             value={formState.email}
                                             onChange={(e) => handleInputChange('email', e.target.value)}
@@ -683,7 +682,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                                             { pattern: /^\d{10,12}$/, message: 'Mobile number must be 10-12 digits' }
                                         ]}
                                     >
-                                        <Input 
+                                        <Input
                                             placeholder="Enter mobile number"
                                             value={formState.number}
                                             onChange={(e) => handleInputChange('number', e.target.value)}
@@ -708,28 +707,28 @@ const UserForm = memo(({ mode = "edit" }) => {
                                     </Col>
                                 )}
 
-                                    <>
+                                <>
                                     <PermissionChecker role={['Admin', 'Organizer']}>
-                                    {
-                                        formState.roleName=== 'Organizer' && (
+                                        {
+                                            formState.roleName === 'Organizer' && (
 
-                                        <Col xs={24} md={12}>
-                                            <Form.Item
-                                                label="Organisation"
-                                                name="organisation"
-                                            >
-                                                <Input 
-                                                    placeholder="Enter organisation"
-                                                    disabled={disableOrg || disable}
-                                                    value={formState.organisation}
-                                                    onChange={(e) => handleInputChange('organisation', e.target.value)}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                        )
-                                    }
+                                                <Col xs={24} md={12}>
+                                                    <Form.Item
+                                                        label="Organisation"
+                                                        name="organisation"
+                                                    >
+                                                        <Input
+                                                            placeholder="Enter organisation"
+                                                            disabled={disableOrg || disable}
+                                                            value={formState.organisation}
+                                                            onChange={(e) => handleInputChange('organisation', e.target.value)}
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                            )
+                                        }
 
-                                        {!disableOrg && (formState.roleName==='Agent' || formState.roleName==='POS' || formState.roleName==='Sponsor' || formState.roleName==='Corporate') &&(
+                                        {!disableOrg && (formState.roleName === 'Agent' || formState.roleName === 'POS' || formState.roleName === 'Sponsor' || formState.roleName === 'Corporate') && (
                                             <Col xs={24} md={12}>
                                                 <Form.Item
                                                     label="Account Manager"
@@ -751,7 +750,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                                         {/* Role-specific fields */}
                                         {formState.roleName === 'Scanner' && (
                                             <Col xs={24} md={12}>
-                                                <Form.Item 
+                                                <Form.Item
                                                     label="Event Gates"
                                                     name="gates"
                                                 >
@@ -771,12 +770,12 @@ const UserForm = memo(({ mode = "edit" }) => {
                                         {(formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation') && (
                                             <>
                                                 <Col xs={24} md={12}>
-                                                    <Form.Item 
+                                                    <Form.Item
                                                         label="Assign Events"
                                                         name="events"
                                                         rules={[{
                                                             validator: () => {
-                                                                const needs = ['Agent','Sponsor','Accreditation'].includes(formState.roleName);
+                                                                const needs = ['Agent', 'Sponsor', 'Accreditation'].includes(formState.roleName);
                                                                 return needs && selectedEvents.length === 0
                                                                     ? Promise.reject(new Error('Please select at least one event'))
                                                                     : Promise.resolve();
@@ -795,7 +794,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                     </Form.Item>
                                                 </Col>
                                                 <Col xs={24} md={12}>
-                                                    <Form.Item 
+                                                    <Form.Item
                                                         label="Assign Tickets"
                                                         name="tickets"
                                                     >
@@ -809,13 +808,13 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                             disabled={selectedEvents.length === 0}
                                                         >
                                                             {ticketGroup.map(eventGroup => (
-                                                                <Select.OptGroup 
-                                                                    key={eventGroup.value} 
+                                                                <Select.OptGroup
+                                                                    key={eventGroup.value}
                                                                     label={eventGroup.label}
                                                                 >
                                                                     {eventGroup.options.map(ticket => (
-                                                                        <Option 
-                                                                            key={ticket.value} 
+                                                                        <Option
+                                                                            key={ticket.value}
                                                                             value={ticket.value}
                                                                             label={ticket.label}
                                                                         >
@@ -830,32 +829,32 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                 {
                                                     formState.roleName === 'Agent' && (
 
-                                                <Col xs={24} md={12}>
-                                                    <Form.Item label="Agent Discount">
-                                                        <Switch
-                                                            checked={formState.agentDiscount}
-                                                            onChange={(checked) => handleInputChange('agentDiscount', checked)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
+                                                        <Col xs={24} md={12}>
+                                                            <Form.Item label="Agent Discount">
+                                                                <Switch
+                                                                    checked={formState.agentDiscount}
+                                                                    onChange={(checked) => handleInputChange('agentDiscount', checked)}
+                                                                />
+                                                            </Form.Item>
+                                                        </Col>
                                                     )
                                                 }
                                             </>
                                         )}
 
-                                        
-                                            {/* Password field */}
-                                            <Col xs={24} md={12}>
-                                                <Form.Item
+
+                                        {/* Password field */}
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
                                                 label="Password"
                                                 name="password"
                                                 rules={[
                                                     requiredIf(mode === 'create', 'Please enter password'),
                                                     ...(mode === 'create'
-                                                    ? [{ min: 6, message: 'Password must be at least 6 characters' }]
-                                                    : [])
+                                                        ? [{ min: 6, message: 'Password must be at least 6 characters' }]
+                                                        : [])
                                                 ]}
-                                                >
+                                            >
                                                 <Input.Password
                                                     prefix={<Key className="text-primary" size={16} />}
                                                     size="large"
@@ -865,71 +864,71 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                     autoFocus
                                                     disabled={loading}
                                                 />
-                                                </Form.Item>
-                                            </Col>
+                                            </Form.Item>
+                                        </Col>
 
-                                            {/* Confirm Password field (only in create mode) */}
-                                            {mode === 'create' && (
-                                                <Col xs={24} md={12}>
+                                        {/* Confirm Password field (only in create mode) */}
+                                        {mode === 'create' && (
+                                            <Col xs={24} md={12}>
                                                 <Form.Item
                                                     label="Confirm Password"
                                                     name="repeatPassword"
                                                     dependencies={["password"]}
                                                     rules={[
-                                                    requiredIf(true, 'Please confirm password'),
-                                                    ({ getFieldValue }) => ({
-                                                        validator(_, value) {
-                                                        if (!value || getFieldValue('password') === value) {
-                                                            return Promise.resolve();
-                                                        }
-                                                        return Promise.reject(new Error('Passwords do not match'));
-                                                        }
-                                                    })
+                                                        requiredIf(true, 'Please confirm password'),
+                                                        ({ getFieldValue }) => ({
+                                                            validator(_, value) {
+                                                                if (!value || getFieldValue('password') === value) {
+                                                                    return Promise.resolve();
+                                                                }
+                                                                return Promise.reject(new Error('Passwords do not match'));
+                                                            }
+                                                        })
                                                     ]}
                                                 >
                                                     <Input.Password
-                                                    size="large"
-                                                    placeholder="Re-enter your password"
-                                                    value={formState.repeatPassword}
-                                                    onChange={(e) => handleInputChange('repeatPassword', e.target.value)}
-                                                    disabled={loading}
-                                                    />
-                                                </Form.Item>
-                                                </Col>
-                                            )}
-                                            </PermissionChecker>
-
-
-                                        {formState.roleName === 'Scanner' && !disableOrg && (
-                                            <Col xs={24} md={12}>
-                                                <Form.Item
-                                                    label="QR Data Length"
-                                                    name="qrLength"
-                                                    rules={[
-                                                        requiredIf(true, 'Please enter QR length'),
-                                                        {
-                                                            validator: (_, value) => {
-                                                                if (value === undefined || value === null || value === '') return Promise.reject(new Error('Please enter QR length'));
-                                                                const num = Number(value);
-                                                                if (Number.isNaN(num)) return Promise.reject(new Error('QR length must be a number'));
-                                                                if (num < 6 || num > 20) return Promise.reject(new Error('QR length must be between 6 and 20'));
-                                                                return Promise.resolve();
-                                                            }
-                                                        }
-                                                    ]}
-                                                >
-                                                    <Input
-                                                        type="number"
-                                                        min={6}
-                                                        max={20}
-                                                        placeholder="6-20"
-                                                        value={formState.qrLength}
-                                                        onChange={(e) => handleInputChange('qrLength', e.target.value)}
+                                                        size="large"
+                                                        placeholder="Re-enter your password"
+                                                        value={formState.repeatPassword}
+                                                        onChange={(e) => handleInputChange('repeatPassword', e.target.value)}
+                                                        disabled={loading}
                                                     />
                                                 </Form.Item>
                                             </Col>
                                         )}
-                                    </>
+                                    </PermissionChecker>
+
+
+                                    {formState.roleName === 'Scanner' && !disableOrg && (
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                label="QR Data Length"
+                                                name="qrLength"
+                                                rules={[
+                                                    requiredIf(true, 'Please enter QR length'),
+                                                    {
+                                                        validator: (_, value) => {
+                                                            if (value === undefined || value === null || value === '') return Promise.reject(new Error('Please enter QR length'));
+                                                            const num = Number(value);
+                                                            if (Number.isNaN(num)) return Promise.reject(new Error('QR length must be a number'));
+                                                            if (num < 6 || num > 20) return Promise.reject(new Error('QR length must be between 6 and 20'));
+                                                            return Promise.resolve();
+                                                        }
+                                                    }
+                                                ]}
+                                            >
+                                                <Input
+                                                    type="number"
+                                                    min={6}
+                                                    max={20}
+                                                    placeholder="6-20"
+                                                    value={formState.qrLength}
+                                                    onChange={(e) => handleInputChange('qrLength', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    )}
+                                </>
                             </Row>
                         </Card>
                     </Col>
@@ -939,12 +938,12 @@ const UserForm = memo(({ mode = "edit" }) => {
                         {/* Payment Method */}
                         {!showRoleGate && (formState.roleName === 'POS' || formState.roleName === 'Corporate') && (
                             <Card title="Payment Method" style={{ marginBottom: 16 }}>
-                                <Form.Item 
+                                <Form.Item
                                     name="paymentMethod"
                                     rules={[requiredIf(true, 'Please select a payment method')]}
                                 >
-                                    <Radio.Group 
-                                        value={formState.paymentMethod} 
+                                    <Radio.Group
+                                        value={formState.paymentMethod}
                                         onChange={handlePaymentMethodChange}
                                     >
                                         <Radio value="Cash">Cash</Radio>
@@ -992,28 +991,28 @@ const UserForm = memo(({ mode = "edit" }) => {
 
                         {/* Address Section */}
                         {!showRoleGate && (
-                        <Card title="Address" >
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="City">
-                                        <Input
-                                            placeholder="Enter city"
-                                            value={formState.city}
-                                            onChange={(e) => handleInputChange('city', e.target.value)}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="Pincode">
-                                        <Input
-                                            placeholder="Enter pincode"
-                                            value={formState.pincode}
-                                            onChange={(e) => handleInputChange('pincode', e.target.value)}
-                                        />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </Card>
+                            <Card title="Address" >
+                                <Row gutter={[16, 16]}>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item label="City">
+                                            <Input
+                                                placeholder="Enter city"
+                                                value={formState.city}
+                                                onChange={(e) => handleInputChange('city', e.target.value)}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item label="Pincode">
+                                            <Input
+                                                placeholder="Enter pincode"
+                                                value={formState.pincode}
+                                                onChange={(e) => handleInputChange('pincode', e.target.value)}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </Card>
                         )}
 
                         {/* Banking Details */}
@@ -1126,7 +1125,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                                     </Row>
                                 </Card>
                             </PermissionChecker>
-                            )}
+                        )}
                     </Col>
                 </Row>
             </Form>
@@ -1137,7 +1136,7 @@ const UserForm = memo(({ mode = "edit" }) => {
         return (
             <>
                 {/* <BookingList bookings={bookings} loading={loading} setLoading={setLoading} /> */}
-                <UserBookings id={id} activeTab={activeTab}/>
+                <UserBookings id={id} activeTab={activeTab} />
                 <div style={{ textAlign: 'center', marginTop: 16 }}>
                 </div>
             </>
@@ -1152,64 +1151,64 @@ const UserForm = memo(({ mode = "edit" }) => {
         );
     }
 
-return (
-    <Fragment>
-        <Form
-            layout="vertical"
-            form={form}
-            name="user_form"
-            className="ant-advanced-search-form"
-        >
-            <PageHeaderAlt overlap>
-                <div className="container">
-                    <Flex className="pb-4" mobileFlex={false} justifyContent="space-between" alignItems="center">
-                        <div className="d-flex align-items-center">
-                            <Button
-                                type="text"
-                                icon={<ArrowLeftOutlined />}
-                                onClick={HandleBack}
-                            />
-                            <h2 className="mb-0">
-                                {mode === "create"
-                                    ? "Create User"
-                                    : `Manage User - ${formState.roleName}`}
-                            </h2>
-                        </div>
-                        <div>
-                            {activeTab === "1" && (
-                                <Fragment>
-                                    <Button className="mr-2" onClick={()=>UseNavigation(-1)}>Discard</Button>
-                                    <Button
-                                        type="primary"
-                                        htmlType="submit"
-                                        loading={loading}
-                                        onClick={() => form.submit()}
-                                    >
-                                        {mode === "create" ? "Create" : "Update"}
-                                    </Button>
-                                </Fragment>
-                            )}
-                        </div>
-                    </Flex>
-                </div>
-            </PageHeaderAlt>
-            <div className="container">
-                {mode === "edit" ? (
-                    <Tabs
-                        activeKey={activeTab}
-                        onChange={setActiveTab}
-                        style={{ marginTop: 30 }}
-                        items={tabItems}
-                    />
-                ) : (
-                    <div style={{ marginTop: '6rem' }}>
-                        {renderProfileTab()}
+    return (
+        <Fragment>
+            <Form
+                layout="vertical"
+                form={form}
+                name="user_form"
+                className="ant-advanced-search-form"
+            >
+                <PageHeaderAlt overlap>
+                    <div className="container">
+                        <Flex className="pb-4" mobileFlex={false} justifyContent="space-between" alignItems="center">
+                            <div className="d-flex align-items-center">
+                                <Button
+                                    type="text"
+                                    icon={<ArrowLeftOutlined />}
+                                    onClick={HandleBack}
+                                />
+                                <h2 className="mb-0">
+                                    {mode === "create"
+                                        ? "Create User"
+                                        : `Manage User - ${formState.roleName}`}
+                                </h2>
+                            </div>
+                            <div>
+                                {activeTab === "1" && (
+                                    <Fragment>
+                                        <Button className="mr-2" onClick={() => navigate(-1)}>Discard</Button>
+                                        <Button
+                                            type="primary"
+                                            htmlType="submit"
+                                            loading={loading}
+                                            onClick={() => form.submit()}
+                                        >
+                                            {mode === "create" ? "Create" : "Update"}
+                                        </Button>
+                                    </Fragment>
+                                )}
+                            </div>
+                        </Flex>
                     </div>
-                )}
-            </div>
-        </Form>
-    </Fragment>
-);
+                </PageHeaderAlt>
+                <div className="container">
+                    {mode === "edit" ? (
+                        <Tabs
+                            activeKey={activeTab}
+                            onChange={setActiveTab}
+                            style={{ marginTop: 30 }}
+                            items={tabItems}
+                        />
+                    ) : (
+                        <div style={{ marginTop: '6rem' }}>
+                            {renderProfileTab()}
+                        </div>
+                    )}
+                </div>
+            </Form>
+        </Fragment>
+    );
 });
 
 UserForm.displayName = "UserForm";

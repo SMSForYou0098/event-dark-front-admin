@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { persistor } from 'store';
 import { authenticated, logout, updateUser } from 'store/slices/authSlice';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import UseNavigation from 'utils/customNavigation';
+import { useNavigate } from 'react-router-dom';
 
 /**
  * Helpers
@@ -27,6 +27,7 @@ const getErrorMessage = (err) => {
 };
 
 const Impersonate = () => {
+  const navigate = useNavigate()
   const auth = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const queryClient = useQueryClient();
@@ -72,7 +73,7 @@ const Impersonate = () => {
       queryClient.invalidateQueries(); // or narrow to specific queries
 
       // navigate to desired page
-      UseNavigation('/dashboard/organizers');
+      navigate('/dashboard/organizers');
     },
     onError: (err) => {
       const msg = getErrorMessage(err);
@@ -85,7 +86,7 @@ const Impersonate = () => {
         } catch (e) {
           // ignore
         }
-        UseNavigation('/sign-in');
+        navigate('/sign-in');
         return;
       }
 

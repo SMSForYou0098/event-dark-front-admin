@@ -3,6 +3,7 @@ import { AUTH_PREFIX_PATH, APP_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
 import UserForm from 'views/events/users/UserForm'
 import EventStepperForm from 'views/events/event/EventStepperForm'
+import ManageUser from 'views/events/users/Manage'
 
 export const publicRoutes = [
     {
@@ -94,6 +95,21 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/users/Organizers')),
     },
     {
+        key: 'apps.role',
+        path: `${APP_PREFIX_PATH}/apps/role`,
+        component: React.lazy(() => import('views/events/RolePermission/Role/index')),
+    },
+    {
+        key: 'apps.category',
+        path: `${APP_PREFIX_PATH}/apps/category`,
+        component: React.lazy(() => import('views/events/Settings/Category/Category')),
+    },
+    {
+        key: 'apps.role',
+        path: `${APP_PREFIX_PATH}/apps/role/:id/:name/permission`,
+        component: React.lazy(() => import('views/events/RolePermission/Permisson')),
+    },
+    {
         key: 'apps.events',
         path: `${APP_PREFIX_PATH}/apps/events`,
         component: React.lazy(() => import('views/events/event/list')),
@@ -168,7 +184,7 @@ export const protectedRoutes = [
         path: `${APP_PREFIX_PATH}/apps/users/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <UserForm mode="create" />
+                <ManageUser mode="create" />
             </React.Suspense>
         ),
     },
@@ -177,7 +193,8 @@ export const protectedRoutes = [
         path: `${APP_PREFIX_PATH}/apps/users/edit/:id`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <UserForm mode="edit" />
+                {/* <UserForm mode="edit" /> */}
+                <ManageUser mode="edit" />
             </React.Suspense>
         ),
     },

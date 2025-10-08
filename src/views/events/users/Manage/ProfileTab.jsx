@@ -1,24 +1,50 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Form, Input, Radio, Row, Select, Switch } from 'antd';
+import { Alert, Button, Card, Col, Form, Input, notification, Radio, Row, Select, Space, Spin, Switch } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
 import React, { useEffect, useMemo } from 'react';
 import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from 'Context/MyContextProvider';
 import { Key } from 'lucide-react';
+import { mapApiToForm, mapFormToApi } from './dataMappers';
+import axios from 'axios';
+import { updateUser } from 'store/slices/authSlice';
+import Flex from 'components/shared-components/Flex';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 
-const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
-    const { OrganizerList, userRole, UserData } = useMyContext();
+const ProfileTab = ({ mode, handleSubmit, id = null }) => {
+    const navigate = useNavigate();
+    const dispatch = useDispatch()
+    const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
+
+
+    // Fetch user data in edit mode
+    const { data: fethedData, isLoading: loading } = useQuery({
+        queryKey: ["user", id],
+        enabled: mode === "edit" && Boolean(id),
+        queryFn: async () => {
+            const res = await apiClient.get(`edit-user/${id}`);
+            if (!res?.status) {
+                throw new Error(res?.message || res?.error || 'Failed to load user');
+            }
+            return res;
+        },
+    });
+
+
+
+
     const [form] = Form.useForm();
-    
+
     // Watch form values for conditional logic
+    const EMPTY_ARRAY = [];
     const roleId = Form.useWatch('roleId', form);
     const roleName = Form.useWatch('roleName', form);
-    const status = Form.useWatch('status', form);
-    const authentication = Form.useWatch('authentication', form);
-    const agreementStatus = Form.useWatch('agreementStatus', form);
-    const paymentMethod = Form.useWatch('paymentMethod', form);
     const reportingUser = Form.useWatch('reportingUser', form);
-    
+    const selectedEvents = Form.useWatch('events', form) || EMPTY_ARRAY;
+
+
+
     // Fetch roles
     const { data: roles = [] } = useQuery({
         queryKey: ["roles"],
@@ -28,17 +54,17 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
         },
         staleTime: 5 * 60 * 1000,
     });
-    
+
     // Conditional checks
     const showRoleGate = mode === "create" && !roleId;
     const showAM = useMemo(() => {
-        return ['POS', 'Agent', 'Scanner'].includes(roleName);
+        return ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(roleName);
     }, [roleName]);
-    
+
     const needsEvents = useMemo(() => {
         return ['Agent', 'Sponsor', 'Accreditation'].includes(roleName);
     }, [roleName]);
-    
+
     // Get reporting user ID for events query
     const reportingUserId = useMemo(() => {
         if (mode === "create") {
@@ -46,7 +72,8 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
         }
         return reportingUser?.value || reportingUser?.key || reportingUser;
     }, [mode, userRole, UserData, reportingUser]);
-    
+
+
     // Fetch events
     const { data: events = [] } = useQuery({
         queryKey: ["org-events", reportingUserId],
@@ -54,92 +81,125 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
         queryFn: async () => {
             const res = await apiClient.get(`org-event/${reportingUserId}`);
             const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
-            return list.map(event => ({ 
-                value: event.id, 
-                label: event.name, 
-                tickets: event.tickets || [] 
+            return list.map(event => ({
+                value: event.id,
+                label: event.name,
+                tickets: event.tickets || []
             }));
         },
         staleTime: 5 * 60 * 1000,
     });
-    
+
     // Generate ticket options based on selected events
     const ticketOptions = useMemo(() => {
-        const selectedEvents = form.getFieldValue('events') || [];
-        const selectedEventObjects = events.filter(e => selectedEvents.includes(e.value));
-        
+        if (!selectedEvents.length) return [];
+
+        const selectedEventObjects = events.filter(e =>
+            selectedEvents.includes(e.value)
+        );
+
         return selectedEventObjects.map(event => ({
             label: event.label,
             options: (event.tickets || []).map(ticket => ({
-                value: ticket.id,
-                label: ticket.name,
+                value: String(ticket.id || ticket.value),
+                label: ticket.name || ticket.label,
                 eventId: event.value
             }))
         }));
-    }, [events, form]);
-    
+    }, [selectedEvents, events]);
+
     // Initialize form with data
     useEffect(() => {
-        if (mode === 'edit' && initialData) {
-            form.setFieldsValue({
-                ...initialData,
-                status: initialData.status || 'Active',
-                paymentMethod: initialData.paymentMethod || 'Cash',
-            });
+        if (mode === 'edit' && fethedData?.user) {
+            const mappedData = mapApiToForm(fethedData?.user);
+            form.setFieldsValue(mappedData);
         }
-    }, [mode, initialData, form]);
-    
+    }, [mode, fethedData, form]);
+
     // Handle role change
     const handleRoleChange = (value) => {
         const selectedRole = roles.find(r => r.id === parseInt(value));
         form.setFieldValue('roleName', selectedRole?.name);
-        
-        // Clear dependent fields when role changes
-        form.setFieldsValue({
-            events: [],
-            tickets: [],
-            gates: [],
-        });
+        form.setFieldsValue({ events: [], tickets: [], gates: [] });
     };
-    
+
     // Handle event change
     const handleEventChange = (selectedValues) => {
-        // Clear tickets that don't belong to selected events
+        // When events change, filter out tickets that no longer belong
         const currentTickets = form.getFieldValue('tickets') || [];
+
+        if (!selectedValues || selectedValues.length === 0) {
+            // Clear all tickets if no events selected
+            form.setFieldValue('tickets', []);
+            return;
+        }
+
+        // Get valid tickets for selected events
+        const validEventIds = selectedValues;
         const validTickets = currentTickets.filter(ticketId => {
-            return ticketOptions.some(group => 
-                group.options.some(ticket => 
-                    ticket.value === ticketId && selectedValues.includes(ticket.eventId)
+            // Check if this ticket belongs to any selected event
+            return ticketOptions.some(group =>
+                group.options.some(ticket =>
+                    String(ticket.value) === String(ticketId) &&
+                    validEventIds.includes(ticket.eventId)
                 )
             );
         });
-        
+
+        // Update tickets if any were filtered out
         if (validTickets.length !== currentTickets.length) {
             form.setFieldValue('tickets', validTickets);
         }
     };
-    
+
     // Custom validation rules
     const requiredIf = (condition, message) => ({
         validator(_, value) {
             if (!condition) return Promise.resolve();
-            const hasValue = Array.isArray(value) 
-                ? value.length > 0 
+            const hasValue = Array.isArray(value)
+                ? value.length > 0
                 : value !== undefined && value !== null && value !== '';
             return hasValue ? Promise.resolve() : Promise.reject(new Error(message));
         }
     });
-    
+    if (loading) {
+        return <Spin className='w-100 text-center mt-5' />
+    }
     // Form submit handler
-    const onFinish = (values) => {
-        // Transform data if needed
-        const submitData = {
-            ...values,
-            // Add any data transformations here
-        };
-        handleSubmit(submitData);
+    const onFinish = async (values) => {
+        const apiData = mapFormToApi(values);
+        try {
+            const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
+            const response = await axios.post(url, apiData, {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken,
+                }
+            });
+
+            if (response.data?.status) {
+                if (id === UserData?.id) {
+                    dispatch(updateUser(response.data.user));
+                    navigate(-1);
+                }
+                // successAlert(`User ${mode === "create" ? "created" : "updated"}`, response.data.message);
+                notification.success({
+                    message: `User ${mode === "create" ? "created" : "updated"}`,
+                    description: response.data.message,
+                });
+
+                if (mode === "create") {
+                    navigate(-1);
+                }
+            }
+        } catch (error) {
+            notification.error({
+                message: 'Error',
+                description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
+            });
+
+        }
     };
-    
+
     return (
         <Form
             form={form}
@@ -158,7 +218,17 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                 <Col xs={24} lg={12}>
                     {/* Role Selection (Admin/Organizer only) */}
                     <PermissionChecker role={['Admin', 'Organizer']}>
-                        <Card title="Select User Role" style={{ marginBottom: 16 }}>
+                        <Card title="Select User Role" extra={
+                            <Flex justifyContent="end">
+                                <Button className="mr-2" onClick={() => navigate(-1)}>
+                                    Discard
+                                </Button>
+                                <Button type="primary" htmlType="submit" loading={loading}>
+                                    {mode === "create" ? "Create" : "Update"}
+                                </Button>
+                            </Flex>
+                        } style={{ marginBottom: 16 }}>
+
                             <Form.Item
                                 label="User Role"
                                 name="roleId"
@@ -178,7 +248,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                             </Form.Item>
                         </Card>
                     </PermissionChecker>
-                    
+
                     {/* Basic Information */}
                     <Card title="Basic Information">
                         <Row gutter={[16, 16]}>
@@ -191,7 +261,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     <Input placeholder="Enter name" />
                                 </Form.Item>
                             </Col>
-                            
+
                             <Col xs={24} md={12}>
                                 <Form.Item
                                     label="Email"
@@ -204,7 +274,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     <Input placeholder="Enter email" />
                                 </Form.Item>
                             </Col>
-                            
+
                             <Col xs={24} md={12}>
                                 <Form.Item
                                     label="Mobile Number"
@@ -217,7 +287,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     <Input placeholder="Enter mobile number" />
                                 </Form.Item>
                             </Col>
-                            
+
                             {/* Conditional Fields based on Role */}
                             {roleName === 'Organizer' && (
                                 <>
@@ -233,7 +303,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                             />
                                         </Form.Item>
                                     </Col>
-                                    
+
                                     <Col xs={24} md={12}>
                                         <Form.Item
                                             label="Organisation"
@@ -244,7 +314,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     </Col>
                                 </>
                             )}
-                            
+
                             {/* Account Manager for specific roles */}
                             {showAM && (
                                 <Col xs={24} md={12}>
@@ -265,7 +335,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     </Form.Item>
                                 </Col>
                             )}
-                            
+
                             {/* Events Assignment */}
                             {needsEvents && (
                                 <>
@@ -285,19 +355,21 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                             />
                                         </Form.Item>
                                     </Col>
-                                    
+
                                     <Col xs={24} md={12}>
                                         <Form.Item
                                             label="Assign Tickets"
                                             name="tickets"
                                             dependencies={['events']}
                                         >
+
                                             <Select
                                                 mode="multiple"
                                                 placeholder="Select tickets"
-                                                disabled={!form.getFieldValue('events')?.length}
+                                                disabled={!selectedEvents.length}
                                                 showSearch
                                             >
+
                                                 {ticketOptions.map(group => (
                                                     <Select.OptGroup key={group.label} label={group.label}>
                                                         {group.options.map(ticket => (
@@ -312,11 +384,11 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     </Col>
                                 </>
                             )}
-                            
+
                             {/* Agent Discount */}
                             {roleName === 'Agent' && (
                                 <Col xs={24} md={12}>
-                                    <Form.Item 
+                                    <Form.Item
                                         label="Agent Discount"
                                         name="agentDiscount"
                                         valuePropName="checked"
@@ -325,7 +397,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     </Form.Item>
                                 </Col>
                             )}
-                            
+
                             {/* Scanner QR Length */}
                             {roleName === 'Scanner' && (
                                 <Col xs={24} md={12}>
@@ -334,11 +406,11 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                         name="qrLength"
                                         rules={[
                                             { required: true, message: 'Please enter QR length' },
-                                            { 
-                                                type: 'number', 
-                                                min: 6, 
-                                                max: 20, 
-                                                message: 'Must be between 6 and 20' 
+                                            {
+                                                type: 'number',
+                                                min: 6,
+                                                max: 20,
+                                                message: 'Must be between 6 and 20'
                                             }
                                         ]}
                                     >
@@ -346,24 +418,8 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                     </Form.Item>
                                 </Col>
                             )}
-                            
-                            {/* Password Fields */}
-                            <Col xs={24} md={12}>
-                                <Form.Item
-                                    label="Password"
-                                    name="password"
-                                    rules={[
-                                        requiredIf(mode === 'create', 'Please enter password'),
-                                        ...(mode === 'create' ? [{ min: 6, message: 'Min 6 characters' }] : [])
-                                    ]}
-                                >
-                                    <Input.Password
-                                        prefix={<Key className="text-primary" size={16} />}
-                                        placeholder="Enter password"
-                                    />
-                                </Form.Item>
-                            </Col>
-                            
+
+
                             {mode === 'create' && (
                                 <Col xs={24} md={12}>
                                     <Form.Item
@@ -389,7 +445,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                         </Row>
                     </Card>
                 </Col>
-                
+
                 {/* Right Column */}
                 <Col xs={24} lg={12}>
                     {/* Payment Method */}
@@ -407,7 +463,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                             </Form.Item>
                         </Card>
                     )}
-                    
+
                     {/* Address */}
                     {!showRoleGate && (
                         <Card title="Address" style={{ marginBottom: 16 }}>
@@ -425,7 +481,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                             </Row>
                         </Card>
                     )}
-                    
+
                     {/* Banking Details (Admin + Organizer role) */}
                     {userRole === 'Admin' && roleName === 'Organizer' && (
                         <Card title="Banking Details" style={{ marginBottom: 16 }}>
@@ -453,7 +509,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                             </Row>
                         </Card>
                     )}
-                    
+
                     {/* Other (Organizer only) */}
                     {roleName === 'Organizer' && (
                         <Card title="Other" style={{ marginBottom: 16 }}>
@@ -462,7 +518,7 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                             </Form.Item>
                         </Card>
                     )}
-                    
+
                     {/* Status & Security */}
                     {!showRoleGate && (
                         <PermissionChecker role={['Admin', 'Organizer']}>
@@ -476,23 +532,61 @@ const ProfileTab = ({ mode, handleSubmit, initialData = {} }) => {
                                             </Select>
                                         </Form.Item>
                                     </Col>
-                                    
+
+
+                                    {/* Password Fields */}
                                     <Col xs={24} md={12}>
-                                        <Form.Item 
-                                            label="Authentication Method" 
-                                            name="authentication"
-                                            valuePropName="checked"
+                                        <Form.Item
+                                            label="Password"
+                                            name="password"
+                                            rules={[
+                                                requiredIf(mode === 'create', 'Please enter password'),
+                                                ...(mode === 'create' ? [{ min: 6, message: 'Min 6 characters' }] : [])
+                                            ]}
                                         >
-                                            <Switch
-                                                checkedChildren="Password"
-                                                unCheckedChildren="OTP"
+                                            <Input.Password
+                                                prefix={<Key className="text-primary" size={16} />}
+                                                placeholder="Enter password"
                                             />
                                         </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={24}>
+                                        <Space size="large">
+                                            <Form.Item
+                                                label="Authentication Method"
+                                                name="authentication"
+                                                valuePropName="checked"
+                                            >
+                                                <Switch
+                                                    checkedChildren="Password"
+                                                    unCheckedChildren="OTP"
+                                                />
+                                            </Form.Item>
+                                            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) =>
+                                                prevValues.authentication !== currentValues.authentication
+                                            }>
+                                                {({ getFieldValue }) => {
+                                                    const isPasswordAuth = getFieldValue('authentication');
+                                                    return (
+                                                        <Alert
+                                                            type="info"
+                                                            message={
+                                                                isPasswordAuth
+                                                                    ? "Password authentication is currently active"
+                                                                    : "OTP (One-Time Password) authentication is currently active"
+                                                            }
+                                                            showIcon
+                                                        />
+                                                    );
+                                                }}
+                                            </Form.Item>
+                                        </Space>
                                     </Col>
                                 </Row>
                             </Card>
                         </PermissionChecker>
                     )}
+
                 </Col>
             </Row>
         </Form>

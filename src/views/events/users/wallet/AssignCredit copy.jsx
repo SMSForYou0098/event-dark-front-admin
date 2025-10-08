@@ -4,8 +4,6 @@ import { UserOutlined, MailOutlined, PhoneOutlined, WalletOutlined, QrcodeOutlin
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import axios from 'axios';
 import { capitilize } from './Transaction';
-import { ROW_GUTTER } from 'constants/ThemeConstant';
-import Flex from 'components/shared-components/Flex';
 
 const { Option } = Select;
 
@@ -270,10 +268,10 @@ const AssignCredit = ({ id }) => {
     {
       key: 'name',
       title: (
-        <Flex alignItem="center" gap="5px">
+        <>
           <UserOutlined className="me-2" />
           Name
-        </Flex>
+        </>
       ),
       dataIndex: 'name',
       render: () => userData?.user?.name || 'N/A',
@@ -281,10 +279,10 @@ const AssignCredit = ({ id }) => {
     {
       key: 'email',
       title: (
-        <Flex alignItem="center" gap="5px">
+        <>
           <MailOutlined className="me-2" />
           Email
-        </Flex>
+        </>
       ),
       dataIndex: 'email',
       render: () => userData?.user?.email || 'N/A',
@@ -292,10 +290,10 @@ const AssignCredit = ({ id }) => {
     {
       key: 'number',
       title: (
-        <Flex alignItem="center" gap="5px">
+        <>
           <PhoneOutlined className="me-2" />
           Mobile Number
-        </Flex>
+        </>
       ),
       dataIndex: 'number',
       render: () => userData?.user?.number || 'N/A',
@@ -303,10 +301,10 @@ const AssignCredit = ({ id }) => {
     {
       key: 'balance',
       title: (
-        <Flex alignItem="center" gap="5px">
+        <>
           <WalletOutlined className="me-2" />
           Current Balance
-        </Flex>
+        </>
       ),
       dataIndex: 'balance',
       render: () => (
@@ -331,12 +329,89 @@ const AssignCredit = ({ id }) => {
 
   return (
     <>
-      <Row gutter={ROW_GUTTER}>
+      <Row gutter={[24, 24]}>
         <Col xs={24} md={12}>
-          <Card title="Enter Credits" extra={
-            <Row align="middle" justify="space-between">
+          <Card title="Balance Preview" bordered={false} className="h-100">
+            {!id && (
+              <>
+                <Row align="middle" justify="space-between" className="mb-3">
+                  <Col>
+                    <Typography.Text strong className="fs-6">Search User: *</Typography.Text>
+                  </Col>
+                  <Col>
+                    <Switch
+                      checked={isQRScanEnabled}
+                      onChange={setIsQRScanEnabled}
+                      checkedChildren={<QrcodeOutlined />}
+                      unCheckedChildren="QR Scan"
+                    />
+                  </Col>
+                </Row>
+                <Divider className="my-3" />
+                {isQRScanEnabled ? (
+                  <div className="text-center p-4 border rounded">
+                    <Typography.Text type="secondary">QR Scanner Component</Typography.Text>
+                  </div>
+                ) : (
+                  <Form.Item label="User" required className="mb-0">
+                    <Select
+                      showSearch
+                      placeholder="Search by name, mobile or email"
+                      value={userId?.value}
+                      onChange={val => {
+                        const found = UserList.find(u => u.value === val);
+                        setUserId(found || null);
+                      }}
+                      filterOption={(input, option) =>
+                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                      }
+                      options={UserList}
+                      className="w-100"
+                    />
+                  </Form.Item>
+                )}
+              </>
+            )}
+            <Divider className="my-4" />
+            <div className="text-center p-4 border rounded bg-light">
+              <Typography.Text type="secondary" className="fs-12 text-uppercase fw-medium">
+                Preview Balance
+              </Typography.Text>
+              <Typography.Title
+                level={2}
+                className="mb-0 mt-2 fw-bolder"
+                style={{
+                  fontFamily: "'Roboto Mono', monospace, sans-serif",
+                  color: isDeduction ? '#cf1322' : '#389e0d'
+                }}
+              >
+                ₹ {safeFormatAmount(previewBalance)}
+              </Typography.Title>
+              <Typography.Text type="secondary" className="fs-14 mt-2 d-block">
+                {today()}
+              </Typography.Text>
+
+              {/* Transaction summary */}
+              {creditAmount && parseFloat(creditAmount) > 0 && (
+                <div className="mt-3">
+                  <Tag
+                    color={isDeduction ? 'red' : 'green'}
+                    className="fs-12 fw-medium px-3 py-1"
+                  >
+                    {isDeduction ? '➖ Deduction: ' : '➕ Addition: '}
+                    ₹{safeFormatAmount(creditAmount)}
+                  </Tag>
+                </div>
+              )}
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card bordered={false} className="h-100">
+            <Row align="middle" justify="space-between" className="mb-3">
               <Col>
-                <Typography.Text strong className="fs-6">Total Credits <Tag color='red'>₹{safeFormatAmount(previewBalance)}</Tag></Typography.Text>
+                <Typography.Text strong className="fs-6">Enter Credits</Typography.Text>
               </Col>
               <Col>
                 <Tag color="blue" className="fs-12">
@@ -344,7 +419,6 @@ const AssignCredit = ({ id }) => {
                 </Tag>
               </Col>
             </Row>
-          } bordered={false} className="h-100">
             <Divider className="my-3" />
 
             <Form layout="vertical">
@@ -360,6 +434,7 @@ const AssignCredit = ({ id }) => {
                   onChange={handleManualInputChange}
                   placeholder="0.00"
                   className="w-100 text-center"
+                  style={{ fontSize: '16px', height: '40px' }}
                   type="text"
                   inputMode="decimal"
                 />
@@ -388,8 +463,8 @@ const AssignCredit = ({ id }) => {
                 </div>
               </Form.Item>
 
-              <Form.Item >
-                <Space>
+              <Form.Item className="mb-4">
+                <div className="d-flex align-items-center">
                   <Switch
                     checked={isDeduction}
                     onChange={handleDeductionToggle}
@@ -401,10 +476,10 @@ const AssignCredit = ({ id }) => {
                       {isDeduction ? 'Deduction Mode' : 'Addition Mode'}
                     </span>
                   </Tooltip>
-                </Space>
+                </div>
               </Form.Item>
 
-              <Form.Item label="Payment Method" required>
+              <Form.Item label="Payment Method" required className="mb-4">
                 <Radio.Group
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
@@ -430,7 +505,7 @@ const AssignCredit = ({ id }) => {
                   numericCreditAmount <= 0 ||
                   (isDeduction && numericCreditAmount > currentBalance)
                 }
-                className="mt-3 border-0"
+                className="mt-3"
                 size="large"
               >
                 {isDeduction ? 'Deduct Credits' : 'Add Credits'}
@@ -446,20 +521,17 @@ const AssignCredit = ({ id }) => {
             )}
           </Card>
         </Col>
-        <Col xs={24} md={12}>
-          {userData?.user && (
-            <Card title="User Details" bordered={false}>
-              <Table
-                columns={userFields}
-                dataSource={data}
-                pagination={false}
-              />
-            </Card>
-          )}
-        </Col>
       </Row>
 
-
+      {userData?.user && (
+        <Card title="User Details" className="mt-4 shadow-sm">
+          <Table
+            columns={userFields}
+            dataSource={data}
+            pagination={false}
+          />
+        </Card>
+      )}
 
     </>
   );

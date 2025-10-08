@@ -5,6 +5,9 @@ td
 {
     background-color:  transparent !important;
 }
+.ant-table-thead >tr>th {
+    border-bottom : 1px solid var(--border-secondary) !important;
+}
 
 .ant-pagination .ant-pagination-item-active{
     border : none !important;
@@ -35,6 +38,7 @@ td
    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
+
 
 
 

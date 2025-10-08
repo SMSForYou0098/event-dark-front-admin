@@ -26,7 +26,8 @@ import {
   FileUnknownOutlined,
   ProfileOutlined,
   AimOutlined,
-  MonitorOutlined
+  MonitorOutlined,
+  SettingOutlined
 } from '@ant-design/icons';
 import { APP_PREFIX_PATH, AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import { MapPin } from 'lucide-react';
@@ -247,6 +248,22 @@ const appsNavTree = [{
       path: `${APP_PREFIX_PATH}/apps/organizers`,
       title: 'sidenav.apps.organizers',
       icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-role',
+      path: `${APP_PREFIX_PATH}/apps/role`,
+      title: 'Role',
+      icon: SafetyOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-category',
+      path: `${APP_PREFIX_PATH}/apps/category`,
+      title: 'Category',
+      icon: SettingOutlined,
       breadcrumb: false,
       submenu: []
     },

@@ -4,20 +4,19 @@ import { ArrowLeftOutlined, UserOutlined, ShoppingOutlined, WalletOutlined, Tran
 import { useMyContext } from "Context/MyContextProvider";
 import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
 import Flex from "components/shared-components/Flex";
-import UseNavigation from "utils/customNavigation";
 
 // Tabs
 import ProfileTab from "./ProfileTab";
-// import BookingsTab from "./BookingsTab";
-// import WalletTab from "./WalletTab";
-// import TransactionsTab from "./TransactionsTab";
-// import PermissionsTab from "./PermissionsTab";
-// import { Shield } from "lucide-react";
+import { useParams } from "react-router-dom";
+import AssignCredit from "../wallet/AssignCredit";
+import UserBookings from "views/events/Bookings/UserBookings";
+import Transactions from "../wallet/Transaction";
 
 const ManageUser = ({ mode = "edit" }) => {
   const { HandleBack } = useMyContext();
   const [activeTab, setActiveTab] = useState("1");
   const [form] = Form.useForm();
+  const { id } = useParams()
   const [loading, setLoading] = useState(false);
 
   if (loading) {
@@ -36,35 +35,35 @@ const ManageUser = ({ mode = "edit" }) => {
           <UserOutlined /> Profile
         </span>
       ),
-      children: <ProfileTab mode={mode} form={form} />,
+      children: <ProfileTab mode={mode} id={id} />,
     },
-    // {
-    //   key: "2",
-    //   label: (
-    //     <span>
-    //       <ShoppingOutlined /> Bookings
-    //     </span>
-    //   ),
-    //   children: <BookingsTab />,
-    // },
-    // {
-    //   key: "3",
-    //   label: (
-    //     <span>
-    //       <WalletOutlined /> Wallet
-    //     </span>
-    //   ),
-    //   children: <WalletTab />,
-    // },
-    // {
-    //   key: "4",
-    //   label: (
-    //     <span>
-    //       <TransactionOutlined /> Transactions
-    //     </span>
-    //   ),
-    //   children: <TransactionsTab />,
-    // },
+    {
+      key: "2",
+      label: (
+        <span>
+          <ShoppingOutlined /> Bookings
+        </span>
+      ),
+      children: <UserBookings id={id} activeTab={activeTab} />,
+    },
+    {
+      key: "3",
+      label: (
+        <span>
+          <WalletOutlined /> Wallet
+        </span>
+      ),
+      children: <AssignCredit id={id} />,
+    },
+    {
+      key: "4",
+      label: (
+        <span>
+          <TransactionOutlined /> Transactions
+        </span>
+      ),
+      children: <Transactions userId={id} />,
+    },
     // {
     //   key: "5",
     //   label: (
@@ -78,34 +77,27 @@ const ManageUser = ({ mode = "edit" }) => {
 
   return (
     <Fragment>
-      <Form form={form} layout="vertical" name="user_form">
-        <PageHeaderAlt overlap>
-          <div className="container">
-            <Flex className="pb-4" justifyContent="space-between" alignItems="center">
-              <div className="d-flex align-items-center">
-                <Button type="text" icon={<ArrowLeftOutlined />} onClick={HandleBack} />
-                <h2 className="mb-0">{mode === "create" ? "Create User" : "Manage User"}</h2>
-              </div>
-              <div>
-                {activeTab === "1" && (
-                  <>
-                    <Button className="mr-2" onClick={() => UseNavigation(-1)}>
-                      Discard
-                    </Button>
-                    <Button type="primary" htmlType="submit" loading={loading} onClick={() => form.submit()}>
-                      {mode === "create" ? "Create" : "Update"}
-                    </Button>
-                  </>
-                )}
-              </div>
+      {mode !== "create" ? 
+      <>
+      <PageHeaderAlt overlap>
+        <div className="container-fluid">
+          <Flex className="pb-4" justifyContent="space-between" alignItems="center">
+            <Flex alignItems="center" gap="1rem">
+              <Button type="text" icon={<ArrowLeftOutlined />} onClick={HandleBack} style={{ width: 'inherit' }} />
+              {/* <ArrowLeftOutlined /> */}
+              <h2 className="mb-0">{mode === "create" ? "Create User" : "Manage User"}</h2>
             </Flex>
-          </div>
-        </PageHeaderAlt>
-
-        <div className="container" style={{ marginTop: 30 }}>
-          <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+          </Flex>
         </div>
-      </Form>
+      </PageHeaderAlt>
+      <div className="container-fluid" style={{ marginTop: 30 }}>
+        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+      </div>
+      </>
+       :
+       <ProfileTab mode={mode}/>
+      }
+
     </Fragment>
   );
 };

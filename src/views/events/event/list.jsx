@@ -3,14 +3,15 @@ import React, { useEffect, useState } from 'react'
 import DataTable from '../common/DataTable'
 import usePermission from 'utils/hooks/usePermission';
 import { AppstoreOutlined, DeleteOutlined, EditOutlined, ExclamationCircleOutlined, EyeOutlined, KeyOutlined, MergeCellsOutlined, MoreOutlined, PlusOutlined } from '@ant-design/icons';
-import UseNavigation from 'utils/customNavigation';
-import { Link } from 'react-router-dom';
+
+import { Link, useNavigate } from 'react-router-dom';
 import { useMyContext } from 'Context/MyContextProvider';
 import axios from 'axios';
 import { Ticket } from 'lucide-react';
 import PermissionChecker from 'layouts/PermissionChecker';
 
 const EventList = () => {
+    const navigate = useNavigate();
     const { UserData, formatDateTime, api, authToken } = useMyContext();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -355,7 +356,7 @@ const EventList = () => {
                     <Button
                         type="primary"
                         icon={<PlusOutlined size={16} />}
-                        onClick={UseNavigation('create')}
+                        onClick={navigate('create')}
                     />
                 </Tooltip>
             }
