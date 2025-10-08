@@ -1,5 +1,5 @@
 import React, { memo, Fragment, useState, useEffect } from "react";
-import { useParams, useLocation, useNavigate } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import { 
     Row, 
     Col, 
@@ -12,10 +12,7 @@ import {
     Switch, 
     Radio, 
     Spin,
-    Space,
-    notification,
-    Divider,
-    Typography,
+    notification
 } from "antd";
 import {
     ArrowLeftOutlined,
@@ -37,6 +34,9 @@ import Transactions from "./wallet/Transaction";
 import usePermission from "utils/hooks/usePermission";
 import AssignCredit from "./wallet/AssignCredit";
 import PermissionChecker from "layouts/PermissionChecker";
+import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
+import Flex from "components/shared-components/Flex";
+import UseNavigation from "utils/customNavigation";
 
 const { Option } = Select;
 
@@ -642,7 +642,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                             //     </Space>
                             // }
                         >
-                            <Row gutter={[16, 16]}>
+                            <Row gutter={[16]}>
                                 <Col xs={24} md={12}>
                                     <Form.Item
                                         label="Name"
@@ -1152,47 +1152,64 @@ const UserForm = memo(({ mode = "edit" }) => {
         );
     }
 
-    return (
-        <Fragment>
-                <Row align="middle" justify="space-between" style={{ marginBottom: 16 }}>
-                    <Col>
-                        <Button
-                            type="text"
-                            icon={<ArrowLeftOutlined />}
-                            onClick={HandleBack}
-                            style={{ padding: 0, height: "auto", marginRight: 8 }}
-                        />
-                        <Typography.Title level={4} style={{ display: "inline", margin: 0 }}>
-                            {mode === "create"
-                                ? "Create User"
-                                : `Manage User - ${formState.roleName}`}
-                        </Typography.Title>
-                    </Col>
-                    <Col>
-                        {activeTab === "1" && (
+return (
+    <Fragment>
+        <Form
+            layout="vertical"
+            form={form}
+            name="user_form"
+            className="ant-advanced-search-form"
+        >
+            <PageHeaderAlt overlap>
+                <div className="container">
+                    <Flex className="pb-4" mobileFlex={false} justifyContent="space-between" alignItems="center">
+                        <div className="d-flex align-items-center">
                             <Button
-                                type="primary"
-                                htmlType="submit"
-                                loading={loading}
-                                onClick={() => form.submit()}
-                            >
-                                {mode === "create" ? "Create" : "Update"}
-                            </Button>
-                        )}
-                    </Col>
-                </Row>
-                <Divider />
+                                type="text"
+                                icon={<ArrowLeftOutlined />}
+                                onClick={HandleBack}
+                            />
+                            <h2 className="mb-0">
+                                {mode === "create"
+                                    ? "Create User"
+                                    : `Manage User - ${formState.roleName}`}
+                            </h2>
+                        </div>
+                        <div>
+                            {activeTab === "1" && (
+                                <Fragment>
+                                    <Button className="mr-2" onClick={()=>UseNavigation(-1)}>Discard</Button>
+                                    <Button
+                                        type="primary"
+                                        htmlType="submit"
+                                        loading={loading}
+                                        onClick={() => form.submit()}
+                                    >
+                                        {mode === "create" ? "Create" : "Update"}
+                                    </Button>
+                                </Fragment>
+                            )}
+                        </div>
+                    </Flex>
+                </div>
+            </PageHeaderAlt>
+            <div className="container">
                 {mode === "edit" ? (
                     <Tabs
                         activeKey={activeTab}
                         onChange={setActiveTab}
+                        style={{ marginTop: 30 }}
                         items={tabItems}
                     />
                 ) : (
-                    renderProfileTab()
+                    <div style={{ marginTop: '6rem' }}>
+                        {renderProfileTab()}
+                    </div>
                 )}
-            </Fragment>
-    );
+            </div>
+        </Form>
+    </Fragment>
+);
 });
 
 UserForm.displayName = "UserForm";

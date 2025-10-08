@@ -315,6 +315,9 @@ input:-internal-autofill-previewed {
     background: var(--bg-secondary) !important;
     border: 1px solid var(--border-secondary) !important;
 }
+.ant-form-item{
+    margin-bottom: 14px !important;
+}
 /* 
 .ant-steps-item-icon {
     background: transparent !important;
