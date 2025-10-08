@@ -22,61 +22,6 @@ export const useOrganizers = () =>
     },
   });
 
-
-// ------- Countries (external API) -------
-export const useCountries = () =>
-  useQuery({
-    queryKey: ['countries'],
-    queryFn: async () => {
-      // you used POST in your sample; keeping it the same
-      const res = await axios.post('https://api.first.org/data/v1/countries');
-      const data = res?.data?.data || {};
-      const options = Object.values(data).map((item) => ({
-        label: item.country,
-        value: item.country,
-      }));
-      // add disabled placeholder first (AntD expects `disabled`, not isDisabled)
-      return [{ label: 'Select Country', value: '', disabled: true }, ...options];
-    },
-    staleTime: 24 * 60 * 60 * 1000, // countries rarely change
-  });
-
-// ------- States (depends on country) -------
-export const useStates = (country) =>
-  useQuery({
-    queryKey: ['states', country || ''],
-    enabled: !!country,
-    queryFn: async () => {
-      const res = await axios.post('https://countriesnow.space/api/v0.1/countries/states', {
-        country,
-      });
-      const states = res?.data?.data?.states || [];
-      const options = states.map((s) => ({ label: s.name, value: s.name }));
-      return [{ label: 'Select State', value: '', disabled: true }, ...options];
-    },
-    staleTime: 6 * 60 * 60 * 1000,
-    retry: 1,
-  });
-
-// ------- Cities (depends on country & state) -------
-export const useCities = (country, state) =>
-  useQuery({
-    queryKey: ['cities', country || '', state || ''],
-    enabled: !!country && !!state,
-    queryFn: async () => {
-      const res = await axios.post(
-        'https://countriesnow.space/api/v0.1/countries/state/cities',
-        { country, state }
-      );
-      const cities = res?.data?.data || [];
-      const options = cities.map((c) => ({ label: c, value: c }));
-      return [{ label: 'Select City', value: '', disabled: true }, ...options];
-    },
-    staleTime: 3 * 60 * 60 * 1000,
-    retry: 1,
-  });
-
-
 // -------venues by org id ----------
 
 export const useVenuesByOrganizer = (organizerId) =>
@@ -103,31 +48,31 @@ export const useVenuesByOrganizer = (organizerId) =>
 
 //  ---- getting all the event categorties ----
 
-export const useEventCategories = (options = {}) =>
-  useQuery({
-    queryKey: ['event-categories'],
-    queryFn: async () => {
-      const res = await api.get('category-title'); // auth header added automatically by interceptor
+  export const useEventCategories = (options = {}) =>
+    useQuery({
+      queryKey: ["event-categories"],
+      queryFn: async () => {
+        const res = await api.get("category-title"); // auth header added automatically by interceptor
 
-      // If your interceptor returns { status, categoryData }
-      const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
+        // If your interceptor returns { status, categoryData }
+        const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
 
-      if (!rawData) throw new Error('Invalid response structure');
+        if (!rawData) throw new Error("Invalid response structure");
 
-      const transformed = Object.values(rawData).map((item) => ({
-        label: item.title,
-        value: item.id,
-      }));
+        const transformed = Object.values(rawData).map((item) => ({
+          label: item.title,
+          value: item.id,
+        }));
 
-      return transformed;
-    },
-    staleTime: 5 * 60 * 1000, // cache for 5 minutes
-    retry: (count, err) => {
-      const status = err?.response?.status;
-      return status >= 500 && count < 2;
-    },
-    ...options, // allow custom overrides
-  });
+        return transformed;
+      },
+      staleTime: 5 * 60 * 1000, // cache for 5 minutes
+      retry: (count, err) => {
+        const status = err?.response?.status;
+        return status >= 500 && count < 2;
+      },
+      ...options, // allow custom overrides
+    });
 
 
 
@@ -211,10 +156,6 @@ export function buildEventFormData(values) {
   appendIfDefined('user_id', values.user_id);
   appendIfDefined('category', values.category);
   appendIfDefined('name', values.name);
-  appendIfDefined('country', 'India'); // fixed to India
-  appendIfDefined('country', values.country);
-  appendIfDefined('state', values.state);
-  appendIfDefined('city', values.city);
   appendIfDefined('venue_id', values.venue_id);
   appendIfDefined('description', values.description);
 
@@ -238,8 +179,6 @@ export function buildEventFormData(values) {
   appendIfDefined('start_time', values.start_time); // "HH:mm"
   appendIfDefined('end_time', values.end_time);     // "HH:mm"
   appendIfDefined('event_type', values.event_type);
-  appendIfDefined('map_code', values.map_code);
-  appendIfDefined('address', values.address);
 
   // ---------- SEO ----------
   appendIfDefined('meta_title', values.meta_title);
@@ -256,8 +195,8 @@ export function buildEventFormData(values) {
   if (Array.isArray(values.thumbnail)) {
     appendSingleUpload('thumbnail', values.thumbnail);
   }
-  if (Array.isArray(values.insta_thumb)) {
-    appendSingleUpload('insta_thumb', values.insta_thumb);
+  if (Array.isArray(values.insta_thumbnail)) {
+    appendSingleUpload('insta_thumbnail', values.insta_thumbnail);
   }
   if (Array.isArray(values.layout_image)) {
     appendSingleUpload('layout_image', values.layout_image);
@@ -357,3 +296,129 @@ export const useUpdateEvent = (options = {}) =>
 };
 
 
+
+
+// ------- artist api call --------
+
+export const useArtistsByOrganizer = (id, options = {}) =>
+  useQuery({
+    queryKey: ['artists-by-organizer', id],
+    queryFn: async () => {
+      if (!id) throw new Error('Organizer ID is required');
+
+      const res = await api.get(`artist-list/${id}`); // backend: /artist-list/{id}
+      const rawData = res?.artists || res?.data?.artists || res?.data;
+
+      if (!rawData) throw new Error('Invalid response structure');
+
+      // Transform for AntD Select
+      // const transformed = rawData.map((artist) => ({
+      //   label: artist.name,
+      //   value: artist.id,
+      // }));
+
+      return rawData;
+    },
+    enabled: !!id, // only run if id is available
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options, // allow overrides
+  });
+
+
+  /**
+ * Optional: helper to build FormData for artist payloads with files.
+ * Use only if you need to send images/files.
+ */
+export const buildArtistFormData = (values = {}) => {
+  const fd = new FormData();
+
+  const append = (k, v) => {
+    if (v === undefined || v === null || v === '') return;
+    fd.append(k, v);
+  };
+
+  // Append primitives (strings/numbers/booleans)
+  Object.entries(values).forEach(([k, v]) => {
+    // Skip file-like fields here; they’re appended below
+    if (['image', 'photo', 'avatar', 'thumbnail', 'banner', 'files', 'images'].includes(k)) return;
+
+    // arrays/objects (e.g. socials) can be stringified if needed
+    if (Array.isArray(v) || (typeof v === 'object' && v !== null)) {
+      append(k, JSON.stringify(v));
+    } else {
+      append(k, String(v));
+    }
+  });
+
+  // Single-file fields commonly used
+  const singleFileKeys = ['image', 'photo', 'avatar', 'thumbnail', 'banner'];
+  singleFileKeys.forEach((key) => {
+    const f = values?.[key];
+    if (!f) return;
+    // AntD Upload: either a file obj or fileList[0]
+    const fileObj = Array.isArray(f) ? f[0] : f;
+    const origin = fileObj?.originFileObj || fileObj;
+    if (origin instanceof File || origin instanceof Blob) {
+      fd.append(key, origin, fileObj?.name || 'file');
+    }
+  });
+
+  // Multi-file fields (e.g., gallery)
+  const multiFileKeys = ['files', 'images'];
+  multiFileKeys.forEach((key) => {
+    const list = values?.[key];
+    if (!Array.isArray(list)) return;
+    list.forEach((f) => {
+      const origin = f?.originFileObj || f;
+      if (origin instanceof File || origin instanceof Blob) {
+        fd.append(`${key}[]`, origin, f?.name || 'file');
+      }
+    });
+  });
+
+  return fd;
+};
+
+/**
+ * POST /artist-store
+ * - Accepts either a plain object (JSON) or FormData (for file uploads).
+ * - If you use FormData, pass it directly as the mutation variable.
+ */
+export const useCreateArtist = (options = {}) =>
+  useMutation({
+    mutationFn: async (payload) => {
+      // payload can be FormData or a plain object
+      const res = await api.post('artist-store', payload);
+      return res?.data;
+    },
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
+/**
+ * POST /artist-update/{id}
+ * - Accepts either a plain object (JSON) or FormData (for file uploads).
+ * - Call as: mutate({ id, payload })
+ */
+export const useUpdateArtist = (options = {}) =>
+  useMutation({
+    mutationFn: async ({ id, payload }) => {
+      if (!id) throw new Error('Artist ID is required');
+      const res = await api.post(`artist-update/${id}`, payload);
+      return res?.data;
+    },
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
+  

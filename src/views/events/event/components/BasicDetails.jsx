@@ -15,7 +15,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 const { TextArea } = Input;
 
 const BasicDetailsStep = ({ form, isEdit }) => {
-  const { UserData, locationData, getCitiesByState } = useMyContext();
+  const { UserData,  } = useMyContext();
 
   // organizers (only needed if NOT an organizer)
   const {
@@ -50,75 +50,6 @@ const BasicDetailsStep = ({ form, isEdit }) => {
       }
     }
   }, [UserData, organizerId, form]);
-
-  // default country to India (no state/city API — we use context)
-  useEffect(() => {
-    const cur = form.getFieldValue('country');
-    if (!cur) {
-      form.setFieldsValue({ country: 'India' });
-    }
-  }, [form]);
-
-  // ----- State & City via useContext (no API) -----
-  const stateWatch = Form.useWatch('state', form);
-
-  // state & city options from context
-  const stateOptions = useMemo(() => {
-    // Prefer value === label to avoid mapping issues
-    // e.g., [{label: 'Andhra Pradesh', value: 'Andhra Pradesh'}, ...]
-    return Array.isArray(locationData?.states) ? locationData.states : [];
-  }, [locationData?.states]);
-
-  const [cityOptions, setCityOptions] = useState([]);
-
-  // Normalize STATE value in edit mode: if form has label but options use value
-  useEffect(() => {
-    const currentState = form.getFieldValue('state');
-    if (!currentState) return;
-    const hasExactValue = (stateOptions || []).some(
-      s => String(s.value) === String(currentState)
-    );
-    if (!hasExactValue) {
-      const byLabel = (stateOptions || []).find(
-        s => String(s.label) === String(currentState)
-      );
-      if (byLabel) {
-        form.setFieldsValue({ state: byLabel.value });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stateOptions]);
-
-  // Rebuild CITY options whenever state changes; normalize city value on edit
-  useEffect(() => {
-    const stateVal = form.getFieldValue('state');
-    if (!stateVal) {
-      setCityOptions([]);
-      form.setFieldsValue({ city: undefined });
-      return;
-    }
-    const cities = typeof getCitiesByState === 'function' ? getCitiesByState(stateVal) : [];
-    setCityOptions(cities || []);
-
-    // normalize current city (label→value) if needed
-    const currentCity = form.getFieldValue('city');
-    if (!currentCity) return;
-
-    const hasExactCityValue = (cities || []).some(
-      c => String(c.value) === String(currentCity)
-    );
-    if (hasExactCityValue) return;
-
-    const byCityLabel = (cities || []).find(
-      c => String(c.label) === String(currentCity)
-    );
-    if (byCityLabel) {
-      form.setFieldsValue({ city: byCityLabel.value });
-    } else {
-      form.setFieldsValue({ city: undefined });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stateWatch, getCitiesByState]);
 
   // venues by organizer
   const {
@@ -244,42 +175,6 @@ const BasicDetailsStep = ({ form, isEdit }) => {
           ]}
         >
           <Input placeholder="Enter Event Name" />
-        </Form.Item>
-      </Col>
-      <Col xs={24} md={8}>
-        <Form.Item
-          label="State"
-          name="state"
-          rules={[{ required: true, message: 'Please select state' }]}
-        >
-          <Select
-            showSearch
-            placeholder="Select state"
-            options={stateOptions}
-            optionFilterProp="label"
-            onChange={(stateName) => {
-              form.setFieldValue('city', undefined);
-              const cities = typeof getCitiesByState === 'function' ? getCitiesByState(stateName) : [];
-              setCityOptions(cities || []);
-            }}
-          />
-        </Form.Item>
-      </Col>
-
-      {/* City (from useContext / computed) */}
-      <Col xs={24} md={8}>
-        <Form.Item
-          name="city"
-          label="City"
-          rules={[{ required: true, message: "Please select city" }]}
-        >
-          <Select
-            placeholder={stateWatch ? "Select City" : "Select state first"}
-            options={cityOptions}
-            disabled={!stateWatch}
-            showSearch
-            optionFilterProp="label"
-          />
         </Form.Item>
       </Col>
 

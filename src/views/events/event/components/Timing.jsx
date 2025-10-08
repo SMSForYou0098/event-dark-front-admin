@@ -130,7 +130,7 @@ const TimingStep = ({ form, ...props }) => {
           </Col>
 
           {/* start_time -> "HH:mm" (kept in sync with RangePicker) */}
-          <Col xs={12} md={6}>
+          {/* <Col xs={12} md={6}>
             <Form.Item
               name="start_time"
               label="Start Time"
@@ -150,10 +150,10 @@ const TimingStep = ({ form, ...props }) => {
                 onChange={onTimeChange('start_time')}
               />
             </Form.Item>
-          </Col>
+          </Col> */}
 
           {/* end_time -> "HH:mm" (kept in sync with RangePicker) */}
-          <Col xs={12} md={6}>
+          {/* <Col xs={12} md={6}>
             <Form.Item
               name="end_time"
               label="End Time"
@@ -173,44 +173,12 @@ const TimingStep = ({ form, ...props }) => {
                 onChange={onTimeChange('end_time')}
               />
             </Form.Item>
-          </Col>
+          </Col> */}
 
           {/* hidden to force rerender when only time changes */}
           <Form.Item name="__force_rerender__" hidden><input /></Form.Item>
         </Row>
       </Col>
-
-      <Col xs={24} lg={12}>
-        <LocationStep {...props} form={form} />
-      </Col>
-      <Col xs={24} lg={12}>
-<Form.Item
-  name="address"
-  label="Event Address (use | instead of commas)"
-  tooltip="Commas are not allowed. Use | to separate address parts, e.g. 'Street | Area | City'."
-  normalize={(value) => {
-    // This automatically replaces commas with | before saving to form
-    return value ? value.replace(/,/g, '|') : value;
-  }}
-  rules={[
-    { required: true, message: 'Please enter event address' },
-  ]}
->
-  <Input.TextArea
-    rows={4}
-    placeholder="Enter event address (e.g., 123 Main Road | Near Park | Mumbai)"
-    allowClear
-    onKeyDown={(e) => {
-      // Simply prevent comma input
-      if (e.key === ',') {
-        e.preventDefault();
-      }
-    }}
-  />
-</Form.Item>
-</Col>
-
-
     </Row>
   );
 };

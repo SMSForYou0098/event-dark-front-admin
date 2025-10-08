@@ -181,7 +181,7 @@ const MediaStep = ({ form }) => {
       <Row gutter={16}>
         <Col xs={24} md={12}>
           <Form.Item
-            name="insta_thumb"
+            name="insta_thumbnail"
             label="Instagram Thumbnail"
             valuePropName="fileList"
             getValueFromEvent={normFile}
