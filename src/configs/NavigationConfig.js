@@ -27,7 +27,8 @@ import {
   ProfileOutlined,
   AimOutlined,
   MonitorOutlined,
-  SettingOutlined
+  SettingOutlined,
+  PlusSquareOutlined
 } from '@ant-design/icons';
 import { APP_PREFIX_PATH, AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import { MapPin } from 'lucide-react';
@@ -280,6 +281,14 @@ const appsNavTree = [{
       path: `${APP_PREFIX_PATH}/apps/artist`,
       title: 'Artist',
       icon: MonitorOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key : 'apps-fields',
+      path: `${APP_PREFIX_PATH}/apps/fields`,
+      title: 'Fields',
+      icon: PlusSquareOutlined,
       breadcrumb: false,
       submenu: []
     },

@@ -148,5 +148,8 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+// import logo from '../../../../assets/images/logo.png';
+const source = axios.CancelToken.source();
+export const cancelToken = source.token
 
 export default api;

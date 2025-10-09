@@ -4,6 +4,8 @@ import BookingList from 'views/events/Bookings/BookingList'
 import UserForm from 'views/events/users/UserForm'
 import EventStepperForm from 'views/events/event/EventStepperForm'
 import ManageUser from 'views/events/users/Manage'
+import PosBooking from 'views/events/Bookings/pos/Bookings'
+import POS from 'views/events/Bookings/pos/NewPosBooking'
 
 export const publicRoutes = [
     {
@@ -114,6 +116,11 @@ export const protectedRoutes = [
         path: `${APP_PREFIX_PATH}/apps/events`,
         component: React.lazy(() => import('views/events/event/list')),
     },
+    {
+        key: 'apps.fields',
+        path: `${APP_PREFIX_PATH}/apps/fields`,
+        component: React.lazy(() => import('views/events/Settings/Fields/index')),
+    },
         {
         key: 'apps.events.create',
         path: `${APP_PREFIX_PATH}/apps/events/update/:id`,
@@ -166,7 +173,16 @@ export const protectedRoutes = [
         path: `${APP_PREFIX_PATH}/apps/pos`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <BookingList {...props} isPos={true} />
+                <PosBooking {...props} isPos={true} />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'apps.pos',
+        path: `${APP_PREFIX_PATH}/apps/pos/new`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <POS {...props} isPos={true} />
             </React.Suspense>
         ),
     },

@@ -107,3 +107,13 @@
 .ant-modal-confirm .ant-modal-footer {
   border-top: none !important;
 }
+
+/* Default modal */
+.ant-modal {
+  top: 0 !important;
+}
+
+/* Centered modal */
+.ant-modal-centered {
+  top: 50px !important;
+}

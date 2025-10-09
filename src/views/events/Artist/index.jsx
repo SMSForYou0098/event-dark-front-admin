@@ -197,7 +197,7 @@ const handleEdit = (venue) => {
       />
 
       <DataTable
-        title="Venues"
+        title="Artist"
         data={venues}
         columns={columns}
         addButtonProps={null}
