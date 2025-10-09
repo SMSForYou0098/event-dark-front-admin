@@ -14,6 +14,7 @@ import {
   Popconfirm,
   notification,
   Spin,
+  message,
 } from "antd";
 import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -31,6 +32,7 @@ const Category = () => {
   const [editRecord, setEditRecord] = useState(null);
   const [fields, setFields] = useState({ show: false, ids: [], names: [] });
   const [submitting, setSubmitting] = useState(false);
+  const [thumbnailFileList, setThumbnailFileList] = useState([]);
 
   const [form] = Form.useForm();
 
@@ -164,17 +166,17 @@ const Category = () => {
             <CloseOutlined style={{ color: "red" }} />
           ),
       },
-      {
-        title: "Photo Required",
-        dataIndex: "photo_required",
-        align: "center",
-        render: (val) =>
-          val === 1 ? (
-            <CheckOutlined style={{ color: "green" }} />
-          ) : (
-            <CloseOutlined style={{ color: "red" }} />
-          ),
-      },
+      // {
+      //   title: "Photo Required",
+      //   dataIndex: "photo_required",
+      //   align: "center",
+      //   render: (val) =>
+      //     val === 1 ? (
+      //       <CheckOutlined style={{ color: "green" }} />
+      //     ) : (
+      //       <CloseOutlined style={{ color: "red" }} />
+      //     ),
+      // },
       {
         title: "Action",
         align: "center",
@@ -198,21 +200,40 @@ const Category = () => {
     ],
     [handleEdit, handleDelete]
   );
-
+  const imageUploadProps = {
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith('image/');
+      if (!isImage) {
+        message.error('You can only upload image files!');
+        return Upload.LIST_IGNORE;
+      }
+      const isLt5M = file.size / 1024 / 1024 < 5;
+      if (!isLt5M) {
+        message.error('Image must be smaller than 5MB!');
+        return Upload.LIST_IGNORE;
+      }
+      return false;
+    },
+    onChange: ({ fileList }) => setThumbnailFileList(fileList.slice(-1)),
+    onRemove: () => setThumbnailFileList([]),
+    fileList: thumbnailFileList,
+    maxCount: 1,
+    listType: 'picture-card',
+  };
   // ========================= RENDER =========================
   return (
     <Card title="Categories" extra={
-       <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            form.resetFields();
-            setEditRecord(null);
-            setModalVisible(true);
-          }}
-        >
-          Add New Category
-        </Button>
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={() => {
+          form.resetFields();
+          setEditRecord(null);
+          setModalVisible(true);
+        }}
+      >
+        Add New Category
+      </Button>
     }>
 
       <Spin spinning={loading}>
@@ -230,7 +251,7 @@ const Category = () => {
         onCancel={() => setModalVisible(false)}
         onOk={handleSubmit}
         okText="Save"
-        style={{top: 0}}
+        style={{ top: 0 }}
         confirmLoading={submitting}
         destroyOnClose
       >
@@ -251,18 +272,27 @@ const Category = () => {
             <Input placeholder="Enter category title" />
           </Form.Item>
 
-          <Form.Item label="Image (282 × 260 px)" name="image" valuePropName="fileList">
-            <Upload
-              maxCount={1}
-              listType="picture"
-              beforeUpload={() => false}
-              accept="image/*"
-            >
-              <Button icon={<UploadOutlined />}>Upload</Button>
-            </Upload>
-          </Form.Item>
-
           <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item
+                label="Image (282 × 260 px)"
+                name="image"
+                rules={[
+                  {
+                    message: 'Please upload image'
+                  }
+                ]}
+              >
+                <Upload {...imageUploadProps}>
+                  {thumbnailFileList?.length < 1 && (
+                    <div>
+                      <PlusOutlined />
+                      <div style={{ marginTop: 8 }}>Upload</div>
+                    </div>
+                  )}
+                </Upload>
+              </Form.Item>
+            </Col>
             <Col span={8}>
               <Form.Item label="Attendee Required" name="attendyRequired" valuePropName="checked">
                 <Switch
@@ -274,11 +304,6 @@ const Category = () => {
                     }))
                   }
                 />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item label="Photo Required" name="photoRequired" valuePropName="checked">
-                <Switch />
               </Form.Item>
             </Col>
             <Col span={8}>

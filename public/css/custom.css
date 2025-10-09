@@ -11,6 +11,9 @@
 @import url('./alert.css');
 @import url('./modal.css');
 
+.border-primary {
+  border : 1px solid var(--primary-color) !important;
+}
 
 /* accordion css  */
 .ant-collapse-header , .ant-collapse-content-box{
@@ -332,7 +335,7 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
 
 /* ant card border remove  */
 .ant-card-bordered {
-  border: 1px solid var(--border-secondary) !important;
+  border: 1px solid var(--border-secondary);
   box-shadow: 0 4px 12px rgb(0 0 0 / 10%) !important;
   border-radius: .625rem !important;
   background-color: var(--bg-secondary);
