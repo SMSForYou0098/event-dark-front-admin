@@ -46,9 +46,6 @@ const EventControlsStep = ({ form, isEdit }) => {
             { name: 'house_full', label: 'House Full', tooltip: 'Mark event as sold out' },
             { name: 'online_att_sug', label: 'Hide Online Attendee Suggestion' },
             { name: 'offline_att_sug', label: 'Hide Agent Attendee Suggestion' },
-            { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans' },
-            { name: 'ticket_system', label: 'Booking By Ticket' },
-            { name: 'bookingBySeat', label: 'Booking By Seat' },
           ].map((f) => (
             <Col xs={24} sm={12} lg={8} key={f.name}>
               <Form.Item

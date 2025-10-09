@@ -1,5 +1,4 @@
-// EventStepperForm.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import {
     Steps,
     Form,
@@ -22,7 +21,7 @@ import {
     PictureOutlined,
     GlobalOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import dayjs from 'dayjs';
 
 import BasicDetailsStep from './components/BasicDetails';
@@ -46,169 +45,233 @@ import {
 const { Step } = Steps;
 const { Title } = Typography;
 
+// Step name mapping for API queries
+const STEP_NAMES = {
+    0: 'basic',
+    1: 'controls',
+    2: 'timing',
+    3: 'tickets',
+    4: 'artist',
+    5: 'media',
+    6: 'seo',
+    7: 'publish',
+};
+
 const EventStepperForm = () => {
     const navigate = useNavigate();
-    const { id } = useParams(); // <-- edit id from route
+    const location = useLocation();
+    const { id } = useParams();
     const isEdit = !!id;
 
-    const [current, setCurrent] = useState(0);
+    const [current, setCurrent] = useState(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        return parseInt(urlParams.get('step')) || 0;
+    });
     const [form] = Form.useForm();
-    const [formShadow, setFormShadow] = useState({}); // incremental cache between steps
-    const [embedCode, setEmbedCode] = useState('');
     const [tickets, setTickets] = useState([
         { key: '1', name: 'General', price: '500', quantity: '100' },
-        { key: '2', name: 'VIP', price: '1000', quantity: '50' },
     ]);
+    const [embedCode, setEmbedCode] = useState('');
 
-    // ---------- LOAD FOR EDIT ----------
-    const {
-        data: detail,
-        isLoading: loadingDetail,
-        isError: detailError,
-    } = useEventDetail(id, { enabled: isEdit });
+    // Sync step from location state
+    useEffect(() => {
+        const stepFromState = location.state?.step;
+        if (typeof stepFromState === 'number' && stepFromState >= 0 && stepFromState < 8) {
+            setCurrent(stepFromState);
+        }
+    }, [location.state?.step]);
 
+    // Load event details for current step only
+    const stepName = STEP_NAMES[current];
+    const { data: detail, isLoading: loadingDetail, isError: detailError } = useEventDetail(
+        id, 
+        stepName,
+        { enabled: isEdit }
+    );
+
+    // Populate form with event details based on current step
     useEffect(() => {
         if (!isEdit || !detail) return;
 
-        // Map API -> form fields used across steps
-        const patch = {
-            // Basic details / selects
-            user_id: detail?.user_id && String(detail.user_id), // or "user" if you renamed it; keep in sync with BasicDetailsStep
-            category: detail?.category?.id,
-            name: detail?.name,
-            country: detail?.country,
-            state: detail?.state,
-            city: detail?.city,
-            venue_id: detail?.venue_id,
-            description: detail?.description,
+        const controls = detail?.event_controls ?? {};
+        const event_galleries = detail?.event_galleries ?? {};
+        const event_seo = detail?.event_seo ?? {};
 
-            // Controls (numeric flags 0/1)
-            scan_detail: detail?.scan_detail ?? '2',
-            event_feature: Number(detail?.event_feature) || 0,
-            status: Number(detail?.status) || 0,
-            house_full: Number(detail?.house_full) || 0,
-            online_att_sug: Number(detail?.online_att_sug) || 0,
-            offline_att_sug: Number(detail?.offline_att_sug) || 0,
-            multi_scan: Number(detail?.multi_scan) || 0,
-            ticket_system: Number(detail?.ticket_system) || 0,
-            bookingBySeat: Number(detail?.bookingBySeat) || 0,
-            insta_whts_url: detail?.insta_whts_url || undefined,
-            whts_note: detail?.whts_note || undefined,
+        const patch = {};
 
-            // Timing hidden API strings
-            date_range: detail?.date_range,
-            entry_time: detail?.entry_time,
-            start_time: detail?.start_time,
-            end_time: detail?.end_time,
-            event_type: detail?.event_type, // "daily" | "seasonal"
-            map_code: detail?.map_code || undefined,
-            address: detail?.address || undefined,
-
-            // SEO
-            tags: detail?.meta_tag,
-            keyword: detail?.meta_keyword,
-            meta_title: detail?.meta_title,
-            meta_description: detail?.meta_description,
-
-            // tickets
-            ticket_terms: detail?.ticket_terms || undefined,
-
-        };
-
-        // Hydrate visible timing pickers.
-        if (detail?.date_range) {
-            const [s, e] = detail.date_range.split(',').map((x) => x.trim());
-            const ds = dayjs(s, ['YYYY-MM-DD HH:mm', 'YYYY-MM-DD'], true);
-            const de = dayjs(e, ['YYYY-MM-DD HH:mm', 'YYYY-MM-DD'], true);
-            if (ds.isValid() && de.isValid()) patch.dateRange = [ds, de];
+        // Step 0: Basic Details
+        if (current === 0) {
+            Object.assign(patch, {
+                org_id: detail?.user_id && String(detail.user_id),
+                category: detail?.category?.id,
+                name: detail?.name,
+                country: detail?.country,
+                state: detail?.state,
+                city: detail?.city,
+                venue_id: detail?.venue_id,
+                description: detail?.description,
+            });
         }
-        if (detail?.thumbnail) {
-            patch.thumbnail = [
-                {
+
+        // Step 1: Event Controls
+        if (current === 1) {
+            Object.assign(patch, {
+                scan_detail: controls?.scan_detail ?? '2',
+                event_feature: Number(controls?.event_feature) || 0,
+                status: Number(controls?.status) || 0,
+                house_full: Number(controls?.house_full) || 0,
+                online_att_sug: Number(controls?.online_att_sug) || 0,
+                offline_att_sug: Number(controls?.offline_att_sug) || 0,
+                insta_whts_url: detail?.insta_whts_url || undefined,
+                whts_note: detail?.whts_note || undefined,
+            });
+        }
+
+        // Step 2: Timing & Location
+        if (current === 2) {
+            Object.assign(patch, {
+                date_range: detail?.date_range,
+                entry_time: detail?.entry_time,
+                start_time: detail?.start_time,
+                end_time: detail?.end_time,
+                event_type: detail?.event_type,
+                map_code: detail?.map_code || undefined,
+                address: detail?.address || undefined,
+            });
+
+            if (detail?.date_range) {
+                const [s, e] = detail.date_range.split(',').map((x) => x.trim());
+                const ds = dayjs(s, ['YYYY-MM-DD HH:mm', 'YYYY-MM-DD'], true);
+                const de = dayjs(e, ['YYYY-MM-DD HH:mm', 'YYYY-MM-DD'], true);
+                if (ds.isValid() && de.isValid()) patch.dateRange = [ds, de];
+            }
+        }
+
+        // Step 3: Tickets
+        if (current === 3) {
+            Object.assign(patch, {
+                multi_scan: Number(controls?.multi_scan) || 0,
+                ticket_system: Number(controls?.ticket_system) || 0,
+                bookingBySeat: Number(controls?.bookingBySeat) || 0,
+                ticket_terms: detail?.ticket_terms || undefined,
+            });
+
+            if (Array.isArray(detail?.tickets) && detail.tickets.length) {
+                setTickets(detail.tickets.map((t, idx) => ({ key: String(idx + 1), ...t })));
+            }
+        }
+
+        // Step 4: Artist
+        if (current === 4) {
+            Object.assign(patch, {
+                artist_id: detail?.artist_id
+                    ? detail.artist_id.split(',').map((id) => Number(id.trim()))
+                    : [],
+            });
+        }
+
+        // Step 5: Media
+        if (current === 5) {
+            if (event_galleries?.thumbnail) {
+                patch.thumbnail = [{
                     uid: 'existing-thumb',
                     name: 'current-thumbnail.jpg',
                     status: 'done',
-                    url: detail.thumbnail,
-                },
-            ];
-        }
-         // ✅ hydrate images for AntD Upload
-  if (detail.images) {
-    patch.images = toUploadFileList(detail.images);
-  }
+                    url: event_galleries.thumbnail,
+                }];
+            }
 
-        if (detail?.insta_thumb) {
-            patch.insta_thumb = [
-                {
+            if (event_galleries.images) {
+                patch.images = toUploadFileList(event_galleries.images);
+            }
+
+            if (event_galleries?.insta_thumb) {
+                patch.insta_thumb = [{
                     uid: 'ig-thumb',
                     name: 'instagram-thumb.jpg',
                     status: 'done',
-                    url: detail.insta_thumb,
-                },
-            ];
-        }
+                    url: event_galleries.insta_thumb,
+                }];
+            }
 
-        if (detail?.layout_image) {
-            patch.layout_image = [
-                {
+            if (event_galleries?.layout_image) {
+                patch.layout_image = [{
                     uid: 'arena-layout',
                     name: 'arena-layout.jpg',
                     status: 'done',
-                    url: detail.layout_image,
-                },
-            ];
+                    url: event_galleries.layout_image,
+                }];
+            }
         }
 
-
-        // Tickets
-        if (Array.isArray(detail?.tickets) && detail.tickets.length) {
-            setTickets(detail.tickets.map((t, idx) => ({ key: String(idx + 1), ...t })));
+        // Step 6: SEO
+        if (current === 6) {
+            Object.assign(patch, {
+                meta_tag: event_seo?.meta_tag,
+                meta_keyword: event_seo?.meta_keyword,
+                meta_title: event_seo?.meta_title,
+                meta_description: event_seo?.meta_description,
+            });
         }
 
-        form.setFieldsValue(patch);
-        setFormShadow((prev) => ({ ...prev, ...patch }));
-    }, [isEdit, detail, form]);
+        // Only update form if we have data for this step
+        if (Object.keys(patch).length > 0) {
+            form.setFieldsValue(patch);
+        }
+    }, [isEdit, detail, form, current]);
 
-    // ---------- MUTATIONS ----------
-    const { mutateAsync: createEvent, isLoading: creating } = useCreateEvent({
+    // Mutations
+    const { mutateAsync: createEvent, isPending: creating } = useCreateEvent({
         onSuccess: (res) => {
             message.success(res?.message || 'Event created successfully!');
-            form.resetFields();
-            setFormShadow({});
-            setTickets([]);
-            setCurrent(0);
-            // navigate('/events'); // optionally go back
+            const eventId = res?.event?.event_key || res?.data?.event_key || res?.event_key;
+
+            if (eventId) {
+                setTimeout(() => {
+                    navigate(`/app/apps/events/update/${eventId}`, { state: { step: 1 } });
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }, 500);
+            } else {
+                message.error('Event created but ID not found. Please refresh.');
+            }
         },
         onError: (error) => {
             message.error(error?.message || 'Failed to create event');
         },
     });
 
-    const { mutateAsync: updateEvent, isLoading: updating } = useUpdateEvent({
+    const { mutateAsync: updateEvent, isPending: updating } = useUpdateEvent({
         onSuccess: (res) => {
             message.success(res?.message || 'Event updated successfully!');
-            // navigate(`/events/${id}`); // optionally go to detail
         },
         onError: (error) => {
             message.error(error?.message || 'Failed to update event');
         },
     });
 
-    // ---------- TICKETS HANDLERS ----------
-    const handleDeleteTicket = (key) => {
+    // Ticket handlers
+    const handleDeleteTicket = useCallback((key) => {
         setTickets((prev) => prev.filter((t) => t.key !== key));
         message.success('Ticket deleted successfully');
-    };
-    const handleAddTicket = () => {
+    }, []);
+
+    const handleAddTicket = useCallback(() => {
         setTickets((prev) => {
             const newKey = String(prev.length + 1);
             return [...prev, { key: newKey, name: `Ticket ${newKey}`, price: '0', quantity: '0' }];
         });
         message.success('Ticket added successfully');
-    };
-    const handleEmbedChange = (e) => setEmbedCode(e.target.value);
+    }, []);
 
-    // ---------- STEPS ----------
+    const handleEmbedChange = useCallback((e) => setEmbedCode(e.target.value), []);
+
+    // Memoized form data from form values + tickets
+    const getFormData = useCallback(() => {
+        const values = form.getFieldsValue();
+        return { ...values, tickets };
+    }, [form, tickets]);
+
+    // Steps configuration
     const steps = useMemo(
         () => [
             { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} />, icon: <FormOutlined /> },
@@ -224,78 +287,98 @@ const EventStepperForm = () => {
                         onEmbedChange={handleEmbedChange}
                         onAddTicket={handleAddTicket}
                         onDeleteTicket={handleDeleteTicket}
+                        eventId={detail?.event_key}
+                        eventName={detail?.name}
                     />
                 ),
                 icon: <TagsOutlined />,
             },
-            { title: 'Artist', content: <ArtistStep form={form} />, icon: <EnvironmentOutlined /> },
+            { title: 'Artist', content: <ArtistStep artistList={detail?.artists_list} form={form} />, icon: <EnvironmentOutlined /> },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
             { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
-            { title: 'Publish', content: <PublishStep formData={formShadow} />, icon: <CheckCircleOutlined /> },
+            { title: 'Publish', content: <PublishStep formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
-        [form, tickets, embedCode, formShadow]
+        [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
     );
 
-    // ---------- NAV ----------
+    // Navigation handlers
     const next = async () => {
         try {
-            const values = await form.validateFields();
-            setFormShadow((prev) => ({ ...prev, ...values }));
+            await form.validateFields();
+
+            // Create event on first step if not in edit mode
+            if (current === 0 && !isEdit) {
+                const body = buildEventFormData(getFormData());
+                await createEvent(body);
+                return; // Navigation handled in onSuccess
+            }
+
+            // Update event if we have an ID
+            if (id && current < steps.length - 1) {
+                const body = buildEventFormData(getFormData());
+                await updateEvent({ id, body });
+                setCurrent((c) => c + 1);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+
+            // Default: just move to next step
             setCurrent((c) => c + 1);
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch {
+
+        } catch (error) {
+            console.error('Validation error:', error);
             message.error('Please fill all required fields correctly');
         }
     };
 
-    const prev = () => {
+    const prev = useCallback(() => {
         setCurrent((c) => c - 1);
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    }, []);
 
-    const handleSaveDraft = () => {
-        const values = form.getFieldsValue();
-        const draftData = { ...formShadow, ...values };
-        // Store locally or call your draft endpoint here
-        // localStorage.setItem('eventDraft', JSON.stringify(draftData));
+    const handleSaveDraft = useCallback(() => {
+        const draftData = getFormData();
         message.success('Draft saved successfully!');
-    };
+    }, [getFormData]);
 
-    // ---------- SUBMIT ----------
     const handleSubmit = async () => {
         try {
-            const values = await form.validateFields();
-            const merged = {
-                ...formShadow,
-                ...values,
-                tickets, // builder will JSON.stringify it
-            };
+            await form.validateFields();
+            const body = buildEventFormData(getFormData());
 
-            const body = buildEventFormData(merged);
-
-            if (isEdit) {
+            if (id) {
                 await updateEvent({ id, body });
+                message.success('Event published successfully!');
+                setTimeout(() => navigate('/app/apps/events'), 1500);
             } else {
-                await createEvent(body);
+                message.error('Cannot publish: Event ID missing. Please try again.');
             }
-        } catch {
+        } catch (error) {
+            console.error('Submit error:', error);
             message.error('Please complete all required fields before submitting.');
         }
     };
 
-    // ---------- RENDER ----------
+    const isLoading = creating || updating;
+
+    // Loading state
     if (isEdit && loadingDetail) {
         return (
             <Card bordered={false} style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Spin size="large" />
+                <Spin size="large" tip={`Loading ${STEP_NAMES[current]} details...`} />
             </Card>
         );
     }
 
+    // Error state
     if (isEdit && detailError) {
         return (
             <Card bordered={false}>
                 <Typography.Text type="danger">Failed to load event details.</Typography.Text>
+                <Button type="primary" onClick={() => navigate('/app/apps/events/create')} style={{ marginTop: 16 }}>
+                    Create New Event Instead
+                </Button>
             </Card>
         );
     }
@@ -327,24 +410,28 @@ const EventStepperForm = () => {
                             gap: 12,
                         }}
                     >
-                        <div>
-                            <Tooltip title="Save current progress">
-                                <Button icon={<SaveOutlined />} onClick={handleSaveDraft} style={{ marginRight: 8 }}>
-                                    Save Draft
-                                </Button>
-                            </Tooltip>
-                        </div>
+                        <Tooltip title="Save current progress">
+                            <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
+                                Save Draft
+                            </Button>
+                        </Tooltip>
 
                         <div style={{ display: 'flex', gap: 8 }}>
                             {current > 0 && (
-                                <Button onClick={prev} size="large">
+                                <Button onClick={prev} size="large" disabled={isLoading}>
                                     Previous
                                 </Button>
                             )}
 
                             {current < steps.length - 1 && (
-                                <Button type="primary" onClick={next} size="large">
-                                    Next
+                                <Button
+                                    type="primary"
+                                    onClick={next}
+                                    size="large"
+                                    loading={isLoading}
+                                    disabled={isLoading}
+                                >
+                                    {current === 0 && !isEdit ? 'Create & Continue' : 'Save & Continue'}
                                 </Button>
                             )}
 
@@ -353,10 +440,11 @@ const EventStepperForm = () => {
                                     type="primary"
                                     onClick={handleSubmit}
                                     size="large"
-                                    loading={creating || updating}
+                                    loading={isLoading}
+                                    disabled={isLoading}
                                     icon={<CheckCircleOutlined />}
                                 >
-                                    {isEdit ? 'Update Event' : 'Publish Event'}
+                                    Publish Event
                                 </Button>
                             )}
                         </div>

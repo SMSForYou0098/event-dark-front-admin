@@ -174,7 +174,7 @@ const EventList = () => {
                     },
                     {
                         tooltip: "Edit Event",
-                        to: `edit/${row?.event_key}`,
+                        to: `update/${row?.event_key}`,
                         type: "default",
                         icon: <EditOutlined />,
                         permission: "Edit Event"

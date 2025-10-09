@@ -35,9 +35,6 @@ const TimingStep = ({ form, ...props }) => {
     return [start, end];
   };
 
-  // When RangePicker changes:
-  // - Save only dates to `date_range`
-  // - Save time parts to `start_time` / `end_time`
   const onRangeChange = (range) => {
     if (!Array.isArray(range) || !range[0] || !range[1]) {
       form.setFieldsValue({ date_range: undefined, start_time: undefined, end_time: undefined });
@@ -49,24 +46,6 @@ const TimingStep = ({ form, ...props }) => {
       start_time: start.format(FMT_T),
       end_time: end.format(FMT_T),
     });
-  };
-
-  // If user edits times independently, keep the RangePicker's displayed time in sync
-  const onTimeChange = (field /* 'start_time' | 'end_time' */) => (val) => {
-    const timeStr = val ? val.format(FMT_T) : undefined;
-    form.setFieldsValue({ [field]: timeStr });
-
-    // Rebuild RangePicker view (dates remain same, only time parts change)
-    const dr = form.getFieldValue('date_range');
-    const otherTime = form.getFieldValue(field === 'start_time' ? 'end_time' : 'start_time');
-    const rpValue = buildRangePickerValue(
-      dr,
-      field === 'start_time' ? timeStr : otherTime,
-      field === 'end_time' ? timeStr : otherTime
-    );
-    // Trigger rerender by touching date_range (no value change needed if string unchanged)
-    // AntD reads picker value from getValueProps below
-    form.setFieldsValue({ __force_rerender__: Date.now() }); // harmless hidden field trick
   };
 
   return (
@@ -176,6 +155,12 @@ const TimingStep = ({ form, ...props }) => {
           </Col> */}
 
           {/* hidden to force rerender when only time changes */}
+          <Form.Item name="start_time" hidden>
+            <Input />
+          </Form.Item>
+          <Form.Item name="end_time" hidden>
+            <Input />
+          </Form.Item>
           <Form.Item name="__force_rerender__" hidden><input /></Form.Item>
         </Row>
       </Col>

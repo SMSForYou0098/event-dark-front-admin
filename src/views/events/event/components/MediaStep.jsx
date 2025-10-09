@@ -1,14 +1,10 @@
 // MediaStep.jsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Form, Input, Upload, Row, Col, Space, Image } from 'antd';
 import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
 import Dragger from 'antd/es/upload/Dragger';
 
-const normFile = (e) => {
-  if (Array.isArray(e)) return e;
-  if (e && Array.isArray(e.fileList)) return e.fileList;
-  return [];
-};
+const normFile = (e) => (Array.isArray(e) ? e : e?.fileList ?? []);
 
 const MediaStep = ({ form }) => {
   // ---- Thumbnail preview (existing or just-picked) ----
@@ -54,12 +50,7 @@ const MediaStep = ({ form }) => {
     form.setFieldsValue({ thumbnail: fileList });
   };
 
-  const handleThumbRemove = () => {
-    // If you want to track removal of an existing thumbnail to delete on backend,
-    // you can set another hidden field here (e.g., remove_thumbnail: true).
-    // Currently not required by your controller, so we just allow removal.
-    return true;
-  };
+  const handleThumbRemove = () => true;
 
   // ---- Gallery removal tracking (existing URLs only) ----
   const handleGalleryRemove = useCallback(
@@ -75,14 +66,6 @@ const MediaStep = ({ form }) => {
     },
     [form]
   );
-
-  const handleRemove = (file) => {
-    if (file?.url) {
-      const prev = form.getFieldValue('remove_images') || [];
-      form.setFieldsValue({ remove_images: [...prev, file.url] });
-    }
-    return true;
-  };
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
@@ -186,7 +169,12 @@ const MediaStep = ({ form }) => {
             valuePropName="fileList"
             getValueFromEvent={normFile}
           >
-            <Upload listType="picture-card" maxCount={1} beforeUpload={() => false} accept="image/*">
+            <Upload
+              listType="picture-card"
+              maxCount={1}
+              beforeUpload={() => false}
+              accept="image/*"
+            >
               <div>
                 <PlusOutlined />
                 <div style={{ marginTop: 8 }}>Upload</div>
@@ -202,7 +190,12 @@ const MediaStep = ({ form }) => {
             valuePropName="fileList"
             getValueFromEvent={normFile}
           >
-            <Upload listType="picture-card" maxCount={1} beforeUpload={() => false} accept="image/*">
+            <Upload
+              listType="picture-card"
+              maxCount={1}
+              beforeUpload={() => false}
+              accept="image/*"
+            >
               <div>
                 <PlusOutlined />
                 <div style={{ marginTop: 8 }}>Upload Layout</div>

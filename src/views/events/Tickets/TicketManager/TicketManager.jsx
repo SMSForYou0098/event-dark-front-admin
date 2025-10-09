@@ -464,11 +464,17 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         name="price"
                                         rules={[{ required: true, message: 'Please enter price' }]}
                                     >
-                                        <InputNumber
+                                        {/* <InputNumber
                                             style={{ width: '100%' }}
                                             min={0}
                                             prefix={<DollarOutlined />}
-                                        />
+                                        /> */}
+                                        <Input
+                                                    type='number'
+                                                    style={{ width: '100%' }}
+                                                    min={0}
+                                                    // prefix={<PercentageOutlined />}
+                                                />
                                     </Form.Item>
                                 </Col>
 
@@ -637,7 +643,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                                     type='number'
                                                     style={{ width: '100%' }}
                                                     min={0}
-                                                    prefix={<PercentageOutlined />}
+                                                    // prefix={<PercentageOutlined />}
                                                 />
                                             </Form.Item>
                                         </Col>
@@ -651,13 +657,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                         <div className="image-preview-container bg-transparent">
                             <h5>Ticket Preview:</h5>
                             <Image
-                                src={imagePreviewUrl || 'https://placehold.co/263x575'}
+                                src={imagePreviewUrl || 'https://placehold.co/300x600'}
                                 alt="Ticket Background Preview"
                                 style={{
                                     borderRadius: '5px',
                                     marginTop: '10px',
                                     width: '100%',
-                                    maxWidth: '263px'
+                                    maxWidth: '300px'
                                 }}
                                 preview={!!imagePreviewUrl}
                             />

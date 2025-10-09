@@ -11,20 +11,12 @@ import {
   useEventCategories
 } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
+import { OrganisationList } from 'utils/CommonInputs';
 
 const { TextArea } = Input;
 
 const BasicDetailsStep = ({ form, isEdit }) => {
   const { UserData,  } = useMyContext();
-
-  // organizers (only needed if NOT an organizer)
-  const {
-    data: organizers = [],
-    isLoading: orgLoading,
-    isError: orgError,
-    error: orgErrObj,
-    refetch: refetchOrg,
-  } = useOrganizers();
 
   // categories
   const {
@@ -33,23 +25,30 @@ const BasicDetailsStep = ({ form, isEdit }) => {
   } = useEventCategories();
 
   // compute the organizerId for venues:
-  const selectedOrganizerFromForm = Form.useWatch('user_id', form);
+  const selectedOrganizerFromForm = Form.useWatch('org_id', form);
   const organizerId = useMemo(() => {
-    if (UserData?.role?.toLowerCase() === 'organizer') {
-      return UserData?.organizerId || UserData?.id;
+    if (UserData?.role === 'Organizer') {
+      return UserData?.id;
     }
     return selectedOrganizerFromForm;
   }, [UserData, selectedOrganizerFromForm]);
 
   // if user is organizer, set the organizer field once
   useEffect(() => {
-    if (UserData?.role?.toLowerCase() === 'organizer') {
-      const current = form.getFieldValue('user_id');
+    if (UserData?.role === 'Organizer') {
+      const current = form.getFieldValue('org_id');
       if (!current && organizerId != null) {
-        form.setFieldsValue({ user_id: String(organizerId) });
+        form.setFieldsValue({ org_id: String(organizerId) });
       }
     }
   }, [UserData, organizerId, form]);
+
+  // Reset venue when organizer changes
+  useEffect(() => {
+    if (!isEdit && selectedOrganizerFromForm) {
+      form.setFieldsValue({ venue_id: undefined });
+    }
+  }, [selectedOrganizerFromForm, form, isEdit]);
 
   // venues by organizer
   const {
@@ -94,17 +93,6 @@ const BasicDetailsStep = ({ form, isEdit }) => {
   return (
     <Row gutter={ROW_GUTTER}>
       {/* Errors */}
-      {!isUserOrganizer && orgError && (
-        <Col span={24}>
-          <Alert
-            type="error"
-            showIcon
-            message="Failed to load organizers"
-            description={orgErrObj?.message}
-            action={<Button size="small" onClick={() => refetchOrg()}>Retry</Button>}
-          />
-        </Col>
-      )}
       {venueError && (
         <Col span={24}>
           <Alert
@@ -120,27 +108,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
       {/* Organizer (hidden when user is an organizer) */}
       {!isUserOrganizer && (
         <Col xs={24} md={8}>
-          <Form.Item
-            name="user_id"
-            label="Organizer"
-            rules={[{ required: true, message: "Please select organizer" }]}
-          >
-            <Select
-              placeholder="Select Organizer"
-              loading={orgLoading}
-              disabled={isEdit} // disabled in edit mode
-              options={organizers.map((o) => ({
-                label: o.name,
-                value: String(o.id), // ensure string to match API "9287"
-              }))}
-              notFoundContent={orgLoading ? <Spin size="small" /> : "No organizers found"}
-              showSearch
-              filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
-              }
-              onChange={() => form.setFieldsValue({ venue_id: undefined })}
-            />
-          </Form.Item>
+          <OrganisationList />
         </Col>
       )}
 

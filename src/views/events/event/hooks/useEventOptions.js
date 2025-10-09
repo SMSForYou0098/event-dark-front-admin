@@ -118,123 +118,113 @@ export function buildEventFormData(values) {
   const appendSingleUpload = (key, fileList) => {
     if (!Array.isArray(fileList) || !fileList.length) return;
     const f = fileList[0];
-    // when editing, an existing file shows as an item with `url` and NO originFileObj → skip
-    if (!f || !f.originFileObj) return;
-    const file = f.originFileObj;
-    const name = f.name || 'file';
-    fd.append(key, file, name);
+    if (!f || !f.originFileObj) return; // skip existing URL-only
+    fd.append(key, f.originFileObj, f.name || 'file');
   };
 
-  // --- NEW: index-based multi upload for gallery (images_1..images_4) ---
-  const appendIndexedGalleryUploads = (fileList) => {
-    if (!Array.isArray(fileList) || !fileList.length) return;
-    let idx = 1;
-    for (const f of fileList) {
-      if (idx > 4) break; // controller loops images_1..images_4
-      if (f && f.originFileObj) {
-        const name = f.name || `image_${idx}`;
-        fd.append(`images_${idx}`, f.originFileObj, name);
-        idx += 1;
-      }
-    }
-  };
-
-  // --- NEW: keep existing gallery URLs (not removed) ---
-  // These are the Upload items that only have `url` (no originFileObj).
+  // --- GALLERY HELPERS (only these are new/kept) ---
   const appendExistingGalleryUrls = (fileList) => {
     if (!Array.isArray(fileList)) return;
     fileList.forEach((f) => {
-      if (f && f.url && !f.originFileObj) {
-        // Use an array param so backend can merge:
-        // Example controller: $keep = $request->input('existing_images', []);
+      if (f?.url && !f.originFileObj) {
         fd.append('existing_images[]', f.url);
       }
     });
   };
 
+  const appendGalleryUploadsAsArray = (fileList) => {
+    if (!Array.isArray(fileList)) return;
+    fileList.forEach((f) => {
+      if (f?.originFileObj) {
+        fd.append('images[]', f.originFileObj, f.name || 'image');
+      }
+    });
+  };
+
   // ---------- BASIC ----------
-  appendIfDefined('user_id', values.user_id);
+  appendIfDefined('user_id', values.org_id);
   appendIfDefined('category', values.category);
   appendIfDefined('name', values.name);
   appendIfDefined('venue_id', values.venue_id);
   appendIfDefined('description', values.description);
 
-  // ---------- CONTROLS ----------
+  // ---------- CONTROLS (unchanged except booking key if you want) ----------
   appendIfDefined('scan_detail', values.scan_detail);
   appendIfDefined('event_feature', values.event_feature ?? 0);
-  appendIfDefined('status', values.status ?? 0);
+  appendIfDefined('status', values.status ?? 1); // safer default to match BE
   appendIfDefined('house_full', values.house_full ?? 0);
   appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
   appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
   appendIfDefined('multi_scan', values.multi_scan ?? 0);
   appendIfDefined('ticket_system', values.ticket_system ?? 0);
-  appendIfDefined('bookingBySeat', values.bookingBySeat ?? 0);
+  // if backend expects snake_case, prefer this line:
+  appendIfDefined('booking_by_seat', values.bookingBySeat ?? 0);
+
   appendIfDefined('insta_whts_url', values.insta_whts_url);
-  appendIfDefined('whts_note', values.whatsappNote);
+  appendIfDefined('whts_note', values.whts_note);
   appendIfDefined('ticket_terms', values.ticket_terms);
 
   // ---------- TIMING ----------
-  appendIfDefined('date_range', values.date_range); // "YYYY-MM-DD,YYYY-MM-DD"
-  appendIfDefined('entry_time', values.entry_time); // "HH:mm"
-  appendIfDefined('start_time', values.start_time); // "HH:mm"
-  appendIfDefined('end_time', values.end_time);     // "HH:mm"
+  appendIfDefined('date_range', values.date_range);
+  appendIfDefined('entry_time', values.entry_time);
+  appendIfDefined('start_time', values.start_time);
+  appendIfDefined('end_time', values.end_time);
   appendIfDefined('event_type', values.event_type);
 
-  // ---------- SEO ----------
+  // ---------- Artist ----------
+  appendIfDefined('artist_id', values.artist_id);
+
+
+
+  // ---------- SEO (ignored by current BE, but harmless) ----------
   appendIfDefined('meta_title', values.meta_title);
   appendIfDefined('meta_description', values.meta_description);
-  appendIfDefined('meta_tag', values.tags);
-  appendIfDefined('meta_keyword', values.keyword);
+  appendIfDefined('meta_tag', values.meta_tag);
+  appendIfDefined('meta_keyword', values.meta_keyword);
+  appendIfDefined('seo_type', 'event');
+  
 
   // ---------- TICKETS ----------
   if (Array.isArray(values.tickets)) {
     fd.append('tickets', JSON.stringify(values.tickets));
   }
 
-  // ---------- FILES (ANTD Upload fileList) ----------
-  if (Array.isArray(values.thumbnail)) {
-    appendSingleUpload('thumbnail', values.thumbnail);
-  }
-  if (Array.isArray(values.insta_thumbnail)) {
-    appendSingleUpload('insta_thumbnail', values.insta_thumbnail);
-  }
-  if (Array.isArray(values.layout_image)) {
-    appendSingleUpload('layout_image', values.layout_image);
-  }
+  // ---------- FILES ----------
+  if (Array.isArray(values.thumbnail)) appendSingleUpload('thumbnail', values.thumbnail);
+  if (Array.isArray(values.insta_thumbnail)) appendSingleUpload('insta_thumbnail', values.insta_thumbnail);
+  if (Array.isArray(values.layout_image)) appendSingleUpload('layout_image', values.layout_image);
 
-  // GALLERY:
-  // 1) Keep existing (non-removed) URLs so backend can merge
-  // 2) Send new uploads as images_1..images_4
+  // ---------- GALLERY (this is the only real change you asked for) ----------
   if (Array.isArray(values.images)) {
+    // 1) keep URLs that still exist in the list (no originFileObj)
     appendExistingGalleryUrls(values.images);
-    appendIndexedGalleryUploads(values.images);
+    // 2) add newly picked files as a PHP array: images[]
+    appendGalleryUploadsAsArray(values.images);
   }
 
-  // Images the user removed in the UI (we put these in a hidden field in the form)
+  // URLs removed by the user (MediaStep pushes into remove_images)
   if (Array.isArray(values.remove_images)) {
     values.remove_images.forEach((url) => fd.append('remove_images[]', url));
   }
 
   // ---------- URL fields ----------
   appendIfDefined('youtube_url', values.youtube_url);
-  // Map to backend name:
   appendIfDefined('insta_url', values.instagram_media_url);
 
   return fd;
 }
 
 
-
-
-export const useEventDetail = (id, options = {}) =>
+export const useEventDetail = (id, step = null, options = {}) =>
   useQuery({
-    queryKey: ['event-detail', id],
+    queryKey: ['event-detail', id, step], // Include step in cache key
     enabled: !!id, // Only run when ID is present
     queryFn: async () => {
-      const res = await api.get(`event-detail/${id}`);
-
-      // Expected response structure:
-      // { status: true, message: "...", data: { ...eventData } }
+      const url = step 
+        ? `event-detail/${id}?step=${step}` 
+        : `event-detail/${id}`;
+      
+      const res = await api.get(url);
 
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to fetch event details');
@@ -242,7 +232,7 @@ export const useEventDetail = (id, options = {}) =>
         throw err;
       }
 
-      return res?.events || {}; // Return event data
+      return res?.event || {}; // Return event data
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     retry: (count, err) => {

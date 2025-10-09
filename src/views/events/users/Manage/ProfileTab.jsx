@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Card, Col, Form, Input, notification, Radio, Row, Select, Space, Spin, Switch } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from 'Context/MyContextProvider';
 import { Key } from 'lucide-react';
@@ -17,7 +17,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
     const dispatch = useDispatch()
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
 
-
     // Fetch user data in edit mode
     const { data: fethedData, isLoading: loading } = useQuery({
         queryKey: ["user", id],
@@ -31,19 +30,30 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         },
     });
 
-
-
-
     const [form] = Form.useForm();
 
-    // Watch form values for conditional logic
-    const EMPTY_ARRAY = [];
-    const roleId = Form.useWatch('roleId', form);
-    const roleName = Form.useWatch('roleName', form);
-    const reportingUser = Form.useWatch('reportingUser', form);
-    const selectedEvents = Form.useWatch('events', form) || EMPTY_ARRAY;
+    // Get watched values safely
+    console.log('form', form.getFieldsValue())
+    // Safely destructure with defaults
+const roleId         = Form.useWatch('roleId', form);
+const roleName       = Form.useWatch('roleName', form);
+const reportingUser  = Form.useWatch('reportingUser', form);
+const selectedEvents = Form.useWatch('events', form) || [];
 
+    console.log('role namer',roleName)
 
+    // Calculate conditions directly
+    const showAM = ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(roleName);
+    const needsEvents = ['Agent', 'Sponsor', 'Accreditation'].includes(roleName);
+
+    // Stabilize reportingUserId
+    const reportingUserId = (() => {
+        if (mode === "create") {
+            return userRole === 'Organizer' ? UserData?.id : 
+                   reportingUser?.value || reportingUser || undefined;
+        }
+        return reportingUser?.value || reportingUser?.key || reportingUser || undefined;
+    })();
 
     // Fetch roles
     const { data: roles = [] } = useQuery({
@@ -54,25 +64,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         },
         staleTime: 5 * 60 * 1000,
     });
-
-    // Conditional checks
-    const showRoleGate = mode === "create" && !roleId;
-    const showAM = useMemo(() => {
-        return ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(roleName);
-    }, [roleName]);
-
-    const needsEvents = useMemo(() => {
-        return ['Agent', 'Sponsor', 'Accreditation'].includes(roleName);
-    }, [roleName]);
-
-    // Get reporting user ID for events query
-    const reportingUserId = useMemo(() => {
-        if (mode === "create") {
-            return userRole === 'Organizer' ? UserData?.id : reportingUser?.value || reportingUser;
-        }
-        return reportingUser?.value || reportingUser?.key || reportingUser;
-    }, [mode, userRole, UserData, reportingUser]);
-
 
     // Fetch events
     const { data: events = [] } = useQuery({
@@ -91,8 +82,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
     });
 
     // Generate ticket options based on selected events
-    const ticketOptions = useMemo(() => {
-        if (!selectedEvents.length) return [];
+    const ticketOptions = (() => {
+        if (!selectedEvents?.length) return [];
 
         const selectedEventObjects = events.filter(e =>
             selectedEvents.includes(e.value)
@@ -106,7 +97,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                 eventId: event.value
             }))
         }));
-    }, [selectedEvents, events]);
+    })();
 
     // Initialize form with data
     useEffect(() => {
@@ -162,9 +153,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
             return hasValue ? Promise.resolve() : Promise.reject(new Error(message));
         }
     });
+
+    // Conditional checks
+    const showRoleGate = mode === "create" && !roleId;
+
     if (loading) {
         return <Spin className='w-100 text-center mt-5' />
     }
+
     // Form submit handler
     const onFinish = async (values) => {
         const apiData = mapFormToApi(values);
@@ -181,7 +177,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                     dispatch(updateUser(response.data.user));
                     navigate(-1);
                 }
-                // successAlert(`User ${mode === "create" ? "created" : "updated"}`, response.data.message);
                 notification.success({
                     message: `User ${mode === "create" ? "created" : "updated"}`,
                     description: response.data.message,
@@ -196,7 +191,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                 message: 'Error',
                 description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
             });
-
         }
     };
 
@@ -362,14 +356,12 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                             name="tickets"
                                             dependencies={['events']}
                                         >
-
                                             <Select
                                                 mode="multiple"
                                                 placeholder="Select tickets"
-                                                disabled={!selectedEvents.length}
+                                                disabled={!selectedEvents?.length}
                                                 showSearch
                                             >
-
                                                 {ticketOptions.map(group => (
                                                     <Select.OptGroup key={group.label} label={group.label}>
                                                         {group.options.map(ticket => (
@@ -418,7 +410,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                     </Form.Item>
                                 </Col>
                             )}
-
 
                             {mode === 'create' && (
                                 <Col xs={24} md={12}>
@@ -533,7 +524,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                         </Form.Item>
                                     </Col>
 
-
                                     {/* Password Fields */}
                                     <Col xs={24} md={12}>
                                         <Form.Item
@@ -586,7 +576,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             </Card>
                         </PermissionChecker>
                     )}
-
                 </Col>
             </Row>
         </Form>
