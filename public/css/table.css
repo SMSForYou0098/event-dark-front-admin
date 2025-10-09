@@ -5,7 +5,7 @@ td
 {
     background-color:  transparent !important;
 }
-.ant-table-thead >tr>th {
+.ant-table-thead >tr>th, .ant-table-thead >tr>td {
     border-bottom : 1px solid var(--border-secondary) !important;
 }
 

@@ -16,7 +16,7 @@ import {
   Spin,
   message,
 } from "antd";
-import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined, UploadOutlined } from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import axios from "axios";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import AssignFields from "./AssignFields";
@@ -32,7 +32,6 @@ const Category = () => {
   const [editRecord, setEditRecord] = useState(null);
   const [fields, setFields] = useState({ show: false, ids: [], names: [] });
   const [submitting, setSubmitting] = useState(false);
-  const [thumbnailFileList, setThumbnailFileList] = useState([]);
 
   const [form] = Form.useForm();
 
@@ -66,7 +65,14 @@ const Category = () => {
       formData.append("status", values.status ? 1 : 0);
       formData.append("attendy_required", values.attendyRequired ? 1 : 0);
       formData.append("photo_required", values.photoRequired ? 1 : 0);
-      if (values.image?.file) formData.append("image", values.image.file.originFileObj);
+      
+      // Handle image upload properly
+      if (values.image?.fileList?.length > 0) {
+        const file = values.image.fileList[0];
+        if (file.originFileObj) {
+          formData.append("image", file.originFileObj);
+        }
+      }
 
       const url = editRecord
         ? `${api}category-update/${editRecord.id}`
@@ -89,9 +95,7 @@ const Category = () => {
 
         notification.success({ message: res.data.message || "Category saved" });
         fetchCategories();
-        setModalVisible(false);
-        setEditRecord(null);
-        form.resetFields();
+        handleModalClose();
       } else {
         notification.error({ message: res.data.message || "Failed to save" });
       }
@@ -102,6 +106,21 @@ const Category = () => {
       setSubmitting(false);
     }
   }, [form, api, authToken, editRecord, fields.ids, fetchCategories]);
+
+  // ========================= MODAL HANDLERS =========================
+  const handleModalClose = useCallback(() => {
+    setModalVisible(false);
+    setEditRecord(null);
+    setFields({ show: false, ids: [], names: [] });
+    form.resetFields();
+  }, [form]);
+
+  const handleModalOpen = useCallback(() => {
+    form.resetFields();
+    setEditRecord(null);
+    setFields({ show: false, ids: [], names: [] });
+    setModalVisible(true);
+  }, [form]);
 
   // ========================= DELETE =========================
   const handleDelete = useCallback(
@@ -124,20 +143,39 @@ const Category = () => {
     (record) => {
       setEditRecord(record);
       setModalVisible(true);
-      form.setFieldsValue({
-        title: record.title,
-        attendyRequired: record.attendy_required === 1,
-        photoRequired: record.photo_required === 1,
-        status: record.status === 1,
-      });
+      
+      // Parse field IDs and set fields
       const fieldIds = record?.catrgotyhas_field?.custom_fields_id
         ?.split(",")
         ?.map(Number);
+      
       setFields({
         ids: fieldIds || [],
         names: record?.fields || [],
         show: false,
       });
+
+      // Set form values including image if exists
+      const formValues = {
+        title: record.title,
+        attendyRequired: record.attendy_required === 1,
+        photoRequired: record.photo_required === 1,
+        status: record.status === 1,
+      };
+
+      // If editing and there's an existing image, create a file list array
+      if (record.image) {
+        formValues.image = [
+          {
+            uid: '-1',
+            name: 'image.png',
+            status: 'done',
+            url: record.image,
+          },
+        ];
+      }
+
+      form.setFieldsValue(formValues);
     },
     [form]
   );
@@ -166,17 +204,6 @@ const Category = () => {
             <CloseOutlined style={{ color: "red" }} />
           ),
       },
-      // {
-      //   title: "Photo Required",
-      //   dataIndex: "photo_required",
-      //   align: "center",
-      //   render: (val) =>
-      //     val === 1 ? (
-      //       <CheckOutlined style={{ color: "green" }} />
-      //     ) : (
-      //       <CloseOutlined style={{ color: "red" }} />
-      //     ),
-      // },
       {
         title: "Action",
         align: "center",
@@ -200,42 +227,29 @@ const Category = () => {
     ],
     [handleEdit, handleDelete]
   );
-  const imageUploadProps = {
-    beforeUpload: (file) => {
-      const isImage = file.type.startsWith('image/');
-      if (!isImage) {
-        message.error('You can only upload image files!');
-        return Upload.LIST_IGNORE;
-      }
-      const isLt5M = file.size / 1024 / 1024 < 5;
-      if (!isLt5M) {
-        message.error('Image must be smaller than 5MB!');
-        return Upload.LIST_IGNORE;
-      }
-      return false;
-    },
-    onChange: ({ fileList }) => setThumbnailFileList(fileList.slice(-1)),
-    onRemove: () => setThumbnailFileList([]),
-    fileList: thumbnailFileList,
-    maxCount: 1,
-    listType: 'picture-card',
+
+  // ========================= UPLOAD NORMALIZATION =========================
+  const normFile = (e) => {
+    if (Array.isArray(e)) {
+      return e;
+    }
+    return e?.fileList;
   };
+
   // ========================= RENDER =========================
   return (
-    <Card title="Categories" extra={
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={() => {
-          form.resetFields();
-          setEditRecord(null);
-          setModalVisible(true);
-        }}
-      >
-        Add New Category
-      </Button>
-    }>
-
+    <Card 
+      title="Categories" 
+      extra={
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={handleModalOpen}
+        >
+          Add New Category
+        </Button>
+      }
+    >
       <Spin spinning={loading}>
         <Table
           rowKey="id"
@@ -248,10 +262,10 @@ const Category = () => {
       <Modal
         open={modalVisible}
         title={editRecord ? "Edit Category" : "New Category"}
-        onCancel={() => setModalVisible(false)}
+        onCancel={handleModalClose}
         onOk={handleSubmit}
         okText="Save"
-        style={{ top: 0 }}
+        width={600}
         confirmLoading={submitting}
         destroyOnClose
       >
@@ -277,24 +291,45 @@ const Category = () => {
               <Form.Item
                 label="Image (282 × 260 px)"
                 name="image"
+                valuePropName="fileList"
+                getValueFromEvent={normFile}
                 rules={[
                   {
+                    required: !editRecord,
                     message: 'Please upload image'
                   }
                 ]}
               >
-                <Upload {...imageUploadProps}>
-                  {thumbnailFileList?.length < 1 && (
-                    <div>
-                      <PlusOutlined />
-                      <div style={{ marginTop: 8 }}>Upload</div>
-                    </div>
-                  )}
+                <Upload
+                  listType="picture-card"
+                  maxCount={1}
+                  beforeUpload={(file) => {
+                    const isImage = file.type.startsWith('image/');
+                    if (!isImage) {
+                      message.error('You can only upload image files!');
+                      return Upload.LIST_IGNORE;
+                    }
+                    const isLt5M = file.size / 1024 / 1024 < 5;
+                    if (!isLt5M) {
+                      message.error('Image must be smaller than 5MB!');
+                      return Upload.LIST_IGNORE;
+                    }
+                    return false; // Prevent auto upload
+                  }}
+                >
+                  <div>
+                    <PlusOutlined />
+                    <div style={{ marginTop: 8 }}>Upload</div>
+                  </div>
                 </Upload>
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label="Attendee Required" name="attendyRequired" valuePropName="checked">
+              <Form.Item 
+                label="Attendee Required" 
+                name="attendyRequired" 
+                valuePropName="checked"
+              >
                 <Switch
                   onChange={(checked) =>
                     checked &&
@@ -307,33 +342,41 @@ const Category = () => {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item label="Status" name="status" valuePropName="checked">
+              <Form.Item 
+                label="Status" 
+                name="status" 
+                valuePropName="checked"
+              >
                 <Switch />
               </Form.Item>
             </Col>
           </Row>
 
-          {form.getFieldValue("attendyRequired") && (
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-2">
-                <p className="font-medium">Attendee Fields:</p>
-                <Button
-                  size="small"
-                  icon={<EditOutlined />}
-                  onClick={() => setFields((prev) => ({ ...prev, show: true }))}
-                >
-                  Edit Fields
-                </Button>
-              </div>
-              <Row gutter={[8, 8]}>
-                {fields.names?.map((field, i) => (
-                  <Col span={8} key={i}>
-                    <SelectedOptionView item={field.field_name} />
-                  </Col>
-                ))}
-              </Row>
-            </div>
-          )}
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.attendyRequired !== curr.attendyRequired}>
+            {({ getFieldValue }) =>
+              getFieldValue("attendyRequired") && (
+                <div style={{ marginTop: 16 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <strong>Attendee Fields:</strong>
+                    <Button
+                      size="small"
+                      icon={<EditOutlined />}
+                      onClick={() => setFields((prev) => ({ ...prev, show: true }))}
+                    >
+                      Edit Fields
+                    </Button>
+                  </div>
+                  <Row gutter={[8, 8]}>
+                    {fields.names?.map((field, i) => (
+                      <Col span={8} key={i}>
+                        <SelectedOptionView item={field.field_name} />
+                      </Col>
+                    ))}
+                  </Row>
+                </div>
+              )
+            }
+          </Form.Item>
         </Form>
       </Modal>
 

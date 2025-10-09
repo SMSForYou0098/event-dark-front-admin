@@ -1,0 +1,68 @@
+/* POSPrintModal.css */
+.pos-print-body {
+  background-color: white;
+  border-radius: 16px;
+  .ant-table-wrapper .ant-table-thead>tr>th,
+  .ant-table-content>table>tbody>tr>td {
+    color: black !important;
+  }
+  .ant-table-thead >tr>th{
+    border-bottom: inherit !important;
+  }
+
+  :where(.css-dev-only-do-not-override-1u1move).ant-modal .ant-modal-header {
+    margin-bottom: 0 !important;
+  }
+}
+
+.custom-invoice-modal .ant-modal-header {
+  margin-bottom: 0 !important;
+}
+
+.pos-print-body * {
+  color: black !important;
+}
+
+@media print {
+  .print-wrapper {
+    width: 100%;
+    padding: 20px;
+  }
+
+  .print-wrapper h5 {
+    font-size: 20px !important;
+    margin-bottom: 15px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .print-wrapper .qr {
+    margin: 20px auto;
+    max-width: 200px;
+  }
+
+  .print-wrapper .ant-table {
+    width: 100% !important;
+    margin: 15px 0;
+  }
+
+  .print-wrapper .ant-table-thead>tr>th,
+  .print-wrapper .ant-table-tbody>tr>td {
+    font-size: 14px !important;
+    padding: 6px !important;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .print-wrapper p {
+    font-size: 14px !important;
+    margin: 10px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .print-wrapper .footer-text {
+    font-size: 16px !important;
+    margin-top: 20px;
+  }
+}

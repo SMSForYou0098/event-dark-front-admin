@@ -11,6 +11,36 @@
 @import url('./alert.css');
 @import url('./modal.css');
 
+
+.counter input {
+  text-align: center !important;
+  caret-color: transparent; /* 🚫 Hide the blinking caret */
+  pointer-events: none;     /* Prevent clicking/typing */
+  user-select: none;        /* Prevent text selection */
+}
+.slick-prev,
+.slick-next{
+    top: 40% !important;
+}
+
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    /* display: none; <- Crashes Chrome on hover */
+    -webkit-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type=number] {
+    -moz-appearance:textfield; /* Firefox */
+}
+
+
+.ant-dropdown .ant-dropdown-menu .ant-dropdown-menu-item-selected {
+  background-color: var(--primary-color) !important;
+  /* color: var(--text-white) !important; */
+}
+
 .border-primary {
   border : 1px solid var(--primary-color) !important;
 }
@@ -352,6 +382,10 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
 /* write style for ant tooltip */
 .ant-tooltip-inner {
   background: #000000 !important;
+}
+
+.ant-divider {
+  border-color: var(--border-secondary) !important;
 }
 
 
