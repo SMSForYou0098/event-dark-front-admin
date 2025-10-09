@@ -173,7 +173,7 @@ export function buildEventFormData(values) {
 
   // ---------- Artist ----------
   appendIfDefined('artist_id', values.artist_id);
-
+  appendIfDefined('step', values.step || ''); // <-- add this
 
 
   // ---------- SEO (ignored by current BE, but harmless) ----------

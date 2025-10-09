@@ -250,7 +250,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             }
 
             const endpoint = editMode
-                ? `update-ticket/${editingTicket.id}`
+                ? `update-ticket/${eventId}`
                 : `create-ticket/${eventId}`;
 
             const response = await apiClient.post(endpoint, formData, {

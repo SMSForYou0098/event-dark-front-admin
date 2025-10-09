@@ -296,7 +296,7 @@ const EventStepperForm = () => {
             { title: 'Artist', content: <ArtistStep artistList={detail?.artists_list} form={form} />, icon: <EnvironmentOutlined /> },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
             { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
-            { title: 'Publish', content: <PublishStep formData={getFormData()} />, icon: <CheckCircleOutlined /> },
+            { title: 'Publish', content: <PublishStep eventData={detail}  formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
         [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
     );
@@ -315,7 +315,11 @@ const EventStepperForm = () => {
 
             // Update event if we have an ID
             if (id && current < steps.length - 1) {
-                const body = buildEventFormData(getFormData());
+                const formValues = getFormData();
+                const body = buildEventFormData({
+                    ...formValues,
+                    step: stepName,
+                });
                 await updateEvent({ id, body });
                 setCurrent((c) => c + 1);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -337,20 +341,48 @@ const EventStepperForm = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, []);
 
-    const handleSaveDraft = useCallback(() => {
-        const draftData = getFormData();
-        message.success('Draft saved successfully!');
-    }, [getFormData]);
+const handleSaveDraft = useCallback(async () => {
+  try {
+    // Get all current form values
+    const draftValues = getFormData();
+
+    // Force status to 0 for drafts
+    const body = buildEventFormData({
+      ...draftValues,
+      status: 0,
+      step: stepName,
+    });
+
+    if (id) {
+      await updateEvent({ id, body });
+      message.success('Draft saved successfully!');
+    } else {
+      message.error('Cannot save draft: Event ID missing.');
+    }
+  } catch (error) {
+    console.error('Save draft error:', error);
+    message.error('Failed to save draft. Please check your form.');
+  }
+}, [getFormData, id, updateEvent]);
+
 
     const handleSubmit = async () => {
         try {
             await form.validateFields();
-            const body = buildEventFormData(getFormData());
+
+            // Get all current form values and force status = 1 (published)
+            const values = getFormData();
+            const body = buildEventFormData({
+                ...values,
+                status: 1,
+                step: 'publish',
+            });
 
             if (id) {
                 await updateEvent({ id, body });
                 message.success('Event published successfully!');
-                setTimeout(() => navigate('/app/apps/events'), 1500);
+                setCurrent((c) => c + 1);
+                //   setTimeout(() => navigate('/app/apps/events'), 1500);
             } else {
                 message.error('Cannot publish: Event ID missing. Please try again.');
             }
@@ -359,6 +391,7 @@ const EventStepperForm = () => {
             message.error('Please complete all required fields before submitting.');
         }
     };
+
 
     const isLoading = creating || updating;
 
@@ -410,11 +443,14 @@ const EventStepperForm = () => {
                             gap: 12,
                         }}
                     >
+                        {
+                            isEdit &&  
                         <Tooltip title="Save current progress">
                             <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
                                 Save Draft
                             </Button>
                         </Tooltip>
+                        }
 
                         <div style={{ display: 'flex', gap: 8 }}>
                             {current > 0 && (
@@ -423,7 +459,7 @@ const EventStepperForm = () => {
                                 </Button>
                             )}
 
-                            {current < steps.length - 1 && (
+                            {current < steps.length - 2 && (
                                 <Button
                                     type="primary"
                                     onClick={next}
@@ -435,7 +471,7 @@ const EventStepperForm = () => {
                                 </Button>
                             )}
 
-                            {current === steps.length - 1 && (
+                            {current === steps.length - 2 && (
                                 <Button
                                     type="primary"
                                     onClick={handleSubmit}

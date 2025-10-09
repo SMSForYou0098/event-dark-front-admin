@@ -333,6 +333,48 @@ const appsNavTree = [{
       submenu: []
     },
     {
+      key: 'apps-settings',
+      path: `${APP_PREFIX_PATH}/apps/settings`,
+      title: 'sidenav.apps.settings',
+      icon: SettingOutlined,
+      breadcrumb: true,
+      submenu: [
+        {
+          key: 'apps-settings-mail_config',
+          path: `${APP_PREFIX_PATH}/apps/settings/mail-config`,
+          title: 'sidenav.apps.settings.mail_config',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        },
+        {
+          key: 'apps-settings-sms_gateway',
+          path: `${APP_PREFIX_PATH}/apps/settings/sms-config`,
+          title: 'sidenav.apps.settings.sms_gateway',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        },
+        {
+          key: 'apps-settings-whats_config',
+          path: `${APP_PREFIX_PATH}/apps/settings/whatsapp-config`,
+          title: 'sidenav.apps.settings.whats_config',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        },
+        {
+          key: 'apps-settings-banners',
+          path: `${APP_PREFIX_PATH}/apps/settings/banners`,
+          title: 'sidenav.apps.settings.banners',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        }
+      ]
+    },
+
+    {
       key: 'apps-calendar',
       path: `${APP_PREFIX_PATH}/apps/calendar`,
       title: 'sidenav.apps.calendar',

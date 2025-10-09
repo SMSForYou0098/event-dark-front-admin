@@ -6,7 +6,6 @@ import {
     Form,
     Button,
     Card,
-    Tabs,
     Input,
     Select,
     Switch,
@@ -16,11 +15,6 @@ import {
 } from "antd";
 import {
     ArrowLeftOutlined,
-    UserOutlined,
-    ShoppingOutlined,
-    WalletOutlined,
-    TransactionOutlined,
-    SafetyCertificateOutlined,
 } from '@ant-design/icons';
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
@@ -28,11 +22,8 @@ import apiClient from "auth/FetchInterceptor";
 import { useDispatch } from "react-redux";
 import { useMyContext } from "Context/MyContextProvider";
 import { updateUser } from "store/slices/authSlice";
-import { Key, Shield } from "lucide-react";
-import UserBookings from "../Bookings/UserBookings";
-import Transactions from "./wallet/Transaction";
+import { Key } from "lucide-react";
 import usePermission from "utils/hooks/usePermission";
-import AssignCredit from "./wallet/AssignCredit";
 import PermissionChecker from "layouts/PermissionChecker";
 import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
 import Flex from "components/shared-components/Flex";
@@ -121,7 +112,6 @@ const UserForm = memo(({ mode = "edit" }) => {
     const [disableOrg, setDisableOrg] = useState(false);
     const [disable, setDisable] = useState(false);
     const [showAM, setShowAM] = useState(false);
-    const [activeTab, setActiveTab] = useState("1");
 
     // Update form state helper
     const updateFormState = (updates) => {
@@ -349,7 +339,6 @@ const UserForm = memo(({ mode = "edit" }) => {
                 }
             }
         } catch (error) {
-            // ErrorAlert(error.response?.data?.error || error.response?.data?.message);
             notification.error({
                 message: "Error",
                 description:
@@ -503,7 +492,6 @@ const UserForm = memo(({ mode = "edit" }) => {
                     dispatch(updateUser(response.data.user));
                     HandleBack();
                 }
-                // successAlert(`User ${mode === "create" ? "created" : "updated"}`, response.data.message);
                 notification.success({
                     message: `User ${mode === "create" ? "created" : "updated"}`,
                     description: response.data.message,
@@ -531,617 +519,8 @@ const UserForm = memo(({ mode = "edit" }) => {
         updateFormState({ paymentMethod: e.target.value });
     };
 
-    // Tab items
-    const tabItems = [
-        {
-            key: "1",
-            label: (
-                <span>
-                    <UserOutlined />
-                    Profile
-                </span>
-            ),
-            children: renderProfileTab(),
-        },
-        {
-            key: "2",
-            label: (
-                <span>
-                    <ShoppingOutlined />
-                    Bookings
-                </span>
-            ),
-            children: renderBookingsTab(),
-        },
-        ...(formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation' ? [{
-            key: "3",
-            label: (
-                <span>
-                    <WalletOutlined />
-                    Wallet
-                </span>
-            ),
-            children: <AssignCredit id={id} />,
-        }] : []),
-        {
-            key: "4",
-            label: (
-                <span>
-                    <TransactionOutlined />
-                    Transactions
-                </span>
-            ),
-            children: <Transactions userId={id} />,
-        },
-        ...(usePermission("Assign Permissions", 'Admin') ? [{
-            key: "5",
-            label: (
-                <span>
-                    <Shield size={16} />
-                    Permissions
-                </span>
-            ),
-            children: <>Role permissions component here</>,
-        }] : [])
-    ];
-
-    function renderProfileTab() {
-        // Role-first gating for create mode: show role selector before other fields
-        const showRoleGate = mode === "create" && !formState.roleId;
-
-        return (
-            <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleSubmit}
-                initialValues={formState}
-            >
-                <Row gutter={[16, 16]}>
-                    {/* Left Column - Basic Info */}
-
-                    <Col xs={24} lg={12}>
-
-                        <PermissionChecker role={['Admin', 'Organizer']}>
-                            <Card title="Select User Role">
-                                <Row gutter={[16, 16]}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="User Role"
-                                            name="roleId"
-                                            rules={[{ required: true, message: 'Please select role' }]}
-                                        >
-                                            <Select
-                                                placeholder="Select role"
-                                                value={formState.roleId}
-                                                onChange={handleRoleChange}
-                                            >
-                                                {roles?.map((item) => (
-                                                    <Option key={item.id} value={item.id}>
-                                                        {item.name}
-                                                    </Option>
-                                                ))}
-                                            </Select>
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </Card>
-                        </PermissionChecker>
-
-                        <Card
-                            title="Basic Information"
-                        // extra={
-                        //     <Space>
-                        //         <Button 
-                        //             type="primary" 
-                        //             htmlType="submit"
-                        //             loading={loading}
-                        //         >
-                        //             Save
-                        //         </Button>
-                        //     </Space>
-                        // }
-                        >
-                            <Row gutter={[16]}>
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Name"
-                                        name="name"
-                                        rules={[{ required: true, message: 'Please enter name' }]}
-                                    >
-                                        <Input
-                                            placeholder="Enter name"
-                                            value={formState.name}
-                                            onChange={(e) => handleInputChange('name', e.target.value)}
-                                        />
-                                    </Form.Item>
-                                </Col>
-
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Email"
-                                        name="email"
-                                        rules={[
-                                            { required: true, message: 'Please enter email' },
-                                            { type: 'email', message: 'Please enter valid email' }
-                                        ]}
-                                    >
-                                        <Input
-                                            placeholder="Enter email"
-                                            value={formState.email}
-                                            onChange={(e) => handleInputChange('email', e.target.value)}
-                                        />
-                                    </Form.Item>
-                                </Col>
-
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Mobile Number"
-                                        name="number"
-                                        rules={[
-                                            { required: true, message: 'Please enter mobile number' },
-                                            { pattern: /^\d{10,12}$/, message: 'Mobile number must be 10-12 digits' }
-                                        ]}
-                                    >
-                                        <Input
-                                            placeholder="Enter mobile number"
-                                            value={formState.number}
-                                            onChange={(e) => handleInputChange('number', e.target.value)}
-                                        />
-                                    </Form.Item>
-                                </Col>
-
-                                {formState.roleName === 'Organizer' && (
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Agreement Status"
-                                            name="agreementStatus"
-                                            valuePropName="checked"
-                                        >
-                                            <Switch
-                                                checked={formState.agreementStatus}
-                                                onChange={(checked) => handleInputChange('agreementStatus', checked)}
-                                                checkedChildren="Active"
-                                                unCheckedChildren="Inactive"
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                )}
-
-                                <>
-                                    <PermissionChecker role={['Admin', 'Organizer']}>
-                                        {
-                                            formState.roleName === 'Organizer' && (
-
-                                                <Col xs={24} md={12}>
-                                                    <Form.Item
-                                                        label="Organisation"
-                                                        name="organisation"
-                                                    >
-                                                        <Input
-                                                            placeholder="Enter organisation"
-                                                            disabled={disableOrg || disable}
-                                                            value={formState.organisation}
-                                                            onChange={(e) => handleInputChange('organisation', e.target.value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                            )
-                                        }
-
-                                        {!disableOrg && (formState.roleName === 'Agent' || formState.roleName === 'POS' || formState.roleName === 'Sponsor' || formState.roleName === 'Corporate') && (
-                                            <Col xs={24} md={12}>
-                                                <Form.Item
-                                                    label="Account Manager"
-                                                    name="reportingUser"
-                                                    rules={[requiredIf(showAM && !disableOrg, 'Please select account manager')]}
-                                                >
-                                                    <Select
-                                                        placeholder="Select account manager"
-                                                        options={OrganizerList}
-                                                        value={formState.reportingUser}
-                                                        onChange={handleReportingUserChange}
-                                                        optionFilterProp="label"
-                                                        showSearch
-                                                    />
-                                                </Form.Item>
-                                            </Col>
-                                        )}
-
-                                        {/* Role-specific fields */}
-                                        {formState.roleName === 'Scanner' && (
-                                            <Col xs={24} md={12}>
-                                                <Form.Item
-                                                    label="Event Gates"
-                                                    name="gates"
-                                                >
-                                                    <Select
-                                                        mode="multiple"
-                                                        placeholder="Select gates"
-                                                        options={gates}
-                                                        value={selectedGates.map(g => g.value)}
-                                                        onChange={handleGateChange}
-                                                        optionFilterProp="label"
-                                                        showSearch
-                                                    />
-                                                </Form.Item>
-                                            </Col>
-                                        )}
-
-                                        {(formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation') && (
-                                            <>
-                                                <Col xs={24} md={12}>
-                                                    <Form.Item
-                                                        label="Assign Events"
-                                                        name="events"
-                                                        rules={[{
-                                                            validator: () => {
-                                                                const needs = ['Agent', 'Sponsor', 'Accreditation'].includes(formState.roleName);
-                                                                return needs && selectedEvents.length === 0
-                                                                    ? Promise.reject(new Error('Please select at least one event'))
-                                                                    : Promise.resolve();
-                                                            }
-                                                        }]}
-                                                    >
-                                                        <Select
-                                                            mode="multiple"
-                                                            placeholder="Select events"
-                                                            options={events}
-                                                            value={selectedEvents.map(e => e.value)}
-                                                            onChange={handleEventChange}
-                                                            optionFilterProp="label"
-                                                            showSearch
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col xs={24} md={12}>
-                                                    <Form.Item
-                                                        label="Assign Tickets"
-                                                        name="tickets"
-                                                    >
-                                                        <Select
-                                                            mode="multiple"
-                                                            placeholder="Select tickets"
-                                                            value={selectedTickets.map(t => t.value)}
-                                                            onChange={handleTicketChange}
-                                                            filterOption={customTicketFilter}
-                                                            showSearch
-                                                            disabled={selectedEvents.length === 0}
-                                                        >
-                                                            {ticketGroup.map(eventGroup => (
-                                                                <Select.OptGroup
-                                                                    key={eventGroup.value}
-                                                                    label={eventGroup.label}
-                                                                >
-                                                                    {eventGroup.options.map(ticket => (
-                                                                        <Option
-                                                                            key={ticket.value}
-                                                                            value={ticket.value}
-                                                                            label={ticket.label}
-                                                                        >
-                                                                            {ticket.label}
-                                                                        </Option>
-                                                                    ))}
-                                                                </Select.OptGroup>
-                                                            ))}
-                                                        </Select>
-                                                    </Form.Item>
-                                                </Col>
-                                                {
-                                                    formState.roleName === 'Agent' && (
-
-                                                        <Col xs={24} md={12}>
-                                                            <Form.Item label="Agent Discount">
-                                                                <Switch
-                                                                    checked={formState.agentDiscount}
-                                                                    onChange={(checked) => handleInputChange('agentDiscount', checked)}
-                                                                />
-                                                            </Form.Item>
-                                                        </Col>
-                                                    )
-                                                }
-                                            </>
-                                        )}
-
-
-                                        {/* Password field */}
-                                        <Col xs={24} md={12}>
-                                            <Form.Item
-                                                label="Password"
-                                                name="password"
-                                                rules={[
-                                                    requiredIf(mode === 'create', 'Please enter password'),
-                                                    ...(mode === 'create'
-                                                        ? [{ min: 6, message: 'Password must be at least 6 characters' }]
-                                                        : [])
-                                                ]}
-                                            >
-                                                <Input.Password
-                                                    prefix={<Key className="text-primary" size={16} />}
-                                                    size="large"
-                                                    placeholder="Enter your password"
-                                                    value={formState.password}
-                                                    onChange={(e) => handleInputChange('password', e.target.value)}
-                                                    autoFocus
-                                                    disabled={loading}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-
-                                        {/* Confirm Password field (only in create mode) */}
-                                        {mode === 'create' && (
-                                            <Col xs={24} md={12}>
-                                                <Form.Item
-                                                    label="Confirm Password"
-                                                    name="repeatPassword"
-                                                    dependencies={["password"]}
-                                                    rules={[
-                                                        requiredIf(true, 'Please confirm password'),
-                                                        ({ getFieldValue }) => ({
-                                                            validator(_, value) {
-                                                                if (!value || getFieldValue('password') === value) {
-                                                                    return Promise.resolve();
-                                                                }
-                                                                return Promise.reject(new Error('Passwords do not match'));
-                                                            }
-                                                        })
-                                                    ]}
-                                                >
-                                                    <Input.Password
-                                                        size="large"
-                                                        placeholder="Re-enter your password"
-                                                        value={formState.repeatPassword}
-                                                        onChange={(e) => handleInputChange('repeatPassword', e.target.value)}
-                                                        disabled={loading}
-                                                    />
-                                                </Form.Item>
-                                            </Col>
-                                        )}
-                                    </PermissionChecker>
-
-
-                                    {formState.roleName === 'Scanner' && !disableOrg && (
-                                        <Col xs={24} md={12}>
-                                            <Form.Item
-                                                label="QR Data Length"
-                                                name="qrLength"
-                                                rules={[
-                                                    requiredIf(true, 'Please enter QR length'),
-                                                    {
-                                                        validator: (_, value) => {
-                                                            if (value === undefined || value === null || value === '') return Promise.reject(new Error('Please enter QR length'));
-                                                            const num = Number(value);
-                                                            if (Number.isNaN(num)) return Promise.reject(new Error('QR length must be a number'));
-                                                            if (num < 6 || num > 20) return Promise.reject(new Error('QR length must be between 6 and 20'));
-                                                            return Promise.resolve();
-                                                        }
-                                                    }
-                                                ]}
-                                            >
-                                                <Input
-                                                    type="number"
-                                                    min={6}
-                                                    max={20}
-                                                    placeholder="6-20"
-                                                    value={formState.qrLength}
-                                                    onChange={(e) => handleInputChange('qrLength', e.target.value)}
-                                                />
-                                            </Form.Item>
-                                        </Col>
-                                    )}
-                                </>
-                            </Row>
-                        </Card>
-                    </Col>
-
-                    {/* Right Column - Additional Details */}
-                    <Col xs={24} lg={12}>
-                        {/* Payment Method */}
-                        {!showRoleGate && (formState.roleName === 'POS' || formState.roleName === 'Corporate') && (
-                            <Card title="Payment Method" style={{ marginBottom: 16 }}>
-                                <Form.Item
-                                    name="paymentMethod"
-                                    rules={[requiredIf(true, 'Please select a payment method')]}
-                                >
-                                    <Radio.Group
-                                        value={formState.paymentMethod}
-                                        onChange={handlePaymentMethodChange}
-                                    >
-                                        <Radio value="Cash">Cash</Radio>
-                                        <Radio value="UPI">UPI</Radio>
-                                        <Radio value="Card">Card</Radio>
-                                    </Radio.Group>
-                                </Form.Item>
-                            </Card>
-                        )}
-
-                        {/* Shop Details */}
-                        {!showRoleGate && formState.roleName === 'Shop Keeper' && (
-                            <Card title="Shop Details" style={{ marginBottom: 16 }}>
-                                <Row gutter={[16, 16]}>
-                                    <Col xs={24} md={8}>
-                                        <Form.Item label="Shop Name">
-                                            <Input
-                                                placeholder="Enter shop name"
-                                                value={formState.shopName}
-                                                onChange={(e) => handleInputChange('shopName', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={8}>
-                                        <Form.Item label="Shop Number">
-                                            <Input
-                                                placeholder="Enter shop number"
-                                                value={formState.shopNumber}
-                                                onChange={(e) => handleInputChange('shopNumber', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={8}>
-                                        <Form.Item label="GST Number">
-                                            <Input
-                                                placeholder="Enter GST number"
-                                                value={formState.gstNumber}
-                                                onChange={(e) => handleInputChange('gstNumber', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </Card>
-                        )}
-
-                        {/* Address Section */}
-                        {!showRoleGate && (
-                            <Card title="Address" >
-                                <Row gutter={[16, 16]}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="City">
-                                            <Input
-                                                placeholder="Enter city"
-                                                value={formState.city}
-                                                onChange={(e) => handleInputChange('city', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="Pincode">
-                                            <Input
-                                                placeholder="Enter pincode"
-                                                value={formState.pincode}
-                                                onChange={(e) => handleInputChange('pincode', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </Card>
-                        )}
-
-                        {/* Banking Details */}
-                        {!showRoleGate && (userRole === 'Admin' && formState.roleName === 'Organizer') && (
-                            <Card title="Banking Details" style={{ marginBottom: 16 }}>
-                                <Row gutter={[16, 16]}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="Bank Name">
-                                            <Input
-                                                placeholder="Enter bank name"
-                                                value={formState.bankName}
-                                                onChange={(e) => handleInputChange('bankName', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="IFSC Code">
-                                            <Input
-                                                placeholder="Enter IFSC code"
-                                                value={formState.bankIfsc}
-                                                onChange={(e) => handleInputChange('bankIfsc', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="Branch Name">
-                                            <Input
-                                                placeholder="Enter branch name"
-                                                value={formState.bankBranch}
-                                                onChange={(e) => handleInputChange('bankBranch', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="Account Number">
-                                            <Input
-                                                placeholder="Enter account number"
-                                                value={formState.bankNumber}
-                                                onChange={(e) => handleInputChange('bankNumber', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </Card>
-                        )}
-
-                        {/* Other */}
-                        {!showRoleGate && formState.roleName === 'Organizer' && (
-                            <Card title="Other" style={{ marginBottom: 16 }}>
-                                <Row gutter={[16, 16]}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="GST / VAT Tax">
-                                            <Input
-                                                placeholder="GST / VAT Tax"
-                                                value={formState.orgGstNumber}
-                                                onChange={(e) => handleInputChange('orgGstNumber', e.target.value)}
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                </Row>
-                            </Card>
-                        )}
-
-                        {/* Status and Security */}
-                        {!showRoleGate && (
-                            <PermissionChecker role={['Admin', 'Organizer']}>
-                                <Card title="Status & Security">
-                                    <Row gutter={[16, 16]}>
-                                        {/* User Status */}
-                                        <Col xs={24} md={12}>
-                                            <Form.Item label="User Status">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                    <Switch
-                                                        checked={formState.status === 'Active'}
-                                                        onChange={(checked) =>
-                                                            handleInputChange('status', checked ? 'Active' : 'Inactive')
-                                                        }
-                                                        checkedChildren="Active"
-                                                        unCheckedChildren="Inactive"
-                                                    />
-                                                    <span
-                                                        style={{
-                                                            color: formState.status === 'Active' ? '#52c41a' : '#ff4d4f',
-                                                        }}
-                                                    >
-                                                        {formState.status === 'Active'
-                                                            ? 'User is Active'
-                                                            : 'User is Inactive'}
-                                                    </span>
-                                                </div>
-                                            </Form.Item>
-                                        </Col>
-
-                                        {/* Authentication Method */}
-                                        <Col xs={24} md={12}>
-                                            <Form.Item label="Authentication Method">
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                                                    <Switch
-                                                        checked={!!formState.authentication}
-                                                        onChange={(checked) => handleInputChange('authentication', checked)}
-                                                        checkedChildren="Password"
-                                                        unCheckedChildren="OTP"
-                                                    />
-                                                    <span>
-                                                        {formState.authentication ? 'Password Auth' : 'OTP Auth'}
-                                                    </span>
-                                                </div>
-                                            </Form.Item>
-                                        </Col>
-                                    </Row>
-                                </Card>
-                            </PermissionChecker>
-                        )}
-                    </Col>
-                </Row>
-            </Form>
-        );
-    }
-
-    function renderBookingsTab() {
-        return (
-            <>
-                {/* <BookingList bookings={bookings} loading={loading} setLoading={setLoading} /> */}
-                <UserBookings id={id} activeTab={activeTab} />
-                <div style={{ textAlign: 'center', marginTop: 16 }}>
-                </div>
-            </>
-        );
-    }
+    // Role-first gating for create mode: show role selector before other fields
+    const showRoleGate = mode === "create" && !formState.roleId;
 
     if (userLoading) {
         return (
@@ -1158,53 +537,527 @@ const UserForm = memo(({ mode = "edit" }) => {
                 form={form}
                 name="user_form"
                 className="ant-advanced-search-form"
+                onFinish={handleSubmit}
+                initialValues={formState}
             >
-                <PageHeaderAlt overlap>
-                    <div className="container">
-                        <Flex className="pb-4" mobileFlex={false} justifyContent="space-between" alignItems="center">
-                            <div className="d-flex align-items-center">
-                                <Button
-                                    type="text"
-                                    icon={<ArrowLeftOutlined />}
-                                    onClick={HandleBack}
-                                />
-                                <h2 className="mb-0">
-                                    {mode === "create"
-                                        ? "Create User"
-                                        : `Manage User - ${formState.roleName}`}
-                                </h2>
-                            </div>
-                            <div>
-                                {activeTab === "1" && (
-                                    <Fragment>
-                                        <Button className="mr-2" onClick={() => navigate(-1)}>Discard</Button>
-                                        <Button
-                                            type="primary"
-                                            htmlType="submit"
-                                            loading={loading}
-                                            onClick={() => form.submit()}
+                <div className="container"z>
+                    <Row gutter={[16, 16]}>
+                        {/* Left Column - Basic Info */}
+                        <Col xs={24} lg={12}>
+                            <PermissionChecker role={['Admin', 'Organizer']}>
+                                <Card title="Select User Role">
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                label="User Role"
+                                                name="roleId"
+                                                rules={[{ required: true, message: 'Please select role' }]}
+                                            >
+                                                <Select
+                                                    placeholder="Select role"
+                                                    value={formState.roleId}
+                                                    onChange={handleRoleChange}
+                                                >
+                                                    {roles?.map((item) => (
+                                                        <Option key={item.id} value={item.id}>
+                                                            {item.name}
+                                                        </Option>
+                                                    ))}
+                                                </Select>
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            </PermissionChecker>
+
+                            <Card title="Basic Information">
+                                <Row gutter={[16]}>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Name"
+                                            name="name"
+                                            rules={[{ required: true, message: 'Please enter name' }]}
                                         >
-                                            {mode === "create" ? "Create" : "Update"}
-                                        </Button>
-                                    </Fragment>
-                                )}
-                            </div>
-                        </Flex>
-                    </div>
-                </PageHeaderAlt>
-                <div className="container">
-                    {mode === "edit" ? (
-                        <Tabs
-                            activeKey={activeTab}
-                            onChange={setActiveTab}
-                            style={{ marginTop: 30 }}
-                            items={tabItems}
-                        />
-                    ) : (
-                        <div style={{ marginTop: '6rem' }}>
-                            {renderProfileTab()}
-                        </div>
-                    )}
+                                            <Input
+                                                placeholder="Enter name"
+                                                value={formState.name}
+                                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Email"
+                                            name="email"
+                                            rules={[
+                                                { required: true, message: 'Please enter email' },
+                                                { type: 'email', message: 'Please enter valid email' }
+                                            ]}
+                                        >
+                                            <Input
+                                                placeholder="Enter email"
+                                                value={formState.email}
+                                                onChange={(e) => handleInputChange('email', e.target.value)}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Mobile Number"
+                                            name="number"
+                                            rules={[
+                                                { required: true, message: 'Please enter mobile number' },
+                                                { pattern: /^\d{10,12}$/, message: 'Mobile number must be 10-12 digits' }
+                                            ]}
+                                        >
+                                            <Input
+                                                placeholder="Enter mobile number"
+                                                value={formState.number}
+                                                onChange={(e) => handleInputChange('number', e.target.value)}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+
+                                    {formState.roleName === 'Organizer' && (
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                label="Agreement Status"
+                                                name="agreementStatus"
+                                                valuePropName="checked"
+                                            >
+                                                <Switch
+                                                    checked={formState.agreementStatus}
+                                                    onChange={(checked) => handleInputChange('agreementStatus', checked)}
+                                                    checkedChildren="Active"
+                                                    unCheckedChildren="Inactive"
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    )}
+
+                                    <>
+                                        <PermissionChecker role={['Admin', 'Organizer']}>
+                                            {
+                                                formState.roleName === 'Organizer' && (
+
+                                                    <Col xs={24} md={12}>
+                                                        <Form.Item
+                                                            label="Organisation"
+                                                            name="organisation"
+                                                        >
+                                                            <Input
+                                                                placeholder="Enter organisation"
+                                                                disabled={disableOrg || disable}
+                                                                value={formState.organisation}
+                                                                onChange={(e) => handleInputChange('organisation', e.target.value)}
+                                                            />
+                                                        </Form.Item>
+                                                    </Col>
+                                                )
+                                            }
+
+                                            {!disableOrg && (formState.roleName === 'Agent' || formState.roleName === 'POS' || formState.roleName === 'Sponsor' || formState.roleName === 'Corporate') && (
+                                                <Col xs={24} md={12}>
+                                                    <Form.Item
+                                                        label="Account Manager"
+                                                        name="reportingUser"
+                                                        rules={[requiredIf(showAM && !disableOrg, 'Please select account manager')]}
+                                                    >
+                                                        <Select
+                                                            placeholder="Select account manager"
+                                                            options={OrganizerList}
+                                                            value={formState.reportingUser}
+                                                            onChange={handleReportingUserChange}
+                                                            optionFilterProp="label"
+                                                            showSearch
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                            )}
+
+                                            {/* Role-specific fields */}
+                                            {formState.roleName === 'Scanner' && (
+                                                <Col xs={24} md={12}>
+                                                    <Form.Item
+                                                        label="Event Gates"
+                                                        name="gates"
+                                                    >
+                                                        <Select
+                                                            mode="multiple"
+                                                            placeholder="Select gates"
+                                                            options={gates}
+                                                            value={selectedGates.map(g => g.value)}
+                                                            onChange={handleGateChange}
+                                                            optionFilterProp="label"
+                                                            showSearch
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                            )}
+
+                                            {(formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation') && (
+                                                <>
+                                                    <Col xs={24} md={12}>
+                                                        <Form.Item
+                                                            label="Assign Events"
+                                                            name="events"
+                                                            rules={[{
+                                                                validator: () => {
+                                                                    const needs = ['Agent', 'Sponsor', 'Accreditation'].includes(formState.roleName);
+                                                                    return needs && selectedEvents.length === 0
+                                                                        ? Promise.reject(new Error('Please select at least one event'))
+                                                                        : Promise.resolve();
+                                                                }
+                                                            }]}
+                                                        >
+                                                            <Select
+                                                                mode="multiple"
+                                                                placeholder="Select events"
+                                                                options={events}
+                                                                value={selectedEvents.map(e => e.value)}
+                                                                onChange={handleEventChange}
+                                                                optionFilterProp="label"
+                                                                showSearch
+                                                            />
+                                                        </Form.Item>
+                                                    </Col>
+                                                    <Col xs={24} md={12}>
+                                                        <Form.Item
+                                                            label="Assign Tickets"
+                                                            name="tickets"
+                                                        >
+                                                            <Select
+                                                                mode="multiple"
+                                                                placeholder="Select tickets"
+                                                                value={selectedTickets.map(t => t.value)}
+                                                                onChange={handleTicketChange}
+                                                                filterOption={customTicketFilter}
+                                                                showSearch
+                                                                disabled={selectedEvents.length === 0}
+                                                            >
+                                                                {ticketGroup.map(eventGroup => (
+                                                                    <Select.OptGroup
+                                                                        key={eventGroup.value}
+                                                                        label={eventGroup.label}
+                                                                    >
+                                                                        {eventGroup.options.map(ticket => (
+                                                                            <Option
+                                                                                key={ticket.value}
+                                                                                value={ticket.value}
+                                                                                label={ticket.label}
+                                                                            >
+                                                                                {ticket.label}
+                                                                            </Option>
+                                                                        ))}
+                                                                    </Select.OptGroup>
+                                                                ))}
+                                                            </Select>
+                                                        </Form.Item>
+                                                    </Col>
+                                                    {
+                                                        formState.roleName === 'Agent' && (
+
+                                                            <Col xs={24} md={12}>
+                                                                <Form.Item label="Agent Discount">
+                                                                    <Switch
+                                                                        checked={formState.agentDiscount}
+                                                                        onChange={(checked) => handleInputChange('agentDiscount', checked)}
+                                                                    />
+                                                                </Form.Item>
+                                                            </Col>
+                                                        )
+                                                    }
+                                                </>
+                                            )}
+
+
+                                            {/* Password field */}
+                                            <Col xs={24} md={12}>
+                                                <Form.Item
+                                                    label="Password"
+                                                    name="password"
+                                                    rules={[
+                                                        requiredIf(mode === 'create', 'Please enter password'),
+                                                        ...(mode === 'create'
+                                                            ? [{ min: 6, message: 'Password must be at least 6 characters' }]
+                                                            : [])
+                                                    ]}
+                                                >
+                                                    <Input.Password
+                                                        prefix={<Key className="text-primary" size={16} />}
+                                                        size="large"
+                                                        placeholder="Enter your password"
+                                                        value={formState.password}
+                                                        onChange={(e) => handleInputChange('password', e.target.value)}
+                                                        autoFocus
+                                                        disabled={loading}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+
+                                            {/* Confirm Password field (only in create mode) */}
+                                            {mode === 'create' && (
+                                                <Col xs={24} md={12}>
+                                                    <Form.Item
+                                                        label="Confirm Password"
+                                                        name="repeatPassword"
+                                                        dependencies={["password"]}
+                                                        rules={[
+                                                            requiredIf(true, 'Please confirm password'),
+                                                            ({ getFieldValue }) => ({
+                                                                validator(_, value) {
+                                                                    if (!value || getFieldValue('password') === value) {
+                                                                        return Promise.resolve();
+                                                                    }
+                                                                    return Promise.reject(new Error('Passwords do not match'));
+                                                                }
+                                                            })
+                                                        ]}
+                                                    >
+                                                        <Input.Password
+                                                            size="large"
+                                                            placeholder="Re-enter your password"
+                                                            value={formState.repeatPassword}
+                                                            onChange={(e) => handleInputChange('repeatPassword', e.target.value)}
+                                                            disabled={loading}
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                            )}
+                                        </PermissionChecker>
+
+
+                                        {formState.roleName === 'Scanner' && !disableOrg && (
+                                            <Col xs={24} md={12}>
+                                                <Form.Item
+                                                    label="QR Data Length"
+                                                    name="qrLength"
+                                                    rules={[
+                                                        requiredIf(true, 'Please enter QR length'),
+                                                        {
+                                                            validator: (_, value) => {
+                                                                if (value === undefined || value === null || value === '') return Promise.reject(new Error('Please enter QR length'));
+                                                                const num = Number(value);
+                                                                if (Number.isNaN(num)) return Promise.reject(new Error('QR length must be a number'));
+                                                                if (num < 6 || num > 20) return Promise.reject(new Error('QR length must be between 6 and 20'));
+                                                                return Promise.resolve();
+                                                            }
+                                                        }
+                                                    ]}
+                                                >
+                                                    <Input
+                                                        type="number"
+                                                        min={6}
+                                                        max={20}
+                                                        placeholder="6-20"
+                                                        value={formState.qrLength}
+                                                        onChange={(e) => handleInputChange('qrLength', e.target.value)}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                        )}
+                                    </>
+                                </Row>
+                            </Card>
+                        </Col>
+
+                        {/* Right Column - Additional Details */}
+                        <Col xs={24} lg={12}>
+                            {/* Payment Method */}
+                            {!showRoleGate && (formState.roleName === 'POS' || formState.roleName === 'Corporate') && (
+                                <Card title="Payment Method" style={{ marginBottom: 16 }}>
+                                    <Form.Item
+                                        name="paymentMethod"
+                                        rules={[requiredIf(true, 'Please select a payment method')]}
+                                    >
+                                        <Radio.Group
+                                            value={formState.paymentMethod}
+                                            onChange={handlePaymentMethodChange}
+                                        >
+                                            <Radio value="Cash">Cash</Radio>
+                                            <Radio value="UPI">UPI</Radio>
+                                            <Radio value="Card">Card</Radio>
+                                        </Radio.Group>
+                                    </Form.Item>
+                                </Card>
+                            )}
+
+                            {/* Shop Details */}
+                            {!showRoleGate && formState.roleName === 'Shop Keeper' && (
+                                <Card title="Shop Details" style={{ marginBottom: 16 }}>
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} md={8}>
+                                            <Form.Item label="Shop Name">
+                                                <Input
+                                                    placeholder="Enter shop name"
+                                                    value={formState.shopName}
+                                                    onChange={(e) => handleInputChange('shopName', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={8}>
+                                            <Form.Item label="Shop Number">
+                                                <Input
+                                                    placeholder="Enter shop number"
+                                                    value={formState.shopNumber}
+                                                    onChange={(e) => handleInputChange('shopNumber', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={8}>
+                                            <Form.Item label="GST Number">
+                                                <Input
+                                                    placeholder="Enter GST number"
+                                                    value={formState.gstNumber}
+                                                    onChange={(e) => handleInputChange('gstNumber', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            )}
+
+                            {/* Address Section */}
+                            {!showRoleGate && (
+                                <Card title="Address" >
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="City">
+                                                <Input
+                                                    placeholder="Enter city"
+                                                    value={formState.city}
+                                                    onChange={(e) => handleInputChange('city', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="Pincode">
+                                                <Input
+                                                    placeholder="Enter pincode"
+                                                    value={formState.pincode}
+                                                    onChange={(e) => handleInputChange('pincode', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            )}
+
+                            {/* Banking Details */}
+                            {!showRoleGate && (userRole === 'Admin' && formState.roleName === 'Organizer') && (
+                                <Card title="Banking Details" style={{ marginBottom: 16 }}>
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="Bank Name">
+                                                <Input
+                                                    placeholder="Enter bank name"
+                                                    value={formState.bankName}
+                                                    onChange={(e) => handleInputChange('bankName', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="IFSC Code">
+                                                <Input
+                                                    placeholder="Enter IFSC code"
+                                                    value={formState.bankIfsc}
+                                                    onChange={(e) => handleInputChange('bankIfsc', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="Branch Name">
+                                                <Input
+                                                    placeholder="Enter branch name"
+                                                    value={formState.bankBranch}
+                                                    onChange={(e) => handleInputChange('bankBranch', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="Account Number">
+                                                <Input
+                                                    placeholder="Enter account number"
+                                                    value={formState.bankNumber}
+                                                    onChange={(e) => handleInputChange('bankNumber', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            )}
+
+                            {/* Other */}
+                            {!showRoleGate && formState.roleName === 'Organizer' && (
+                                <Card title="Other" style={{ marginBottom: 16 }}>
+                                    <Row gutter={[16, 16]}>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item label="GST / VAT Tax">
+                                                <Input
+                                                    placeholder="GST / VAT Tax"
+                                                    value={formState.orgGstNumber}
+                                                    onChange={(e) => handleInputChange('orgGstNumber', e.target.value)}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            )}
+
+                            {/* Status and Security */}
+                            {!showRoleGate && (
+                                <PermissionChecker role={['Admin', 'Organizer']}>
+                                    <Card title="Status & Security">
+                                        <Row gutter={[16, 16]}>
+                                            {/* User Status */}
+                                            <Col xs={24} md={12}>
+                                                <Form.Item label="User Status">
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                        <Switch
+                                                            checked={formState.status === 'Active'}
+                                                            onChange={(checked) =>
+                                                                handleInputChange('status', checked ? 'Active' : 'Inactive')
+                                                            }
+                                                            checkedChildren="Active"
+                                                            unCheckedChildren="Inactive"
+                                                        />
+                                                        <span
+                                                            style={{
+                                                                color: formState.status === 'Active' ? '#52c41a' : '#ff4d4f',
+                                                            }}
+                                                        >
+                                                            {formState.status === 'Active'
+                                                                ? 'User is Active'
+                                                                : 'User is Inactive'}
+                                                        </span>
+                                                    </div>
+                                                </Form.Item>
+                                            </Col>
+
+                                            {/* Authentication Method */}
+                                            <Col xs={24} md={12}>
+                                                <Form.Item label="Authentication Method">
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                                        <Switch
+                                                            checked={!!formState.authentication}
+                                                            onChange={(checked) => handleInputChange('authentication', checked)}
+                                                            checkedChildren="Password"
+                                                            unCheckedChildren="OTP"
+                                                        />
+                                                        <span>
+                                                            {formState.authentication ? 'Password Auth' : 'OTP Auth'}
+                                                        </span>
+                                                    </div>
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+                                    </Card>
+                                </PermissionChecker>
+                            )}
+                        </Col>
+                    </Row>
                 </div>
             </Form>
         </Fragment>

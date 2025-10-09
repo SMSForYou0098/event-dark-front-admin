@@ -1,7 +1,7 @@
 import { Form, Select } from "antd"
 import { useMyContext } from "Context/MyContextProvider";
 
-export const OrganisationList = () => {
+export const OrganisationList = ({ onChange }) => {
     const { OrganizerList } = useMyContext();
     return (
         <Form.Item
@@ -17,6 +17,7 @@ export const OrganisationList = () => {
                     label: `${org.organisation} (${org.label})`,
                 }))}
                 optionFilterProp="label"
+                onChange={onChange}
             />
         </Form.Item>
     )

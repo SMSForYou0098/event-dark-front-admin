@@ -729,5 +729,26 @@ export const protectedRoutes = [
         key: 'docs.documentation',
         path: `${APP_PREFIX_PATH}/docs/documentation/*`,
         component: React.lazy(() => import('views/app-views/docs')),
-    }
+    },
+    // settings configs
+    {
+        key: 'apps.settings.mail_config',
+        path: `${APP_PREFIX_PATH}/apps/settings/mail-config`,
+        component: React.lazy(() => import('views/events/Settings/Admin_configs/MailSettings')),
+    },
+    {
+        key: 'apps.settings.whats_config',
+        path: `${APP_PREFIX_PATH}/apps/settings/whatsapp-config`,
+        component: React.lazy(() => import('views/events/Settings/Admin_configs/WhatsAppConfig')),
+    },
+    {
+        key: 'apps.settings.sms_config',
+        path: `${APP_PREFIX_PATH}/apps/settings/sms-config`,
+        component: React.lazy(() => import('views/events/Settings/Admin_configs/SmsSetting')),
+    },
+    {
+        key: 'apps.settings.banners',
+        path: `${APP_PREFIX_PATH}/apps/settings/banners`,
+        component: React.lazy(() => import('views/events/Settings/Banner/BannerConfig')),
+    },
 ]

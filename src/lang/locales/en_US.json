@@ -32,6 +32,13 @@
 	"sidenav.apps.ecommerce.productList": "Product List",
 	"sidenav.apps.ecommerce.orders": "Orders",
 
+
+	"sidenav.apps.settings": "Settings",
+	"sidenav.apps.settings.mail_config": "Mail Configuration",
+	"sidenav.apps.settings.sms_gateway": "SMS Gateway",
+	"sidenav.apps.settings.whats_config": "WhatsApp Config",
+	"sidenav.apps.settings.banners": "Banner Settings",
+
 	"sidenav.components": "Components",
 	"sidenav.components.general": "General",
 	"sidenav.components.general.button": "Button",

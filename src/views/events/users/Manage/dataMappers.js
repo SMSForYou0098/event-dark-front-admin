@@ -1,8 +1,6 @@
-// utils/dataMappers.js
-
 /**
- * Map API response to form fields
- * @param {Object} apiData - Raw data from API
+ * Map API response to form values
+ * @param {Object} apiData - Response from edit-user API
  * @returns {Object} - Mapped data for form
  */
 export const mapApiToForm = (apiData) => {
@@ -26,7 +24,7 @@ export const mapApiToForm = (apiData) => {
         // Role & User Info
         roleId: user.role?.id || null,
         roleName: user.role?.name || '',
-        reportingUser: String(user.reporting_user_id ) || null,
+        reportingUser: user.reporting_user_id ? String(user.reporting_user_id) : null,
         status: user.status === 1 ? 'Active' : 'Inactive',
         
         // Banking
@@ -51,11 +49,10 @@ export const mapApiToForm = (apiData) => {
         agreementStatus: user.agreement_status === 1,
         paymentMethod: user.payment_method || 'Cash',
         
-        // Events & Tickets
-        events: user.events?.map(e => e.id || e.value) || [],
-         tickets: user.agentTicket?.map(t => String(t.value)) || 
-                 user.tickets?.map(t => String(t.id || t.value)) || [],
-        gates: user.gates?.map(g => g.id || g.value) || [],
+        // Events & Tickets - Extract from nested structure
+        events: (user.events || []).map(e => e.id),
+        tickets: (user.agentTickets || user.tickets || []).map(t => String(t.id)),
+        gates: (user.gates || []).map(g => g.id),
         
         // Agreement Details
         aggrementDetails: {
@@ -82,7 +79,7 @@ export const mapFormToApi = (formData) => {
     return {
         name: formData.name,
         email: formData.email,
-        phone_number: formData.number,
+        number: formData.number,
         alt_number: formData.altNumber || null,
         organisation: formData.organisation,
         
@@ -93,8 +90,9 @@ export const mapFormToApi = (formData) => {
         
         // Role
         role_id: formData.roleId,
-        reporting_user:  formData.reportingUser?.value || formData.reportingUser,
+        reporting_user: formData.reportingUser,
         status: formData.status === 'Active' ? 1 : 0,
+        role_name: formData.roleName,
         
         // Banking
         bank_name: formData.bankName,
@@ -118,32 +116,15 @@ export const mapFormToApi = (formData) => {
         agreement_status: formData.agreementStatus ? 1 : 0,
         payment_method: formData.paymentMethod,
         
-        // Events & Tickets
-        event_ids: formData.events,
-        ticket_ids : formData.tickets.map(Number),
-        gate_ids: formData.gates,
+        // Events & Tickets - send as arrays of IDs
+        event_ids: formData.events || [],
+        ticket_ids: (formData.tickets || []).map(t => Number(t)),
+        gate_ids: formData.gates || [],
         
         // Password (only include if provided)
         ...(formData.password && { password: formData.password }),
         
         // Agreement Details
-        ...formData.aggrementDetails
+        ...(formData.aggrementDetails || {})
     };
 };
-
-// Updated ProfileTab useEffect
-/*
-useEffect(() => {
-    console.log('fetchedData', fetchedData?.user);
-    if (mode === 'edit' && fetchedData?.user) {
-        const mappedData = mapApiToForm(fetchedData);
-        form.setFieldsValue(mappedData);
-    }
-}, [mode, fetchedData, form]);
-
-// And in your submit handler:
-const onFinish = (values) => {
-    const apiData = mapFormToApi(values);
-    handleSubmit(apiData);
-};
-*/

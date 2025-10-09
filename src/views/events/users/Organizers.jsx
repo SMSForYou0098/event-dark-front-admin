@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Button, Card, Row, Col, Tag, message } from 'antd';
+import { Button, Card, Row, Col, Tag, message, Image } from 'antd';
 import { User, Mail, LogIn, PlusIcon, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMyContext } from '../../../Context/MyContextProvider';
@@ -18,7 +18,8 @@ const Organizers = () => {
     authToken, 
     auth_session, 
     session_id,
-    formatDateTime
+    formatDateTime,
+    loader
   } = useMyContext();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -26,6 +27,7 @@ const Organizers = () => {
   
   const [dateRange, setDateRange] = useState(null);
   const [error, setError] = useState(null);
+  const [mutationLoading, setMutationLoading] = useState(false);
 
   // Fetch organizers with React Query
   const fetchOrganizers = async () => {
@@ -90,6 +92,7 @@ const Organizers = () => {
       dispatch(updateUser(data.user));
       message.success("Logged in successfully");
       navigate("/dashboard");
+      setMutationLoading(false);
     },
     onError: (err) => {
       if (err.message === "Session expired. Please login again.") {
@@ -99,14 +102,17 @@ const Organizers = () => {
       }
       setError(err.response?.data?.error || err.message || "Unexpected error occurred");
       message.error(err.response?.data?.error || err.message || "Unexpected error occurred");
+      setMutationLoading(false);
     }
   });
 
   const impersonateLogin = useCallback((id) => {
+    setMutationLoading(true);
     impersonateMutation.mutate(id);
   }, [impersonateMutation]);
 
   const oneClickLogin = useCallback((id) => {
+    setMutationLoading(true);
     impersonateMutation.mutate(id);
   }, [impersonateMutation]);
 
@@ -135,6 +141,37 @@ const Organizers = () => {
   const CustomTooltip = ({ text, children }) => (
     <span title={text}>{children}</span>
   );
+
+  // Loading overlay for mutations
+  const renderMutationLoader = () => {
+    if (mutationLoading && impersonateMutation.isPending) {
+      return (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 10000
+        }}>
+          <div style={{ pointerEvents: 'auto', zIndex: 10001 }}>
+            <Image
+              src={loader}
+              alt="loader"
+              className="img-fluid bg-transparent shadow-none"
+              style={{ height: '100px' }}
+              preview={false}
+            />
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   const baseColumns = [
     {
@@ -193,8 +230,8 @@ const Organizers = () => {
             type="primary"
             icon={<LogIn size={14} />}
             onClick={() => impersonateLogin(record.id)}
-            loading={impersonateMutation.isLoading}
-            disabled={impersonateMutation.isLoading || record?.status === "0" || record?.status === 0}
+            loading={impersonateMutation.isPending}
+            disabled={mutationLoading || record?.status === "0" || record?.status === 0}
             size="small"
           />
         </PermissionChecker>
@@ -204,6 +241,7 @@ const Organizers = () => {
             icon={<Settings size={14} />}
             onClick={() => navigate(`/dashboard/organizers/manage/${record.id}`)}
             size="small"
+            disabled={mutationLoading}
           />
         </PermissionChecker>
       </div>
@@ -214,6 +252,8 @@ const Organizers = () => {
 
   return (
     <>
+      {renderMutationLoader()}
+
       <DataTable
         title="Organizers Management"
         data={formatOrganizerData(organizers)}
@@ -229,7 +269,7 @@ const Organizers = () => {
         exportRoute={'export-organizers'}
         ExportPermission={UserPermissions?.includes("Export Organizers")}
         authToken={authToken}
-        loading={organizersLoading || impersonateMutation.isLoading}
+        loading={organizersLoading || mutationLoading}
         error={organizersError || error}
         onRefresh={handleRefresh}
         tableProps={{
@@ -243,6 +283,7 @@ const Organizers = () => {
             icon={<PlusIcon size={16} />}
             onClick={handleNavigate}
             style={{ marginBottom: 16 }}
+            disabled={mutationLoading}
           >
             New Organizer
           </Button>

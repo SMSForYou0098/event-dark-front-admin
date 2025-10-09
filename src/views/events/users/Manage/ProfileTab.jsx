@@ -32,15 +32,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
 
     const [form] = Form.useForm();
 
-    // Get watched values safely
-    console.log('form', form.getFieldsValue())
-    // Safely destructure with defaults
 const roleId         = Form.useWatch('roleId', form);
 const roleName       = Form.useWatch('roleName', form);
 const reportingUser  = Form.useWatch('reportingUser', form);
 const selectedEvents = Form.useWatch('events', form) || [];
-
-    console.log('role namer',roleName)
 
     // Calculate conditions directly
     const showAM = ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(roleName);

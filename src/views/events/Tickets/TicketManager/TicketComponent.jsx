@@ -5,7 +5,7 @@ import TicketManager from './TicketManager';
 
 const TicketComponent = () => {
   const { id, name } = useParams();
-
+  console.log('id', id, 'name', name);
   return (
     <Card bordered={false}>
       <TicketManager eventId={id} eventName={name} showEventName={true} />
