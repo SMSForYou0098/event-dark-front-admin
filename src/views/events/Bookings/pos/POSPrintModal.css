@@ -6,6 +6,9 @@
   .ant-table-content>table>tbody>tr>td {
     color: black !important;
   }
+  :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr:hover>td{
+    background-color: white !important;
+  }
   .ant-table-thead >tr>th{
     border-bottom: inherit !important;
   }

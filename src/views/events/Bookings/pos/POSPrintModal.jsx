@@ -12,7 +12,7 @@ const POSPrintModal = ({
     showPrintModel,
     closePrintModel,
     event,
-    bookingData,
+    bookingData = [], // default to empty array
     subtotal,
     totalTax,
     discount,
@@ -23,7 +23,7 @@ const POSPrintModal = ({
 
     const handlePrint = useReactToPrint({
         contentRef: printRef,
-        documentTitle: `Invoice-${bookingData?.token || 'ticket'}`,
+        documentTitle: `Invoice-${bookingData?.[0]?.token || 'ticket'}`,
         pageStyle: `
             @page {
                 size: 80mm auto;
@@ -62,14 +62,15 @@ const POSPrintModal = ({
         },
     ], []);
 
-    const ticketData = useMemo(() => [
-        {
-            key: '1',
-            quantity: bookingData?.quantity || 0,
-            ticketName: bookingData?.ticket?.name || 'N/A',
-            price: `₹${Number(subtotal)?.toFixed(2) || '0.00'}`,
-        },
-    ], [bookingData, subtotal]);
+    // ✅ Fix: Extract ticket data from array
+    const ticketData = useMemo(() => {
+        return bookingData.map((booking, index) => ({
+            key: index,
+            quantity: booking.quantity || 0,
+            ticketName: booking?.ticket?.name || 'N/A',
+            price: `₹${Number(booking.amount)?.toFixed(2) || '0.00'}`,
+        }));
+    }, [bookingData]);
 
     const summaryColumns = useMemo(() => [
         {
@@ -89,12 +90,12 @@ const POSPrintModal = ({
         {
             key: '1',
             label: 'SUBTOTAL',
-            value: `₹${Number(subtotal)?.toFixed(2)|| '0.00'}`,
+            value: `₹${Number(subtotal)?.toFixed(2) || '0.00'}`,
         },
         {
             key: '2',
             label: 'TOTAL TAX',
-            value: `₹${totalTax || '0.00'}`,
+            value: `₹${Number(totalTax)?.toFixed(2) || '0.00'}`,
         },
         {
             key: '3',
@@ -116,22 +117,8 @@ const POSPrintModal = ({
             width={400}
             centered
             footer={[
-                <Button
-                    key="close"
-                    onClick={closePrintModel}
-                    icon={<CloseOutlined />}
-                >
-                    Close
-                </Button>,
-                <Button
-                    key="print"
-                    className='border-0'
-                    type="primary"
-                    onClick={handlePrint}
-                    icon={<PrinterOutlined />}
-                >
-                    Print Invoice
-                </Button>,
+                <Button key="close" onClick={closePrintModel} icon={<CloseOutlined />}>Close</Button>,
+                <Button key="print" className='border-0' type="primary" onClick={handlePrint} icon={<PrinterOutlined />}>Print Invoice</Button>,
             ]}
         >
             <div ref={printRef} className="pos-print-body" style={{ padding: '20px 10px' }}>
@@ -142,25 +129,21 @@ const POSPrintModal = ({
                         </Title>
                     )}
 
-                    {bookingData?.token && (
-                        <div style={{ 
-                            display: 'flex', 
-                            justifyContent: 'center', 
-                            marginBottom: '15px' 
-                        }}>
+                    {/* ✅ Fix: Use token from first ticket */}
+                    {bookingData?.[0]?.token && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
                             <QRCodeSVG
                                 size={150}
-                                value={bookingData.token}
+                                value={bookingData[0].token}
                                 level="H"
                             />
                         </div>
                     )}
 
+                    {/* ✅ Fix: Use created_at from first ticket */}
                     <Text strong style={{ fontSize: '14px' }}>
-                        {formatDateTime?.(bookingData?.created_at) || bookingData?.created_at}
+                        {formatDateTime?.(bookingData?.[0]?.created_at) || bookingData?.[0]?.created_at}
                     </Text>
-
-                    {/* <Divider style={{ margin: '15px 0' }} /> */}
 
                     <Table
                         columns={ticketColumns}
@@ -180,9 +163,7 @@ const POSPrintModal = ({
                         bordered={false}
                     />
 
-                    {/* <Divider style={{ margin: '15px 0' }} /> */}
-
-                    <Text style={{ display: 'block', fontSize: '14px', marginTop: '5px'}}>
+                    <Text style={{ display: 'block', fontSize: '14px', marginTop: '5px' }}>
                         Thank You for Payment
                     </Text>
 
@@ -194,5 +175,6 @@ const POSPrintModal = ({
         </Modal>
     );
 };
+
 
 export default POSPrintModal;

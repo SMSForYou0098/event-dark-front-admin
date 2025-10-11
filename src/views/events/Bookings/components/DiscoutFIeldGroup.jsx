@@ -5,12 +5,12 @@ const { Option } = Select;
 
 const DiscoutFIeldGroup = ({ discountType, setDiscountType, discountValue, setDiscountValue, disableChoice, handleDiscount }) => {
   return (
-    <div className="border-bottom" style={{ paddingBottom: 12 }}>
-      <Space.Compact style={{ width: '100%' }}>
+    <div>
+      <Space.Compact className='w-100 mb-2'>
         <Select
           value={discountType}
           onChange={setDiscountType}
-          style={{ width: 120 }}
+          style={{ width: 180 }}
           aria-label="Select discount type"
         >
           <Option value="fixed">Fixed</Option>

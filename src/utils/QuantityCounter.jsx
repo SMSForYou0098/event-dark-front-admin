@@ -1,37 +1,64 @@
-import React, { Fragment, useState } from "react";
-import { Input as AntdInput } from "antd";
+import React, { Fragment, useState, useEffect } from "react";
+import { Input as AntdInput, message } from "antd";
 import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
 
 const CounterInput = (props) => {
-  const { className, value, min, max, onChange } = props
-  const handleDecrease = () => {
-    if (value > min) onChange(value - 1);
+  const { getTicketCount, category, price, limit, ticketID, className, initialValue = 0 } = props;
+  const [counter, setCount] = useState(initialValue);
+
+  useEffect(() => {
+    setCount(initialValue);
+  }, [initialValue]);
+
+  const min = 0;
+  const max = limit;
+
+  const increase = () => {
+    if (counter >= max) {
+      message.error(`You can select max ${limit} tickets`);
+      return;
+    }
+    const newCount = counter + 1;
+    setCount(newCount);
+    getTicketCount(newCount, category, price, ticketID);
   };
 
-  const handleIncrease = () => {
-    if (value < max) onChange(value + 1);
+  const decrease = () => {
+    const newCount = counter > min ? counter - 1 : 0;
+    setCount(newCount);
+    getTicketCount(newCount, category, price, ticketID);
   };
 
   return (
     <AntdInput
       type="number"
       className={className}
-      value={value}
-      onChange={(e) => onChange(Number(e.target.value))}
+      value={counter}
       min={min}
       max={max}
+      readOnly
       prefix={
-        <MinusOutlined
-          className="text-white"
-          onClick={handleDecrease}
-          style={{ cursor: value > min ? "pointer" : "not-allowed" }}
-        />
+        <div className="text-center">
+          <MinusOutlined
+            className="text-white"
+            onClick={counter > min ? decrease : undefined}
+            style={{
+              // width : '2rem',
+              cursor: counter > min ? "pointer" : "not-allowed",
+              opacity: counter > min ? 1 : 0.3
+            }}
+          />
+        </div>
       }
       suffix={
         <PlusOutlined
           className="text-white"
-          onClick={handleIncrease}
-          style={{ cursor: value < max ? "pointer" : "not-allowed" }}
+          onClick={counter < max ? increase : undefined}
+          style={{
+            cursor: counter < max ? "pointer" : "not-allowed",
+            //  width : '2rem',
+            opacity: counter < max ? 1 : 0.3
+          }}
         />
       }
     />
@@ -39,29 +66,17 @@ const CounterInput = (props) => {
 };
 
 const Counter = (props) => {
-  const [value, setValue] = useState(1);
-  const min = 1;
-  const max = 10;
-
   return (
     <Fragment>
       <div className="d-block d-sm-none mobile">
         <CounterInput
           className="counter w-100"
-          value={value}
-          min={min}
-          max={max}
-          onChange={setValue}
           {...props}
         />
       </div>
       <div className="d-none d-sm-block pc">
         <CounterInput
           className="counter w-75"
-          value={value}
-          min={min}
-          max={max}
-          onChange={setValue}
           {...props}
         />
       </div>

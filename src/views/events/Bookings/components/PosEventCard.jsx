@@ -1,5 +1,5 @@
 import React, { memo } from "react";
-import { Card } from "antd";
+import { Card, Image } from "antd";
 import { Link } from "react-router-dom";
 
 const { Meta } = Card;
@@ -11,9 +11,10 @@ const PosEventCard = memo((props) => {
         hoverable
         cover={
           <Link to="#">
-            <img
+            <Image
               alt="product-details"
               src={props.productImage}
+              preview={false}
               className="img-fluid rounded-4"
             />
           </Link>
@@ -22,8 +23,9 @@ const PosEventCard = memo((props) => {
         className="rounded-4"
       >
         <Meta
+          className="text-center"
           title={
-            <Link to="#" className="h6 iq-product-detail text-truncate d-block mb-0">
+            <Link to="#" className="text-center h5">
               {props.productName}
             </Link>
           }
