@@ -11,7 +11,7 @@ import { Ticket } from 'lucide-react';
 
 const EventList = () => {
     const navigate = useNavigate();
-    const { UserData, formatDateTime, api, authToken } = useMyContext();
+    const { UserData, formatDateTime, api, authToken , isMobile } = useMyContext();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [modalId, setModalId] = useState(null);
@@ -161,6 +161,8 @@ const EventList = () => {
             title: 'Action',
             key: 'action',
             align: 'center',
+            ...(isMobile && { width: 70 }),
+            fixed:'right',
             render: (text, row) => {
                 const actions = [
                     {

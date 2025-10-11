@@ -1,18 +1,8 @@
 import React, { useState } from 'react';
-import {
-  Card,
-  Button,
-  Modal,
-  Form,
-  Input,
-  Table,
-  Space,
-  message,
-  Tooltip
-} from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useMyContext } from '../../../../Context/MyContextProvider';
+import { Card, Button, Modal, Form, Input, Table, Space, message, Tooltip } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, CheckOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { useMyContext } from 'Context/MyContextProvider';
 
 const SytemVariables = () => {
   const { SystemVars, GetSystemVars, authToken, api } = useMyContext();
@@ -25,6 +15,46 @@ const SytemVariables = () => {
   const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [copiedRowId, setCopiedRowId] = useState(null);
+
+  const fallbackCopyTextToClipboard = (text, id) => {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed'; // avoid scrolling to bottom
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        setCopiedRowId(id)
+        setTimeout(() => setCopiedRowId(null), 3000);
+        message.success('Key copied to clipboard');
+      } else {
+        message.error('Copy failed');
+      }
+    } catch (err) {
+      message.error('Copy not supported');
+    }
+
+    document.body.removeChild(textArea);
+  };
+
+  const handleCopy = (record) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(record.key).then(() => {
+        setCopiedRowId(record.id);
+        message.success('Key copied to clipboard');
+        setTimeout(() => setCopiedRowId(null), 3000);
+      }).catch(() => {
+        fallbackCopyTextToClipboard(record.key, record.id);
+      });
+    } else {
+      fallbackCopyTextToClipboard(record.key, record.id);
+    }
+  };
+
 
   const handleEditClick = (item) => {
     setEditId(item.id);
@@ -134,7 +164,6 @@ const SytemVariables = () => {
         <Space size="small">
           <Tooltip title="Edit">
             <Button
-              type="primary"
               size="small"
               icon={<EditOutlined />}
               onClick={() => handleEditClick(record)}
@@ -149,11 +178,20 @@ const SytemVariables = () => {
               onClick={() => showDeleteModalHandler(record.id)}
             />
           </Tooltip>
+          <Tooltip title="Copy Key">
+            <Button
+              size="small"
+              disabled={copiedRowId === record.id}
+              icon={
+                copiedRowId === record.id ? <CheckOutlined /> : <CopyOutlined />
+              }
+              onClick={() => handleCopy(record)}
+            />
+          </Tooltip>
         </Space>
       ),
     },
   ];
-
   return (
     <>
       {/* Delete Confirmation Modal */}

@@ -210,7 +210,6 @@ const SmsSetting = () => {
                     <Space size="small">
                         <Tooltip title="Edit">
                             <Button
-                                type="primary"
                                 size="small"
                                 icon={<EditOutlined />}
                                 onClick={() => handleEdit(record)}

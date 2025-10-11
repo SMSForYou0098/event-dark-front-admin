@@ -14,7 +14,6 @@ import {
   CloseCircleOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
-  DownloadOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +23,6 @@ import { useMyContext } from "Context/MyContextProvider";
 import DataTable from "views/events/common/DataTable";
 import usePermission from "utils/hooks/usePermission";
 import { useNavigate } from "react-router-dom";
-import QuantityCounter from "utils/QuantityCounter";
 
 const { confirm } = Modal;
 const { Text } = Typography;
@@ -356,8 +354,6 @@ const PosBooking = memo(() => {
             // Loading states
             loading={isLoading}
             error={error}
-            // Refresh handler
-            // Table customization
             tableProps={{
                 scroll: { x: 1500 },
                 size: "middle",
