@@ -9,8 +9,6 @@ const TicketsStep = ({ eventId, eventName }) => {
   // For now, using dummy values
   // You can replace these with actual props later
 
-console.log('TicketsStep eventId:', eventId, 'eventName:', eventName);
-
   const toChecked = (v) => v === 1 || v === '1';
   const toNumber = (checked) => (checked ? 1 : 0);
 
