@@ -17,9 +17,13 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
   const { UserData, userRole } = useMyContext();
   const [form] = Form.useForm();
   
+  // Check if user is organizer
+  const isOrganizer = userRole === 'Organizer';
+  const isEditMode = mode === 'edit';
+  
   // States
-  const [bannerType, setBannerType] = useState('main');
-  const [selectedOrgId, setSelectedOrgId] = useState(null);
+  const [bannerType, setBannerType] = useState(isOrganizer ? 'organization' : 'main');
+  const [selectedOrgId, setSelectedOrgId] = useState(isOrganizer ? UserData?.id : null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [selectedCategoryTitle, setSelectedCategoryTitle] = useState(null);
   const [images, setImages] = useState({
@@ -28,17 +32,20 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
     mdImage: null,
   });
 
-  // Check if user is organizer
-  const isOrganizer = userRole === 'Organizer';
-  const isEditMode = mode === 'edit';
-
-  // Set default org ID for organizers
+  // Set default org ID and banner type for organizers - IMMEDIATELY on mount
   useEffect(() => {
-    if (isOrganizer && UserData?.id && !isEditMode) {
+    if (isOrganizer && UserData?.id) {
+      const orgId = String(UserData.id);
       setSelectedOrgId(UserData.id);
-      form.setFieldValue('org_id', String(UserData.id));
+      setBannerType('organization');
+      
+      // Set form values immediately
+      form.setFieldsValue({
+        org_id: orgId,
+        banner_type: 'organization',
+      });
     }
-  }, [isOrganizer, UserData, form, isEditMode]);
+  }, [isOrganizer, UserData?.id, form]);
 
   // Fetch categories
   const {
@@ -57,7 +64,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
     if (isEditMode && bannerData) {
       const data = bannerData;
       
-      // Determine banner type - use the type from data directly
+      // Determine banner type
       let type = data.type || 'main';
       
       // Normalize type names
@@ -65,32 +72,36 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
         type = 'organization';
       }
       
+      // For organizers, always force organization type
+      if (isOrganizer) {
+        type = 'organization';
+      }
+      
       setBannerType(type);
       
       // Set org ID for organization type
-      if (data.org_id) {
+      if (isOrganizer && UserData?.id) {
+        setSelectedOrgId(UserData.id);
+      } else if (data.org_id) {
         setSelectedOrgId(data.org_id);
       }
       
       // Extract category ID - handle both object and direct ID
       let categoryId = null;
       if (data.category) {
-        // If category is an object, extract the id
         categoryId = typeof data.category === 'object' ? data.category.id : data.category;
         setSelectedCategoryId(categoryId);
         
-        // Set category title for fetching events
         const categoryTitle = typeof data.category === 'object' 
           ? data.category.title 
           : findCategoryTitleById(categoryId);
         setSelectedCategoryTitle(categoryTitle);
       }
       
-      // Set form values
-      form.setFieldsValue({
+      // Set form values - Always set org_id for organizers
+      const formValues = {
         banner_type: type,
-        org_id: data.org_id ? String(data.org_id) : undefined,
-        category: categoryId, // Use extracted category ID
+        category: categoryId,
         title: data.title,
         description: data.description,
         sub_description: data.sub_description,
@@ -99,7 +110,16 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
         external_url: data.external_url,
         event_id: data.event_id,
         event_key: data.event_key,
-      });
+      };
+
+      // Always set org_id for organizers
+      if (isOrganizer && UserData?.id) {
+        formValues.org_id = String(UserData.id);
+      } else if (data.org_id) {
+        formValues.org_id = String(data.org_id);
+      }
+
+      form.setFieldsValue(formValues);
       
       // Set images if they exist
       const newImages = {};
@@ -129,7 +149,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
       }
       setImages(newImages);
     }
-  }, [isEditMode, bannerData, form, categories]);
+  }, [isEditMode, bannerData, form, categories, isOrganizer, UserData]);
 
   const {
     data: orgEvents = [],
@@ -175,20 +195,20 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
     },
   });
 
-  // Handle banner type change
+  // Handle banner type change - DON'T allow organizers to change
   const handleBannerTypeChange = (e) => {
+    // Prevent organizers from changing banner type
+    if (isOrganizer) return;
+    
     const type = e.target.value;
     setBannerType(type);
     
-    // Update form field
     form.setFieldValue('banner_type', type);
     
-    // Only reset dropdown-related states
     setSelectedOrgId(null);
     setSelectedCategoryId(null);
     setSelectedCategoryTitle(null);
     
-    // Clear only dropdown fields based on selection
     if (type === 'main') {
       form.setFieldsValue({
         org_id: undefined,
@@ -202,14 +222,8 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
         event_id: undefined,
         event_key: undefined,
       });
-      
-      // Auto-set org_id for organizers
-      if (isOrganizer && UserData?.id) {
-        setSelectedOrgId(UserData.id);
-        form.setFieldValue('org_id', String(UserData.id));
-      }
     } else if (type === 'category') {
-      form.setFieldsValue({
+      form.setFieldsValues({
         org_id: undefined,
         event_id: undefined,
         event_key: undefined,
@@ -357,38 +371,45 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
   }, [images]);
 
   const isSubmitting = isCreating || isUpdating;
-  const showOrgDropdown = bannerType === 'organization' && !isOrganizer;
+  const showOrgDropdown = false; // Never show org dropdown (Organizers use their own ID, others see type options)
   const showCategoryField = bannerType === 'category' || bannerType === 'main';
   const showEventDropdown = bannerType === 'organization' || bannerType === 'category';
   const eventsData = bannerType === 'organization' ? orgEvents : categoryEvents;
   const eventsLoading = bannerType === 'organization' ? orgEventsLoading : categoryEventsLoading;
   const eventPlaceholder = bannerType === 'organization' 
-    ? (selectedOrgId ? "Select event" : (isOrganizer ? "Loading events..." : "Select organization first"))
+    ? (selectedOrgId ? "Select event" : "Loading events...")
     : (selectedCategoryTitle ? "Select event" : "Select category first");
 
   // Custom arrow components for carousel
   return (
     <Form form={form} layout="vertical" onFinish={handleSubmit}>
       <Row gutter={[16, 16]}>
-        {/* Banner Type */}
-        <Col xs={24}>
-          <Form.Item label="Banner Type" name="banner_type" initialValue="main">
-            <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
-              <Radio value="main">Main Banner</Radio>
-              <Radio value="organization">Organization Banner</Radio>
-              <Radio value="category">Category Banner</Radio>
-            </Radio.Group>
-          </Form.Item>
-        </Col>
-
-        {/* Organization Dropdown */}
-        {showOrgDropdown && (
-          <Col xs={24} md={12}>
-            <OrganisationList onChange={handleOrgChange} />
+        {/* Banner Type - COMPLETELY HIDDEN for organizers */}
+        {!isOrganizer && (
+          <Col xs={24}>
+            <Form.Item label="Banner Type" name="banner_type" initialValue="main">
+              <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
+                <Radio value="main">Main Banner</Radio>
+                <Radio value="organization">Organization Banner</Radio>
+                <Radio value="category">Category Banner</Radio>
+              </Radio.Group>
+            </Form.Item>
           </Col>
         )}
 
-        {/* Category Dropdown */}
+        {/* Hidden fields for organizers - to ensure data is submitted */}
+        {isOrganizer && (
+          <>
+            <Form.Item name="banner_type" hidden initialValue="organization">
+              <Input />
+            </Form.Item>
+            <Form.Item name="org_id" hidden initialValue={String(UserData?.id)}>
+              <Input />
+            </Form.Item>
+          </>
+        )}
+
+        {/* Category Dropdown - Only shown for non-organizers with category/main type */}
         {showCategoryField && (
           <Col xs={24} md={12}>
             <Form.Item
@@ -411,7 +432,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
           </Col>
         )}
 
-        {/* Event Dropdown */}
+        {/* Event Dropdown - Always shown for organizers */}
         {showEventDropdown && (
           <Col xs={24} md={12}>
             <Form.Item
@@ -521,7 +542,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
                         src={img.url}
                         alt={img.title}
                         style={{
-                          maxHeight: '400px',
+                          maxHeight: '300px',
                           maxWidth: '100%',
                           objectFit: 'contain',
                         }}
