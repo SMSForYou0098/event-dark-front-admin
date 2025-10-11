@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Alert, Button, Card, Col, Form, Input, notification, Radio, Row, Select, Space, Spin, Switch } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
-import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
+import React, { useEffect } from 'react';
 import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from 'Context/MyContextProvider';
 import { Key } from 'lucide-react';
@@ -16,57 +16,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
-    const [form] = Form.useForm();
-    
-    // Main form state
-    const [formState, setFormState] = useState({
-        // Basic info
-        name: '',
-        email: '',
-        number: '',
-        roleId: null,
-        roleName: '',
-        reportingUser: '',
-        status: 'Active',
-        
-        // Role-specific fields
-        agreementStatus: false,
-        organisation: '',
-        agentDiscount: false,
-        qrLength: '',
-        paymentMethod: 'Cash',
-        
-        // Event management
-        events: [],
-        tickets: [],
-        gates: [],
-        
-        // Address
-        city: '',
-        pincode: '',
-        
-        // Banking (Admin + Organizer)
-        bankName: '',
-        bankIfsc: '',
-        bankBranch: '',
-        bankNumber: '',
-        orgGstNumber: '',
-        
-        // Security
-        password: '',
-        repeatPassword: '',
-        authentication: false
-    });
-
-    // UI state
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    // Track if form has been initialized
-    const didInit = useRef(false);
-    const isInitializing = useRef(false);
 
     // Fetch user data in edit mode
-    const { data: fetchedData, isLoading: loading } = useQuery({
+    const { data: fethedData, isLoading: loading } = useQuery({
         queryKey: ["user", id],
         enabled: mode === "edit" && Boolean(id),
         queryFn: async () => {
@@ -78,18 +30,25 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         },
     });
 
-    // Calculate conditions based on current state
-    const showAM = ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(formState.roleName);
-    const needsEvents = ['Agent', 'Sponsor', 'Accreditation'].includes(formState.roleName);
+    const [form] = Form.useForm();
+
+const roleId         = Form.useWatch('roleId', form);
+const roleName       = Form.useWatch('roleName', form);
+const reportingUser  = Form.useWatch('reportingUser', form);
+const selectedEvents = Form.useWatch('events', form) || [];
+
+    // Calculate conditions directly
+    const showAM = ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(roleName);
+    const needsEvents = ['Agent', 'Sponsor', 'Accreditation'].includes(roleName);
 
     // Stabilize reportingUserId
-    const reportingUserId = useMemo(() => {
+    const reportingUserId = (() => {
         if (mode === "create") {
             return userRole === 'Organizer' ? UserData?.id : 
-                   formState.reportingUser?.value || formState.reportingUser || undefined;
+                   reportingUser?.value || reportingUser || undefined;
         }
-        return formState.reportingUser?.value || formState.reportingUser?.key || formState.reportingUser || undefined;
-    }, [mode, userRole, UserData?.id, formState.reportingUser]);
+        return reportingUser?.value || reportingUser?.key || reportingUser || undefined;
+    })();
 
     // Fetch roles
     const { data: roles = [] } = useQuery({
@@ -101,167 +60,83 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         staleTime: 5 * 60 * 1000,
     });
 
-    // Track initial reporting user to detect changes
-    const initialReportingUser = useRef(null);
-    
-    // Set initial reporting user on first load in edit mode
-    useEffect(() => {
-        if (mode === 'edit' && fetchedData?.user && initialReportingUser.current === null) {
-            initialReportingUser.current = fetchedData.user.reporting_user_id?.toString();
-        }
-    }, [mode, fetchedData?.user]);
-
-    // Check if reporting user has changed from initial value
-    const hasReportingUserChanged = useMemo(() => {
-        if (mode === 'create') return true;
-        if (!initialReportingUser.current) return false;
-        return String(reportingUserId) !== String(initialReportingUser.current);
-    }, [mode, reportingUserId]);
-
-    // Get events from edit-user response (for edit mode, unchanged org)
-    const eventsFromEditResponse = useMemo(() => {
-        if (mode !== 'edit' || !fetchedData?.user?.events) return [];
-        return fetchedData.user.events.map(event => ({
-            value: event.id,
-            label: event.name,
-            tickets: event.tickets || [],
-        }));
-    }, [mode, fetchedData?.user?.events]);
-
-    // Fetch events only when needed (create mode or org changed in edit mode)
-    const { data: fetchedEvents = [], isLoading: eventsLoading, isFetching: eventsFetching } = useQuery({
+    // Fetch events
+    const { data: events = [] } = useQuery({
         queryKey: ["org-events", reportingUserId],
-        enabled: Boolean(needsEvents && reportingUserId && hasReportingUserChanged),
+        enabled: Boolean(needsEvents && reportingUserId),
         queryFn: async () => {
             const res = await apiClient.get(`org-event/${reportingUserId}`);
             const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
             return list.map(event => ({
                 value: event.id,
                 label: event.name,
-                tickets: event.tickets || [],
+                tickets: event.tickets || []
             }));
         },
         staleTime: 5 * 60 * 1000,
-        placeholderData: (previousData) => previousData,
     });
 
-    // Use fetched events if org changed, otherwise use events from edit response
-    const events = useMemo(() => {
-        if (mode === 'create') return fetchedEvents;
-        if (hasReportingUserChanged) return fetchedEvents;
-        return eventsFromEditResponse;
-    }, [mode, hasReportingUserChanged, fetchedEvents, eventsFromEditResponse]);
+    // Generate ticket options based on selected events
+    const ticketOptions = (() => {
+        if (!selectedEvents?.length) return [];
 
-    // Generate ticket options - only when events are stable
-    const ticketOptions = useMemo(() => {
-        if (eventsLoading || !events.length || !formState.events?.length) {
-            return [];
-        }
+        const selectedEventObjects = events.filter(e =>
+            selectedEvents.includes(e.value)
+        );
 
-        const selectedEventObjects = events.filter(e => formState.events.includes(e.value));
         return selectedEventObjects.map(event => ({
             label: event.label,
             options: (event.tickets || []).map(ticket => ({
                 value: String(ticket.id || ticket.value),
                 label: ticket.name || ticket.label,
-                eventId: event.value,
-            })),
+                eventId: event.value
+            }))
         }));
-    }, [events, formState.events, eventsLoading]);
+    })();
 
-    // Initialize form with fetched data
+    // Initialize form with data
     useEffect(() => {
-        if (mode === 'edit' && fetchedData?.user && !didInit.current && !isInitializing.current) {
-            isInitializing.current = true;
-            const formData = mapApiToForm(fetchedData.user);
-            setFormState(prevState => ({ ...prevState, ...formData }));
-            
-            // Also set form fields for Ant Design Form
-            form.setFieldsValue(formData);
-            
-            didInit.current = true;
-            isInitializing.current = false;
+        if (mode === 'edit' && fethedData?.user) {
+            const mappedData = mapApiToForm(fethedData?.user);
+            form.setFieldsValue(mappedData);
         }
-    }, [mode, fetchedData?.user, form]);
-
-    // Sync form state with Ant Design Form
-    const handleFormChange = useCallback((changedFields, allFields) => {
-        const changes = {};
-        changedFields.forEach(field => {
-            changes[field.name[0]] = field.value;
-        });
-        
-        setFormState(prev => ({ ...prev, ...changes }));
-    }, []);
-
-    // State update handlers
-    const updateField = useCallback((field, value) => {
-        setFormState(prev => ({ ...prev, [field]: value }));
-        form.setFieldsValue({ [field]: value });
-    }, [form]);
-
-    const updateMultipleFields = useCallback((updates) => {
-        setFormState(prev => ({ ...prev, ...updates }));
-        form.setFieldsValue(updates);
-    }, [form]);
+    }, [mode, fethedData, form]);
 
     // Handle role change
-    const handleRoleChange = useCallback((value) => {
-        const selectedRole = roles.find(r => r.id === Number(value));
-        const nextName = selectedRole?.name;
-        
-        const updates = { roleId: value };
-        if (formState.roleName !== nextName) {
-            updates.roleName = nextName;
-        }
-        
-        // Clear event-related fields when role changes
-        const hasAny = formState.events?.length || formState.tickets?.length || formState.gates?.length;
-        if (hasAny) {
-            updates.events = [];
-            updates.tickets = [];
-            updates.gates = [];
-        }
-        
-        updateMultipleFields(updates);
-    }, [roles, formState.roleName, formState.events, formState.tickets, formState.gates, updateMultipleFields]);
+    const handleRoleChange = (value) => {
+        const selectedRole = roles.find(r => r.id === parseInt(value));
+        form.setFieldValue('roleName', selectedRole?.name);
+        form.setFieldsValue({ events: [], tickets: [], gates: [] });
+    };
 
-    // Handle event change with proper guards
-    const handleEventChange = useCallback((selectedValues = []) => {
-        if (eventsLoading || eventsFetching || !events.length || isInitializing.current) {
+    // Handle event change
+    const handleEventChange = (selectedValues) => {
+        // When events change, filter out tickets that no longer belong
+        const currentTickets = form.getFieldValue('tickets') || [];
+
+        if (!selectedValues || selectedValues.length === 0) {
+            // Clear all tickets if no events selected
+            form.setFieldValue('tickets', []);
             return;
         }
 
-        const updates = { events: selectedValues };
-
-        // Clear tickets if no events selected
-        if (selectedValues.length === 0) {
-            if (formState.tickets.length) {
-                updates.tickets = [];
-            }
-        } else {
-            // Build set of valid ticket IDs from selected events
-            const validIds = new Set(
-                events
-                    .filter(e => selectedValues.includes(e.value))
-                    .flatMap(e => (e.tickets || []).map(t => String(t.id || t.value)))
+        // Get valid tickets for selected events
+        const validEventIds = selectedValues;
+        const validTickets = currentTickets.filter(ticketId => {
+            // Check if this ticket belongs to any selected event
+            return ticketOptions.some(group =>
+                group.options.some(ticket =>
+                    String(ticket.value) === String(ticketId) &&
+                    validEventIds.includes(ticket.eventId)
+                )
             );
+        });
 
-            // Filter current tickets to only keep valid ones
-            const nextTickets = formState.tickets.filter(id => validIds.has(String(id)));
-
-            // Only update if there's an actual change
-            const changed =
-                nextTickets.length !== formState.tickets.length ||
-                nextTickets.some((v, i) => v !== formState.tickets[i]);
-
-            if (changed) {
-                updates.tickets = nextTickets;
-            }
+        // Update tickets if any were filtered out
+        if (validTickets.length !== currentTickets.length) {
+            form.setFieldValue('tickets', validTickets);
         }
-
-        updateMultipleFields(updates);
-    }, [events, formState.tickets, eventsLoading, eventsFetching, updateMultipleFields]);
+    };
 
     // Custom validation rules
     const requiredIf = (condition, message) => ({
@@ -274,11 +149,17 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         }
     });
 
+    // Conditional checks
+    const showRoleGate = mode === "create" && !roleId;
+
+    if (loading) {
+        return <Spin className='w-100 text-center mt-5' />
+    }
+
     // Form submit handler
     const onFinish = async (values) => {
-        setIsSubmitting(true);
+        const apiData = mapFormToApi(values);
         try {
-            const apiData = mapFormToApi(values);
             const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
             const response = await axios.post(url, apiData, {
                 headers: {
@@ -305,24 +186,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                 message: 'Error',
                 description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
             });
-        } finally {
-            setIsSubmitting(false);
         }
     };
-
-    // Calculate conditions for UI
-    const showRoleGate = mode === "create" && !formState.roleId;
-
-    if (loading) {
-        return <Spin className='w-100 text-center mt-5' />
-    }
 
     return (
         <Form
             form={form}
             layout="vertical"
             onFinish={onFinish}
-            onFieldsChange={handleFormChange}
             initialValues={{
                 status: 'Active',
                 paymentMethod: 'Cash',
@@ -341,11 +212,12 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                 <Button className="mr-2" onClick={() => navigate(-1)}>
                                     Discard
                                 </Button>
-                                <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                <Button type="primary" htmlType="submit" loading={loading}>
                                     {mode === "create" ? "Create" : "Update"}
                                 </Button>
                             </Flex>
                         } style={{ marginBottom: 16 }}>
+
                             <Form.Item
                                 label="User Role"
                                 name="roleId"
@@ -406,7 +278,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             </Col>
 
                             {/* Conditional Fields based on Role */}
-                            {formState.roleName === 'Organizer' && (
+                            {roleName === 'Organizer' && (
                                 <>
                                     <Col xs={24} md={12}>
                                         <Form.Item
@@ -457,9 +329,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             {needsEvents && (
                                 <>
                                     <Col xs={24} md={12}>
-                                        <Form.Item 
-                                            label="Assign Events" 
-                                            name="events" 
+                                        <Form.Item
+                                            label="Assign Events"
+                                            name="events"
                                             rules={[requiredIf(needsEvents, 'Please select at least one event')]}
                                         >
                                             <Select
@@ -469,13 +341,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                                 onChange={handleEventChange}
                                                 optionFilterProp="label"
                                                 showSearch
-                                                loading={eventsLoading || eventsFetching}
-                                                disabled={!reportingUserId}
-                                                notFoundContent={
-                                                    eventsLoading ? <Spin size="small" /> : 
-                                                    !reportingUserId ? 'Please select an account manager first' :
-                                                    'No events found'
-                                                }
                                             />
                                         </Form.Item>
                                     </Col>
@@ -489,22 +354,26 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                             <Select
                                                 mode="multiple"
                                                 placeholder="Select tickets"
-                                                disabled={!formState.events?.length}
+                                                disabled={!selectedEvents?.length}
                                                 showSearch
-                                                options={ticketOptions}
-                                                optionFilterProp="label"
-                                                notFoundContent={
-                                                    !formState.events?.length ? 'Please select events first' :
-                                                    'No tickets available for selected events'
-                                                }
-                                            />
+                                            >
+                                                {ticketOptions.map(group => (
+                                                    <Select.OptGroup key={group.label} label={group.label}>
+                                                        {group.options.map(ticket => (
+                                                            <Select.Option key={ticket.value} value={ticket.value}>
+                                                                {ticket.label}
+                                                            </Select.Option>
+                                                        ))}
+                                                    </Select.OptGroup>
+                                                ))}
+                                            </Select>
                                         </Form.Item>
                                     </Col>
                                 </>
                             )}
 
                             {/* Agent Discount */}
-                            {formState.roleName === 'Agent' && (
+                            {roleName === 'Agent' && (
                                 <Col xs={24} md={12}>
                                     <Form.Item
                                         label="Agent Discount"
@@ -517,7 +386,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             )}
 
                             {/* Scanner QR Length */}
-                            {formState.roleName === 'Scanner' && (
+                            {roleName === 'Scanner' && (
                                 <Col xs={24} md={12}>
                                     <Form.Item
                                         label="QR Data Length"
@@ -566,7 +435,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                 {/* Right Column */}
                 <Col xs={24} lg={12}>
                     {/* Payment Method */}
-                    {(formState.roleName === 'POS' || formState.roleName === 'Corporate') && (
+                    {(roleName === 'POS' || roleName === 'Corporate') && (
                         <Card title="Payment Method" style={{ marginBottom: 16 }}>
                             <Form.Item
                                 name="paymentMethod"
@@ -600,7 +469,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                     )}
 
                     {/* Banking Details (Admin + Organizer role) */}
-                    {userRole === 'Admin' && formState.roleName === 'Organizer' && (
+                    {userRole === 'Admin' && roleName === 'Organizer' && (
                         <Card title="Banking Details" style={{ marginBottom: 16 }}>
                             <Row gutter={[16, 16]}>
                                 <Col xs={24} md={12}>
@@ -628,7 +497,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                     )}
 
                     {/* Other (Organizer only) */}
-                    {formState.roleName === 'Organizer' && (
+                    {roleName === 'Organizer' && (
                         <Card title="Other" style={{ marginBottom: 16 }}>
                             <Form.Item label="GST / VAT Tax" name="orgGstNumber">
                                 <Input placeholder="GST / VAT Tax" />
@@ -656,7 +525,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                             label="Password"
                                             name="password"
                                             rules={[
-                                                { required: mode === 'create', message: 'Please enter password' },
+                                                requiredIf(mode === 'create', 'Please enter password'),
                                                 ...(mode === 'create' ? [{ min: 6, message: 'Min 6 characters' }] : [])
                                             ]}
                                         >

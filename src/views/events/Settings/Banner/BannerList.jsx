@@ -1,7 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import {
-  Card,
-  Table,
   Button,
   Space,
   Tooltip,
@@ -9,75 +7,31 @@ import {
   Modal,
   Tag,
   Image,
-  Tabs,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   EyeOutlined,
-  DragOutlined,
 } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
 import {
   useBanners,
   useDeleteBanner,
-  useRearrangeBanner,
 } from '../hooks/useBanners';
-
-const DraggableRow = ({ index, moveRow, className, style, ...restProps }) => {
-  const ref = React.useRef(null);
-  
-  const [{ isOver, dropClassName }, drop] = useDrop({
-    accept: 'DraggableRow',
-    collect: (monitor) => ({
-      isOver: monitor.isOver(),
-      dropClassName: monitor.isOver() ? 'drop-over' : '',
-    }),
-    drop: (item) => {
-      if (!ref.current) return;
-      const dragIndex = item.index;
-      const hoverIndex = index;
-      if (dragIndex === hoverIndex) return;
-      moveRow(dragIndex, hoverIndex);
-      item.index = hoverIndex;
-    },
-  });
-
-  const [{ isDragging }, drag, preview] = useDrag({
-    type: 'DraggableRow',
-    item: { index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  drop(drag(ref));
-
-  return (
-    <tr
-      ref={ref}
-      className={`${className} ${isOver ? dropClassName : ''}`}
-      style={{
-        cursor: 'move',
-        opacity: isDragging ? 0.5 : 1,
-        ...style,
-      }}
-      {...restProps}
-    />
-  );
-};
+import BannerForm from './BannerForm';
+import DataTable from 'views/events/common/DataTable';
 
 const BannerList = () => {
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('main');
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
-  const [dataSource, setDataSource] = useState([]);
+  const [bannerModal, setBannerModal] = useState({ 
+    visible: false, 
+    mode: 'create',
+    id: null,
+    data: null
+  });
 
   // Fetch banners
-  const { data: bannersData = [], isLoading, refetch } = useBanners();
+  const { data: bannersData = [], isLoading, refetch, error } = useBanners();
 
   // Delete mutation
   const { mutate: deleteBanner, isPending: isDeleting } = useDeleteBanner({
@@ -91,61 +45,7 @@ const BannerList = () => {
     },
   });
 
-  // Rearrange mutation
-  const { mutate: rearrangeBanner, isPending: isRearranging } = useRearrangeBanner({
-    onSuccess: (res) => {
-      message.success(res?.message || 'Banners rearranged successfully');
-      refetch();
-    },
-    onError: (error) => {
-      message.error(error?.message || 'Failed to rearrange banners');
-    },
-  });
-
-  // Filter banners by type
-  const filteredBanners = useMemo(() => {
-    const filtered = bannersData.filter(banner => {
-      if (activeTab === 'main') {
-        return !banner.event_id; // Main banners don't have event_id
-      } else {
-        return banner.event_id; // Category banners have event_id
-      }
-    });
-    
-    setDataSource(filtered);
-    return filtered;
-  }, [bannersData, activeTab]);
-
-  // Handle row move
-  const moveRow = (dragIndex, hoverIndex) => {
-    const dragRow = dataSource[dragIndex];
-    const newData = [...dataSource];
-    newData.splice(dragIndex, 1);
-    newData.splice(hoverIndex, 0, dragRow);
-    setDataSource(newData);
-  };
-
-  // Save new order
-  const handleSaveOrder = () => {
-    const orderedBanners = dataSource.map((banner, index) => ({
-      id: banner.id,
-      order: index + 1,
-    }));
-
-    rearrangeBanner({
-      type: activeTab,
-      banners: orderedBanners,
-    });
-  };
-
-  // Check if order changed
-  const isOrderChanged = useMemo(() => {
-    if (dataSource.length !== filteredBanners.length) return true;
-    
-    return dataSource.some((item, index) => item.id !== filteredBanners[index]?.id);
-  }, [dataSource, filteredBanners]);
-
-  // Handle delete
+  // Handle delete modal
   const showDeleteModal = (id) => {
     setDeleteModal({ visible: true, id });
   };
@@ -158,15 +58,32 @@ const BannerList = () => {
     deleteBanner(deleteModal.id);
   };
 
+  // Handle banner modal (create/edit)
+  const showCreateModal = () => {
+    setBannerModal({ visible: true, mode: 'create', id: null, data: null });
+  };
+
+  const showEditModal = (record) => {
+    setBannerModal({ 
+      visible: true, 
+      mode: 'edit', 
+      id: record.id,
+      data: record
+    });
+  };
+
+  const closeBannerModal = () => {
+    setBannerModal({ visible: false, mode: 'create', id: null, data: null });
+  };
+
+  // Handle banner form success
+  const handleBannerSuccess = () => {
+    closeBannerModal();
+    refetch();
+  };
+
   // Table columns
   const columns = [
-    {
-      title: <DragOutlined />,
-      key: 'drag',
-      width: 50,
-      align: 'center',
-      render: () => <DragOutlined style={{ cursor: 'move' }} />,
-    },
     {
       title: '#',
       key: 'index',
@@ -177,7 +94,7 @@ const BannerList = () => {
       title: 'Image',
       dataIndex: 'images',
       key: 'images',
-      width: 100,
+      width: 120,
       render: (image) => (
         <Image
           src={image}
@@ -188,6 +105,7 @@ const BannerList = () => {
           preview={{
             mask: <EyeOutlined />,
           }}
+          fallback="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
         />
       ),
     },
@@ -195,34 +113,77 @@ const BannerList = () => {
       title: 'Title',
       dataIndex: 'title',
       key: 'title',
+      searchable: true,
       sorter: (a, b) => a.title.localeCompare(b.title),
     },
     {
-      title: 'Category',
-      dataIndex: 'category',
-      key: 'category',
-      render: (category) => category || '-',
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      width: 130,
+      render: (type) => {
+        const colorMap = {
+          main: 'blue',
+          organization: 'green',
+          organization: 'green',
+          category: 'purple',
+        };
+        return (
+          <Tag color={colorMap[type] || 'default'}>
+            {type ? type.toUpperCase() : '-'}
+          </Tag>
+        );
+      },
+      filters: [
+        { text: 'Main', value: 'main' },
+        { text: 'Organization', value: 'organization' },
+        { text: 'Category', value: 'category' },
+      ],
+      onFilter: (value, record) => record.type === value,
     },
-    ...(activeTab === 'category' ? [{
-      title: 'Event',
-      dataIndex: 'event_name',
-      key: 'event_name',
-      render: (name) => name || '-',
-    }] : []),
     {
-      title: 'Button',
-      key: 'button',
-      render: (_, record) => (
-        record.button_text ? (
-          <Tag color="blue">{record.button_text}</Tag>
-        ) : '-'
+      title: 'Category',
+      dataIndex: ['category', 'title'],
+      key: 'category',
+      render: (categoryTitle) => categoryTitle || '-',
+    },
+    {
+      title: 'Event Key',
+      dataIndex: 'event_key',
+      key: 'event_key',
+      searchable: true,
+      render: (key) => key ? <Tag>{key}</Tag> : '-',
+    },
+    {
+      title: 'Event ID',
+      dataIndex: 'event_id',
+      key: 'event_id',
+      width: 100,
+      render: (id) => id || '-',
+    },
+    {
+      title: 'Button Text',
+      dataIndex: 'button_text',
+      key: 'button_text',
+      render: (text) => text ? <Tag color="blue">{text}</Tag> : '-',
+    },
+    {
+      title: 'Description',
+      dataIndex: 'description',
+      key: 'description',
+      ellipsis: true,
+      render: (text) => (
+        <Tooltip title={text}>
+          {text ? text.substring(0, 50) + (text.length > 50 ? '...' : '') : '-'}
+        </Tooltip>
       ),
     },
     {
       title: 'Action',
       key: 'action',
-      width: 150,
+      width: 120,
       align: 'center',
+      fixed: 'right',
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Edit">
@@ -230,7 +191,7 @@ const BannerList = () => {
               type="primary"
               size="small"
               icon={<EditOutlined />}
-              onClick={() => navigate(`/settings/banner/edit/${record.id}`)}
+              onClick={() => showEditModal(record)}
             />
           </Tooltip>
           <Tooltip title="Delete">
@@ -247,22 +208,11 @@ const BannerList = () => {
     },
   ];
 
-  const tabItems = [
-    {
-      key: 'main',
-      label: 'Main Banners',
-    },
-    {
-      key: 'category',
-      label: 'Category Banners',
-    },
-  ];
-
   return (
     <>
       {/* Delete Confirmation Modal */}
       <Modal
-        title="Are you sure?"
+        title="Delete Banner"
         open={deleteModal.visible}
         onOk={confirmDelete}
         onCancel={cancelDeleteModal}
@@ -272,63 +222,89 @@ const BannerList = () => {
         centered
         okButtonProps={{ danger: true }}
       >
-        <p>You won't be able to revert this!</p>
+        <p>Are you sure you want to delete this banner? You won't be able to revert this!</p>
       </Modal>
 
-      <Card
-        title="Banners"
-        extra={
-          <Space>
-            {isOrderChanged && (
-              <Button
-                type="primary"
-                onClick={handleSaveOrder}
-                loading={isRearranging}
-              >
-                Save Order
-              </Button>
-            )}
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate('/settings/banner/create')}
-            >
-              New Banner
-            </Button>
-          </Space>
-        }
-      >
-        <Tabs
-          activeKey={activeTab}
-          items={tabItems}
-          onChange={setActiveTab}
-          style={{ marginBottom: 16 }}
-        />
+      {/* Banner Form Modal */}
+      <Modal
+  title={`${bannerModal.mode === 'create' ? 'Create' : 'Edit'} Banner`}
+  open={bannerModal.visible}
+  onCancel={closeBannerModal}
+  footer={null}
+  width={1200}
+  destroyOnClose
+  // 👇 This is the important part
+  styles={{
+    // Set an overall modal height. Use a fixed px or viewport height.
+    // 1) Fixed: height: 680
+    // 2) Viewport-based (recommended): height: '80vh'
+    content: {
+      height: '80vh',
+      display: 'flex',
+      flexDirection: 'column',
+      padding: 0, // let header/body control their own padding
+    },
+    header: {
+      position: 'sticky',
+      top: 0,
+      zIndex: 2,
+      background: '#fff',
+      padding: '16px 24px',
+      borderBottom: '1px solid #f0f0f0',
+    },
+    body: {
+      // Take remaining space and scroll
+      flex: 1,
+      overflowY: 'auto',
+      padding: 24,
+      // If you want a little breathing room for long forms:
+      // marginRight: 2, paddingRight: 22
+    },
+    footer: {
+      position: 'sticky',
+      bottom: 0,
+      zIndex: 2,
+      background: '#fff',
+      borderTop: '1px solid #f0f0f0',
+      padding: 16,
+    },
+  }}
+>
+  <BannerForm
+    mode={bannerModal.mode}
+    id={bannerModal.id}
+    bannerData={bannerModal.data}
+    onSuccess={handleBannerSuccess}
+    onCancel={closeBannerModal}
+  />
+</Modal>
 
-        <DndProvider backend={HTML5Backend}>
-          <Table
-            columns={columns}
-            dataSource={dataSource}
-            rowKey="id"
-            loading={isLoading}
-            pagination={{
-              pageSize: 10,
-              showSizeChanger: true,
-              showTotal: (total) => `Total ${total} banners`,
-            }}
-            components={{
-              body: {
-                row: DraggableRow,
-              },
-            }}
-            onRow={(record, index) => ({
-              index,
-              moveRow,
-            })}
-            scroll={{ x: 800 }}
-          />
-        </DndProvider>
-      </Card>
+      {/* DataTable */}
+      <DataTable
+        title="Banners Management"
+        data={bannersData}
+        columns={columns}
+        loading={isLoading}
+        error={error}
+        showRefresh={true}
+        onRefresh={refetch}
+        showSearch={true}
+        enableSearch={true}
+        emptyText="No banners found"
+        extraHeaderContent={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={showCreateModal}
+          >
+            New Banner
+          </Button>
+        }
+        tableProps={{
+          rowKey: 'id',
+          scroll: { x: 1400 },
+        }}
+      />
     </>
   );
 };

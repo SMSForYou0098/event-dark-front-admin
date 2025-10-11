@@ -8,65 +8,50 @@ export const mapApiToForm = (apiData) => {
     
     const user = apiData.user || apiData;
     
+    // Extract event IDs
+    const eventIds = user.events?.map(e => e.id) || [];
+    
+    // Extract ticket IDs - FIXED: Use agentTickets instead of events.tickets
+    const ticketIds = user.agentTickets?.map(ticket => String(ticket.id)) || [];
+
     return {
         // Basic Info
         name: user.name || '',
         email: user.email || '',
         number: user.phone_number?.toString() || '',
-        altNumber: user.alt_number?.toString() || '',
+        
+        // Role
+        roleId: user.role?.id || null,
+        roleName: user.role?.name || '',
+        
+        // Organization & Reporting
         organisation: user.organisation || '',
+        reportingUser: user.reporting_user_id?.toString() || null,
+        
+        // Events & Tickets - FIXED
+        events: eventIds,
+        tickets: ticketIds, // Now uses agentTickets
         
         // Address
         city: user.city || '',
         pincode: user.pincode || '',
-        state: user.state || '',
         
-        // Role & User Info
-        roleId: user.role?.id || null,
-        roleName: user.role?.name || '',
-        reportingUser: user.reporting_user_id ? String(user.reporting_user_id) : null,
-        status: user.status === 1 ? 'Active' : 'Inactive',
-        
-        // Banking
+        // Banking (Organizer)
         bankName: user.bank_name || '',
-        bankNumber: user.bank_number || '',
         bankIfsc: user.bank_ifsc || '',
         bankBranch: user.bank_branch || '',
-        bankMicr: user.bank_micr || '',
-        
-        // Shop (if exists)
-        shopName: user.shop?.name || '',
-        shopNumber: user.shop?.number || '',
-        gstNumber: user.shop?.gst_number || '',
-        
-        // Organization specific
+        bankNumber: user.bank_number || '',
         orgGstNumber: user.org_gst_no || '',
         
-        // Settings
-        qrLength: user.qr_length || '',
+        // Status & Security
+        status: user.status === 1 ? 'Active' : 'Inactive',
         authentication: user.authentication === 1,
-        agentDiscount: user.agent_disc === 1,
         agreementStatus: user.agreement_status === 1,
+        agentDiscount: user.agent_disc === 1,
+        
+        // Role-specific
         paymentMethod: user.payment_method || 'Cash',
-        
-        // Events & Tickets - Extract from nested structure
-        events: (user.events || []).map(e => e.id),
-        tickets: (user.agentTickets || user.tickets || []).map(t => String(t.id)),
-        gates: (user.gates || []).map(g => g.id),
-        
-        // Agreement Details
-        aggrementDetails: {
-            org_office_address: user.org_office_address || '',
-            org_name_signatory: user.org_name_signatory || '',
-            pan_no: user.pan_no || '',
-            account_holder: user.account_holder || '',
-            org_type_of_company: user.org_type_of_company || '',
-            org_signature_type: user.org_signature_type || ''
-        },
-        
-        // Don't set password fields when editing
-        password: '',
-        repeatPassword: ''
+        qrLength: user.qr_length || null,
     };
 };
 

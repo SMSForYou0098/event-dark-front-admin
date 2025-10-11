@@ -19,7 +19,6 @@ import {
   FilterOutlined,
 } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
-import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
@@ -33,9 +32,6 @@ const DataTable = ({
   columns,
   showDateRange = false,
   showRefresh = false,
-  showTotal = false,
-  showAddButton = false,
-  addButtonProps = {},
   dateRange,
   onDateRangeChange,
   loading = false,
@@ -48,7 +44,6 @@ const DataTable = ({
   enableExport = false,
   exportRoute,
   ExportPermission = false,
-  authToken,
   onRefresh,
 }) => {
   const [searchText, setSearchText] = useState("");

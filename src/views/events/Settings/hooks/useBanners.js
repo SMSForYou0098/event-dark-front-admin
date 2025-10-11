@@ -24,6 +24,7 @@ export const useOrganizerEvents = (organizerId, options = {}) =>
       return list.map(event => ({
         value: event.id,
         label: event.name,
+        event_key:event.event_key || '',
         tickets: event.tickets || []
       }));
     },
@@ -75,13 +76,14 @@ export const useBanners = (options = {}) =>
   useQuery({
     queryKey: ['banners'],
     queryFn: async () => {
-      const res = await api.get('banners');
-      
-      if (!res?.status) {
-        throw new Error(res?.message || 'Failed to fetch banners');
+      const res = await api.get('all-banners');
+      const payload = res;
+
+      if (!payload?.status) {
+        throw new Error(payload?.message || 'Failed to fetch banners');
       }
-      
-      return res?.data || [];
+
+      return payload?.data || [];
     },
     staleTime: 5 * 60 * 1000,
     retry: (count, err) => {
@@ -90,6 +92,7 @@ export const useBanners = (options = {}) =>
     },
     ...options,
   });
+
 
 /**
  * POST /banner-store
@@ -188,3 +191,35 @@ export const useRearrangeBanner = (options = {}) =>
     },
     ...options,
   });
+
+
+export const useEventsByCategories = (categoryTitle, options = {}) => {
+  const enabledFromCaller = options.enabled ?? true;
+
+  return useQuery({
+    queryKey: ['category-events', categoryTitle],
+    enabled: Boolean(categoryTitle) && Boolean(enabledFromCaller),
+    staleTime: 5 * 60 * 1000,
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    queryFn: async () => {
+      // Better error message
+      if (!categoryTitle) throw new Error('Category title is required');
+
+      const res = await api.get(`category-events/${encodeURIComponent(categoryTitle)}`);
+
+      // If you're using Axios, res.status is a number (200, 404, etc.)
+      // Adjust checks to match your API client
+      if (res?.status !== 200 && res?.status !== true) {
+        throw new Error(res?.message || 'Failed to fetch category events');
+      }
+
+      // For Axios, events are typically at res.data
+      // Return an array; the component maps over it
+      return res?.events ?? [];
+    },
+    ...options, // allow caller to override other options (but not enabled/queryKey/queryFn)
+  });
+};

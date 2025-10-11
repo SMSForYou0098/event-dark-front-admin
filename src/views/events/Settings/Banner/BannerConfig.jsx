@@ -1,12 +1,14 @@
 import React from 'react'
 import BannerForm from './BannerForm'
+import BannerList from './BannerList'
 
 const BannerConfig = () => {
   return (
     <div>
-      <BannerForm />
+      {/* <BannerForm /> */}
+      <BannerList />
     </div>
   )
 }
 
-export default BannerConfig
+export default BannerConfig;
