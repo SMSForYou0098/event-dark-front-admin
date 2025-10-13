@@ -19,7 +19,7 @@ const LogoWrapper = styled.div(() => ({
 const { useBreakpoint } = Grid;
 
 export const Logo = ({ mobileLogo, logoType }) => {
-
+	
 	const isMobile = !utils.getBreakPoint(useBreakpoint()).includes('lg');
 
 	const navCollapsed = useSelector(state => state.theme.navCollapsed);

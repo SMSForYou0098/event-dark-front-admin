@@ -1,273 +1,330 @@
-import {
-  AppstoreOutlined,
-  SafetyOutlined,
-  MailOutlined,
-  MessageOutlined,
-  CalendarOutlined,
-  BulbOutlined,
-  ShoppingCartOutlined,
-  AimOutlined,
-  MonitorOutlined,
-  SettingOutlined,
-  PlusSquareOutlined,
-  HolderOutlined
-} from '@ant-design/icons';
 import { APP_PREFIX_PATH } from 'configs/AppConfig'
 
 
-const appsNavTree = [{
-  key: 'apps',
-  path: `${APP_PREFIX_PATH}/apps`,
-  title: 'sidenav.apps',
-  icon: AppstoreOutlined,
-  breadcrumb: false,
-  isGroupTitle: true,
-  submenu: [
-    {
-      key: 'apps-mail',
-      path: `${APP_PREFIX_PATH}/apps/mail/inbox`,
-      title: 'sidenav.apps.mail',
-      icon: MailOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-chat',
-      path: `${APP_PREFIX_PATH}/apps/chat`,
-      title: 'sidenav.apps.chat',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-users',
-      path: `${APP_PREFIX_PATH}/apps/users`,
-      title: 'sidenav.apps.users',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-organizers',
-      path: `${APP_PREFIX_PATH}/apps/organizers`,
-      title: 'sidenav.apps.organizers',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-role',
-      path: `${APP_PREFIX_PATH}/apps/role`,
-      title: 'Role',
-      icon: SafetyOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-category',
-      path: `${APP_PREFIX_PATH}/apps/category`,
-      title: 'Category',
-      icon: SettingOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-venues',
-      path: `${APP_PREFIX_PATH}/apps/venues`,
-      title: 'Venues',
-      icon: AimOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-artist',
-      path: `${APP_PREFIX_PATH}/apps/artist`,
-      title: 'Artist',
-      icon: MonitorOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-fields',
-      path: `${APP_PREFIX_PATH}/apps/fields`,
-      title: 'Fields',
-      icon: PlusSquareOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-wallet-agent',
-      path: `${APP_PREFIX_PATH}/apps/wallet-agent`,
-      title: 'Wallet Agent',
-      icon: PlusSquareOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-box-office',
-      path: `${APP_PREFIX_PATH}/apps/box-office`,
-      title: 'Box Office',
-      icon: HolderOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-events',
-      path: `${APP_PREFIX_PATH}/apps/events`,
-      title: 'Events',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-payment-log',
-      path: `${APP_PREFIX_PATH}/apps/payment-log`,
-      title: 'Payment Log',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-tax-commision',
-      path: `${APP_PREFIX_PATH}/apps/tax-commision`,
-      title: 'Tax Commision',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-agents',
-      path: `${APP_PREFIX_PATH}/apps/agents`,
-      title: 'sidenav.apps.agents',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-pos',
-      path: `${APP_PREFIX_PATH}/apps/pos`,
-      title: 'sidenav.apps.pos',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-corporate',
-      path: `${APP_PREFIX_PATH}/apps/corporate`,
-      title: 'sidenav.apps.corporate',
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-sponsors',
-      path: `${APP_PREFIX_PATH}/apps/sponsors`,
-      title: 'sidenav.apps.sponsors', // <-- correct spelling
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-attendees',
-      path: `${APP_PREFIX_PATH}/apps/attendees`,
-      title: 'sidenav.apps.attendees', // <-- correct spelling
-      icon: MessageOutlined,
-      breadcrumb: false,
-      submenu: []
-    },
-    {
-      key: 'apps-settings',
-      path: `${APP_PREFIX_PATH}/apps/settings`,
-      title: 'sidenav.apps.settings',
-      icon: SettingOutlined,
-      breadcrumb: true,
-      submenu: [
-        {
-          key: 'apps-settings-mail_config',
-          path: `${APP_PREFIX_PATH}/apps/settings/mail-config`,
-          title: 'sidenav.apps.settings.mail_config',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-        {
-          key: 'apps-settings-sms_gateway',
-          path: `${APP_PREFIX_PATH}/apps/settings/sms-config`,
-          title: 'sidenav.apps.settings.sms_gateway',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-        {
-          key: 'apps-settings-whats_config',
-          path: `${APP_PREFIX_PATH}/apps/settings/whatsapp-config`,
-          title: 'sidenav.apps.settings.whats_config',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-        {
-          key: 'apps-settings-banners',
-          path: `${APP_PREFIX_PATH}/apps/settings/banners`,
-          title: 'sidenav.apps.settings.banners',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-        {
-          key: 'apps-settings-admin-settings',
-          path: `${APP_PREFIX_PATH}/apps/settings/admin-settings`,
-          title: 'sidenav.apps.settings.admin-settings',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-        {
-          key: 'apps-settings-payment-gateways',
-          path: `${APP_PREFIX_PATH}/apps/settings/payment-gateways`,
-          title: 'sidenav.apps.settings.payment-gateways',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-        {
-          key: 'apps-settings-footer-settings',
-          path: `${APP_PREFIX_PATH}/apps/settings/footer`,
-          title: 'sidenav.apps.settings.footer-settings',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        }
-      ]
-    },
-    {
-      key: 'apps-scan',
-      path: `${APP_PREFIX_PATH}/apps/scan`,
-      title: 'Scan',
-      icon: SettingOutlined,
-      breadcrumb: true,
-      submenu: [
-        {
-          key: 'apps-camera-scan',
-          path: `${APP_PREFIX_PATH}/apps/scan/camera`,
-          title: 'Scan By Camera ',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-        {
-          key: 'apps-scanner-scan',
-          path: `${APP_PREFIX_PATH}/apps/scan/scanner`,
-          title: 'Scan By Scanner ',
-          icon: '',
-          breadcrumb: false,
-          submenu: []
-        },
-      ]
-    },
-  ]
-}]
+import {
+  AppstoreOutlined,
+  MailOutlined,
+  MessageOutlined,
+  UserOutlined,
+  TeamOutlined,
+  SafetyOutlined,
+  SettingOutlined,
+  EnvironmentOutlined,
+  CustomerServiceOutlined,
+  PlusSquareOutlined,
+  WalletOutlined,
+  ShopOutlined,
+  CalendarOutlined,
+  DollarOutlined,
+  PercentageOutlined,
+  IdcardOutlined,
+  ShoppingOutlined,
+  CrownOutlined,
+  TrophyOutlined,
+  UsergroupAddOutlined,
+  ScanOutlined,
+  CameraOutlined,
+  BarcodeOutlined
+} from '@ant-design/icons';
+const appsNavTree = [
+  // User Management Group
+  {
+    key: 'user-management',
+    path: `user-management`,
+    title: 'User Management',
+    icon: TeamOutlined,
+    breadcrumb: false,
+    isGroupTitle: true,
+    submenu: [
+      {
+        key: 'users',
+        path: `users`,
+        title: 'Users',
+        icon: UserOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'organizers',
+        path: `organizers`,
+        title: 'Organizers',
+        icon: TeamOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'role',
+        path: `role`,
+        title: 'Role Permission',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'agents',
+        path: `agents`,
+        title: 'Agents',
+        icon: IdcardOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'attendees',
+        path: `attendees`,
+        title: 'Attendees',
+        icon: UsergroupAddOutlined,
+        breadcrumb: false,
+        submenu: []
+      }
+    ]
+  },
 
+  // Event Management Group
+  {
+    key: 'event-management',
+    path: `event-management`,
+    title: 'Event Management',
+    icon: CalendarOutlined,
+    breadcrumb: false,
+    isGroupTitle: true,
+    submenu: [
+      {
+        key: 'events',
+        path: `events`,
+        title: 'Events',
+        icon: CalendarOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'category',
+        path: `category`,
+        title: 'Category',
+        icon: AppstoreOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'venues',
+        path: `venues`,
+        title: 'Venues',
+        icon: EnvironmentOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'artist',
+        path: `artist`,
+        title: 'Artist',
+        icon: CustomerServiceOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'fields',
+        path: `fields`,
+        title: 'Fields',
+        icon: PlusSquareOutlined,
+        breadcrumb: false,
+        submenu: []
+      }
+    ]
+  },
+
+  // Sales & Operations Group
+  {
+    key: 'sales-operations',
+    path: `sales-operations`,
+    title: 'Sales & Operations',
+    icon: ShoppingOutlined,
+    breadcrumb: false,
+    isGroupTitle: true,
+    submenu: [
+      {
+        key: 'box-office',
+        path: `box-office`,
+        title: 'Box Office',
+        icon: ShopOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'pos',
+        path: `pos`,
+        title: 'POS',
+        icon: ShoppingOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'scan',
+        path: `scan`,
+        title: 'Scan',
+        icon: ScanOutlined,
+        breadcrumb: true,
+        submenu: [
+          {
+            key: 'camera-scan',
+            path: `scan/camera`,
+            title: 'Scan By Camera',
+            icon: CameraOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
+          {
+            key: 'scanner-scan',
+            path: `scan/scanner`,
+            title: 'Scan By Scanner',
+            icon: BarcodeOutlined,
+            breadcrumb: false,
+            submenu: []
+          }
+        ]
+      }
+    ]
+  },
+
+  // Financial Management Group
+  {
+    key: 'financial-management',
+    path: `financial-management`,
+    title: 'Financial Management',
+    icon: DollarOutlined,
+    breadcrumb: false,
+    isGroupTitle: true,
+    submenu: [
+      {
+        key: 'wallet-agent',
+        path: `wallet-agent`,
+        title: 'Wallet Agent',
+        icon: WalletOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'payment-log',
+        path: `payment-log`,
+        title: 'Payment Log',
+        icon: DollarOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'tax-commision',
+        path: `tax-commision`,
+        title: 'Tax Commission',
+        icon: PercentageOutlined,
+        breadcrumb: false,
+        submenu: []
+      }
+    ]
+  },
+
+  // Partners & Clients Group
+  {
+    key: 'partners-clients',
+    path: `partners-clients`,
+    title: 'Partners & Clients',
+    icon: CrownOutlined,
+    breadcrumb: false,
+    isGroupTitle: true,
+    submenu: [
+      {
+        key: 'corporate',
+        path: `corporate`,
+        title: 'Corporate',
+        icon: CrownOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
+        key: 'sponsors',
+        path: `sponsors`,
+        title: 'Sponsors',
+        icon: TrophyOutlined,
+        breadcrumb: false,
+        submenu: []
+      }
+    ]
+  },
+
+  // System Settings Group
+  {
+    key: 'system-settings',
+    path: `system-settings`,
+    title: 'System Settings',
+    icon: SettingOutlined,
+    breadcrumb: false,
+    isGroupTitle: true,
+    submenu: [
+      {
+        key: 'settings',
+        path: `settings`,
+        title: 'Settings',
+        icon: SettingOutlined,
+        breadcrumb: true,
+        submenu: [
+          {
+            key: 'settings-mail-config',
+            path: `settings/mail-config`,
+            title: 'Mail Config',
+            icon: MailOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
+          {
+            key: 'settings-sms-gateway',
+            path: `settings/sms-config`,
+            title: 'SMS Gateway',
+            icon: MessageOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
+          {
+            key: 'settings-whats-config',
+            path: `settings/whatsapp-config`,
+            title: 'WhatsApp Config',
+            icon: MessageOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
+          {
+            key: 'settings-banners',
+            path: `settings/banners`,
+            title: 'Banners',
+            icon: AppstoreOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
+          {
+            key: 'settings-admin-settings',
+            path: `settings/admin-settings`,
+            title: 'Admin Settings',
+            icon: SettingOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
+          {
+            key: 'settings-payment-gateways',
+            path: `settings/payment-gateways`,
+            title: 'Payment Gateways',
+            icon: DollarOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
+          {
+            key: 'settings-footer-settings',
+            path: `settings/footer`,
+            title: 'Footer Settings',
+            icon: SettingOutlined,
+            breadcrumb: false,
+            submenu: []
+          }
+        ]
+      }
+    ]
+  }
+];
 
 const navigationConfig = [
   ...appsNavTree,
