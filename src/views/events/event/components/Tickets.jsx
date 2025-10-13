@@ -17,6 +17,7 @@ const TicketsStep = ({ eventId, eventName }) => {
     { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans' },
     { name: 'ticket_system', label: 'Booking By Ticket' },
     { name: 'bookingBySeat', label: 'Booking By Seat' },
+    
   ];
 
   return (
