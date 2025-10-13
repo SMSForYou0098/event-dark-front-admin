@@ -1,5 +1,5 @@
-import { 
-  DashboardOutlined, 
+import {
+  DashboardOutlined,
   AppstoreOutlined,
   FileTextOutlined,
   PieChartOutlined,
@@ -278,7 +278,7 @@ const appsNavTree = [{
       submenu: []
     },
     {
-      key : 'apps-artist',
+      key: 'apps-artist',
       path: `${APP_PREFIX_PATH}/apps/artist`,
       title: 'Artist',
       icon: MonitorOutlined,
@@ -286,7 +286,7 @@ const appsNavTree = [{
       submenu: []
     },
     {
-      key : 'apps-fields',
+      key: 'apps-fields',
       path: `${APP_PREFIX_PATH}/apps/fields`,
       title: 'Fields',
       icon: PlusSquareOutlined,
@@ -294,7 +294,7 @@ const appsNavTree = [{
       submenu: []
     },
     {
-      key : 'apps-wallet-agent',
+      key: 'apps-wallet-agent',
       path: `${APP_PREFIX_PATH}/apps/wallet-agent`,
       title: 'Wallet Agent',
       icon: PlusSquareOutlined,
@@ -302,7 +302,7 @@ const appsNavTree = [{
       submenu: []
     },
     {
-      key : 'apps-box-office',
+      key: 'apps-box-office',
       path: `${APP_PREFIX_PATH}/apps/box-office`,
       title: 'Box Office',
       icon: HolderOutlined,
@@ -313,6 +313,22 @@ const appsNavTree = [{
       key: 'apps-events',
       path: `${APP_PREFIX_PATH}/apps/events`,
       title: 'Events',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-payment-log',
+      path: `${APP_PREFIX_PATH}/apps/payment-log`,
+      title: 'Payment Log',
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key: 'apps-tax-commision',
+      path: `${APP_PREFIX_PATH}/apps/tax-commision`,
+      title: 'Tax Commision',
       icon: MessageOutlined,
       breadcrumb: false,
       submenu: []
@@ -396,6 +412,31 @@ const appsNavTree = [{
           breadcrumb: false,
           submenu: []
         }
+      ]
+    },
+    {
+      key: 'apps-scan',
+      path: `${APP_PREFIX_PATH}/apps/scan`,
+      title: 'Scan',
+      icon: SettingOutlined,
+      breadcrumb: true,
+      submenu: [
+        {
+          key: 'apps-camera-scan',
+          path: `${APP_PREFIX_PATH}/apps/scan/camera`,
+          title: 'Scan By Camera ',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        },
+        {
+          key: 'apps-scanner-scan',
+          path: `${APP_PREFIX_PATH}/apps/scan/scanner`,
+          title: 'Scan By Scanner ',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        },
       ]
     },
 

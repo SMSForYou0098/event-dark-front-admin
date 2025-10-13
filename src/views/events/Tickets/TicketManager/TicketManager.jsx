@@ -446,7 +446,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                         type="primary"
                         icon={<PlusOutlined />}
                         onClick={handleCreate}
-                        size="large"
                     >
                         New Ticket
                     </Button>
