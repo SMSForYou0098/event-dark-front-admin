@@ -1,6 +1,6 @@
 // TicketsStep.jsx
 import React from 'react';
-import { Form, Input, Row, Col, Switch, Card, Space } from 'antd';
+import { Form, Input, Row, Col, Switch, Card } from 'antd';
 import TicketManager from 'views/events/Tickets/TicketManager/TicketManager';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 
