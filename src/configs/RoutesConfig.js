@@ -136,6 +136,16 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Tickets/TicketManager/TicketComponent')),
     },
     {
+        key: 'apps.box-office',
+        path: `${APP_PREFIX_PATH}/apps/box-office`,
+        component: React.lazy(() => import('views/events/BoxOffice/index')),
+    },
+    {
+        key: 'apps.wallet-agent',
+        path: `${APP_PREFIX_PATH}/apps/wallet-agent`,
+        component: React.lazy(() => import('views/events/WalletAgent/index')),
+    },
+    {
         key: 'apps.venues',
         path: `${APP_PREFIX_PATH}/apps/venues`,
         component: React.lazy(() => import('views/events/Venues/index')),

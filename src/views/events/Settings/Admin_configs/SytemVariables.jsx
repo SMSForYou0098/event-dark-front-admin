@@ -1,21 +1,79 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, Button, Modal, Form, Input, Table, Space, message, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, CheckOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, CheckOutlined, SearchOutlined } from '@ant-design/icons';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 
 const SytemVariables = () => {
-  const { SystemVars, GetSystemVars, authToken, api } = useMyContext();
+  const { authToken, api } = useMyContext();
   const [form] = Form.useForm();
+  const queryClient = useQueryClient();
 
   // Only essential states
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [copiedRowId, setCopiedRowId] = useState(null);
+  const [searchText, setSearchText] = useState('');
+
+  // Fetch system variables with React Query
+  const { data: SystemVars = [], isLoading } = useQuery({
+    queryKey: ['systemVariables'],
+    queryFn: async () => {
+      const response = await axios.get(`${api}system-variables`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      return response.data?.systemData || response.data || [];
+    },
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Create/Update mutation
+  const saveMutation = useMutation({
+    mutationFn: async (values) => {
+      const url = isEditing
+        ? `${api}system-variables-update/${editId}`
+        : `${api}system-variables-store`;
+
+      return await axios.post(url, values, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['systemVariables'] });
+      message.success(
+        `System variable ${isEditing ? 'updated' : 'created'} successfully`
+      );
+      handleCloseModal();
+    },
+    onError: (error) => {
+      const errorMessage =
+        error.response?.data?.message || 'Error saving system variable';
+      message.error(errorMessage);
+    },
+  });
+
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await axios.delete(`${api}system-variables-destroy/${id}`, {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['systemVariables'] });
+      message.success('System variable deleted successfully');
+      cancelDeleteModal();
+    },
+    onError: (error) => {
+      message.error(error.response?.data?.message || 'Error deleting system variable');
+    },
+  });
 
   const fallbackCopyTextToClipboard = (text, id) => {
     const textArea = document.createElement('textarea');
@@ -55,7 +113,6 @@ const SytemVariables = () => {
     }
   };
 
-
   const handleEditClick = (item) => {
     setEditId(item.id);
     setIsEditing(true);
@@ -76,32 +133,9 @@ const SytemVariables = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      setLoading(true);
-
-      const url = isEditing
-        ? `${api}system-variables-update/${editId}`
-        : `${api}system-variables-store`;
-
-      const response = await axios.post(url, values, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.status === 200 || response.status === 201) {
-        message.success(
-          `System variable ${isEditing ? 'updated' : 'created'} successfully`
-        );
-        handleCloseModal();
-        await GetSystemVars();
-      }
+      saveMutation.mutate(values);
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Error saving system variable';
-      message.error(errorMessage);
-    } finally {
-      setLoading(false);
+      // Validation error
     }
   };
 
@@ -114,27 +148,19 @@ const SytemVariables = () => {
   };
 
   const confirmDelete = async () => {
-    try {
-      setDeleteLoading(true);
-      const response = await axios.delete(`${api}system-variables-destroy/${deleteModal.id}`, {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      });
-
-      if (response.data?.status) {
-        await GetSystemVars();
-        message.success('System variable deleted successfully');
-        cancelDeleteModal();
-      } else {
-        message.error('Error deleting system variable');
-      }
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Error deleting system variable');
-    } finally {
-      setDeleteLoading(false);
-    }
+    deleteMutation.mutate(deleteModal.id);
   };
+
+  // Memoized filtered data for better performance
+  const filteredData = useMemo(() => {
+    if (!searchText) return SystemVars;
+
+    const searchLower = searchText.toLowerCase();
+    return SystemVars.filter((item) =>
+      item.key?.toLowerCase().includes(searchLower) ||
+      item.value?.toLowerCase().includes(searchLower)
+    );
+  }, [SystemVars, searchText]);
 
   const columns = [
     {
@@ -192,6 +218,7 @@ const SytemVariables = () => {
       ),
     },
   ];
+
   return (
     <>
       {/* Delete Confirmation Modal */}
@@ -202,7 +229,7 @@ const SytemVariables = () => {
         onCancel={cancelDeleteModal}
         okText="Yes, delete it!"
         cancelText="Cancel"
-        confirmLoading={deleteLoading}
+        confirmLoading={deleteMutation.isPending}
         centered
         okButtonProps={{ danger: true }}
       >
@@ -218,7 +245,7 @@ const SytemVariables = () => {
           <Button key="cancel" onClick={handleCloseModal}>
             Cancel
           </Button>,
-          <Button key="submit" type="primary" loading={loading} onClick={handleSubmit}>
+          <Button key="submit" type="primary" loading={saveMutation.isPending} onClick={handleSubmit}>
             {isEditing ? 'Update' : 'Save'}
           </Button>,
         ]}
@@ -250,21 +277,32 @@ const SytemVariables = () => {
       <Card
         title="System Variables"
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setShowModal(true)}
-          >
-            Add New Variable
-          </Button>
+          <Space size="small" style={{ width: '100%' }}>
+            <Input
+              placeholder="Search..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{
+                width: '140px',
+              }}
+              allowClear
+            />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setShowModal(true)}
+            />
+          </Space>
         }
       >
         <Table
           columns={columns}
-          dataSource={SystemVars}
+          dataSource={filteredData}
           rowKey="id"
+          loading={isLoading}
           pagination={{
-            pageSize: 10,
+            pageSize: 5,
             showSizeChanger: true,
             showTotal: (total) => `Total ${total} variables`,
           }}

@@ -23,8 +23,8 @@ import DataTable from 'views/events/common/DataTable';
 
 const BannerList = () => {
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
-  const [bannerModal, setBannerModal] = useState({ 
-    visible: false, 
+  const [bannerModal, setBannerModal] = useState({
+    visible: false,
     mode: 'create',
     id: null,
     data: null
@@ -64,9 +64,9 @@ const BannerList = () => {
   };
 
   const showEditModal = (record) => {
-    setBannerModal({ 
-      visible: true, 
-      mode: 'edit', 
+    setBannerModal({
+      visible: true,
+      mode: 'edit',
       id: record.id,
       data: record
     });
@@ -125,7 +125,6 @@ const BannerList = () => {
         const colorMap = {
           main: 'blue',
           organization: 'green',
-          organization: 'green',
           category: 'purple',
         };
         return (
@@ -147,20 +146,20 @@ const BannerList = () => {
       key: 'category',
       render: (categoryTitle) => categoryTitle || '-',
     },
-    {
-      title: 'Event Key',
-      dataIndex: 'event_key',
-      key: 'event_key',
-      searchable: true,
-      render: (key) => key ? <Tag>{key}</Tag> : '-',
-    },
-    {
-      title: 'Event ID',
-      dataIndex: 'event_id',
-      key: 'event_id',
-      width: 100,
-      render: (id) => id || '-',
-    },
+    // {
+    //   title: 'Event Key',
+    //   dataIndex: 'event_key',
+    //   key: 'event_key',
+    //   searchable: true,
+    //   render: (key) => key ? <Tag>{key}</Tag> : '-',
+    // },
+    // {
+    //   title: 'Event ID',
+    //   dataIndex: 'event_id',
+    //   key: 'event_id',
+    //   width: 100,
+    //   render: (id) => id || '-',
+    // },
     {
       title: 'Button Text',
       dataIndex: 'button_text',
@@ -188,7 +187,6 @@ const BannerList = () => {
         <Space size="small">
           <Tooltip title="Edit">
             <Button
-              type="primary"
               size="small"
               icon={<EditOutlined />}
               onClick={() => showEditModal(record)}
@@ -226,58 +224,15 @@ const BannerList = () => {
       </Modal>
 
       {/* Banner Form Modal */}
-      <Modal
-  title={`${bannerModal.mode === 'create' ? 'Create' : 'Edit'} Banner`}
-  open={bannerModal.visible}
-  onCancel={closeBannerModal}
-  footer={null}
-  width={1200}
-  destroyOnClose
-  // 👇 This is the important part
-  styles={{
-    // Set an overall modal height. Use a fixed px or viewport height.
-    // 1) Fixed: height: 680
-    // 2) Viewport-based (recommended): height: '80vh'
-    content: {
-      height: '80vh',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: 0, // let header/body control their own padding
-    },
-    header: {
-      position: 'sticky',
-      top: 0,
-      zIndex: 2,
-      background: '#fff',
-      padding: '16px 24px',
-      borderBottom: '1px solid #f0f0f0',
-    },
-    body: {
-      // Take remaining space and scroll
-      flex: 1,
-      overflowY: 'auto',
-      padding: 24,
-      // If you want a little breathing room for long forms:
-      // marginRight: 2, paddingRight: 22
-    },
-    footer: {
-      position: 'sticky',
-      bottom: 0,
-      zIndex: 2,
-      background: '#fff',
-      borderTop: '1px solid #f0f0f0',
-      padding: 16,
-    },
-  }}
->
-  <BannerForm
-    mode={bannerModal.mode}
-    id={bannerModal.id}
-    bannerData={bannerModal.data}
-    onSuccess={handleBannerSuccess}
-    onCancel={closeBannerModal}
-  />
-</Modal>
+
+        <BannerForm
+          mode={bannerModal.mode}
+          id={bannerModal.id}
+          bannerData={bannerModal.data}
+          onSuccess={handleBannerSuccess}
+          onCancel={closeBannerModal}
+          visible={bannerModal.visible}
+        />
 
       {/* DataTable */}
       <DataTable

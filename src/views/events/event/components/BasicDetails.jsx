@@ -1,7 +1,8 @@
 // BasicDetailsStep.jsx
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Form, Input, Select, Row, Col, Typography, Card, Space, Button, Spin, Alert
+  Form, Input, Select, Row, Col, Typography, Card, Space, Button, Spin, Alert,
+  message
 } from 'antd';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { CompassOutlined, EnvironmentOutlined, HomeOutlined } from '@ant-design/icons';
@@ -16,7 +17,7 @@ import { OrganisationList } from 'utils/CommonInputs';
 const { TextArea } = Input;
 
 const BasicDetailsStep = ({ form, isEdit }) => {
-  const { UserData,  } = useMyContext();
+  const { UserData, } = useMyContext();
 
   // categories
   const {
@@ -89,7 +90,6 @@ const BasicDetailsStep = ({ form, isEdit }) => {
   }, [selectedVenueId, venues]);
 
   const isUserOrganizer = UserData?.role?.toLowerCase() === 'organizer';
-
   return (
     <Row gutter={ROW_GUTTER}>
       {/* Errors */}
@@ -140,10 +140,25 @@ const BasicDetailsStep = ({ form, isEdit }) => {
           rules={[
             { required: true, message: "Please enter event name" },
             { min: 3, message: "Event name must be at least 3 characters" },
+            {
+              validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                // \p{L} = any kind of letter in any language (requires `u` flag)
+                const valid = /^[\p{L}0-9 ._-]+$/u.test(value);
+                return valid
+                  ? Promise.resolve()
+                  : Promise.reject(
+                    new Error(
+                      "Only letters, numbers, spaces, hyphen (-), underscore (_) and dot (.) are allowed."
+                    )
+                  );
+              },
+            },
           ]}
         >
           <Input placeholder="Enter Event Name" />
         </Form.Item>
+
       </Col>
 
       {/* Venues — driven by organizerId */}
@@ -158,7 +173,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
             loading={venueLoading}
             disabled={!organizerId}
             options={venues.map((v) => ({
-              value:String(v.id) ?? String(v.value),
+              value: String(v.id) ?? String(v.value),
               label: renderVenueOptionLabel(v),
             }))}
             optionLabelProp="label"

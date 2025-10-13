@@ -39,27 +39,27 @@ export const TEXTAREA_FIELDS = [
   {
     name: 'description',
     label: 'Description',
-    span: { xs: 24 },
+    span: { xs: 12 , md : 24 },
     rules: [{ required: true, message: 'Please enter description' }],
     placeholder: 'Enter banner description',
     rows: 4,
     maxLength: 500,
   },
-  {
-    name: 'sub_description',
-    label: 'Sub Description',
-    span: { xs: 24 },
-    placeholder: 'Enter sub description (optional)',
-    rows: 3,
-    maxLength: 300,
-  },
+  // {
+  //   name: 'sub_description',
+  //   label: 'Sub Description',
+  //   span: { xs: 12 },
+  //   placeholder: 'Enter sub description (optional)',
+  //   rows: 3,
+  //   maxLength: 300,
+  // },
 ];
 
 export const IMAGE_FIELDS = [
   {
     name: 'images',
     label: 'Banner Image',
-    span: { xs: 24, md: 8 },
+    span: { xs: 12, md: 8 },
     stateKey: 'bannerImage',
     uploadText: 'Upload Banner',
     required: true,
@@ -67,14 +67,14 @@ export const IMAGE_FIELDS = [
   {
     name: 'sm_image',
     label: 'Small Image',
-    span: { xs: 24, md: 8 },
+    span: { xs: 12, md: 8 },
     stateKey: 'smImage',
     uploadText: 'Upload SM',
   },
   {
     name: 'md_image',
     label: 'Medium Image',
-    span: { xs: 24, md: 8 },
+    span: { xs: 12, md: 8 },
     stateKey: 'mdImage',
     uploadText: 'Upload MD',
   },

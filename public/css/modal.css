@@ -18,7 +18,7 @@
 
 /* Modal main content box */
 .ant-modal-content {
-  background: rgba(0, 0, 0, 0.4) !important;
+  background: rgba(0, 0, 0, 0.8) !important;
   backdrop-filter: blur(10px) !important;
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
@@ -85,20 +85,23 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
+
 .ant-modal-confirm .ant-modal-header {
   background: transparent !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
 }
+
 .ant-modal-confirm .ant-modal-title {
   color: #fff !important;
 }
+
 .ant-modal-confirm-title,
 .ant-modal-confirm-content {
   color: #fff !important;
 }
 
 /* change the footer button styles */
-.ant-btn-primary{
+.ant-btn-primary {
   background: var(--primary-color) !important;
   color: #fff !important;
 }
@@ -108,9 +111,31 @@
   border-top: none !important;
 }
 
+.ant-modal-body {
+  max-height: 70vh;
+  /* or any fixed px value */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 /* Default modal */
 .ant-modal {
-  top: 0 !important;
+  top: -50px !important;
+}
+
+@media (max-width: 768px) {
+  .ant-modal {
+    top: 0 !important;
+  }
+}
+
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: landscape) {
+  .ant-modal-body {
+    max-height: 55vh;
+    /* or any fixed px value */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 }
 
 /* Centered modal */
