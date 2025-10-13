@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Form, Input, Button, Row, Col, Select, Upload, message, Radio, Spin, Carousel, Image,} from 'antd';
+import { Card, Form, Input, Button, Row, Col, Select, Upload, message, Radio, Spin, Carousel, Image, Modal, } from 'antd';
 import { UploadOutlined, SaveOutlined } from '@ant-design/icons';
 import { OrganisationList } from 'utils/CommonInputs';
 import { useMyContext } from 'Context/MyContextProvider';
 import { useEventCategories } from 'views/events/event/hooks/useEventOptions';
-import { useOrganizerEvents, useCreateBanner, useUpdateBanner, useEventsByCategories,} from 'views/events/Settings/hooks/useBanners';
+import { useOrganizerEvents, useCreateBanner, useUpdateBanner, useEventsByCategories, } from 'views/events/Settings/hooks/useBanners';
 import { IMAGE_FIELDS, TEXT_FIELDS, TEXTAREA_FIELDS } from './constants';
 import { CustomNextArrow, CustomPrevArrow } from 'views/events/Settings/Banner/CaroselArrows';
 
@@ -13,14 +13,11 @@ const { TextArea } = Input;
 // Field configurations
 
 
-const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) => {
+const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visible }) => {
   const { UserData, userRole } = useMyContext();
+  const isOrganizer = userRole === 'Organizer'
   const [form] = Form.useForm();
-  
-  // Check if user is organizer
-  const isOrganizer = userRole === 'Organizer';
-  const isEditMode = mode === 'edit';
-  
+  const isEditMode = mode === 'edit'
   // States
   const [bannerType, setBannerType] = useState(isOrganizer ? 'organization' : 'main');
   const [selectedOrgId, setSelectedOrgId] = useState(isOrganizer ? UserData?.id : null);
@@ -64,42 +61,38 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
     if (isEditMode && bannerData) {
       const data = bannerData;
       
-      // Determine banner type
+      // Determine banner type - use the type from data directly
       let type = data.type || 'main';
-      
+
       // Normalize type names
       if (type === 'organisation') {
         type = 'organization';
       }
       
-      // For organizers, always force organization type
-      if (isOrganizer) {
-        type = 'organization';
-      }
-      
       setBannerType(type);
-      
+
       // Set org ID for organization type
       if (isOrganizer && UserData?.id) {
         setSelectedOrgId(UserData.id);
       } else if (data.org_id) {
         setSelectedOrgId(data.org_id);
       }
-      
+
       // Extract category ID - handle both object and direct ID
       let categoryId = null;
       if (data.category) {
         categoryId = typeof data.category === 'object' ? data.category.id : data.category;
         setSelectedCategoryId(categoryId);
         
+        // Set category title for fetching events
         const categoryTitle = typeof data.category === 'object' 
           ? data.category.title 
           : findCategoryTitleById(categoryId);
         setSelectedCategoryTitle(categoryTitle);
       }
       
-      // Set form values - Always set org_id for organizers
-      const formValues = {
+      // Set form values
+      form.setFieldsValue({
         banner_type: type,
         category: categoryId,
         title: data.title,
@@ -110,16 +103,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
         external_url: data.external_url,
         event_id: data.event_id,
         event_key: data.event_key,
-      };
-
-      // Always set org_id for organizers
-      if (isOrganizer && UserData?.id) {
-        formValues.org_id = String(UserData.id);
-      } else if (data.org_id) {
-        formValues.org_id = String(data.org_id);
-      }
-
-      form.setFieldsValue(formValues);
+      });
       
       // Set images if they exist
       const newImages = {};
@@ -203,12 +187,15 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
     const type = e.target.value;
     setBannerType(type);
     
+    // Update form field
     form.setFieldValue('banner_type', type);
     
+    // Only reset dropdown-related states
     setSelectedOrgId(null);
     setSelectedCategoryId(null);
     setSelectedCategoryTitle(null);
     
+    // Clear only dropdown fields based on selection
     if (type === 'main') {
       form.setFieldsValue({
         org_id: undefined,
@@ -222,6 +209,12 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
         event_id: undefined,
         event_key: undefined,
       });
+      
+      // Auto-set org_id for organizers
+      if (isOrganizer && UserData?.id) {
+        setSelectedOrgId(UserData.id);
+        form.setFieldValue('org_id', String(UserData.id));
+      }
     } else if (type === 'category') {
       form.setFieldsValues({
         org_id: undefined,
@@ -255,7 +248,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
   const handleEventChange = (value) => {
     const events = bannerType === 'organization' ? orgEvents : categoryEvents;
     const selectedEvent = events?.find(e => e.value === value);
-    
+
     if (selectedEvent) {
       // Always use event_key from the selected event
       form.setFieldValue('event_key', selectedEvent.event_key);
@@ -269,63 +262,63 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
 
   // Handle form submit
   const handleSubmit = async () => {
-  try {
-    // Validate and get values
-    const values = await form.validateFields();
+    try {
+      // Validate and get values
+      const values = await form.validateFields();
 
-    const submitData = new FormData();
-    const IMAGE_KEYS = ['images', 'sm_image', 'md_image'];
+      const submitData = new FormData();
+      const IMAGE_KEYS = ['images', 'sm_image', 'md_image'];
 
-    // Always send the normalized banner type
-    submitData.append('type', bannerType); // change to 'banner_type' if your API expects that
+      // Always send the normalized banner type
+      submitData.append('type', bannerType); // change to 'banner_type' if your API expects that
 
-    // Append non-file fields (skip upload fields and irrelevant fields per type)
-    Object.entries(values).forEach(([key, val]) => {
-      // 1) skip the form-only banner_type field (we already appended 'type' above)
-      if (key === 'banner_type') return;
+      // Append non-file fields (skip upload fields and irrelevant fields per type)
+      Object.entries(values).forEach(([key, val]) => {
+        // 1) skip the form-only banner_type field (we already appended 'type' above)
+        if (key === 'banner_type') return;
 
-      // 2) skip file fields; they'll be appended from state below
-      if (IMAGE_KEYS.includes(key)) return;
+        // 2) skip file fields; they'll be appended from state below
+        if (IMAGE_KEYS.includes(key)) return;
 
-      // 3) skip fields based on banner type
-      if (bannerType === 'main' && (key === 'org_id' || key === 'event_id' || key === 'event_key')) return;
-      if (bannerType === 'organization' && key === 'category') return;
-      if (bannerType === 'category' && key === 'org_id') return;
+        // 3) skip fields based on banner type
+        if (bannerType === 'main' && (key === 'org_id' || key === 'event_id' || key === 'event_key')) return;
+        if (bannerType === 'organization' && key === 'category') return;
+        if (bannerType === 'category' && key === 'org_id') return;
 
-      // 4) append only meaningful values
-      if (val !== undefined && val !== null && val !== '') {
-        // Coerce to string to be consistent for FormData text fields
-        submitData.append(key, String(val));
+        // 4) append only meaningful values
+        if (val !== undefined && val !== null && val !== '') {
+          // Coerce to string to be consistent for FormData text fields
+          submitData.append(key, String(val));
+        }
+      });
+
+      // Append image files only if a NEW file is picked (originFileObj exists)
+      if (images.bannerImage?.originFileObj) {
+        submitData.append('images', images.bannerImage.originFileObj);
       }
-    });
+      if (images.smImage?.originFileObj) {
+        submitData.append('sm_image', images.smImage.originFileObj);
+      }
+      if (images.mdImage?.originFileObj) {
+        submitData.append('md_image', images.mdImage.originFileObj);
+      }
 
-    // Append image files only if a NEW file is picked (originFileObj exists)
-    if (images.bannerImage?.originFileObj) {
-      submitData.append('images', images.bannerImage.originFileObj);
-    }
-    if (images.smImage?.originFileObj) {
-      submitData.append('sm_image', images.smImage.originFileObj);
-    }
-    if (images.mdImage?.originFileObj) {
-      submitData.append('md_image', images.mdImage.originFileObj);
-    }
+      // --- Debug: inspect what will be sent (optional) ---
+      // for (const [k, v] of submitData.entries()) {
+      //   console.log(k, v instanceof File ? `(file) ${v.name}` : v);
+      // }
 
-    // --- Debug: inspect what will be sent (optional) ---
-    // for (const [k, v] of submitData.entries()) {
-    //   console.log(k, v instanceof File ? `(file) ${v.name}` : v);
-    // }
-
-    // Submit
-    if (isEditMode) {
-      updateBanner({ id, formData: submitData });
-    } else {
-      createBanner(submitData);
+      // Submit
+      if (isEditMode) {
+        updateBanner({ id, formData: submitData });
+      } else {
+        createBanner(submitData);
+      }
+    } catch (err) {
+      console.error('Validation Failed:', err);
+      message.error('Please fill all required fields');
     }
-  } catch (err) {
-    console.error('Validation Failed:', err);
-    message.error('Please fill all required fields');
-  }
-};
+  };
 
 
   // Upload props for images
@@ -377,39 +370,32 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
   const eventsData = bannerType === 'organization' ? orgEvents : categoryEvents;
   const eventsLoading = bannerType === 'organization' ? orgEventsLoading : categoryEventsLoading;
   const eventPlaceholder = bannerType === 'organization' 
-    ? (selectedOrgId ? "Select event" : "Loading events...")
+    ? (selectedOrgId ? "Select event" : (isOrganizer ? "Loading events..." : "Select organization first"))
     : (selectedCategoryTitle ? "Select event" : "Select category first");
 
   // Custom arrow components for carousel
   return (
     <Form form={form} layout="vertical" onFinish={handleSubmit}>
       <Row gutter={[16, 16]}>
-        {/* Banner Type - COMPLETELY HIDDEN for organizers */}
-        {!isOrganizer && (
-          <Col xs={24}>
-            <Form.Item label="Banner Type" name="banner_type" initialValue="main">
-              <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
-                <Radio value="main">Main Banner</Radio>
-                <Radio value="organization">Organization Banner</Radio>
-                <Radio value="category">Category Banner</Radio>
-              </Radio.Group>
-            </Form.Item>
+        {/* Banner Type */}
+        <Col xs={24}>
+          <Form.Item label="Banner Type" name="banner_type" initialValue="main">
+            <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
+              <Radio value="main">Main Banner</Radio>
+              <Radio value="organization">Organization Banner</Radio>
+              <Radio value="category">Category Banner</Radio>
+            </Radio.Group>
+          </Form.Item>
+        </Col>
+
+        {/* Organization Dropdown */}
+        {showOrgDropdown && (
+          <Col xs={24} md={12}>
+            <OrganisationList onChange={handleOrgChange} />
           </Col>
         )}
 
-        {/* Hidden fields for organizers - to ensure data is submitted */}
-        {isOrganizer && (
-          <>
-            <Form.Item name="banner_type" hidden initialValue="organization">
-              <Input />
-            </Form.Item>
-            <Form.Item name="org_id" hidden initialValue={String(UserData?.id)}>
-              <Input />
-            </Form.Item>
-          </>
-        )}
-
-        {/* Category Dropdown - Only shown for non-organizers with category/main type */}
+        {/* Category Dropdown */}
         {showCategoryField && (
           <Col xs={24} md={12}>
             <Form.Item
@@ -432,7 +418,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
           </Col>
         )}
 
-        {/* Event Dropdown - Always shown for organizers */}
+        {/* Event Dropdown */}
         {showEventDropdown && (
           <Col xs={24} md={12}>
             <Form.Item
@@ -462,67 +448,67 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
           </Col>
         )}
 
-        {/* Hidden Event Key Field */}
-        <Form.Item name="event_key" noStyle>
-          <Input type="hidden" />
-        </Form.Item>
+          {/* Hidden Event Key Field */}
+          <Form.Item name="event_key" noStyle>
+            <Input type="hidden" />
+          </Form.Item>
 
-        {/* Text Fields */}
-        {TEXT_FIELDS.map((field) => (
-          <Col key={field.name} {...field.span}>
-            <Form.Item
-              label={field.label}
-              name={field.name}
-              rules={field.rules}
-            >
-              <Input placeholder={field.placeholder} />
-            </Form.Item>
-          </Col>
-        ))}
-
-        {/* TextArea Fields */}
-        {TEXTAREA_FIELDS.map((field) => (
-          <Col key={field.name} {...field.span}>
-            <Form.Item
-              label={field.label}
-              name={field.name}
-              rules={field.rules}
-            >
-              <TextArea
-                rows={field.rows}
-                placeholder={field.placeholder}
-                showCount
-                maxLength={field.maxLength}
-              />
-            </Form.Item>
-          </Col>
-        ))}
-
-        {/* Image Upload Fields */}
-        {IMAGE_FIELDS.map((field) => (
-          <Col key={field.name} {...field.span}>
-            <Form.Item
-              label={field.label}
-              name={field.name}
-              rules={field.required ? [{ required: !isEditMode, message: `Please upload ${field.label.toLowerCase()}` }] : undefined}
-            >
-              <Upload
-                {...uploadProps}
-                fileList={images[field.stateKey] ? [images[field.stateKey]] : []}
-                onChange={handleImageChange(field.stateKey)}
-                listType="picture-card"
-                accept="image/*"
+          {/* Text Fields */}
+          {TEXT_FIELDS.map((field) => (
+            <Col key={field.name} {...field.span}>
+              <Form.Item
+                label={field.label}
+                name={field.name}
+                rules={field.rules}
               >
-                {!images[field.stateKey] && (
-                  <div>
-                    <UploadOutlined />
-                    <div style={{ marginTop: 8 }}>{field.uploadText}</div>
-                  </div>
-                )}
-              </Upload>
-            </Form.Item>
-          </Col>
-        ))}
+                <Input placeholder={field.placeholder} />
+              </Form.Item>
+            </Col>
+          ))}
+          {/* Image Upload Fields */}
+          {IMAGE_FIELDS.map((field) => (
+            <Col key={field.name} {...field.span}>
+              <Form.Item
+                label={field.label}
+                name={field.name}
+                rules={field.required ? [{ required: !isEditMode, message: `Please upload ${field.label.toLowerCase()}` }] : undefined}
+              >
+                <Upload
+                  {...uploadProps}
+                  fileList={images[field.stateKey] ? [images[field.stateKey]] : []}
+                  onChange={handleImageChange(field.stateKey)}
+                  listType="picture-card"
+                  accept="image/*"
+                >
+                  {!images[field.stateKey] && (
+                    <div>
+                      <UploadOutlined />
+                      <div style={{ marginTop: 8 }}>{field.uploadText}</div>
+                    </div>
+                  )}
+                </Upload>
+              </Form.Item>
+            </Col>
+          ))}
+
+          {/* TextArea Fields */}
+          {TEXTAREA_FIELDS.map((field) => (
+            <Col key={field.name} {...field.span}>
+              <Form.Item
+                label={field.label}
+                name={field.name}
+                rules={field.rules}
+              >
+                <TextArea
+                  rows={field.rows}
+                  placeholder={field.placeholder}
+                  showCount
+                  maxLength={field.maxLength}
+                />
+              </Form.Item>
+            </Col>
+          ))}
+
 
         {/* Image Preview Carousel */}
         {uploadedImages.length > 0 && (
@@ -542,7 +528,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel }) =>
                         src={img.url}
                         alt={img.title}
                         style={{
-                          maxHeight: '300px',
+                          maxHeight: '400px',
                           maxWidth: '100%',
                           objectFit: 'contain',
                         }}

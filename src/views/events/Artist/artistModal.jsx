@@ -231,16 +231,6 @@ const ArtistCrewModal = ({
                                 value={selectedCategory}
                                 placeholder="Select or type custom category"
                                 options={PREDEFINED_CATEGORIES.map(cat => ({ value: cat, label: cat }))}
-                                dropdownRender={(menu) => (
-                                    <>
-                                        {menu}
-                                        <div style={{ padding: '8px', borderTop: '1px solid #f0f0f0' }}>
-                                            <small>
-                                                Type to add custom category
-                                            </small>
-                                        </div>
-                                    </>
-                                )}
                                 mode="tags"
                                 maxTagCount={1}
                                 maxCount={1}

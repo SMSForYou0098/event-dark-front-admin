@@ -13,7 +13,8 @@ import {
   Table,
   Tooltip,
   message,
-  Spin
+  Spin,
+  Tag
 } from 'antd';
 import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -193,13 +194,13 @@ const WhatsAppConfig = () => {
     const vars = record?.variables ? record?.variables : [];
     setBadges(vars);
     setCustomShow(record?.custom === 1);
-    
+
     templateForm.setFieldsValue({
       title: record?.title,
       template_name: record?.template_name,
       url: record?.url || '',
     });
-    
+
     setShow(true);
   };
 
@@ -225,7 +226,7 @@ const WhatsAppConfig = () => {
   const HandleSubmit = async () => {
     try {
       const values = await templateForm.validateFields();
-      
+
       const payload = {
         user_id: UserData?.id,
         title: values.title,
@@ -268,7 +269,7 @@ const WhatsAppConfig = () => {
   // Generate Preview
   const GenratePreview = () => {
     if (!previewData) return '';
-    
+
     const isCustom = previewData?.custom === 1;
     if (isCustom) {
       return previewData?.url;
@@ -276,12 +277,11 @@ const WhatsAppConfig = () => {
       const apiKey = configData?.api_key || '';
       const number = previewForm.getFieldValue('number') || ':NUMBER';
       const validNumber = validateNumber(number);
-      
-      const api = `https://waba.smsforyou.biz/api/send-messages?apikey=*${apiKey}*&to=*${
-        validNumber || ':NUMBER'
-      }*&type=T&tname=*${previewData?.template_name}*&values=*${badges?.join(
-        ','
-      )}*&media_url=:IMAGE`;
+
+      const api = `https://waba.smsforyou.biz/api/send-messages?apikey=*${apiKey}*&to=*${validNumber || ':NUMBER'
+        }*&type=T&tname=*${previewData?.template_name}*&values=*${badges?.join(
+          ','
+        )}*&media_url=:IMAGE`;
       return boldifyText(api);
     }
   };
@@ -320,10 +320,9 @@ const WhatsAppConfig = () => {
 
       const fieldValues = Object.values(dynamicFields);
       const image = `https://smsforyou.biz/wp-content/uploads/2023/10/smsforyou.png`;
-      const apiUrl = `https://waba.smsforyou.biz/api/send-messages?apikey=${configData?.api_key}&to=${number}&type=T&tname=${
-        previewData?.template_name
-      }&values=${fieldValues?.join(',')}&media_url=${image}`;
-      
+      const apiUrl = `https://waba.smsforyou.biz/api/send-messages?apikey=${configData?.api_key}&to=${number}&type=T&tname=${previewData?.template_name
+        }&values=${fieldValues?.join(',')}&media_url=${image}`;
+
       const loader = showLoading('Sending Message');
       try {
         await axios.post(apiUrl);
@@ -558,23 +557,20 @@ const WhatsAppConfig = () => {
           <Row gutter={[16, 16]}>
             <Col xs={24}>
               <Form.Item label="Preview">
-                <div
-                  dangerouslySetInnerHTML={{ __html: formattedApi }}
-                  style={{
-                    maxHeight: '200px',
-                    padding: '10px',
-                    backgroundColor: '#f8f9fa',
-                    border: '1px solid #ccc',
-                    borderRadius: '5px',
-                    wordBreak: 'break-word',
-                    whiteSpace: 'pre-wrap',
-                    overflowY: 'auto',
-                  }}
-                />
+                <Tag>
+                  <div
+                    dangerouslySetInnerHTML={{ __html: formattedApi }}
+                    style={{
+                      wordBreak: 'break-word',
+                      whiteSpace: 'pre-wrap',
+                      overflowY: 'auto',
+                    }}
+                  />
+                </Tag>
               </Form.Item>
             </Col>
             <Col xs={24}>
-              <h5 style={{ marginBottom: 16 }}>Demo Test</h5>
+              <h5>Demo Test</h5>
             </Col>
             <Col xs={24}>
               <Form.Item

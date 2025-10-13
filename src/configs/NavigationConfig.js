@@ -28,7 +28,8 @@ import {
   AimOutlined,
   MonitorOutlined,
   SettingOutlined,
-  PlusSquareOutlined
+  PlusSquareOutlined,
+  HolderOutlined
 } from '@ant-design/icons';
 import { APP_PREFIX_PATH, AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import { MapPin } from 'lucide-react';
@@ -289,6 +290,22 @@ const appsNavTree = [{
       path: `${APP_PREFIX_PATH}/apps/fields`,
       title: 'Fields',
       icon: PlusSquareOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key : 'apps-wallet-agent',
+      path: `${APP_PREFIX_PATH}/apps/wallet-agent`,
+      title: 'Wallet Agent',
+      icon: PlusSquareOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
+      key : 'apps-box-office',
+      path: `${APP_PREFIX_PATH}/apps/box-office`,
+      title: 'Box Office',
+      icon: HolderOutlined,
       breadcrumb: false,
       submenu: []
     },

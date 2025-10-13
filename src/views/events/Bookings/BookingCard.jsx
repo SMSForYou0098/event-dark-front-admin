@@ -17,7 +17,7 @@ import {
   CloseCircleOutlined,
   ShareAltOutlined,
   EnvironmentOutlined,
-//   RupeeOutlined,
+  //   RupeeOutlined,
   AppstoreOutlined,
   MoreOutlined,
   TagOutlined,
@@ -61,14 +61,14 @@ const TypeIcon = ({ type, size = 16 }) => {
   }
 };
 
-const BookingCard = React.memo(({ booking, compact = false }) => {
+const BookingCard = React.memo(({ booking, compact = false, showAction }) => {
   const [ticketData, setTicketData] = useState([]);
   const [ticketType, setTicketType] = useState({ id: "", type: "" });
   const [show, setShow] = useState(false);
 
   const { isMobile, getCurrencySymbol, formatDateRange } = useMyContext();
   const [showSendModal, setShowSendModal] = useState(false);
-    const [sendData, setSendData] = useState(null);
+  const [sendData, setSendData] = useState(null);
   /** Normalize booking (supports master with .bookings[]) */
   const bookingData = useMemo(() => {
     const normalize = booking?.bookings ? booking.bookings[0] : booking || {};
@@ -97,14 +97,14 @@ const BookingCard = React.memo(({ booking, compact = false }) => {
   }, []);
 
   const handleOpenSendModal = (item) => {
-        setSendData(item);
-        setShowSendModal(true);
-    };
+    setSendData(item);
+    setShowSendModal(true);
+  };
 
-    const handleCloseSendModal = () => {
-        setShowSendModal(false);
-        setSendData(null);
-    };
+  const handleCloseSendModal = () => {
+    setShowSendModal(false);
+    setSendData(null);
+  };
 
   const handleCloseModal = useCallback(() => {
     setTicketData([]);
@@ -156,7 +156,6 @@ const BookingCard = React.memo(({ booking, compact = false }) => {
           width={compact ? 80 : 100}
           height={compact ? 100 : 120}
           style={{ objectFit: "cover", borderRadius: 8 }}
-          preview={false}
           fallback="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='120'/>"
           placeholder
         />
@@ -241,8 +240,8 @@ const BookingCard = React.memo(({ booking, compact = false }) => {
             Share <ShareAltOutlined style={{ marginLeft: 6 }} />
           </Button> */}
           <TicketActions
-                                            onSendTickets={handleOpenSendModal}
-                                            item={booking} />
+            onSendTickets={handleOpenSendModal}
+            item={booking} />
         </Space>
       </Space>
     ),
@@ -267,11 +266,11 @@ const BookingCard = React.memo(({ booking, compact = false }) => {
           }}
         >
           {leftContent}
-          {rightActions}
+          {showAction && rightActions}
         </div>
       </Card>
 
-      
+
       <TicketModal
         show={show}
         handleCloseModal={handleCloseModal}
@@ -280,14 +279,14 @@ const BookingCard = React.memo(({ booking, compact = false }) => {
         isAccreditation={ticketData?.type === 'AccreditationBooking'}
         showTicketDetails={ticketData?.type === 'AccreditationBooking'}
         formatDateRange={formatDateRange}
-      /> 
+      />
 
       <SendTicketsModal
-                show={showSendModal}
-                handleClose={handleCloseSendModal}
-                bookingData={bookingData}
-            />
-     
+        show={showSendModal}
+        handleClose={handleCloseSendModal}
+        bookingData={bookingData}
+      />
+
     </>
   );
 });

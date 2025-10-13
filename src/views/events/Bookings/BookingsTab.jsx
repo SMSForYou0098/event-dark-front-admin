@@ -3,23 +3,24 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { Input, Button, Spin, DatePicker, Space, Pagination, Typography, Row, Col } from 'antd';
 import { SearchOutlined, CloseOutlined, ReloadOutlined } from '@ant-design/icons';
 import BookingCard from './BookingCard';
+import { ROW_GUTTER } from 'constants/ThemeConstant';
 
 
 // Constants
 const DEBOUNCE_DELAY = 300;
-const DEFAULT_PAGE_SIZE = 10;
+const DEFAULT_PAGE_SIZE = 5;
 const PAGE_SIZE_OPTIONS = ['10', '20', '50', '100'];
 const { RangePicker } = DatePicker;
 const { Search } = Input;
 const { Text } = Typography;
 
-const BookingsTab = ({ userBookings = [], loading = false, onRefresh }) => {
+const BookingsTab = ({ userBookings = [], loading = false, onRefresh , showAction = true}) => {
   // UI & data state
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState([]);
   const [isFiltering, setIsFiltering] = useState(false);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -255,7 +256,7 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh }) => {
 
   // Handlers
   const handleSearchChange = useCallback((e) => setSearchTerm(e.target.value), []);
-  
+
   const handleDateRangeChange = useCallback((dates, dateStrings) => {
     // Only set date range if we have valid dates
     if (dates && dates.length === 2 && dateStrings && dateStrings.length === 2) {
@@ -264,7 +265,7 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh }) => {
       setDateRange([]);
     }
   }, []);
-  
+
   const handleClearFilters = useCallback(() => {
     setSearchTerm('');
     setDateRange([]);
@@ -304,91 +305,81 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh }) => {
     return (
       <Space direction="vertical" size="middle" className="w-100">
         {paginatedBookings.map((booking, idx) => (
-          <BookingCard key={makeBookingKey(booking, idx)} booking={booking} />
+          <BookingCard key={makeBookingKey(booking, idx)} booking={booking} showAction={showAction}/>
         ))}
       </Space>
     );
   }, [paginatedBookings, isLoading, hasActiveFilters, makeBookingKey]);
 
   return (
-<>
-<div className="mb-3">
-  {/* Header */}
-  <Row gutter={[16, 16]} align="middle" className="mb-3">
-    <Col xs={24} sm={12}>
-      <h4 className="m-0">My Bookings</h4>
-    </Col>
-    <Col xs={24} sm={12} className="d-flex justify-content-sm-end">
-      <Button 
-        icon={<ReloadOutlined />} 
-        onClick={onRefresh} 
-        loading={loading}
-        block={window.innerWidth < 576}
-      >
-        Refresh
-      </Button>
-    </Col>
-  </Row>
+    <>
+      <div className="mb-3">
+        {/* Filters */}
+        <Row gutter={ROW_GUTTER} className='justify-content-start'>
+          <Col xs={24} md={6}>
+            <Search
+              placeholder="Search bookings..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              allowClear
+              enterButton={<SearchOutlined />}
+            />
+          </Col>
+          <Col xs={24} md={6}>
+            <RangePicker
+              value={
+                dateRange.length === 2 && dateRange[0] && dateRange[1]
+                  ? [dayjs(dateRange[0], 'YYYY-MM-DD'), dayjs(dateRange[1], 'YYYY-MM-DD')]
+                  : null
+              }
+              onChange={handleDateRangeChange}
+              format="YYYY-MM-DD"
+              placeholder={['Start Date', 'End Date']}
+              style={{ width: '100%' }}
+            />
+          </Col>
+          {hasActiveFilters && (
+            <Col xs={24} sm={12} md={6} lg={4}>
+              <Button
+                icon={<CloseOutlined />}
+                onClick={handleClearFilters}
+                block
+              >
+                Clear Filters
+              </Button>
+            </Col>
+          )}
+          <Col xs={24} md={1}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={onRefresh}
+              loading={loading}
+            />
+          </Col>
+        </Row>
+      </div>
 
-  {/* Filters */}
-  <Row gutter={[16, 16]}>
-    <Col xs={24} md={12} lg={10}>
-      <Search
-        placeholder="Search bookings..."
-        value={searchTerm}
-        onChange={handleSearchChange}
-        allowClear
-        enterButton={<SearchOutlined />}
-      />
-    </Col>
-    <Col xs={24} sm={12} md={6} lg={6}>
-      <RangePicker
-        value={
-          dateRange.length === 2 && dateRange[0] && dateRange[1]
-            ? [dayjs(dateRange[0], 'YYYY-MM-DD'), dayjs(dateRange[1], 'YYYY-MM-DD')]
-            : null
-        }
-        onChange={handleDateRangeChange}
-        format="YYYY-MM-DD"
-        placeholder={['Start Date', 'End Date']}
-        style={{ width: '100%' }}
-      />
-    </Col>
-    {hasActiveFilters && (
-      <Col xs={24} sm={12} md={6} lg={4}>
-        <Button
-          icon={<CloseOutlined />}
-          onClick={handleClearFilters}
-          block
-        >
-          Clear Filters
-        </Button>
-      </Col>
-    )}
-  </Row>
-</div>
+      {bookingCards}
 
-{bookingCards}
-
-{/* Pagination */}
-{uniqueFilteredBookings.length > 0 && (
-  <div className="d-flex justify-content-center mt-4">
-    <Pagination
-      current={currentPage}
-      pageSize={pageSize}
-      total={uniqueFilteredBookings.length}
-      onChange={handlePageChange}
-      onShowSizeChange={handlePageChange}
-      showSizeChanger
-      showTotal={(total, range) => `${range[0]}-${range[1]} of ${total}`}
-      pageSizeOptions={PAGE_SIZE_OPTIONS}
-      disabled={isLoading}
-      responsive
-      simple={window.innerWidth < 576}
-    />
-  </div>
-)}
-</>
+      {/* Pagination */}
+      {uniqueFilteredBookings.length > 0 && (
+        <div className="d-flex justify-content-center mt-4">
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={uniqueFilteredBookings.length}
+            onChange={handlePageChange}
+            onShowSizeChange={handlePageChange}
+            showSizeChanger
+            showTotal={(total, range) => `${range[0]}-${range[1]} of ${total}`}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            disabled={isLoading}
+            responsive
+            simple={window.innerWidth < 576}
+          />
+        </div>
+      )}
+    </>
   );
 };
 

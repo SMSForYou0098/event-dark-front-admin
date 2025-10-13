@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Button, message, Modal, Space, Tooltip } from 'antd';
+import { Button, Image, message, Modal, Space, Tooltip } from 'antd';
 import { User, Trash2, Pencil } from 'lucide-react';
 import { useMyContext } from '../../../Context/MyContextProvider';
 import DataTable from '../common/DataTable';
@@ -54,7 +54,7 @@ const Venues = () => {
       title: 'Thumbnail',
       dataIndex: 'thumbnail',
       key: 'thumbnail',
-      render: (thumbnail) => thumbnail ? <img src={thumbnail} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
+      render: (thumbnail) => thumbnail ? <Image src={thumbnail} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       searchable: false,
     },
     {
