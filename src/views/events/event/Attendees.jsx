@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { Row, Col, Image, Button, Modal, Space, Typography, notification, Tooltip, Select } from "antd";
+import { Row, Col, Image, Button, Modal, Space, Typography, notification, Tooltip, Select, Card, Empty } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { Edit, Eye, IdCard, Trash2, Download } from "lucide-react";
 import SelectAnt from "antd/lib/select";
@@ -16,8 +16,6 @@ import StickerModal from "../Tickets/modals/StickerModal";
 import { useMyContext } from "Context/MyContextProvider";
 import apiClient from "auth/FetchInterceptor";
 import PermissionChecker from "layouts/PermissionChecker";
-
-const { Option } = SelectAnt;
 const { Text } = Typography;
 
 const Attendees = memo(() => {
@@ -161,8 +159,8 @@ const Attendees = memo(() => {
           a.href = url;
           const safeName = qrDownloadData.Name
             ? qrDownloadData.Name.replace(/\s+/g, "_")
-                .replace(/[^\w_]/g, "")
-                .toLowerCase()
+              .replace(/[^\w_]/g, "")
+              .toLowerCase()
             : "user";
           a.download = `${qrDownloadData.id || "user"}_${safeName}.png`;
           document.body.appendChild(a);
@@ -375,8 +373,9 @@ const Attendees = memo(() => {
   // Event Selection Component and Download Button
   const ExtraHeaderContent = useMemo(
     () => (
-      <Space>
+      <>
         <Select
+         style={{width : '15rem'}}
           placeholder="Select Events"
           value={selectedEvent?.value}
           onChange={handleSelectEvent}
@@ -390,18 +389,18 @@ const Attendees = memo(() => {
           }))}
         />
         {selectedEvent?.value && (
-            <PermissionChecker permission="Download Attendees">
-          <Tooltip title="Download Zip">
-            <Button
-              type="primary"
-              icon={<Download size={16} />}
-              onClick={downloadZip}
-              loading={zipLoading}
-            />
-          </Tooltip>
-            </PermissionChecker>
+          <PermissionChecker permission="Download Attendees">
+            <Tooltip title="Download Zip">
+              <Button
+                type="primary"
+                icon={<Download size={16} />}
+                onClick={downloadZip}
+                loading={zipLoading}
+              />
+            </Tooltip>
+          </PermissionChecker>
         )}
-      </Space>
+      </>
     ),
     [selectedEvent?.value, handleSelectEvent, eventsLoading, events, downloadZip, zipLoading]
   );
@@ -410,32 +409,54 @@ const Attendees = memo(() => {
     <Fragment>
       <Row>
         <Col span={24}>
-          <DataTable
-            title={selectedEvent ? `Attendees - ${selectedEvent.label}` : "Attendees"}
-            data={users}
-            columns={columns}
-            loading={attendeesLoading}
-            emptyText={
-              !selectedEvent
-                ? "Please select an event to view attendees"
-                : "No attendees found"
-            }
-            enableSearch
-            showSearch
-            showRefresh
-            showDateRange
-            exportRoute={
-              selectedEvent?.value
-                ? `export-attndy/${selectedEvent.value}`
-                : undefined
-            }
-            onDateRangeChange={(dr) => setDateRange(dr)}
-            dateRange={dateRange}
-            onRefresh={() => refetchAttendees()}
-            extraHeaderContent={ExtraHeaderContent}
-            enableExport={Boolean(selectedEvent?.value)}
-            ExportPermission={Boolean(selectedEvent?.value)}
-          />
+          {selectedEvent ? (
+            <DataTable
+              title={selectedEvent ? `Attendees - ${selectedEvent.label}` : "Attendees"}
+              data={users}
+              columns={columns}
+              loading={attendeesLoading}
+              emptyText={
+                !selectedEvent
+                  ? "Please select an event to view attendees"
+                  : "No attendees found"
+              }
+              enableSearch
+              showSearch
+              showRefresh
+              showDateRange
+              exportRoute={
+                selectedEvent?.value
+                  ? `export-attndy/${selectedEvent.value}`
+                  : undefined
+              }
+              onDateRangeChange={(dr) => setDateRange(dr)}
+              dateRange={dateRange}
+              onRefresh={() => refetchAttendees()}
+              extraHeaderContent={ExtraHeaderContent}
+              enableExport={Boolean(selectedEvent?.value)}
+              ExportPermission={Boolean(selectedEvent?.value)}
+            />
+          ) : (
+            <Card title="Attendees">
+              <div className="text-center">
+                {ExtraHeaderContent}
+                <div style={{ marginTop: 24, padding: '40px 20px' }}>
+                  <Empty
+                    description={
+                      <div>
+                        <h4>
+                          No Event Selected
+                        </h4>
+                        <p>
+                          Please select an event from the dropdown above to view attendees data
+                        </p>
+                      </div>
+                    }
+                  />
+                </div>
+              </div>
+            </Card>
+          )}
         </Col>
 
         <TicketModal
