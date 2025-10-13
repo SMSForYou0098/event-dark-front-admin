@@ -16,10 +16,10 @@ const { TextArea } = Input;
 const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visible }) => {
   const { UserData, userRole } = useMyContext();
   const [form] = Form.useForm();
-
+  
   // States
-  const [bannerType, setBannerType] = useState('main');
-  const [selectedOrgId, setSelectedOrgId] = useState(null);
+  const [bannerType, setBannerType] = useState(isOrganizer ? 'organization' : 'main');
+  const [selectedOrgId, setSelectedOrgId] = useState(isOrganizer ? UserData?.id : null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [selectedCategoryTitle, setSelectedCategoryTitle] = useState(null);
   const [images, setImages] = useState({
@@ -28,17 +28,20 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     mdImage: null,
   });
 
-  // Check if user is organizer
-  const isOrganizer = userRole === 'Organizer';
-  const isEditMode = mode === 'edit';
-
-  // Set default org ID for organizers
+  // Set default org ID and banner type for organizers - IMMEDIATELY on mount
   useEffect(() => {
-    if (isOrganizer && UserData?.id && !isEditMode) {
+    if (isOrganizer && UserData?.id) {
+      const orgId = String(UserData.id);
       setSelectedOrgId(UserData.id);
-      form.setFieldValue('org_id', String(UserData.id));
+      setBannerType('organization');
+      
+      // Set form values immediately
+      form.setFieldsValue({
+        org_id: orgId,
+        banner_type: 'organization',
+      });
     }
-  }, [isOrganizer, UserData, form, isEditMode]);
+  }, [isOrganizer, UserData?.id, form]);
 
   // Fetch categories
   const {
@@ -56,7 +59,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
   useEffect(() => {
     if (isEditMode && bannerData) {
       const data = bannerData;
-
+      
       // Determine banner type - use the type from data directly
       let type = data.type || 'main';
 
@@ -64,33 +67,33 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       if (type === 'organisation') {
         type = 'organization';
       }
-
+      
       setBannerType(type);
 
       // Set org ID for organization type
-      if (data.org_id) {
+      if (isOrganizer && UserData?.id) {
+        setSelectedOrgId(UserData.id);
+      } else if (data.org_id) {
         setSelectedOrgId(data.org_id);
       }
 
       // Extract category ID - handle both object and direct ID
       let categoryId = null;
       if (data.category) {
-        // If category is an object, extract the id
         categoryId = typeof data.category === 'object' ? data.category.id : data.category;
         setSelectedCategoryId(categoryId);
-
+        
         // Set category title for fetching events
-        const categoryTitle = typeof data.category === 'object'
-          ? data.category.title
+        const categoryTitle = typeof data.category === 'object' 
+          ? data.category.title 
           : findCategoryTitleById(categoryId);
         setSelectedCategoryTitle(categoryTitle);
       }
-
+      
       // Set form values
       form.setFieldsValue({
         banner_type: type,
-        org_id: data.org_id ? String(data.org_id) : undefined,
-        category: categoryId, // Use extracted category ID
+        category: categoryId,
         title: data.title,
         description: data.description,
         sub_description: data.sub_description,
@@ -100,7 +103,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         event_id: data.event_id,
         event_key: data.event_key,
       });
-
+      
       // Set images if they exist
       const newImages = {};
       if (data.images) {
@@ -129,7 +132,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       }
       setImages(newImages);
     }
-  }, [isEditMode, bannerData, form, categories]);
+  }, [isEditMode, bannerData, form, categories, isOrganizer, UserData]);
 
   const {
     data: orgEvents = [],
@@ -175,19 +178,22 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     },
   });
 
-  // Handle banner type change
+  // Handle banner type change - DON'T allow organizers to change
   const handleBannerTypeChange = (e) => {
+    // Prevent organizers from changing banner type
+    if (isOrganizer) return;
+    
     const type = e.target.value;
     setBannerType(type);
-
+    
     // Update form field
     form.setFieldValue('banner_type', type);
-
+    
     // Only reset dropdown-related states
     setSelectedOrgId(null);
     setSelectedCategoryId(null);
     setSelectedCategoryTitle(null);
-
+    
     // Clear only dropdown fields based on selection
     if (type === 'main') {
       form.setFieldsValue({
@@ -202,14 +208,14 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         event_id: undefined,
         event_key: undefined,
       });
-
+      
       // Auto-set org_id for organizers
       if (isOrganizer && UserData?.id) {
         setSelectedOrgId(UserData.id);
         form.setFieldValue('org_id', String(UserData.id));
       }
     } else if (type === 'category') {
-      form.setFieldsValue({
+      form.setFieldsValues({
         org_id: undefined,
         event_id: undefined,
         event_key: undefined,
@@ -357,111 +363,89 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
   }, [images]);
 
   const isSubmitting = isCreating || isUpdating;
-  const showOrgDropdown = bannerType === 'organization' && !isOrganizer;
+  const showOrgDropdown = false; // Never show org dropdown (Organizers use their own ID, others see type options)
   const showCategoryField = bannerType === 'category' || bannerType === 'main';
   const showEventDropdown = bannerType === 'organization' || bannerType === 'category';
   const eventsData = bannerType === 'organization' ? orgEvents : categoryEvents;
   const eventsLoading = bannerType === 'organization' ? orgEventsLoading : categoryEventsLoading;
-  const eventPlaceholder = bannerType === 'organization'
+  const eventPlaceholder = bannerType === 'organization' 
     ? (selectedOrgId ? "Select event" : (isOrganizer ? "Loading events..." : "Select organization first"))
     : (selectedCategoryTitle ? "Select event" : "Select category first");
 
   // Custom arrow components for carousel
   return (
-    <Modal
-      title={`${mode === 'create' ? 'Create' : 'Edit'} Banner`}
-      open={visible}
-      onCancel={onCancel}
-      footer={
-        <>
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={() => form.submit()} // Trigger form submission
-            loading={isSubmitting}
-          >
-            {isSubmitting
-              ? (isEditMode ? 'Updating...' : 'Creating...')
-              : (isEditMode ? 'Update' : 'Create')}
-          </Button>
-        </>
-      }
-      width={1200}
-      destroyOnClose
-    >
-      <Form form={form} layout="vertical" onFinish={handleSubmit}>
-        <Row gutter={[16, 16]}>
-          {/* Banner Type */}
-          <Col xs={24}>
-            <Form.Item label="Banner Type" name="banner_type" initialValue="main">
-              <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
-                <Radio value="main">Main Banner</Radio>
-                <Radio value="organization">Organization Banner</Radio>
-                <Radio value="category">Category Banner</Radio>
-              </Radio.Group>
+    <Form form={form} layout="vertical" onFinish={handleSubmit}>
+      <Row gutter={[16, 16]}>
+        {/* Banner Type */}
+        <Col xs={24}>
+          <Form.Item label="Banner Type" name="banner_type" initialValue="main">
+            <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
+              <Radio value="main">Main Banner</Radio>
+              <Radio value="organization">Organization Banner</Radio>
+              <Radio value="category">Category Banner</Radio>
+            </Radio.Group>
+          </Form.Item>
+        </Col>
+
+        {/* Organization Dropdown */}
+        {showOrgDropdown && (
+          <Col xs={24} md={12}>
+            <OrganisationList onChange={handleOrgChange} />
+          </Col>
+        )}
+
+        {/* Category Dropdown */}
+        {showCategoryField && (
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Category"
+              name="category"
+              rules={[{ required: true, message: 'Please select category' }]}
+            >
+              <Select
+                showSearch
+                placeholder="Select category"
+                loading={catLoading}
+                options={categories?.map(cat => ({
+                  value: cat.id || cat.value,
+                  label: cat.name || cat.label,
+                }))}
+                optionFilterProp="label"
+                onChange={handleCategoryChange}
+              />
             </Form.Item>
           </Col>
+        )}
 
-          {/* Organization Dropdown */}
-          {showOrgDropdown && (
-            <Col xs={24} md={12}>
-              <OrganisationList onChange={handleOrgChange} />
-            </Col>
-          )}
-
-          {/* Category Dropdown */}
-          {showCategoryField && (
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Category"
-                name="category"
-                rules={[{ required: true, message: 'Please select category' }]}
-              >
-                <Select
-                  showSearch
-                  placeholder="Select category"
-                  loading={catLoading}
-                  options={categories?.map(cat => ({
-                    value: cat.id || cat.value,
-                    label: cat.name || cat.label,
-                  }))}
-                  optionFilterProp="label"
-                  onChange={handleCategoryChange}
-                />
-              </Form.Item>
-            </Col>
-          )}
-
-          {/* Event Dropdown */}
-          {showEventDropdown && (
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Event"
-                name="event_id"
-                rules={[
-                  {
-                    required: bannerType === 'category',
-                    message: 'Please select event'
-                  }
-                ]}
-              >
-                <Select
-                  showSearch
-                  placeholder={eventPlaceholder}
-                  loading={eventsLoading}
-                  disabled={bannerType === 'organization' ? !selectedOrgId : !selectedCategoryTitle}
-                  options={eventsData?.map(event => ({
-                    value: event.value,
-                    label: event.label,
-                  }))}
-                  optionFilterProp="label"
-                  onChange={handleEventChange}
-                  allowClear
-                />
-              </Form.Item>
-            </Col>
-          )}
+        {/* Event Dropdown */}
+        {showEventDropdown && (
+          <Col xs={24} md={12}>
+            <Form.Item
+              label="Event"
+              name="event_id"
+              rules={[
+                { 
+                  required: bannerType === 'category', 
+                  message: 'Please select event' 
+                }
+              ]}
+            >
+              <Select
+                showSearch
+                placeholder={eventPlaceholder}
+                loading={eventsLoading}
+                disabled={bannerType === 'organization' ? !selectedOrgId : !selectedCategoryTitle}
+                options={eventsData?.map(event => ({
+                  value: event.value,
+                  label: event.label,
+                }))}
+                optionFilterProp="label"
+                onChange={handleEventChange}
+                allowClear
+              />
+            </Form.Item>
+          </Col>
+        )}
 
           {/* Hidden Event Key Field */}
           <Form.Item name="event_key" noStyle>
@@ -525,42 +509,58 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
           ))}
 
 
-          {/* Image Preview Carousel */}
-          {uploadedImages.length > 0 && (
-            <Col xs={24}>
-              <Card title="Image Preview" style={{ marginTop: 16 }}>
-                <Carousel
-                  arrows
-                  prevArrow={<CustomPrevArrow />}
-                  nextArrow={<CustomNextArrow />}
-                  style={{ padding: '0 40px' }}
-                >
-                  {uploadedImages.map((img, index) => (
-                    <div key={index}>
-                      <div style={{ textAlign: 'center', padding: '20px' }}>
-                        <h4 style={{ marginBottom: 16 }}>{img.title}</h4>
-                        <Image
-                          src={img.url}
-                          alt={img.title}
-                          style={{
-                            maxHeight: '400px',
-                            maxWidth: '100%',
-                            objectFit: 'contain',
-                          }}
-                          preview={{
-                            mask: 'Click to preview',
-                          }}
-                        />
-                      </div>
+        {/* Image Preview Carousel */}
+        {uploadedImages.length > 0 && (
+          <Col xs={24}>
+            <Card title="Image Preview" style={{ marginTop: 16 }}>
+              <Carousel
+                arrows
+                prevArrow={<CustomPrevArrow />}
+                nextArrow={<CustomNextArrow />}
+                style={{ padding: '0 40px' }}
+              >
+                {uploadedImages.map((img, index) => (
+                  <div key={index}>
+                    <div style={{ textAlign: 'center', padding: '20px' }}>
+                      <h4 style={{ marginBottom: 16 }}>{img.title}</h4>
+                      <Image
+                        src={img.url}
+                        alt={img.title}
+                        style={{
+                          maxHeight: '400px',
+                          maxWidth: '100%',
+                          objectFit: 'contain',
+                        }}
+                        preview={{
+                          mask: 'Click to preview',
+                        }}
+                      />
                     </div>
-                  ))}
-                </Carousel>
-              </Card>
-            </Col>
-          )}
-        </Row>
-      </Form >
-    </Modal>
+                  </div>
+                ))}
+              </Carousel>
+            </Card>
+          </Col>
+        )}
+
+        {/* Action Buttons */}
+        <Col xs={24}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onClick={onCancel}>Cancel</Button>
+            <Button 
+              type="primary" 
+              icon={<SaveOutlined />} 
+              htmlType="submit"
+              loading={isSubmitting}
+            >
+              {isSubmitting 
+                ? (isEditMode ? 'Updating...' : 'Creating...') 
+                : (isEditMode ? 'Update' : 'Create')}
+            </Button>
+          </div>
+        </Col>
+      </Row>
+    </Form>
   );
 };
 
