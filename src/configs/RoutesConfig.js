@@ -1,11 +1,11 @@
 import React from 'react'
 import { AUTH_PREFIX_PATH, APP_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
+import UserForm from 'views/events/users/UserForm'
 import EventStepperForm from 'views/events/event/EventStepperForm'
 import ManageUser from 'views/events/users/Manage'
 import PosBooking from 'views/events/Bookings/pos/Bookings'
 import POS from 'views/events/Bookings/pos/NewPosBooking'
-import TicketVerification from 'views/events/Scan/TicketVerification'
 
 export const publicRoutes = [
     {
@@ -117,39 +117,16 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/event/list')),
     },
     {
-        key: 'apps.tax-commision',
-        path: `${APP_PREFIX_PATH}/apps/tax-commision`,
-        component: React.lazy(() => import('views/events/TaxComission/index')),
-    },
-    {
         key: 'apps.fields',
         path: `${APP_PREFIX_PATH}/apps/fields`,
         component: React.lazy(() => import('views/events/Settings/Fields/index')),
     },
-    {
+        {
         key: 'apps.events.create',
         path: `${APP_PREFIX_PATH}/apps/events/update/:id`,
-        component: (props) => (
+         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <EventStepperForm />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'apps.scan.camera',
-        path: `${APP_PREFIX_PATH}/apps/scan/camera`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-               <TicketVerification scanMode="camera"/>
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'apps.scan.scanner',
-        path: `${APP_PREFIX_PATH}/apps/scan/scanner`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-               <TicketVerification scanMode="manual"/>
+                <EventStepperForm  />
             </React.Suspense>
         ),
     },
@@ -157,11 +134,6 @@ export const protectedRoutes = [
         key: 'apps.events',
         path: `${APP_PREFIX_PATH}/apps/events/ticket/:id/:name`,
         component: React.lazy(() => import('views/events/Tickets/TicketManager/TicketComponent')),
-    },
-    {
-        key: 'apps.payment-log',
-        path: `${APP_PREFIX_PATH}/apps/payment-log`,
-        component: React.lazy(() => import('views/events/PaymentLog')),
     },
     {
         key: 'apps.box-office',
@@ -179,8 +151,8 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Venues/index')),
     },
     {
-        key: 'apps-artist',
-        path: `${APP_PREFIX_PATH}/apps/artist`,
+        key : 'apps-artist',
+         path: `${APP_PREFIX_PATH}/apps/artist`,
         component: React.lazy(() => import('views/events/Artist/index')),
     },
     {
