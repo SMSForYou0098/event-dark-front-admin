@@ -36,11 +36,14 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     const [editMode, setEditMode] = useState(false);
     const [editingTicket, setEditingTicket] = useState(null);
     const [imageFileList, setImageFileList] = useState([]);
-    const [imagePreviewUrl, setImagePreviewUrl] = useState(''); // Added preview state
+    const [imagePreviewUrl, setImagePreviewUrl] = useState('');
     const [convertedPrice, setConvertedPrice] = useState('');
     const [saleEnabled, setSaleEnabled] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState('INR');
+    const [imageValidationError, setImageValidationError] = useState('');
+    const [isValidDimensions, setIsValidDimensions] = useState(false);
     const saleSectionRef = useRef(null);
+
     // Fetch tickets
     const fetchTickets = useCallback(async () => {
         if (!eventId) return;
@@ -125,14 +128,50 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
     }, [form.getFieldValue('price'), selectedCurrency]);
 
+    // Validate image dimensions
+    const validateImageDimensions = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new window.Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const { width, height } = img;
+                    if (width === 300 && height === 600) {
+                        setImageValidationError('');
+                        setIsValidDimensions(true);
+                        resolve(true);
+                    } else {
+                        setImageValidationError(`Image must be exactly 300x600 pixels. Current: ${width}x${height}`);
+                        setIsValidDimensions(false);
+                        reject(new Error('Invalid dimensions'));
+                    }
+                };
+                img.onerror = () => {
+                    setImageValidationError('Failed to load image');
+                    setIsValidDimensions(false);
+                    reject(new Error('Failed to load image'));
+                };
+            };
+            reader.onerror = () => {
+                setImageValidationError('Failed to read file');
+                setIsValidDimensions(false);
+                reject(new Error('Failed to read file'));
+            };
+        });
+    };
+
     // Handle create new ticket
     const handleCreate = () => {
         setEditMode(false);
         setEditingTicket(null);
         form.resetFields();
         setImageFileList([]);
-        setImagePreviewUrl(''); // Reset preview
+        setImagePreviewUrl('');
         setSaleEnabled(false);
+        setImageValidationError('');
+        setIsValidDimensions(false);
         setModalVisible(true);
     };
 
@@ -178,11 +217,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 status: 'done',
                 url: ticket.background_image,
             }]);
-            setImagePreviewUrl(ticket.background_image); // Set preview URL
+            setImagePreviewUrl(ticket.background_image);
+            setIsValidDimensions(true); // Assume existing image is valid
         }
 
         setSaleEnabled(ticket.sale === 1);
         setSelectedCurrency(ticket.currency);
+        setImageValidationError('');
         setModalVisible(true);
     };
 
@@ -271,7 +312,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
     // Image upload props
     const imageUploadProps = {
-        beforeUpload: (file) => {
+        beforeUpload: async (file) => {
             const isImage = file.type.startsWith('image/');
             if (!isImage) {
                 message.error('You can only upload image files!');
@@ -282,7 +323,14 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 message.error('Image must be smaller than 5MB!');
                 return Upload.LIST_IGNORE;
             }
-            return false;
+
+            try {
+                await validateImageDimensions(file);
+                return false;
+            } catch (error) {
+                message.error('Image must be exactly 300x600 pixels');
+                return Upload.LIST_IGNORE;
+            }
         },
         onChange: ({ fileList }) => {
             setImageFileList(fileList.slice(-1));
@@ -296,11 +344,15 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 }
             } else {
                 setImagePreviewUrl('');
+                setIsValidDimensions(false);
+                setImageValidationError('');
             }
         },
         onRemove: () => {
             setImageFileList([]);
-            setImagePreviewUrl(''); // Clear preview on remove
+            setImagePreviewUrl('');
+            setIsValidDimensions(false);
+            setImageValidationError('');
         },
         fileList: imageFileList,
         maxCount: 1,
@@ -360,7 +412,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         {
             title: 'Action',
             key: 'action',
-            fixed : 'right',
+            fixed: 'right',
             render: (_, record) => (
                 <Space>
                     <Tooltip title="Edit">
@@ -418,10 +470,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 confirmLoading={loading}
                 width={'80%'}
                 okText={editMode ? 'Update' : 'Create'}
+                okButtonProps={{ disabled: !isValidDimensions }}
                 style={{ top: 20 }}
             >
                 <Row gutter={16}>
-                    <Col xs={24} md={20} xl={20} style={{maxHeight:'65vh', overflow : 'auto'}}>
+                    <Col xs={24} md={20} xl={20} style={{ maxHeight: '65vh', overflow: 'auto' }}>
                         <Form
                             form={form}
                             layout="vertical"
@@ -470,11 +523,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                             prefix={<DollarOutlined />}
                                         /> */}
                                         <Input
-                                                    type='number'
-                                                    style={{ width: '100%' }}
-                                                    min={0}
-                                                    // prefix={<PercentageOutlined />}
-                                                />
+                                            type='number'
+                                            style={{ width: '100%' }}
+                                            min={0}
+                                        // prefix={<PercentageOutlined />}
+                                        />
                                     </Form.Item>
                                 </Col>
 
@@ -564,15 +617,36 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 </Col>
 
                                 <Col xs={24} md={12}>
-                                    <Form.Item label="Ticket Background Image">
+                                    <Form.Item
+                                        label="Ticket Background Image"
+                                        required
+                                        validateStatus={imageValidationError ? 'error' : ''}
+                                        help={imageValidationError || 'Image must be exactly 300x600 pixels'}
+                                    >
                                         <Upload {...imageUploadProps}>
                                             {imageFileList.length < 1 && (
                                                 <div>
                                                     <UploadOutlined />
-                                                    <div style={{ marginTop: 8 }}>Upload Image</div>
+                                                    <div style={{ marginTop: 8 }}>Upload Image (300x600)</div>
                                                 </div>
                                             )}
                                         </Upload>
+                                        {!isValidDimensions && !imageFileList.length && (
+                                            <Alert
+                                                message="Required: Upload an image with exactly 300x600 pixels"
+                                                type="warning"
+                                                showIcon
+                                                style={{ marginTop: 8 }}
+                                            />
+                                        )}
+                                        {isValidDimensions && (
+                                            <Alert
+                                                message="✓ Image dimensions validated (300x600)"
+                                                type="success"
+                                                showIcon
+                                                style={{ marginTop: 8 }}
+                                            />
+                                        )}
                                     </Form.Item>
                                 </Col>
 
@@ -580,19 +654,20 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 <Col xs={24}>
                                     <Space size="large" wrap>
                                         {[
-                                            { label: 'Sale', name: 'sale', onChange: (checked) => {
-                setSaleEnabled(checked);
-                // Scroll to sale section when enabled
-                if (checked) {
-                    setTimeout(() => {
-                        saleSectionRef.current?.scrollIntoView({ 
-                            behavior: 'smooth', 
-                            block: 'nearest' 
-                        });
-                    }, 100);
-                }
-            }
-         },
+                                            {
+                                                label: 'Sale', name: 'sale', onChange: (checked) => {
+                                                    setSaleEnabled(checked);
+                                                    // Scroll to sale section when enabled
+                                                    if (checked) {
+                                                        setTimeout(() => {
+                                                            saleSectionRef.current?.scrollIntoView({
+                                                                behavior: 'smooth',
+                                                                block: 'nearest'
+                                                            });
+                                                        }, 100);
+                                                    }
+                                                }
+                                            },
                                             { label: 'Sold Out', name: 'sold_out' },
                                             { label: 'Not Open', name: 'booking_not_open' },
                                             { label: 'Fast Filling', name: 'fast_filling' },
@@ -643,7 +718,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                                     type='number'
                                                     style={{ width: '100%' }}
                                                     min={0}
-                                                    // prefix={<PercentageOutlined />}
+                                                // prefix={<PercentageOutlined />}
                                                 />
                                             </Form.Item>
                                         </Col>
@@ -653,22 +728,26 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                         </Form>
                     </Col>
                     {/* Image Preview Section */}
-                    <Col xs={24} md={4} xl={4} className='d-none d-sm-block'>
+                    <Col xs={24} md={4} xl={4} className="d-none d-sm-block">
                         <div className="image-preview-container bg-transparent">
                             <h5>Ticket Preview:</h5>
-                            <Image
-                                src={imagePreviewUrl || 'https://placehold.co/300x600'}
-                                alt="Ticket Background Preview"
-                                style={{
-                                    borderRadius: '5px',
-                                    marginTop: '10px',
-                                    width: '100%',
-                                    maxWidth: '300px'
-                                }}
-                                preview={!!imagePreviewUrl}
-                            />
+                            <div className="rounded p-2 mt-2">
+                                <Image
+                                    src={imagePreviewUrl || 'https://placehold.co/300x600'}
+                                    alt="Ticket Background Preview"
+                                    className="rounded w-100"
+                                    style={{
+                                        maxWidth: '300px'
+                                    }}
+                                    preview={!!imagePreviewUrl}
+                                />
+                                <div className="text-center small text-muted mt-2">
+                                    300x600 pixels
+                                </div>
+                            </div>
                         </div>
                     </Col>
+
                 </Row>
             </Modal>
         </>

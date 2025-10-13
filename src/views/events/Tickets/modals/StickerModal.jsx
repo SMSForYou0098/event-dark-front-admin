@@ -2,8 +2,8 @@ import React, { useRef, useState, useEffect } from "react";
 import { Modal, Button, Checkbox, Form, Spin, Radio, message } from "antd";
 import { QRCodeSVG } from "qrcode.react";
 import { useReactToPrint } from "react-to-print";
-import { useMyContext } from "../../../../../Context/MyContextProvider";
-import POSPrintModal from "../../POS/POSPrintModal";
+import POSPrintModal from "views/events/Bookings/pos/POSPrintModal";
+import { useMyContext } from "Context/MyContextProvider";
 
 const staticCustomFieldsData = [
   { id: "name", field_name: "Name", lable: "Name", field_type: "text" },

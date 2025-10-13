@@ -195,6 +195,17 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
     },
+    /// attendess
+    {
+        key: 'apps.attendees',
+        path: `${APP_PREFIX_PATH}/apps/attendees`,
+        component: React.lazy(() => import('views/events/event/Attendees')),
+    },
+    {
+        key: 'apps.admin-settings',
+        path: `${APP_PREFIX_PATH}/apps/admin-settings`,
+        component: React.lazy(() => import('views/events/Settings/Admin_Settings/AdminSetting')),
+    },
     {
         key: 'apps.new-user',
         path: `${APP_PREFIX_PATH}/apps/users/new`,

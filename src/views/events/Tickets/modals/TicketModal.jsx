@@ -127,7 +127,7 @@ const TicketModal = (props) => {
                                                         user={item?.user}
                                                         ticketBG={ticket.background_image || ''}
                                                         ticketName={ticket.name || 'Ticket'}
-                                                        date={formatDateRange(item?.booking_date || event.date_range) || 'Date Not Available'}
+                                                        date={formatDateRange?.(item?.booking_date || event.date_range) || 'Date Not Available'}
                                                         city={event.city || 'City'}
                                                         address={event.address || 'Address Not Specified'}
                                                         time={convertTo12HourFormat(event.start_time) || 'Time Not Set'}
@@ -182,7 +182,7 @@ const TicketModal = (props) => {
                                             'Event Name'
                                         }
                                         date={
-                                            formatDateRange(
+                                            formatDateRange?.(
                                                 (ticketData?.booking_date ||
                                                     ticketData?.bookings?.[0]?.booking_date) ||
                                                 (ticketData?.ticket?.event?.date_range ||

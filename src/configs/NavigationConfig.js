@@ -333,6 +333,14 @@ const appsNavTree = [{
       submenu: []
     },
     {
+      key: 'apps-attendees',
+      path: `${APP_PREFIX_PATH}/apps/attendees`,
+      title: 'sidenav.apps.attendees', // <-- correct spelling
+      icon: MessageOutlined,
+      breadcrumb: false,
+      submenu: []
+    },
+    {
       key: 'apps-settings',
       path: `${APP_PREFIX_PATH}/apps/settings`,
       title: 'sidenav.apps.settings',
