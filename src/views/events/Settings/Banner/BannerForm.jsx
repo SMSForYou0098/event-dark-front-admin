@@ -15,8 +15,9 @@ const { TextArea } = Input;
 
 const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visible }) => {
   const { UserData, userRole } = useMyContext();
+  const isOrganizer = userRole === 'Organizer'
   const [form] = Form.useForm();
-  
+  const isEditMode = mode === 'edit'
   // States
   const [bannerType, setBannerType] = useState(isOrganizer ? 'organization' : 'main');
   const [selectedOrgId, setSelectedOrgId] = useState(isOrganizer ? UserData?.id : null);
