@@ -395,6 +395,30 @@ const appsNavTree = [{
           icon: '',
           breadcrumb: false,
           submenu: []
+        },
+        {
+          key: 'apps-settings-admin-settings',
+          path: `${APP_PREFIX_PATH}/apps/settings/admin-settings`,
+          title: 'sidenav.apps.settings.admin-settings',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        },
+        {
+          key: 'apps-settings-payment-gateways',
+          path: `${APP_PREFIX_PATH}/apps/settings/payment-gateways`,
+          title: 'sidenav.apps.settings.payment-gateways',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
+        },
+        {
+          key: 'apps-settings-footer-settings',
+          path: `${APP_PREFIX_PATH}/apps/settings/footer`,
+          title: 'sidenav.apps.settings.footer-settings',
+          icon: '',
+          breadcrumb: false,
+          submenu: []
         }
       ]
     },

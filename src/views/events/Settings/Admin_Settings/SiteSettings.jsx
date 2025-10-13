@@ -1,6 +1,7 @@
 import { EyeOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Tabs, Input, Switch, Upload, Button, Checkbox, Modal, Form, message } from 'antd';
+import DynamicOptions from './DynamicOptions';
 
 const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -218,9 +219,10 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
               <Form.Item label="Home Divider Image">
                 <Upload {...getImageUploadProps('homeDivider')}>
                   {getFileList('homeDivider').length < 1 && (
-                    <Button icon={<UploadOutlined />} block>
-                      Upload Divider Image
-                    </Button>
+                    <div>
+                        <UploadOutlined />
+                        <div style={{ marginTop: 8 }}>Upload</div>
+                      </div>
                   )}
                 </Upload>
               </Form.Item>
@@ -324,6 +326,16 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
           </Row>
         </>
       )
+    },
+    {
+      label: 'FAQs',
+      key: 'faq',
+      children: <DynamicOptions type={'faq'} heading={'FAQ'}/>
+    },
+    {
+      label: 'Contact Us',
+      key: 'contact_us',
+      children: <DynamicOptions type={'contact_us'} heading={'Contact Us'}/>
     }
   ];
 

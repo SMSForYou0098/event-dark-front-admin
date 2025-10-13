@@ -68,9 +68,7 @@ const EventStepperForm = () => {
         return parseInt(urlParams.get('step')) || 0;
     });
     const [form] = Form.useForm();
-    const [tickets, setTickets] = useState([
-        { key: '1', name: 'General', price: '500', quantity: '100' },
-    ]);
+    const [tickets, setTickets] = useState([]);
     const [embedCode, setEmbedCode] = useState('');
 
     // Sync step from location state

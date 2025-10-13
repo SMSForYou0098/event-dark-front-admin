@@ -6,7 +6,7 @@ import axios from 'axios'
 import SiteSettings from './SiteSettings'
 
 const AdminSetting = () => {
-    const { api, successAlert, authToken } = useMyContext();
+    const { api, authToken } = useMyContext();
     const queryClient = useQueryClient();
     const [form] = Form.useForm();
 
@@ -61,8 +61,7 @@ const AdminSetting = () => {
         },
         onSuccess: (response) => {
             if (response.data.status) {
-                message.success('App Configuration Stored Successfully');
-                successAlert('Success', 'App Configuration Stored Successfully');
+                message.success(response?.data?.message || 'App Configuration Stored Successfully');
                 queryClient.invalidateQueries({ queryKey: SETTINGS_QUERY_KEY });
             }
         },

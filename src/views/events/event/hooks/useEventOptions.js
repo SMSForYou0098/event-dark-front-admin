@@ -410,5 +410,3 @@ export const useUpdateArtist = (options = {}) =>
     },
     ...options,
   });
-
-  

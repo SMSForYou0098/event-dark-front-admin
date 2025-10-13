@@ -39,6 +39,9 @@
 	"sidenav.apps.settings.sms_gateway": "SMS Gateway",
 	"sidenav.apps.settings.whats_config": "WhatsApp Config",
 	"sidenav.apps.settings.banners": "Banner Settings",
+	"sidenav.apps.settings.admin-settings": "Admin Settings",
+	"sidenav.apps.settings.payment-gateways": "Payment Gateways",
+	"sidenav.apps.settings.footer-settings": "Footer",
 
 	"sidenav.components": "Components",
 	"sidenav.components.general": "General",

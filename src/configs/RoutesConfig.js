@@ -213,8 +213,22 @@ export const protectedRoutes = [
     },
     {
         key: 'apps.admin-settings',
-        path: `${APP_PREFIX_PATH}/apps/admin-settings`,
+        path: `${APP_PREFIX_PATH}/apps/settings/admin-settings`,
         component: React.lazy(() => import('views/events/Settings/Admin_Settings/AdminSetting')),
+    },
+
+    /// payment routes
+    {
+        key: 'apps.payment-gateways',
+        path: `${APP_PREFIX_PATH}/apps/settings/payment-gateways`,
+        component: React.lazy(() => import('views/events/Settings/Payment_Gateway/PaymentGateway')),
+    },
+
+    // footer settings
+    {
+        key: 'apps.footer-settings',
+        path: `${APP_PREFIX_PATH}/apps/settings/footer`,
+        component: React.lazy(() => import('views/events/Settings/Admin_Settings/Footer_settings/FooterData')),
     },
     {
         key: 'apps.new-user',
