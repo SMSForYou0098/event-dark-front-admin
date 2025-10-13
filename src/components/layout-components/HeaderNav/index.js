@@ -4,10 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { TEMPLATE } from 'constants/ThemeConstant';
 import { MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined } from '@ant-design/icons';
 import Logo from '../Logo';
-import NavNotification from '../NavNotification';
 import NavProfile from '../NavProfile';
-import NavLanguage from '../NavLanguage';
-import NavPanel from '../NavPanel';
 import NavSearch  from '../NavSearch';
 import SearchInput from '../NavSearch/SearchInput';
 import Header from './Header';
@@ -106,10 +103,7 @@ export const HeaderNav = props => {
                         }
 					</NavEdge>
 					<NavEdge right>
-						<NavNotification mode={navMode} />
 						<Impersonate />
-						<NavLanguage mode={navMode} />
-						<NavPanel direction={direction} mode={navMode} />
 						<NavProfile mode={navMode} />
 					</NavEdge>
 					<NavSearch 

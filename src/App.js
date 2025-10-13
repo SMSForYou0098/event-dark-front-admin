@@ -9,7 +9,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import store, { persistor } from './store'
 import Layouts from './layouts'
 import { THEME_CONFIG } from './configs/AppConfig'
-import './lang'
 import './index.css' // keep whatever global CSS you need
 import { MyContextProvider } from 'Context/MyContextProvider'
 
