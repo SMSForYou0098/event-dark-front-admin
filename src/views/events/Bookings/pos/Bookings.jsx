@@ -7,6 +7,7 @@ import {
   Tooltip, 
   Modal, 
   message,
+  Switch,
 } from "antd";
 import { 
   PrinterOutlined, 
@@ -175,144 +176,148 @@ const PosBooking = memo(() => {
   }, [selectedBooking]);
 
   // Table columns
-  const columns = useMemo(() => [
-    {
-      title: '#',
-      key: 'index',
-      align: 'center',
-      width: 60,
-      render: (_, __, index) => index + 1,
-    },
-    {
-      title: 'Event',
-      dataIndex: ['ticket', 'event', 'name'],
-      key: 'event',
-      sorter: (a, b) => a.ticket?.event?.name?.localeCompare(b.ticket?.event?.name),
-    },
-    {
-      title: 'Event Dates',
-      dataIndex: ['ticket', 'event', 'date_range'],
-      key: 'eventDates',
-      render: (dateRange) => formatDateRange?.(dateRange) || dateRange,
-    },
-    {
-      title: 'POS User',
-      dataIndex: 'user_name',
-      key: 'posUser',
-      sorter: (a, b) => a.user_name?.localeCompare(b.user_name),
-    },
-    {
-      title: 'Organizer',
-      dataIndex: 'reporting_user_name',
-      key: 'organizer',
-      sorter: (a, b) => a.reporting_user_name?.localeCompare(b.reporting_user_name),
-    },
-    {
-      title: 'Ticket',
-      dataIndex: ['ticket', 'name'],
-      key: 'ticket',
-      sorter: (a, b) => a.ticket?.name?.localeCompare(b.ticket?.name),
-    },
-    {
-      title: 'Quantity',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      align: 'center',
-      sorter: (a, b) => a.quantity - b.quantity,
-    },
-    {
-      title: 'Discount',
-      dataIndex: 'discount',
-      key: 'discount',
-      align: 'right',
-      render: (discount) => (
-        <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
-      ),
-      sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
-    },
-    {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
-      align: 'right',
-      render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
-      sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      align: 'center',
-      render: (status) => (
-        <Tag color={status === "0" ? "warning" : "success"}>
-          {status === "0" ? "Unchecked" : "Checked"}
-        </Tag>
-      ),
-      filters: [
-        { text: 'Unchecked', value: '0' },
-        { text: 'Checked', value: '1' },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
-      title: 'Customer',
-      dataIndex: 'name',
-      key: 'customer',
-      sorter: (a, b) => a.name?.localeCompare(b.name),
-    },
-    {
-      title: 'Contact',
-      dataIndex: 'number',
-      key: 'contact',
-    },
-    {
-      title: 'Purchase Date',
-      dataIndex: 'created_at',
-      key: 'purchaseDate',
-      render: (date) => formatDateTime?.(date) || date,
-      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      align: 'center',
-      fixed: 'right',
-      width: 120,
-      render: (_, record) => {
-        const isDisabled = record.is_deleted === true || record.status === "1";
-        const isDeleted = record.is_deleted === true;
+const columns = useMemo(() => [
+  {
+    title: '#',
+    key: 'index',
+    align: 'center',
+    width: 60,
+    render: (_, __, index) => index + 1,
+  },
+  {
+    title: 'Event',
+    dataIndex: ['ticket', 'event', 'name'],
+    key: 'event',
+    sorter: (a, b) => a.ticket?.event?.name?.localeCompare(b.ticket?.event?.name),
+  },
+  {
+    title: 'Event Dates',
+    dataIndex: ['ticket', 'event', 'date_range'],
+    key: 'eventDates',
+    render: (dateRange) => formatDateRange?.(dateRange) || dateRange,
+  },
+  {
+    title: 'POS User',
+    dataIndex: 'user_name',
+    key: 'posUser',
+    sorter: (a, b) => a.user_name?.localeCompare(b.user_name),
+  },
+  {
+    title: 'Organizer',
+    dataIndex: 'reporting_user_name',
+    key: 'organizer',
+    sorter: (a, b) => a.reporting_user_name?.localeCompare(b.reporting_user_name),
+  },
+  {
+    title: 'Ticket',
+    dataIndex: ['ticket', 'name'],
+    key: 'ticket',
+    sorter: (a, b) => a.ticket?.name?.localeCompare(b.ticket?.name),
+  },
+  {
+    title: 'Quantity',
+    dataIndex: 'quantity',
+    key: 'quantity',
+    align: 'center',
+    sorter: (a, b) => a.quantity - b.quantity,
+  },
+  {
+    title: 'Discount',
+    dataIndex: 'discount',
+    key: 'discount',
+    align: 'right',
+    render: (discount) => (
+      <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
+    ),
+    sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
+  },
+  {
+    title: 'Amount',
+    dataIndex: 'amount',
+    key: 'amount',
+    align: 'right',
+    render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
+    sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
+  },
+  {
+    title: 'Status',
+    dataIndex: 'status',
+    key: 'status',
+    align: 'center',
+    render: (status) => (
+      <Tag color={status === "0" ? "warning" : "success"}>
+        {status === "0" ? "Unchecked" : "Checked"}
+      </Tag>
+    ),
+    filters: [
+      { text: 'Unchecked', value: '0' },
+      { text: 'Checked', value: '1' },
+    ],
+    onFilter: (value, record) => record.status === value,
+  },
+  {
+    title: 'Customer',
+    dataIndex: 'name',
+    key: 'customer',
+    sorter: (a, b) => a.name?.localeCompare(b.name),
+  },
+  {
+    title: 'Contact',
+    dataIndex: 'number',
+    key: 'contact',
+  },
+  {
+    title: 'Purchase Date',
+    dataIndex: 'created_at',
+    key: 'purchaseDate',
+    render: (date) => formatDateTime?.(date) || date,
+    sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+  },
+  {
+    title: 'Ticket Status',
+    dataIndex: 'is_deleted',
+    key: 'ticketStatus',
+    align: 'center',
+    width: 120,
+    render: (isDeleted, record) => (
+      <Switch
+        checked={!isDeleted}
+        onChange={() => handleToggleStatus(record)}
+        checkedChildren="Active"
+        unCheckedChildren="Disabled"
+        loading={toggleStatusMutation.isPending}
+        disabled={record.status === "1"}
+      />
+    ),
+  },
+  {
+    title: 'Action',
+    key: 'action',
+    align: 'center',
+    fixed: 'right',
+    width: 80,
+    render: (_, record) => {
+      const isDisabled = record.is_deleted === true || record.status === "1";
 
-        return (
-          <Space size="small">
-            <Tooltip title="Print Ticket">
-              <Button
-                size="small"
-                icon={<PrinterOutlined />}
-                onClick={() => handlePrintBooking(record)}
-                disabled={isDisabled}
-              />
-            </Tooltip>
-            <Tooltip title={isDeleted ? "Enable Ticket" : "Disable Ticket"}>
-              <Button
-                type={isDeleted ? "primary" : "primary"}
-                danger={!isDeleted}
-                size="small"
-                icon={isDeleted ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-                onClick={() => handleToggleStatus(record)}
-                loading={toggleStatusMutation.isPending}
-              />
-            </Tooltip>
-          </Space>
-        );
-      },
+      return (
+        <Tooltip title="Print Ticket">
+          <Button
+            size="small"
+            icon={<PrinterOutlined />}
+            onClick={() => handlePrintBooking(record)}
+            disabled={isDisabled}
+          />
+        </Tooltip>
+      );
     },
-  ], [
-    formatDateRange, 
-    formatDateTime, 
-    handlePrintBooking, 
-    handleToggleStatus, 
-    toggleStatusMutation.isPending
-  ]);
+  },
+], [
+  formatDateRange, 
+  formatDateTime, 
+  handlePrintBooking, 
+  handleToggleStatus, 
+  toggleStatusMutation.isPending
+]);
   const handleDateRangeChange = useCallback((dates) => {
     setDateRange(dates);
   }, []);

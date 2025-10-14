@@ -1,11 +1,13 @@
 import React from 'react'
+import { useMyContext } from 'Context/MyContextProvider'
+import AdminDashboard from './Admin'
 
-const index = () => {
-  return (
-    <div>
-      
-    </div>
-  )
+const Dashbaord = () => {
+  const {userRole , UserData} = useMyContext()
+   
+  if(userRole === 'Admin'){
+    return <AdminDashboard UserData={UserData}/>
+  }
 }
 
-export default index
+export default Dashbaord

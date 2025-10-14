@@ -376,10 +376,6 @@ const DataTable = ({
           </span>
         </Flex>
       }
-      style={{
-        boxShadow: isMobile ? "none" : undefined,
-        borderRadius: isMobile ? 0 : 8,
-      }}
     >
       <div className="table-responsive">
         {renderError()}

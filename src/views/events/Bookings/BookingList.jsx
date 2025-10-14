@@ -1,12 +1,12 @@
-import React, { memo, Fragment, useRef, useState, useCallback } from "react";
+import React, { memo, Fragment, useRef, useState, useCallback, useMemo } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
 import DataTable from "../common/DataTable";
 import { Send, Ticket, CheckCircle, XCircle, Printer, PlusIcon } from 'lucide-react';
-import { Button, Tag, Image, Space, Tooltip, Dropdown } from 'antd';
+import { Button, Tag, Image, Space, Tooltip, Dropdown, Switch, message } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PermissionChecker from "layouts/PermissionChecker";
 
 const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorporate = false, isPos = false }) => {
@@ -114,10 +114,9 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
     };
 
     // Delete/Restore booking logic
-    const DeleteBooking = useCallback(async (id) => {
-        let data = bookings?.find((item) => item?.id === id);
-        if (!data) return;
+    const toggleBookingStatus = async ({ id, data, api, authToken, isPos, isAccreditation, isSponser, isCorporate }) => {
         let endpoint;
+
         if (isPos) {
             endpoint = data.is_deleted
                 ? `${api}restore-pos-booking/${id}`
@@ -139,23 +138,64 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                 ? `${api}agent-restore-booking/${data?.token || data?.order_id}`
                 : `${api}agent-delete-booking/${data?.token || data?.order_id}`;
         }
+
         const request = data.is_deleted ? axios.get : axios.delete;
-        try {
-            const res = await request(endpoint, {
-                headers: { Authorization: "Bearer " + authToken }
-            });
-            if (res.data.status) {
-                refetch();
-                Swal.fire({
-                    icon: "success",
-                    title: data.is_deleted ? "Ticket Enabled!" : "Ticket Disabled!",
-                    text: `Ticket ${data.is_deleted ? "enabled" : "disabled"} successfully.`,
-                });
-            }
-        } catch (err) {
-            ErrorAlert(err.response?.data?.message || "Failed to update booking");
+
+        const response = await request(endpoint, {
+            headers: { Authorization: "Bearer " + authToken }
+        });
+
+        if (!response.data.status) {
+            throw new Error(response.data.message || 'Failed to update booking');
         }
-    }, [bookings, api, authToken, refetch, isPos, isAccreditation, isSponser, isCorporate, ErrorAlert]);
+
+        return response.data;
+    };
+
+    // Create the mutation
+    const toggleBookingMutation = useMutation({
+        mutationFn: toggleBookingStatus,
+        onSuccess: (data, variables) => {
+            refetch(); // Refetch bookings list
+            message.success({
+                content: variables.data.is_deleted
+                    ? 'Ticket enabled successfully!'
+                    : 'Ticket disabled successfully!',
+                duration: 3,
+            });
+        },
+        onError: (error) => {
+            message.error({
+                content: error.response?.data?.message || error.message || 'Failed to update booking',
+                duration: 3,
+            });
+        },
+    });
+    // Updated DeleteBooking function
+    const DeleteBooking = useCallback((id) => {
+        const data = bookings?.find((item) => item?.id === id);
+        if (!data) return;
+
+        toggleBookingMutation.mutate({
+            id,
+            data,
+            api,
+            authToken,
+            isPos,
+            isAccreditation,
+            isSponser,
+            isCorporate,
+        });
+    }, [
+        bookings,
+        api,
+        authToken,
+        isPos,
+        isAccreditation,
+        isSponser,
+        isCorporate,
+        toggleBookingMutation,
+    ]);
 
     // Format data for table
     const formatBookingData = (bookings) => {
@@ -166,7 +206,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
     };
 
     // Columns for DataTable
-    const columns = [
+    const columns = useMemo(() => [
         {
             title: '#',
             dataIndex: 'id',
@@ -258,9 +298,28 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             ),
         },
         {
+            title: 'Ticket Status',
+            dataIndex: 'is_deleted',
+            key: 'ticket_status',
+            align: 'center',
+            searchable: false,
+            width: 120,
+            render: (isDeleted, record) => (
+                <Switch
+                    checked={!isDeleted}
+                    onChange={() => DeleteBooking(record.id)}
+                    checkedChildren="Active"
+                    unCheckedChildren="Disabled"
+                    loading={toggleBookingMutation.isPending}
+                    disabled={record.status === "1"}
+                />
+            ),
+        },
+        {
             title: 'Actions',
             key: 'actions',
             align: 'center',
+            fixed : 'right',
             searchable: false,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
@@ -272,18 +331,19 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                         onClick: () => handlePrintReceipt(record),
                         disabled: isDisabled,
                     },
-                    {
-                        key: 'toggle',
-                        label: record?.is_deleted ? 'Enable Ticket' : 'Disable Ticket',
-                        icon: record?.is_deleted ? <CheckCircle size={14} /> : <XCircle size={14} />,
-                        onClick: () => DeleteBooking(record.id),
-                        disabled: false,
-                    }
+                    // {
+                    //     key: 'toggle',
+                    //     label: record?.is_deleted ? 'Enable Ticket' : 'Disable Ticket',
+                    //     icon: record?.is_deleted ? <CheckCircle size={14} /> : <XCircle size={14} />,
+                    //     onClick: () => DeleteBooking(record.id),
+                    //     disabled: false,
+                    // }
                 ];
                 if (!isPos) {
                     actions.unshift({
                         key: 'resend',
                         label: 'Resend Ticket',
+                        type : 'primary',
                         icon: <Send size={14} />,
                         onClick: () => sendTickets(record, "old", true, "Online Booking"),
                         disabled: isDisabled,
@@ -320,7 +380,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                         {actions.map((action, index) => (
                             <Tooltip key={index} title={action.label}>
                                 <Button
-                                    type={action.key === 'toggle' ? (record?.is_deleted ? 'primary' : 'default') : 'default'}
+                                    type={action.type} 
                                     danger={action.key === 'toggle' && !record?.is_deleted}
                                     icon={action.icon}
                                     onClick={action.onClick}
@@ -341,7 +401,17 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             searchable: false,
             render: (date) => formatDateTime(date),
         },
-    ];
+    ], [
+        isPos,
+        userRole,
+        truncateString,
+        toggleBookingMutation,
+        handlePrintReceipt,
+        formatDateTime,
+        sendTickets,
+        isMobile,
+        DeleteBooking,
+    ]);
 
     const handleDateRangeChange = (dates) => {
         setDateRange(dates ? {
@@ -376,7 +446,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                             <Button
                                 type="primary"
                                 icon={<PlusIcon size={16} />}
-                                // onClick={handleBookings}
+                            // onClick={handleBookings}
                             />
                         </Tooltip>
                     </PermissionChecker>
