@@ -1,204 +1,195 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Card, Table, Input, DatePicker, Space, Typography } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-import { useMyContext } from '../../../../Context/MyContextProvider';
-import axios from 'axios';
-
-const { RangePicker } = DatePicker;
-const { Title } = Typography;
+import React, { memo, useState, useCallback, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useMyContext } from '../../../Context/MyContextProvider';
+import DataTable from '../common/DataTable';
+import api from 'auth/FetchInterceptor';
 
 const AgentReports = memo(() => {
-    const { api, authToken, ErrorAlert } = useMyContext();
-    const [report, setReport] = useState([]);
-    const [dateRange, setDateRange] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [searchText, setSearchText] = useState('');
+  const { UserData } = useMyContext();
+  const [dateRange, setDateRange] = useState(null);
 
-    const GetBookings = useCallback(async () => {
-        try {
-            setLoading(true);
-            const queryParams = dateRange ? `?date=${dateRange}` : '';
-            const response = await axios.get(`${api}agent-report${queryParams}`, {
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                }
-            });
-            
-            if (response.data.data) {
-                setReport(response.data.data);
-            }
-        } catch (error) {
-            console.error('Error fetching agent reports:', error);
-            ErrorAlert('Failed to fetch agent reports');
-        } finally {
-            setLoading(false);
-        }
-    }, [api, authToken, dateRange, ErrorAlert]);
+  // Fetch agent reports using TanStack Query
+  const {
+    data: reports = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['agentReports', UserData?.id, dateRange],
+    queryFn: async () => {
+      const queryParams = dateRange
+        ? `?date=${dateRange.startDate},${dateRange.endDate}`
+        : '';
+      const url = `agent-report${queryParams}`;
 
-    useEffect(() => {
-        GetBookings();
-    }, [GetBookings]);
+      const response = await api.get(url);
 
-    const handleDateChange = (dates, dateStrings) => {
-        if (dates && dates.length === 2) {
-            const formattedRange = `${dateStrings[0]},${dateStrings[1]}`;
-            setDateRange(formattedRange);
-        } else {
-            setDateRange('');
-        }
-    };
+      if (response.status && response.data) {
+        return response.data;
+      } else {
+        throw new Error(response?.message || 'Failed to fetch agent reports');
+      }
+    },
+    enabled: !!UserData?.id,
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
-    const columns = useMemo(() => [
-        {
-            title: '#',
-            key: 'index',
-            width: 60,
-            render: (text, record, index) => index + 1,
-            fixed: 'left'
-        },
-        {
-            title: 'Name',
-            dataIndex: 'agent_name',
-            key: 'agent_name',
-            sorter: (a, b) => a.agent_name.localeCompare(b.agent_name),
-            filteredValue: searchText ? [searchText] : null,
-            onFilter: (value, record) => 
-                record.agent_name.toLowerCase().includes(value.toLowerCase()),
-            fixed: 'left',
-            width: 150
-        },
-        {
-            title: 'Total',
-            dataIndex: 'total_bookings',
-            key: 'total_bookings',
-            sorter: (a, b) => a.total_bookings - b.total_bookings,
-            width: 100
-        },
-        {
-            title: 'Today',
-            dataIndex: 'today_booking_count',
-            key: 'today_booking_count',
-            sorter: (a, b) => a.today_booking_count - b.today_booking_count,
-            width: 100
-        },
-        {
-            title: 'Today AMT',
-            dataIndex: 'today_total_amount',
-            key: 'today_total_amount',
-            render: (text) => `₹${Number(text || 0).toFixed(2)}`,
-            sorter: (a, b) => a.today_total_amount - b.today_total_amount,
-            width: 120
-        },
-        {
-            title: 'UPI',
-            dataIndex: 'total_UPI_bookings',
-            key: 'total_UPI_bookings',
-            sorter: (a, b) => a.total_UPI_bookings - b.total_UPI_bookings,
-            width: 80
-        },
-        {
-            title: 'Cash',
-            dataIndex: 'total_Cash_bookings',
-            key: 'total_Cash_bookings',
-            sorter: (a, b) => a.total_Cash_bookings - b.total_Cash_bookings,
-            width: 80
-        },
-        {
-            title: 'Net',
-            dataIndex: 'total_Net_Banking_bookings',
-            key: 'total_Net_Banking_bookings',
-            sorter: (a, b) => a.total_Net_Banking_bookings - b.total_Net_Banking_bookings,
-            width: 80
-        },
-        {
-            title: 'UPI AMT',
-            dataIndex: 'total_UPI_amount',
-            key: 'total_UPI_amount',
-            render: (text) => `₹${Number(text || 0).toFixed(2)}`,
-            sorter: (a, b) => a.total_UPI_amount - b.total_UPI_amount,
-            width: 120
-        },
-        {
-            title: 'Cash AMT',
-            dataIndex: 'total_Cash_amount',
-            key: 'total_Cash_amount',
-            render: (text) => `₹${Number(text || 0).toFixed(2)}`,
-            sorter: (a, b) => a.total_Cash_amount - b.total_Cash_amount,
-            width: 120
-        },
-        {
-            title: 'Net AMT',
-            dataIndex: 'total_Net_Banking_amount',
-            key: 'total_Net_Banking_amount',
-            render: (text) => `₹${Number(text || 0).toFixed(2)}`,
-            sorter: (a, b) => a.total_Net_Banking_amount - b.total_Net_Banking_amount,
-            width: 120
-        },
-        {
-            title: 'Total Disc',
-            dataIndex: 'total_discount',
-            key: 'total_discount',
-            render: (text) => `₹${Number(text || 0).toFixed(2)}`,
-            sorter: (a, b) => a.total_discount - b.total_discount,
-            width: 120
-        },
-        {
-            title: 'Total AMT',
-            dataIndex: 'total_amount',
-            key: 'total_amount',
-            render: (text) => `₹${Number(text || 0).toFixed(2)}`,
-            sorter: (a, b) => a.total_amount - b.total_amount,
-            width: 120,
-            fixed: 'right'
-        }
-    ], [searchText]);
+  const handleDateRangeChange = useCallback((dates) => {
+    if (dates) {
+      setDateRange({
+        startDate: dates[0].format('YYYY-MM-DD'),
+        endDate: dates[1].format('YYYY-MM-DD'),
+      });
+    } else {
+      setDateRange(null);
+    }
+  }, []);
 
-    return (
-        <div className="container-fluid p-4">
-            <Card 
-                title={<Title level={4} className="mb-0">Agents Report</Title>}
-                bordered={false}
-            >
-                <Space direction="vertical" size="middle" className="w-100">
-                    <div className="d-flex flex-wrap gap-3 align-items-center">
-                        <RangePicker 
-                            onChange={handleDateChange}
-                            format="YYYY-MM-DD"
-                            className="flex-grow-1"
-                            style={{ maxWidth: 300 }}
-                        />
-                        <Input
-                            placeholder="Search agents..."
-                            prefix={<SearchOutlined />}
-                            value={searchText}
-                            onChange={(e) => setSearchText(e.target.value)}
-                            allowClear
-                            className="flex-grow-1"
-                            style={{ maxWidth: 300 }}
-                        />
-                    </div>
-                    
-                    <Table
-                        columns={columns}
-                        dataSource={report}
-                        loading={loading}
-                        rowKey="id"
-                        scroll={{ x: 1500 }}
-                        pagination={{
-                            defaultPageSize: 10,
-                            showSizeChanger: true,
-                            showTotal: (total, range) => 
-                                `${range[0]}-${range[1]} of ${total} items`,
-                            pageSizeOptions: ['10', '20', '50', '100']
-                        }}
-                        bordered
-                        size="small"
-                    />
-                </Space>
-            </Card>
-        </div>
-    );
+  const columns = useMemo(
+    () => [
+      {
+        title: '#',
+        key: 'index',
+        width: 60,
+        align: 'center',
+        render: (_, __, index) => index + 1,
+        fixed: 'left',
+      },
+      {
+        title: 'Agent Name',
+        dataIndex: 'agent_name',
+        key: 'agent_name',
+        align: 'left',
+        searchable: true,
+        width: 180,
+        fixed: 'left',
+        sorter: (a, b) => (a.agent_name || '').localeCompare(b.agent_name || ''),
+      },
+      {
+        title: 'Total',
+        dataIndex: 'total_bookings',
+        key: 'total_bookings',
+        align: 'center',
+        width: 100,
+        sorter: (a, b) => (a.total_bookings || 0) - (b.total_bookings || 0),
+      },
+      {
+        title: 'Today',
+        dataIndex: 'today_booking_count',
+        key: 'today_booking_count',
+        align: 'center',
+        width: 100,
+        sorter: (a, b) => (a.today_booking_count || 0) - (b.today_booking_count || 0),
+      },
+      {
+        title: 'Today Amount',
+        dataIndex: 'today_total_amount',
+        key: 'today_total_amount',
+        align: 'center',
+        width: 130,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) => (a.today_total_amount || 0) - (b.today_total_amount || 0),
+      },
+      {
+        title: 'UPI',
+        dataIndex: 'total_UPI_bookings',
+        key: 'total_UPI_bookings',
+        align: 'center',
+        width: 80,
+        sorter: (a, b) => (a.total_UPI_bookings || 0) - (b.total_UPI_bookings || 0),
+      },
+      {
+        title: 'Cash',
+        dataIndex: 'total_Cash_bookings',
+        key: 'total_Cash_bookings',
+        align: 'center',
+        width: 80,
+        sorter: (a, b) => (a.total_Cash_bookings || 0) - (b.total_Cash_bookings || 0),
+      },
+      {
+        title: 'Net Banking',
+        dataIndex: 'total_Net_Banking_bookings',
+        key: 'total_Net_Banking_bookings',
+        align: 'center',
+        width: 120,
+        sorter: (a, b) =>
+          (a.total_Net_Banking_bookings || 0) - (b.total_Net_Banking_bookings || 0),
+      },
+      {
+        title: 'UPI Amount',
+        dataIndex: 'total_UPI_amount',
+        key: 'total_UPI_amount',
+        align: 'center',
+        width: 130,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) => (a.total_UPI_amount || 0) - (b.total_UPI_amount || 0),
+      },
+      {
+        title: 'Cash Amount',
+        dataIndex: 'total_Cash_amount',
+        key: 'total_Cash_amount',
+        align: 'center',
+        width: 130,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) => (a.total_Cash_amount || 0) - (b.total_Cash_amount || 0),
+      },
+      {
+        title: 'Net Banking Amount',
+        dataIndex: 'total_Net_Banking_amount',
+        key: 'total_Net_Banking_amount',
+        align: 'center',
+        width: 160,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) =>
+          (a.total_Net_Banking_amount || 0) - (b.total_Net_Banking_amount || 0),
+      },
+      {
+        title: 'Total Discount',
+        dataIndex: 'total_discount',
+        key: 'total_discount',
+        align: 'center',
+        width: 130,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) => (a.total_discount || 0) - (b.total_discount || 0),
+      },
+      {
+        title: 'Total Amount',
+        dataIndex: 'total_amount',
+        key: 'total_amount',
+        align: 'center',
+        width: 140,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
+        fixed: 'right',
+      },
+    ],
+    []
+  );
+
+  return (
+    <DataTable
+      title="Agent Reports"
+      data={reports}
+      columns={columns}
+      showDateRange={true}
+      showRefresh={true}
+      dateRange={dateRange}
+      onDateRangeChange={handleDateRangeChange}
+      loading={isLoading}
+      error={isError ? error : null}
+      enableSearch={true}
+      showSearch={true}
+      enableExport={true}
+      exportRoute="export-agent-reports"
+      ExportPermission={true}
+      onRefresh={refetch}
+      emptyText="No agent reports found"
+
+    />
+  );
 });
 
-AgentReports.displayName = "AgentReports";
+AgentReports.displayName = 'AgentReports';
 export default AgentReports;
