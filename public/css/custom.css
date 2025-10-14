@@ -15,25 +15,31 @@
 .counter input {
   font-size: large !important;
   text-align: center !important;
-  caret-color: transparent; /* 🚫 Hide the blinking caret */
-  pointer-events: none;     /* Prevent clicking/typing */
-  user-select: none;        /* Prevent text selection */
+  caret-color: transparent;
+  /* 🚫 Hide the blinking caret */
+  pointer-events: none;
+  /* Prevent clicking/typing */
+  user-select: none;
+  /* Prevent text selection */
 }
+
 .slick-prev,
-.slick-next{
-    top: 40% !important;
+.slick-next {
+  top: 40% !important;
 }
 
 
 input::-webkit-outer-spin-button,
 input::-webkit-inner-spin-button {
-    /* display: none; <- Crashes Chrome on hover */
-    -webkit-appearance: none;
-    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+  /* display: none; <- Crashes Chrome on hover */
+  -webkit-appearance: none;
+  margin: 0;
+  /* <-- Apparently some margin are still there even though it's hidden */
 }
 
 input[type=number] {
-    -moz-appearance:textfield; /* Firefox */
+  -moz-appearance: textfield;
+  /* Firefox */
 }
 
 
@@ -43,11 +49,12 @@ input[type=number] {
 }
 
 .border-primary {
-  border : 1px solid var(--primary-color) !important;
+  border: 1px solid var(--primary-color) !important;
 }
 
 /* accordion css  */
-.ant-collapse-header , .ant-collapse-content-box{
+.ant-collapse-header,
+.ant-collapse-content-box {
   padding: inherit !important;
 }
 
@@ -62,7 +69,7 @@ input[type=number] {
   color: white;
 }
 
-.ant-card .ant-card-actions{
+.ant-card .ant-card-actions {
   background: transparent !important;
   border-top: 1px dashed var(--border-secondary) !important;
 }
@@ -80,8 +87,7 @@ input[type=number] {
 }
 
 .ant-menu-submenu-popup,
-.ant-menu-light.ant-menu-submenu>.ant-menu 
-{
+.ant-menu-light.ant-menu-submenu>.ant-menu {
   background: transparent !important;
   backdrop-filter: blur(15px);
   -webkit-backdrop-filter: blur(15px);
@@ -91,14 +97,15 @@ input[type=number] {
 }
 
 /* Custom Glassmorphism Components */
-.glassmorphism-card,.ant-table-filter-dropdown {
-    border-radius: 16px;
-    background-color: transparent !important;
-    background: linear-gradient(135deg, rgba(40, 40, 40, 0.1) 0%, rgba(80, 80, 80, 0.25) 100%);
-    box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.55), 0 4px 16px 0 rgba(0, 0, 0, 0.65), 0 2px 8px rgba(229, 9, 20, 0.18) !important;
-    backdrop-filter: blur(15px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
-    transition: box-shadow 0.3s, background 0.3s;
+.glassmorphism-card,
+.ant-table-filter-dropdown {
+  border-radius: 16px;
+  background-color: transparent !important;
+  background: linear-gradient(135deg, rgba(40, 40, 40, 0.1) 0%, rgba(80, 80, 80, 0.25) 100%);
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.55), 0 4px 16px 0 rgba(0, 0, 0, 0.65), 0 2px 8px rgba(229, 9, 20, 0.18) !important;
+  backdrop-filter: blur(15px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
+  transition: box-shadow 0.3s, background 0.3s;
 }
 
 /* .glassmorphism-card:hover {
@@ -464,4 +471,14 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
   will-change: transform;
   transform: translateZ(0);
+}
+
+.ant-tabs-dropdown .ant-tabs-dropdown-menu {
+  border-radius: 16px;
+  background-color: transparent !important;
+  background: linear-gradient(135deg, rgba(40, 40, 40, 0.1) 0%, rgba(80, 80, 80, 0.25) 100%);
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.55), 0 4px 16px 0 rgba(0, 0, 0, 0.65), 0 2px 8px rgba(229, 9, 20, 0.18) !important;
+  backdrop-filter: blur(15px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
+  transition: box-shadow 0.3s, background 0.3s;
 }
