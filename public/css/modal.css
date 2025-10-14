@@ -120,14 +120,14 @@
 
 /* Default modal */
 .ant-modal {
-  top: 0px !important;
+  top: -8rem !important;
 }
 
 
 /* //for mobile  */
 @media (max-width: 768px) {
   .ant-modal {
-    top: 0 !important;
+    top: -3rem !important;
   }
 
   .ant-modal-centered .ant-modal-body {

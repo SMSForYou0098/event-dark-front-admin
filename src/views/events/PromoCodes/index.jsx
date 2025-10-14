@@ -237,7 +237,6 @@ const Promocode = memo(() => {
         render: (_, record) => (
           <Space size="small">
             <Button
-              type="primary"
               icon={<EditOutlined />}
               onClick={() => handleOpenModal(record)}
               title="Edit"
@@ -280,6 +279,7 @@ const Promocode = memo(() => {
             Save
           </Button>,
         ]}
+        centered
         destroyOnClose
       >
         <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
