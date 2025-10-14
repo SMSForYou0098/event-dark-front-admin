@@ -19,7 +19,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
     const [form] = Form.useForm();
     const location = useLocation();
-    
+
     // Main form state
     const [formState, setFormState] = useState({
         // Basic info
@@ -30,30 +30,30 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         roleName: '',
         reportingUser: '',
         status: 'Active',
-        
+
         // Role-specific fields
         agreementStatus: false,
         organisation: '',
         agentDiscount: false,
         qrLength: '',
         paymentMethod: 'Cash',
-        
+
         // Event management
         events: [],
         tickets: [],
         gates: [],
-        
+
         // Address
         city: '',
         pincode: '',
-        
+
         // Banking (Admin + Organizer)
         bankName: '',
         bankIfsc: '',
         bankBranch: '',
         bankNumber: '',
         orgGstNumber: '',
-        
+
         // Security
         password: '',
         repeatPassword: '',
@@ -87,8 +87,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
     // Stabilize reportingUserId
     const reportingUserId = useMemo(() => {
         if (mode === "create") {
-            return userRole === 'Organizer' ? UserData?.id : 
-                   formState.reportingUser?.value || formState.reportingUser || undefined;
+            return userRole === 'Organizer' ? UserData?.id :
+                formState.reportingUser?.value || formState.reportingUser || undefined;
         }
         return formState.reportingUser?.value || formState.reportingUser?.key || formState.reportingUser || undefined;
     }, [mode, userRole, UserData?.id, formState.reportingUser]);
@@ -117,7 +117,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
 
     // Track initial reporting user to detect changes
     const initialReportingUser = useRef(null);
-    
+
     // FIXED: Set initial reporting user and handle query params separately
     useEffect(() => {
         if (mode === 'edit' && fetchedData?.user && initialReportingUser.current === null) {
@@ -133,10 +133,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
             if (typeParam) {
                 const roleName = typeParam.replace(/-/g, ' ');
                 // Find the role ID from filtered roles list
-                const matchedRole = filteredRoles.find(role => 
+                const matchedRole = filteredRoles.find(role =>
                     role.name.toLowerCase() === roleName.toLowerCase()
                 );
-                
+
                 if (matchedRole) {
                     updateMultipleFields({
                         roleName: matchedRole.name,
@@ -211,10 +211,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
             isInitializing.current = true;
             const formData = mapApiToForm(fetchedData.user);
             setFormState(prevState => ({ ...prevState, ...formData }));
-            
+
             // Also set form fields for Ant Design Form
             form.setFieldsValue(formData);
-            
+
             didInit.current = true;
             isInitializing.current = false;
         }
@@ -226,7 +226,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         changedFields.forEach(field => {
             changes[field.name[0]] = field.value;
         });
-        
+
         setFormState(prev => ({ ...prev, ...changes }));
     }, []);
 
@@ -245,12 +245,12 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
     const handleRoleChange = useCallback((value) => {
         const selectedRole = filteredRoles.find(r => r.id === Number(value));
         const nextName = selectedRole?.name;
-        
+
         const updates = { roleId: value };
         if (formState.roleName !== nextName) {
             updates.roleName = nextName;
         }
-        
+
         // Clear event-related fields when role changes
         const hasAny = formState.events?.length || formState.tickets?.length || formState.gates?.length;
         if (hasAny) {
@@ -258,7 +258,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
             updates.tickets = [];
             updates.gates = [];
         }
-        
+
         updateMultipleFields(updates);
     }, [filteredRoles, formState.roleName, formState.events, formState.tickets, formState.gates, updateMultipleFields]);
 
@@ -399,7 +399,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             <Form.Item name="roleName" hidden>
                                 <Input />
                             </Form.Item>
-                            
+
                             {/* Show info message for Organizers */}
                             {userRole === 'Organizer' && (
                                 <Alert
@@ -416,7 +416,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                     {/* Basic Information */}
                     <Card title="Basic Information">
                         <Row gutter={[16, 16]}>
-                            <Col xs={24} md={12}>
+                            <Col xs={24} md={8}>
                                 <Form.Item
                                     label="Name"
                                     name="name"
@@ -426,25 +426,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                 </Form.Item>
                             </Col>
 
-                            <Col xs={24} md={12}>
-                                <Form.Item
-                                    label="Email"
-                                    name="email"
-                                    rules={[
-                                        { required: true, message: 'Please enter email' },
-                                        { type: 'email', message: 'Please enter valid email' }
-                                    ]}
-                                >
-                                    <Input placeholder="Enter email" />
-                                </Form.Item>
-                            </Col>
-
-                            <Col xs={24} md={12}>
-                                <Form.Item label="GST / VAT Tax" name="orgGstNumber">
-                                <Input placeholder="GST / VAT Tax" />
-                            </Form.Item>
-                            </Col>
-                            <Col xs={24} md={12}>
+                            <Col xs={24} md={8}>
                                 <Form.Item
                                     label="Mobile Number"
                                     name="number"
@@ -457,9 +439,37 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                 </Form.Item>
                             </Col>
 
-                            {/* Conditional Fields based on Role */}
+                            <Col xs={24} md={8}>
+                                <Form.Item
+                                    label="Email"
+                                    name="email"
+                                    rules={[
+                                        { required: true, message: 'Please enter email' },
+                                        { type: 'email', message: 'Please enter valid email' }
+                                    ]}
+                                >
+                                    <Input placeholder="Enter email" />
+                                </Form.Item>
+                            </Col>
+
                             {formState.roleName === 'Organizer' && (
                                 <>
+
+
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Organisation"
+                                            name="organisation"
+                                        >
+                                            <Input placeholder="Enter organisation" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item label="GST Number" name="orgGstNumber">
+                                            <Input placeholder="GST Number" />
+                                        </Form.Item>
+                                    </Col>
+
                                     <Col xs={24} md={12}>
                                         <Form.Item
                                             label="Agreement Status"
@@ -472,17 +482,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                             />
                                         </Form.Item>
                                     </Col>
-
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Organisation"
-                                            name="organisation"
-                                        >
-                                            <Input placeholder="Enter organisation" />
-                                        </Form.Item>
-                                    </Col>
                                 </>
                             )}
+
+
+
+
+                            {/* Conditional Fields based on Role */}
+
 
                             {/* Account Manager for specific roles */}
                             {showAM && (
@@ -509,9 +516,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             {needsEvents && (
                                 <>
                                     <Col xs={24} md={12}>
-                                        <Form.Item 
-                                            label="Assign Events" 
-                                            name="events" 
+                                        <Form.Item
+                                            label="Assign Events"
+                                            name="events"
                                             rules={[requiredIf(needsEvents, 'Please select at least one event')]}
                                         >
                                             <Select
@@ -524,9 +531,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                                 loading={eventsLoading || eventsFetching}
                                                 disabled={!reportingUserId}
                                                 notFoundContent={
-                                                    eventsLoading ? <Spin size="small" /> : 
-                                                    !reportingUserId ? 'Please select an account manager first' :
-                                                    'No events found'
+                                                    eventsLoading ? <Spin size="small" /> :
+                                                        !reportingUserId ? 'Please select an account manager first' :
+                                                            'No events found'
                                                 }
                                             />
                                         </Form.Item>
@@ -547,7 +554,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                                 optionFilterProp="label"
                                                 notFoundContent={
                                                     !formState.events?.length ? 'Please select events first' :
-                                                    'No tickets available for selected events'
+                                                        'No tickets available for selected events'
                                                 }
                                             />
                                         </Form.Item>
@@ -663,13 +670,16 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             <Card title="Status & Security">
                                 <Row gutter={[16, 16]}>
                                     <Col xs={24} md={12}>
-                                        <Form.Item label="User Status" name="status">
-                                            <Select>
-                                                <Select.Option value="Active">Active</Select.Option>
-                                                <Select.Option value="Inactive">Inactive</Select.Option>
-                                            </Select>
+                                        <Form.Item
+                                            label="User Status"
+                                            name="status"
+                                            valuePropName="checked"
+                                            getValueFromEvent={(checked) => (checked ? 1 : 0)}
+                                        >
+                                            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
                                         </Form.Item>
                                     </Col>
+
 
                                     {/* Password Fields */}
                                     <Col xs={24} md={12}>
@@ -688,27 +698,27 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                         </Form.Item>
                                     </Col>
                                     {mode === 'create' && (
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Confirm Password"
-                                        name="repeatPassword"
-                                        dependencies={['password']}
-                                        rules={[
-                                            { required: true, message: 'Please confirm password' },
-                                            ({ getFieldValue }) => ({
-                                                validator(_, value) {
-                                                    if (!value || getFieldValue('password') === value) {
-                                                        return Promise.resolve();
-                                                    }
-                                                    return Promise.reject(new Error('Passwords do not match'));
-                                                }
-                                            })
-                                        ]}
-                                    >
-                                        <Input.Password placeholder="Re-enter password" />
-                                    </Form.Item>
-                                </Col>
-                            )}
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                label="Confirm Password"
+                                                name="repeatPassword"
+                                                dependencies={['password']}
+                                                rules={[
+                                                    { required: true, message: 'Please confirm password' },
+                                                    ({ getFieldValue }) => ({
+                                                        validator(_, value) {
+                                                            if (!value || getFieldValue('password') === value) {
+                                                                return Promise.resolve();
+                                                            }
+                                                            return Promise.reject(new Error('Passwords do not match'));
+                                                        }
+                                                    })
+                                                ]}
+                                            >
+                                                <Input.Password placeholder="Re-enter password" />
+                                            </Form.Item>
+                                        </Col>
+                                    )}
                                     <Col xs={24} md={24}>
                                         <Space size="large">
                                             <Form.Item

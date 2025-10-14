@@ -10,6 +10,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import { persistor } from 'store';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { withAccess } from '../common/withAccess';
 
 const Organizers = () => {
   const { 
@@ -336,4 +337,9 @@ const Organizers = () => {
   );
 };
 
-export default Organizers;
+// export default Organizers;
+
+// using HOC to prevent other users to access this component
+export default withAccess({
+  allowedRoles: ["Admin"],
+})(Organizers);

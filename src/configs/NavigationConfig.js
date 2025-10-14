@@ -118,7 +118,7 @@ const bookingsSubmenu = [
     breadcrumb: false,
     submenu: []
   },
-    {
+  {
     key: 'pending-booking',
     path: 'bookings/pending',
     title: 'Pending Bookings',
