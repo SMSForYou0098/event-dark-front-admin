@@ -1,4 +1,4 @@
-import { BadgeDollarSign, Phone, ScanLine, ShoppingCart, Sparkle, Store, Tickets, UsersRound } from "lucide-react";
+import { BadgeDollarSign,  ScanLine, ShoppingCart, Sparkle, Store, Tickets, UsersRound } from "lucide-react";
 
 export const roles = [
   { label: "POS", icon: <ShoppingCart size={16} />, key: "POS" },

@@ -12,14 +12,6 @@ import {
   Tooltip,
 } from "antd";
 import {
-  ShoppingCart,
-  UsersRound,
-  ScanLine,
-  Phone,
-  Store,
-  Tickets,
-  BadgeDollarSign,
-  Sparkle,
   Settings,
   LogIn,
   Trash2,

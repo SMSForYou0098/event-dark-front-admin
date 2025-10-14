@@ -1,12 +1,12 @@
 import React, { useCallback, useState } from 'react';
-import { Button, Card, Row, Col, Tag, message, Image } from 'antd';
-import { User, Mail, LogIn, PlusIcon, Settings } from 'lucide-react';
+import { Button, message, Image, Tooltip, Modal } from 'antd';
+import { User, Mail, LogIn, PlusIcon, Settings, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMyContext } from '../../../Context/MyContextProvider';
 import DataTable from '../common/DataTable';
 import { authenticated, updateUser, logout } from '../../../store/slices/authSlice';
 import { useDispatch } from 'react-redux';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import { persistor } from 'store';
 import PermissionChecker from 'layouts/PermissionChecker';
@@ -18,12 +18,10 @@ const Organizers = () => {
     authToken, 
     auth_session, 
     session_id,
-    formatDateTime,
     loader
   } = useMyContext();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const queryClient = useQueryClient();
   
   const [dateRange, setDateRange] = useState(null);
   const [error, setError] = useState(null);
@@ -111,13 +109,9 @@ const Organizers = () => {
     impersonateMutation.mutate(id);
   }, [impersonateMutation]);
 
-  const oneClickLogin = useCallback((id) => {
-    setMutationLoading(true);
-    impersonateMutation.mutate(id);
-  }, [impersonateMutation]);
 
   const handleNavigate = () => {
-    navigate('/dashboard/users/new?type=Organizer');
+    navigate('/users/new?type=Organizer');
   };
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -138,9 +132,42 @@ const Organizers = () => {
     }));
   };
 
-  const CustomTooltip = ({ text, children }) => (
-    <span title={text}>{children}</span>
-  );
+    // Delete user mutation
+    const deleteUserMutation = useMutation({
+      mutationFn: async (userId) => {
+        const res = await api.delete(`user-delete/${userId}`);
+        console.log("Delete response:", res);
+        return res.data;
+      },
+      onSuccess: () => {
+        refetchOrganizers();
+        message.success("User Deleted successfully.");
+        setMutationLoading(false);
+      },
+      onError: (err) => {
+        message.error(
+          err.response?.data?.message || err.message || "An error occurred"
+        );
+        setMutationLoading(false);
+      },
+    });
+
+    const handleDelete = useCallback((id) => {
+    if (!id) return;
+
+    Modal.confirm({
+      title: 'Are you sure?',
+      content: "You won't be able to revert this!",
+      okText: 'Yes, delete it!',
+      cancelText: 'Cancel',
+      centered: true,
+      confirmLoading: mutationLoading,
+      onOk: () => {
+        setMutationLoading(true);
+        deleteUserMutation.mutate(id);
+      }
+    });
+  }, [deleteUserMutation, mutationLoading]);
 
   // Loading overlay for mutations
   const renderMutationLoader = () => {
@@ -221,29 +248,46 @@ const Organizers = () => {
     title: 'Actions',
     key: 'actions',
     fixed : 'right',
-    width: 100,
     align: 'center',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
         <PermissionChecker permission="Impersonet">
-          <Button
-            type="primary"
-            icon={<LogIn size={14} />}
-            onClick={() => impersonateLogin(record.id)}
-            loading={impersonateMutation.isPending}
-            disabled={mutationLoading || record?.status === "0" || record?.status === 0}
-            size="small"
-          />
+          <Tooltip title="Impersonate User">
+            <Button
+              type="primary"
+              icon={<LogIn size={14} />}
+              onClick={() => impersonateLogin(record.id)}
+              loading={impersonateMutation.isPending}
+              disabled={mutationLoading || record?.status === "0" || record?.status === 0}
+              size="small"
+            />
+          </Tooltip>
         </PermissionChecker>
-        <PermissionChecker permission="Update Organizer">
-          <Button
-            type="default"
-            icon={<Settings size={14} />}
-            onClick={() => navigate(`/dashboard/organizers/manage/${record.id}`)}
-            size="small"
-            disabled={mutationLoading}
-          />
+
+        <PermissionChecker permission="Update User">
+          <Tooltip title="Edit User">
+            <Button
+              type="default"
+              icon={<Settings size={14} />}
+              onClick={() => navigate(`/users/edit/${record.id}`)}
+              size="small"
+              disabled={mutationLoading}
+            />
+          </Tooltip>
         </PermissionChecker>
+
+        <PermissionChecker permission="Delete User">
+          <Tooltip title="Delete User">
+            <Button
+              type="default"
+              icon={<Trash2 size={14} />}
+              onClick={() => handleDelete(record.id)}
+              size="small"
+              disabled={mutationLoading}
+            />
+          </Tooltip>
+        </PermissionChecker>
+
       </div>
     ),
   });
@@ -265,6 +309,17 @@ const Organizers = () => {
         addButtonProps={null}
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
+        extraHeaderContent={
+        <PermissionChecker permission="Add User">
+            <Tooltip title={"Add Organizer"}>
+              <Button
+                type="primary"
+                icon={<PlusIcon size={16} />}
+                onClick={handleNavigate}
+              />
+            </Tooltip>
+          </PermissionChecker>
+        }
         enableExport={true}
         exportRoute={'export-organizers'}
         ExportPermission={UserPermissions?.includes("Export Organizers")}
@@ -276,19 +331,7 @@ const Organizers = () => {
           scroll: { x: 1200 },
           size: "middle",
         }}
-      >
-        <PermissionChecker permission="Add User">
-          <Button
-            type="primary"
-            icon={<PlusIcon size={16} />}
-            onClick={handleNavigate}
-            style={{ marginBottom: 16 }}
-            disabled={mutationLoading}
-          >
-            New Organizer
-          </Button>
-        </PermissionChecker>
-      </DataTable>
+      />
     </>
   );
 };

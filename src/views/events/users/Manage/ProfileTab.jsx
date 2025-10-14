@@ -440,6 +440,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             </Col>
 
                             <Col xs={24} md={12}>
+                                <Form.Item label="GST / VAT Tax" name="orgGstNumber">
+                                <Input placeholder="GST / VAT Tax" />
+                            </Form.Item>
+                            </Col>
+                            <Col xs={24} md={12}>
                                 <Form.Item
                                     label="Mobile Number"
                                     name="number"
@@ -584,28 +589,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                 </Col>
                             )}
 
-                            {mode === 'create' && (
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Confirm Password"
-                                        name="repeatPassword"
-                                        dependencies={['password']}
-                                        rules={[
-                                            { required: true, message: 'Please confirm password' },
-                                            ({ getFieldValue }) => ({
-                                                validator(_, value) {
-                                                    if (!value || getFieldValue('password') === value) {
-                                                        return Promise.resolve();
-                                                    }
-                                                    return Promise.reject(new Error('Passwords do not match'));
-                                                }
-                                            })
-                                        ]}
-                                    >
-                                        <Input.Password placeholder="Re-enter password" />
-                                    </Form.Item>
-                                </Col>
-                            )}
                         </Row>
                     </Card>
                 </Col>
@@ -674,15 +657,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                         </Card>
                     )}
 
-                    {/* Other (Organizer only) */}
-                    {formState.roleName === 'Organizer' && (
-                        <Card title="Other" style={{ marginBottom: 16 }}>
-                            <Form.Item label="GST / VAT Tax" name="orgGstNumber">
-                                <Input placeholder="GST / VAT Tax" />
-                            </Form.Item>
-                        </Card>
-                    )}
-
                     {/* Status & Security */}
                     {!showRoleGate && (
                         <PermissionChecker role={['Admin', 'Organizer']}>
@@ -713,6 +687,28 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                             />
                                         </Form.Item>
                                     </Col>
+                                    {mode === 'create' && (
+                                <Col xs={24} md={12}>
+                                    <Form.Item
+                                        label="Confirm Password"
+                                        name="repeatPassword"
+                                        dependencies={['password']}
+                                        rules={[
+                                            { required: true, message: 'Please confirm password' },
+                                            ({ getFieldValue }) => ({
+                                                validator(_, value) {
+                                                    if (!value || getFieldValue('password') === value) {
+                                                        return Promise.resolve();
+                                                    }
+                                                    return Promise.reject(new Error('Passwords do not match'));
+                                                }
+                                            })
+                                        ]}
+                                    >
+                                        <Input.Password placeholder="Re-enter password" />
+                                    </Form.Item>
+                                </Col>
+                            )}
                                     <Col xs={24} md={24}>
                                         <Space size="large">
                                             <Form.Item
