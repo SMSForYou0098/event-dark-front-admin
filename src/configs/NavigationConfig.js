@@ -1,4 +1,4 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined } from '@ant-design/icons';
 
 // Dashboard
 const dashboardNav = {
@@ -28,14 +28,7 @@ const userManagementSubmenu = [
     breadcrumb: false,
     submenu: []
   },
-  {
-    key: 'agents',
-    path: 'agents',
-    title: 'Agents',
-    icon: IdcardOutlined,
-    breadcrumb: false,
-    submenu: []
-  },
+
   {
     key: 'attendees',
     path: 'attendees',
@@ -43,8 +36,44 @@ const userManagementSubmenu = [
     icon: UsergroupAddOutlined,
     breadcrumb: false,
     submenu: []
+  },
+  {
+    key: 'login-history',
+    path: 'login-history',
+    title: 'Login History',
+    icon: FileSearchOutlined, // Or choose a more suitable icon if needed
+    breadcrumb: false,
+    submenu: []
   }
 ];
+// Partners & Clients Submenu
+const partnersClientsSubmenu = [
+  {
+    key: 'corporates',
+    path: 'corporate',
+    title: 'Corporate Bookings',
+    icon: CrownOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+  {
+    key: 'sponsors',
+    path: 'sponsors',
+    title: 'Sponsors Bookings',
+    icon: TrophyOutlined,
+    breadcrumb: false,
+    submenu: []
+  }
+];
+
+const partnersClientsNav = {
+  key: 'partners-clients',
+  path: 'partners-clients',
+  title: 'Partner Bookings',
+  icon: CrownOutlined,
+  breadcrumb: false,
+  submenu: partnersClientsSubmenu
+};
 
 const userManagementNav = {
   key: 'user-management',
@@ -58,17 +87,25 @@ const userManagementNav = {
 // Bookings Submenu
 const bookingsSubmenu = [
   {
+    key: 'online-booking',
+    path: 'bookings/online',
+    title: 'Online Bookings',
+    icon: ShoppingOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+  {
     key: 'agent-booking',
     path: 'bookings/agent',
-    title: 'Agent Booking',
+    title: 'Agent Bookings',
     icon: IdcardOutlined,
     breadcrumb: false,
     submenu: []
   },
   {
-    key: 'online-booking',
-    path: 'bookings/online',
-    title: 'Online Booking',
+    key: 'pos',
+    path: 'bookings/pos',
+    title: 'POS Bookings',
     icon: ShoppingOutlined,
     breadcrumb: false,
     submenu: []
@@ -76,21 +113,24 @@ const bookingsSubmenu = [
   {
     key: 'complimentary-booking',
     path: 'bookings/complimentary',
-    title: 'Complimentary Booking',
+    title: 'Complimentary Bookings',
     icon: TrophyOutlined,
     breadcrumb: false,
     submenu: []
-  }
+  },
+  partnersClientsNav
 ];
 
 const bookingsNav = {
   key: 'bookings',
   path: 'bookings',
   title: 'Bookings',
-  icon: ShoppingOutlined,
+  icon: ScheduleOutlined,
   breadcrumb: false,
   submenu: bookingsSubmenu
 };
+
+
 
 // Event Management Submenu
 const eventManagementSubmenu = [
@@ -129,7 +169,7 @@ const eventManagementSubmenu = [
   {
     key: 'fields',
     path: 'fields',
-    title: 'Fields',
+    title: 'Custom Fields',
     icon: PlusSquareOutlined,
     breadcrumb: false,
     submenu: []
@@ -172,7 +212,15 @@ const scanSubmenu = [
     submenu: []
   }
 ];
+const scanNav = {
+  key: 'scan',
+  path: 'scan',
+  title: 'Scan Ticket',
+  icon: ScanOutlined,
+  breadcrumb: false,
+  submenu: scanSubmenu
 
+}
 // Sales & Operations Submenu
 const salesOperationsSubmenu = [
   {
@@ -184,28 +232,29 @@ const salesOperationsSubmenu = [
     submenu: []
   },
   {
-    key: 'pos',
-    path: 'pos',
-    title: 'POS',
-    icon: ShoppingOutlined,
+    key: 'support-tickets',
+    path: 'support-tickets',
+    title: 'Support Tickets',
+    icon: CustomerServiceOutlined, // You can change this if you prefer a different icon
     breadcrumb: false,
     submenu: []
   },
   {
-    key: 'scan',
-    path: 'scan',
-    title: 'Scan',
-    icon: ScanOutlined,
+    key: 'live-chat',
+    path: 'live-chat',
+    title: 'Live Chat',
+    icon: MessageOutlined, // Represents chat or support well
     breadcrumb: false,
-    submenu: scanSubmenu
+    submenu: []
   }
 ];
+
 
 const salesOperationsNav = {
   key: 'sales-operations',
   path: 'sales-operations',
-  title: 'Sales & Operations',
-  icon: ShoppingOutlined,
+  title: 'Operations & Support',
+  icon: CommentOutlined,
   breadcrumb: false,
   submenu: salesOperationsSubmenu
 };
@@ -241,7 +290,7 @@ const reportingSubmenu = [
 const reportingNav = {
   key: 'reporting',
   path: 'reports',
-  title: 'Reporting',
+  title: 'Data & Reports',
   icon: BarChartOutlined,
   breadcrumb: false,
   submenu: reportingSubmenu
@@ -286,40 +335,13 @@ const financialManagementSubmenu = [
 const financialManagementNav = {
   key: 'financial-management',
   path: 'financial-management',
-  title: 'Financial Management',
+  title: 'Finance Management',
   icon: DollarOutlined,
   breadcrumb: false,
   submenu: financialManagementSubmenu
 };
 
-// Partners & Clients Submenu
-const partnersClientsSubmenu = [
-  {
-    key: 'corporates',
-    path: 'corporate',
-    title: 'Corporate',
-    icon: CrownOutlined,
-    breadcrumb: false,
-    submenu: []
-  },
-  {
-    key: 'sponsors',
-    path: 'sponsors',
-    title: 'Sponsors',
-    icon: TrophyOutlined,
-    breadcrumb: false,
-    submenu: []
-  }
-];
 
-const partnersClientsNav = {
-  key: 'partners-clients',
-  path: 'partners-clients',
-  title: 'Partners & Clients',
-  icon: CrownOutlined,
-  breadcrumb: false,
-  submenu: partnersClientsSubmenu
-};
 
 // Settings Submenu
 const settingsSubmenu = [
@@ -397,17 +419,53 @@ const settingsNav = {
   breadcrumb: false,
   submenu: settingsSubmenu
 };
+const agreementsSubmenu = [
+  {
+    key: 'user-agreements',
+    path: 'agreements/user',
+    title: 'User Agreements',
+    icon: FileSearchOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+  {
+    key: 'partner-agreements',
+    path: 'agreements/partner',
+    title: 'Partner Agreements',
+    icon: FileSearchOutlined,
+    breadcrumb: false,
+    submenu: []
+  }
+];
+const agreementsNav = {
+  key: 'agreements',
+  path: 'agreements',
+  title: 'Agreements',
+  icon: FileSearchOutlined,
+  breadcrumb: false,
+  submenu: agreementsSubmenu
+};
 
 // Final Navigation Config
 const navigationConfig = [
   dashboardNav,
-  userManagementNav,
-  bookingsNav,
   eventManagementNav,
-  salesOperationsNav,
+  bookingsNav,
+  scanNav,
+  userManagementNav,
   reportingNav,
+    {
+    key: 'live-users',
+    path: 'live-users',
+    title: 'Live Users',
+    icon: CustomerServiceOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+  agreementsNav,
+  salesOperationsNav,
   financialManagementNav,
-  partnersClientsNav,
+
   settingsNav
 ];
 
