@@ -1,6 +1,3 @@
-import { APP_PREFIX_PATH } from 'configs/AppConfig'
-
-
 import {
   AppstoreOutlined,
   MailOutlined,
@@ -24,9 +21,18 @@ import {
   UsergroupAddOutlined,
   ScanOutlined,
   CameraOutlined,
-  BarcodeOutlined
+  BarcodeOutlined,
+  DashboardOutlined
 } from '@ant-design/icons';
 const appsNavTree = [
+  {
+        key: 'dashbaord',
+        path: `dashbaord`,
+        title: 'Dashbaord',
+        icon: DashboardOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
   // User Management Group
   {
     key: 'user-management',
