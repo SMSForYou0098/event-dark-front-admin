@@ -59,7 +59,7 @@ export const protectedRoutes = [
     },
     {
         key: 'role',
-        path: `/apps/role`,
+        path: `/role`,
         component: React.lazy(() => import('views/events/RolePermission/Role/index')),
     },
     {
@@ -170,6 +170,11 @@ export const protectedRoutes = [
                 <BookingList {...props} isCorporate={true} />
             </React.Suspense>
         ),
+    },
+    {
+        key: 'complimentary',
+        path: `/complimentary`,
+        component: React.lazy(() => import('views/events/ComplimentaryBooking')),
     },
     /// attendess
     {

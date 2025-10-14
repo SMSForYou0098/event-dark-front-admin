@@ -79,6 +79,14 @@ const appsNavTree = [
         submenu: []
       },
       {
+        key: 'complimentary-booking',
+        path: `complimentary`,
+        title: 'Complimentary Booking',
+        icon: IdcardOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
         key: 'attendees',
         path: `attendees`,
         title: 'Attendees',
