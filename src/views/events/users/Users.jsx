@@ -36,6 +36,7 @@ import { persistor } from "store";
 import PermissionChecker from "layouts/PermissionChecker";
 import { APP_PREFIX_PATH } from "configs/AppConfig";
 import usePermission from "utils/hooks/usePermission";
+import { roles } from "./constants";
 
 const Users = () => {
   const navigate = useNavigate();
@@ -234,29 +235,6 @@ const Users = () => {
   }, []);
 
   // Role selection for Organizer
-  const roles = [
-    { label: "POS", icon: <ShoppingCart size={16} />, key: "POS" },
-    { label: "Agent", icon: <UsersRound size={16} />, key: "Agent" },
-    { label: "Scanner", icon: <ScanLine size={16} />, key: "Scanner" },
-    { label: "Organizer", icon: <UsersRound size={16} />, key: "Organizer" },
-    {
-      label: "Support Executive",
-      icon: <Phone size={16} />,
-      key: "Support-Executive",
-    },
-    { label: "Shop Keeper", icon: <Store size={16} />, key: "Shop-Keeper" },
-    {
-      label: "Box Office Manager",
-      icon: <Tickets size={16} />,
-      key: "Box-Office-Manager",
-    },
-    { label: "Sponsor", icon: <BadgeDollarSign size={16} />, key: "Sponsor" },
-    {
-      label: "Accreditation",
-      icon: <Sparkle size={16} />,
-      key: "Accreditation",
-    },
-  ];
 
   const handleRoleSelect = (roleKey) => {
     setShowRoleModal(false);

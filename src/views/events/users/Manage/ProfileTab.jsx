@@ -9,14 +9,16 @@ import { mapApiToForm, mapFormToApi } from './dataMappers';
 import axios from 'axios';
 import { updateUser } from 'store/slices/authSlice';
 import Flex from 'components/shared-components/Flex';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import { ORGANIZER_ALLOWED_ROLES } from '../constants';
 
 const ProfileTab = ({ mode, handleSubmit, id = null }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
     const [form] = Form.useForm();
+    const location = useLocation();
     
     // Main form state
     const [formState, setFormState] = useState({
@@ -101,15 +103,49 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         staleTime: 5 * 60 * 1000,
     });
 
+    // Filter roles based on user permissions
+    const filteredRoles = useMemo(() => {
+        if (userRole === 'Admin') {
+            // Admin can see all roles
+            return roles;
+        } else if (userRole === 'Organizer') {
+            // Organizer can only see specific roles
+            return roles.filter(role => ORGANIZER_ALLOWED_ROLES.includes(role.name));
+        }
+        return [];
+    }, [roles, userRole]);
+
     // Track initial reporting user to detect changes
     const initialReportingUser = useRef(null);
     
-    // Set initial reporting user on first load in edit mode
+    // FIXED: Set initial reporting user and handle query params separately
     useEffect(() => {
         if (mode === 'edit' && fetchedData?.user && initialReportingUser.current === null) {
             initialReportingUser.current = fetchedData.user.reporting_user_id?.toString();
         }
     }, [mode, fetchedData?.user]);
+
+    // FIXED: Handle query params in separate effect for create mode
+    useEffect(() => {
+        if (mode === 'create' && filteredRoles.length > 0) {
+            const queryParams = new URLSearchParams(location.search);
+            const typeParam = queryParams.get('type');
+            if (typeParam) {
+                const roleName = typeParam.replace(/-/g, ' ');
+                // Find the role ID from filtered roles list
+                const matchedRole = filteredRoles.find(role => 
+                    role.name.toLowerCase() === roleName.toLowerCase()
+                );
+                
+                if (matchedRole) {
+                    updateMultipleFields({
+                        roleName: matchedRole.name,
+                        roleId: matchedRole.id,
+                    });
+                }
+            }
+        }
+    }, [mode, location.search, filteredRoles]);
 
     // Check if reporting user has changed from initial value
     const hasReportingUserChanged = useMemo(() => {
@@ -207,7 +243,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
 
     // Handle role change
     const handleRoleChange = useCallback((value) => {
-        const selectedRole = roles.find(r => r.id === Number(value));
+        const selectedRole = filteredRoles.find(r => r.id === Number(value));
         const nextName = selectedRole?.name;
         
         const updates = { roleId: value };
@@ -224,7 +260,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         }
         
         updateMultipleFields(updates);
-    }, [roles, formState.roleName, formState.events, formState.tickets, formState.gates, updateMultipleFields]);
+    }, [filteredRoles, formState.roleName, formState.events, formState.tickets, formState.gates, updateMultipleFields]);
 
     // Handle event change with proper guards
     const handleEventChange = useCallback((selectedValues = []) => {
@@ -354,7 +390,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                 <Select
                                     placeholder="Select role"
                                     onChange={handleRoleChange}
-                                    options={roles.map(item => ({
+                                    options={filteredRoles.map(item => ({
                                         value: item.id,
                                         label: item.name
                                     }))}
@@ -363,6 +399,17 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                             <Form.Item name="roleName" hidden>
                                 <Input />
                             </Form.Item>
+                            
+                            {/* Show info message for Organizers */}
+                            {userRole === 'Organizer' && (
+                                <Alert
+                                    message="Role Restriction"
+                                    description="As an Organizer, you can only create users with specific roles: POS, Agent, Scanner, Shop Keeper, Box Office Manager, Sponsor, and Accreditation."
+                                    type="info"
+                                    showIcon
+                                    style={{ marginTop: 16 }}
+                                />
+                            )}
                         </Card>
                     </PermissionChecker>
 

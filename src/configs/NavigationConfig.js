@@ -175,6 +175,14 @@ const appsNavTree = [
         submenu: []
       },
       {
+        key: 'promo_codes', // ✅ Made plural for consistency
+        path: `promo-codes`,
+        title: 'Promo Codes',
+        icon: ShoppingOutlined,
+        breadcrumb: false,
+        submenu: []
+      },
+      {
         key: 'scan',
         path: `scan`,
         title: 'Scan',

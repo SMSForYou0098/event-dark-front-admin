@@ -163,6 +163,11 @@ export const protectedRoutes = [
         ),
     },
     {
+        key: 'promo_codes',
+        path: `/promo-codes`,
+        component: React.lazy(() => import('views/events/PromoCodes/index')),
+    },
+    {
         key: 'corporate',
         path: `/corporate`,
         component: (props) => (
