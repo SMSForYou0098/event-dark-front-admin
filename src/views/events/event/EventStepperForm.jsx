@@ -274,7 +274,7 @@ const EventStepperForm = () => {
         () => [
             { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} />, icon: <FormOutlined /> },
             { title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} />, icon: <ControlOutlined /> },
-            { title: 'Timing & Location', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
+            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
             {
                 title: 'Tickets',
                 content: (
