@@ -7,7 +7,9 @@ import PosBooking from 'views/events/Bookings/pos/Bookings'
 import POS from 'views/events/Bookings/pos/NewPosBooking'
 import TicketVerification from 'views/events/Scan/TicketVerification'
 
+// ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
+    // Authentication Routes
     {
         key: 'login',
         path: `${AUTH_PREFIX_PATH}/login`,
@@ -33,6 +35,8 @@ export const publicRoutes = [
         path: `${AUTH_PREFIX_PATH}/forgot-password`,
         component: React.lazy(() => import('views/auth-views/authentication/forgot-password')),
     },
+
+    // Error Pages
     {
         key: 'error-page-1',
         path: `${AUTH_PREFIX_PATH}/error-page-1`,
@@ -45,166 +49,21 @@ export const publicRoutes = [
     },
 ]
 
+// ==================== PROTECTED ROUTES ====================
 export const protectedRoutes = [
-
-    {
-        key: 'users',
-        path: `/users`,
-        component: React.lazy(() => import('views/events/users/Users')),
-    },
-    {
-        key: 'organizers',
-        path: `/organizers`,
-        component: React.lazy(() => import('views/events/users/Organizers')),
-    },
-    {
-        key: 'role',
-        path: `/role`,
-        component: React.lazy(() => import('views/events/RolePermission/Role/index')),
-    },
-    {
-        key: 'category',
-        path: `/category`,
-        component: React.lazy(() => import('views/events/Settings/Category/Category')),
-    },
-    {
-        key: 'role',
-        path: `/role/:id/:name/permission`,
-        component: React.lazy(() => import('views/events/RolePermission/Permisson')),
-    },
-    {
-        key: 'events',
-        path: `/events`,
-        component: React.lazy(() => import('views/events/event/list')),
-    },
-    {
-        key: 'fields',
-        path: `/fields`,
-        component: React.lazy(() => import('views/events/Settings/Fields/index')),
-    },
+    
+    // ==================== DASHBOARD ====================
     {
         key: 'dashboard',
         path: `/dashboard`,
         component: React.lazy(() => import('views/events/Dashboard/index')),
     },
-        {
-        key: 'events.create',
-        path: `/events/update/:id`,
-         component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <EventStepperForm  />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'events',
-        path: `/events/ticket/:id/:name`,
-        component: React.lazy(() => import('views/events/Tickets/TicketManager/TicketComponent')),
-    },
-    {
-        key: 'box-office',
-        path: `/box-office`,
-        component: React.lazy(() => import('views/events/BoxOffice/index')),
-    },
-    {
-        key: 'wallet-agent',
-        path: `/wallet-agent`,
-        component: React.lazy(() => import('views/events/WalletAgent/index')),
-    },
-    {
-        key: 'venues',
-        path: `/venues`,
-        component: React.lazy(() => import('views/events/Venues/index')),
-    },
-    {
-        key : 'artist',
-         path: `/artist`,
-        component: React.lazy(() => import('views/events/Artist/index')),
-    },
-    {
-        key: 'events.create',
-        path: `/events/create`,
-        component: React.lazy(() => import('views/events/event/EventStepperForm')),
-    },
-    {
-        key: 'agents',
-        path: `/agents`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <BookingList {...props} />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'sponsors',
-        path: `/sponsors`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <BookingList {...props} isSponser={true} />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'pos',
-        path: `/pos`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <PosBooking {...props} isPos={true} />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'pos',
-        path: `/pos/new`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <POS {...props} isPos={true} />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'promo_codes',
-        path: `/promo-codes`,
-        component: React.lazy(() => import('views/events/PromoCodes/index')),
-    },
-    {
-        key: 'corporate',
-        path: `/corporate`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <BookingList {...props} isCorporate={true} />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'complimentary',
-        path: `/complimentary`,
-        component: React.lazy(() => import('views/events/ComplimentaryBooking')),
-    },
-    /// attendess
-    {
-        key: 'attendees',
-        path: `/attendees`,
-        component: React.lazy(() => import('views/events/event/Attendees')),
-    },
-    {
-        key: 'admin-settings',
-        path: `/settings/admin-settings`,
-        component: React.lazy(() => import('views/events/Settings/Admin_Settings/AdminSetting')),
-    },
 
-    /// payment routes
+    // ==================== USER MANAGEMENT ====================
     {
-        key: 'payment-gateways',
-        path: `/settings/payment-gateways`,
-        component: React.lazy(() => import('views/events/Settings/Payment_Gateway/PaymentGateway')),
-    },
-
-    // footer settings
-    {
-        key: 'footer-settings',
-        path: `/settings/footer`,
-        component: React.lazy(() => import('views/events/Settings/Admin_Settings/Footer_settings/FooterData')),
+        key: 'users',
+        path: `/users`,
+        component: React.lazy(() => import('views/events/users/Users')),
     },
     {
         key: 'new-user',
@@ -220,11 +79,259 @@ export const protectedRoutes = [
         path: `/users/edit/:id`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                {/* <UserForm mode="edit" /> */}
                 <ManageUser mode="edit" />
             </React.Suspense>
         ),
     },
+    {
+        key: 'organizers',
+        path: `/organizers`,
+        component: React.lazy(() => import('views/events/users/Organizers')),
+    },
+    {
+        key: 'login-history',
+        path: `/login-history`,
+        component: React.lazy(() => import('views/events/users/LoginHistory')),
+    },
+
+    // ==================== ROLE & PERMISSIONS ====================
+    {
+        key: 'role',
+        path: `/role`,
+        component: React.lazy(() => import('views/events/RolePermission/Role/index')),
+    },
+    {
+        key: 'role-permission',
+        path: `/role/:id/:name/permission`,
+        component: React.lazy(() => import('views/events/RolePermission/Permisson')),
+    },
+
+    // ==================== EVENTS MANAGEMENT ====================
+    {
+        key: 'events',
+        path: `/events`,
+        component: React.lazy(() => import('views/events/event/list')),
+    },
+    {
+        key: 'events-create',
+        path: `/events/create`,
+        component: React.lazy(() => import('views/events/event/EventStepperForm')),
+    },
+    {
+        key: 'events-update',
+        path: `/events/update/:id`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <EventStepperForm />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'events-ticket',
+        path: `/events/ticket/:id/:name`,
+        component: React.lazy(() => import('views/events/Tickets/TicketManager/TicketComponent')),
+    },
+    {
+        key: 'attendees',
+        path: `/attendees`,
+        component: React.lazy(() => import('views/events/event/Attendees')),
+    },
+
+    // ==================== BOOKINGS MANAGEMENT ====================
+    // Online Bookings
+    {
+        key: 'online-bookings',
+        path: `/bookings/online`,
+        component: React.lazy(() => import('views/events/Bookings/Online_Bookings/OnlineBookings')),
+    },
+    // Pending Bookings
+    {
+        key: 'pending-bookings',
+        path: `/bookings/pending`,
+        component: React.lazy(() => import('views/events/Bookings/Pending_Bookings/index')),
+    },
+    // Agent Bookings
+    {
+        key: 'agent-bookings',
+        path: `/bookings/agent`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} />
+            </React.Suspense>
+        ),
+    },
+    // Sponsor Bookings
+    {
+        key: 'sponsor-bookings',
+        path: `/sponsors`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} isSponser={true} />
+            </React.Suspense>
+        ),
+    },
+    // Complimentary Bookings
+    {
+        key: 'complimentary-bookings',
+        path: `/bookings/complimentary`,
+        component: React.lazy(() => import('views/events/ComplimentaryBooking')),
+    },
+    // Corporate Bookings
+    {
+        key: 'corporate-bookings',
+        path: `/corporate`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} isCorporate={true} />
+            </React.Suspense>
+        ),
+    },
+
+    // ==================== POS (Point of Sale) ====================
+    {
+        key: 'pos-bookings',
+        path: `/bookings/pos`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <PosBooking {...props} isPos={true} />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'pos-new',
+        path: `/pos/new`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <POS {...props} isPos={true} />
+            </React.Suspense>
+        ),
+    },
+
+    // ==================== SCAN & CHECK-IN ====================
+    {
+        key: 'scan-camera',
+        path: `/scan/camera`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <TicketVerification scanMode="camera" />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'scan-scanner',
+        path: `/scan/scanner`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <TicketVerification scanMode="manual" />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'scan-history',
+        path: `/scan/history`,
+        component: React.lazy(() => import('views/events/Scan/ScanHistory')),
+    },
+
+    // ==================== PROMO CODES ====================
+    {
+        key: 'promo-codes',
+        path: `/promo-codes`,
+        component: React.lazy(() => import('views/events/PromoCodes/index')),
+    },
+
+    // ==================== BOX OFFICE & WALLET ====================
+    {
+        key: 'box-office',
+        path: `/box-office`,
+        component: React.lazy(() => import('views/events/BoxOffice/index')),
+    },
+    {
+        key: 'wallet-agent',
+        path: `/wallet-agent`,
+        component: React.lazy(() => import('views/events/WalletAgent/index')),
+    },
+
+    // ==================== VENUES & ARTISTS ====================
+    {
+        key: 'venues',
+        path: `/venues`,
+        component: React.lazy(() => import('views/events/Venues/index')),
+    },
+    {
+        key: 'artist',
+        path: `/artist`,
+        component: React.lazy(() => import('views/events/Artist/index')),
+    },
+
+    // ==================== PAYMENT & TAX ====================
+    {
+        key: 'payment-log',
+        path: `/payment-log`,
+        component: React.lazy(() => import('views/events/PaymentLog/index')),
+    },
+    {
+        key: 'tax-commission',
+        path: `/tax-commision`,
+        component: React.lazy(() => import('views/events/TaxComission/index')),
+    },
+
+    // ==================== SETTINGS ====================
+    // Admin Settings
+    {
+        key: 'admin-settings',
+        path: `/settings/admin-settings`,
+        component: React.lazy(() => import('views/events/Settings/Admin_Settings/AdminSetting')),
+    },
+    // Payment Gateway Settings
+    {
+        key: 'payment-gateways',
+        path: `/settings/payment-gateways`,
+        component: React.lazy(() => import('views/events/Settings/Payment_Gateway/PaymentGateway')),
+    },
+    // Footer Settings
+    {
+        key: 'footer-settings',
+        path: `/settings/footer`,
+        component: React.lazy(() => import('views/events/Settings/Admin_Settings/Footer_settings/FooterData')),
+    },
+    // Mail Config
+    {
+        key: 'mail-config',
+        path: `/settings/mail-config`,
+        component: React.lazy(() => import('views/events/Settings/Admin_configs/MailSettings')),
+    },
+    // WhatsApp Config
+    {
+        key: 'whatsapp-config',
+        path: `/settings/whatsapp-config`,
+        component: React.lazy(() => import('views/events/Settings/Admin_configs/WhatsAppConfig')),
+    },
+    // SMS Config
+    {
+        key: 'sms-config',
+        path: `/settings/sms-config`,
+        component: React.lazy(() => import('views/events/Settings/Admin_configs/SmsSetting')),
+    },
+    // Banners
+    {
+        key: 'banners',
+        path: `/settings/banners`,
+        component: React.lazy(() => import('views/events/Settings/Banner/BannerConfig')),
+    },
+    // Category Settings
+    {
+        key: 'category',
+        path: `/category`,
+        component: React.lazy(() => import('views/events/Settings/Category/Category')),
+    },
+    // Custom Fields
+    {
+        key: 'fields',
+        path: `/fields`,
+        component: React.lazy(() => import('views/events/Settings/Fields/index')),
+    },
+
+    // ==================== AUTHENTICATION (Blank Layout) ====================
     {
         key: 'login-1',
         path: `/login-1`,
@@ -249,6 +356,8 @@ export const protectedRoutes = [
             blankLayout: true
         }
     },
+
+    // ==================== ERROR PAGES (Blank Layout) ====================
     {
         key: 'error-page-1',
         path: `/error-page-1`,
@@ -264,67 +373,5 @@ export const protectedRoutes = [
         meta: {
             blankLayout: true
         }
-    },
-   
-    // settings configs
-    {
-        key: 'settings.mail_config',
-        path: `/settings/mail-config`,
-        component: React.lazy(() => import('views/events/Settings/Admin_configs/MailSettings')),
-    },
-    {
-        key: 'settings.whats_config',
-        path: `/settings/whatsapp-config`,
-        component: React.lazy(() => import('views/events/Settings/Admin_configs/WhatsAppConfig')),
-    },
-    {
-        key: 'settings.sms_config',
-        path: `/settings/sms-config`,
-        component: React.lazy(() => import('views/events/Settings/Admin_configs/SmsSetting')),
-    },
-    {
-        key: 'settings.banners',
-        path: `/settings/banners`,
-        component: React.lazy(() => import('views/events/Settings/Banner/BannerConfig')),
-    },
-    // payment logs
-    {
-        key: 'payment-log',
-        path: `/payment-log`,
-        component: React.lazy(() => import('views/events/PaymentLog/index')),
-    },
-    // tax config
-    {
-        key: 'tax-commision',
-        path: `/tax-commision`,
-        component: React.lazy(() => import('views/events/TaxComission/index')),
-    },
-
-
-    //scan and check in
-    {
-        key: 'scan.camera',
-        path: `/scan/camera`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                {/* <UserForm mode="edit" /> */}
-                <TicketVerification scanMode="camera" />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'scan.scanner',
-        path: `/scan/scanner`,
-        component: (props) => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                {/* <UserForm mode="edit" /> */}
-                <TicketVerification scanMode="manual" />
-            </React.Suspense>
-        ),
-    },
-    {
-        key: 'scan.history',
-        path: `/scan/history`,
-        component: React.lazy(() => import('views/events/Scan/ScanHistory')),
     },
 ]

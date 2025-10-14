@@ -32,7 +32,6 @@ const Promocode = memo(() => {
     queryKey: ['promocodes', UserData?.id],
     queryFn: async () => {
       const response = await apiClient.get(`promo-list/${UserData?.id}`);
-      console.log('response', response);
       return response?.promoCodes?.reverse() || [];
     },
     staleTime: 5 * 60 * 1000,
