@@ -246,6 +246,14 @@ const salesOperationsSubmenu = [
     icon: MessageOutlined, // Represents chat or support well
     breadcrumb: false,
     submenu: []
+  },
+  {
+    key: 'customer-inquiries',
+    path: 'customer-inquiries',
+    title: 'Customer Inquiries',
+    icon: MailOutlined, // You can change this if you prefer a different icon
+    breadcrumb: false,
+    submenu: []
   }
 ];
 
