@@ -47,37 +47,37 @@ export const publicRoutes = [
 export const protectedRoutes = [
 
     {
-        key: 'apps.users',
+        key: 'users',
         path: `/users`,
         component: React.lazy(() => import('views/events/users/Users')),
     },
     {
-        key: 'apps.organizers',
+        key: 'organizers',
         path: `/organizers`,
         component: React.lazy(() => import('views/events/users/Organizers')),
     },
     {
-        key: 'apps.role',
+        key: 'role',
         path: `${APP_PREFIX_PATH}/apps/role`,
         component: React.lazy(() => import('views/events/RolePermission/Role/index')),
     },
     {
-        key: 'apps.category',
+        key: 'category',
         path: `/category`,
         component: React.lazy(() => import('views/events/Settings/Category/Category')),
     },
     {
-        key: 'apps.role',
+        key: 'role',
         path: `/role/:id/:name/permission`,
         component: React.lazy(() => import('views/events/RolePermission/Permisson')),
     },
     {
-        key: 'apps.events',
+        key: 'events',
         path: `/events`,
         component: React.lazy(() => import('views/events/event/list')),
     },
     {
-        key: 'apps.fields',
+        key: 'fields',
         path: `/fields`,
         component: React.lazy(() => import('views/events/Settings/Fields/index')),
     },
@@ -87,7 +87,7 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Dashboard/index')),
     },
         {
-        key: 'apps.events.create',
+        key: 'events.create',
         path: `/events/update/:id`,
          component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
@@ -214,13 +214,6 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
     },
-
-
-    
-
-   
-   
- 
     {
         key: 'login-1',
         path: `${APP_PREFIX_PATH}/login-1`,
