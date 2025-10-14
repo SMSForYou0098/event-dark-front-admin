@@ -10,6 +10,7 @@ import {
   Image,
   message,
   Tooltip,
+  Card,
 } from "antd";
 import {
   Settings,
@@ -54,7 +55,6 @@ const Users = () => {
 
   const canUpdate = usePermission("Update User");
   const canDelete = usePermission("Delete User");
-  const canAdd = usePermission("Add User");
   const canImpersonate = usePermission("Impersonet");
 
   // Fetch users data
@@ -506,32 +506,21 @@ const Users = () => {
         footer={null}
         width={800}
       >
-        <Row gutter={[16, 16]}>
+        <Row gutter={[16]}>
           {roles?.map(({ label, icon, key }) => (
-            <Col lg={8} md={12} sm={24} key={key}>
-              <Button
-                className="w-100 text-start p-3 d-flex gap-3 align-items-center hover-effect"
+            <Col xs={12} lg={6} md={12} key={key}>
+              <Card
+                hoverable
+                className="text-center"
                 onClick={() => handleRoleSelect(key)}
-                style={{
-                  height: "auto",
-                  minHeight: "80px",
-                  transition: "all 0.3s ease",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-3px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 10px rgba(0, 0, 0, 0.15)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
-                }}
               >
-                <div className="btn btn-sm btn-icon bg-primary-subtle text-primary rounded-circle p-2">
-                  {icon}
+                <div className="d-flex flex-column align-items-center gap-3 py-2">
+                  <div className="text-primary">
+                    {icon}
+                  </div>
+                  <span className="fw-medium fs-6">{label}</span>
                 </div>
-                <span className="fw-medium">{label}</span>
-              </Button>
+              </Card>
             </Col>
           ))}
         </Row>

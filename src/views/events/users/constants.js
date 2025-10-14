@@ -1,24 +1,24 @@
-import { BadgeDollarSign,  ScanLine, ShoppingCart, Sparkle, Store, Tickets, UsersRound } from "lucide-react";
+import { BadgeDollarSign, Phone, ScanLine, ShoppingCart, Sparkle, Store, Tickets, UsersRound } from "lucide-react";
 
 export const roles = [
-  { label: "POS", icon: <ShoppingCart size={16} />, key: "POS" },
-  { label: "Agent", icon: <UsersRound size={16} />, key: "Agent" },
-  { label: "Scanner", icon: <ScanLine size={16} />, key: "Scanner" },
+  { label: "POS", icon: <ShoppingCart size={24} />, key: "POS" },
+  { label: "Agent", icon: <UsersRound size={24} />, key: "Agent" },
+  { label: "Scanner", icon: <ScanLine size={24} />, key: "Scanner" },
   // {
   //   label: "Support Executive",
-  //   icon: <Phone size={16} />,
+  //   icon: <Phone size={24} />,
   //   key: "Support-Executive",
   // },
-  { label: "Shop Keeper", icon: <Store size={16} />, key: "Shop-Keeper" },
+  { label: "Shop Keeper", icon: <Store size={24} />, key: "Shop-Keeper" },
   {
     label: "Box Office Manager",
-    icon: <Tickets size={16} />,
+    icon: <Tickets size={24} />,
     key: "Box-Office-Manager",
   },
-  { label: "Sponsor", icon: <BadgeDollarSign size={16} />, key: "Sponsor" },
+  { label: "Sponsor", icon: <BadgeDollarSign size={24} />, key: "Sponsor" },
   {
     label: "Accreditation",
-    icon: <Sparkle size={16} />,
+    icon: <Sparkle size={24} />,
     key: "Accreditation",
   },
 ];

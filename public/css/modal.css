@@ -120,15 +120,25 @@
 
 /* Default modal */
 .ant-modal {
-  top: -50px !important;
+  top: 0px !important;
 }
 
+
+/* //for mobile  */
 @media (max-width: 768px) {
   .ant-modal {
     top: 0 !important;
   }
+
+  .ant-modal-centered .ant-modal-body {
+    max-height: 45vh;
+    /* or any value you want */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
 }
 
+/* for tab to pc and landscape screens  */
 @media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (orientation: landscape) {
   .ant-modal-body {
     max-height: 55vh;
