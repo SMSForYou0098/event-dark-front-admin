@@ -1,10 +1,11 @@
 import React from 'react'
-import { AUTH_PREFIX_PATH, APP_PREFIX_PATH } from 'configs/AppConfig'
+import { AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
 import EventStepperForm from 'views/events/event/EventStepperForm'
 import ManageUser from 'views/events/users/Manage'
 import PosBooking from 'views/events/Bookings/pos/Bookings'
 import POS from 'views/events/Bookings/pos/NewPosBooking'
+import TicketVerification from 'views/events/Scan/TicketVerification'
 
 export const publicRoutes = [
     {
@@ -58,7 +59,7 @@ export const protectedRoutes = [
     },
     {
         key: 'role',
-        path: `${APP_PREFIX_PATH}/apps/role`,
+        path: `/apps/role`,
         component: React.lazy(() => import('views/events/RolePermission/Role/index')),
     },
     {
@@ -96,38 +97,38 @@ export const protectedRoutes = [
         ),
     },
     {
-        key: 'apps.events',
-        path: `${APP_PREFIX_PATH}/apps/events/ticket/:id/:name`,
+        key: 'events',
+        path: `/events/ticket/:id/:name`,
         component: React.lazy(() => import('views/events/Tickets/TicketManager/TicketComponent')),
     },
     {
-        key: 'apps.box-office',
-        path: `${APP_PREFIX_PATH}/apps/box-office`,
+        key: 'box-office',
+        path: `/box-office`,
         component: React.lazy(() => import('views/events/BoxOffice/index')),
     },
     {
-        key: 'apps.wallet-agent',
-        path: `${APP_PREFIX_PATH}/apps/wallet-agent`,
+        key: 'wallet-agent',
+        path: `/wallet-agent`,
         component: React.lazy(() => import('views/events/WalletAgent/index')),
     },
     {
-        key: 'apps.venues',
-        path: `${APP_PREFIX_PATH}/apps/venues`,
+        key: 'venues',
+        path: `/venues`,
         component: React.lazy(() => import('views/events/Venues/index')),
     },
     {
-        key : 'apps-artist',
-         path: `${APP_PREFIX_PATH}/apps/artist`,
+        key : 'artist',
+         path: `/artist`,
         component: React.lazy(() => import('views/events/Artist/index')),
     },
     {
-        key: 'apps.events.create',
-        path: `${APP_PREFIX_PATH}/apps/events/create`,
+        key: 'events.create',
+        path: `/events/create`,
         component: React.lazy(() => import('views/events/event/EventStepperForm')),
     },
     {
-        key: 'apps.agents',
-        path: `${APP_PREFIX_PATH}/apps/agents`,
+        key: 'agents',
+        path: `/agents`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <BookingList {...props} />
@@ -135,8 +136,8 @@ export const protectedRoutes = [
         ),
     },
     {
-        key: 'apps.sponsors',
-        path: `${APP_PREFIX_PATH}/apps/sponsors`,
+        key: 'sponsors',
+        path: `/sponsors`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <BookingList {...props} isSponser={true} />
@@ -144,8 +145,8 @@ export const protectedRoutes = [
         ),
     },
     {
-        key: 'apps.pos',
-        path: `${APP_PREFIX_PATH}/apps/pos`,
+        key: 'pos',
+        path: `/pos`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <PosBooking {...props} isPos={true} />
@@ -153,8 +154,8 @@ export const protectedRoutes = [
         ),
     },
     {
-        key: 'apps.pos',
-        path: `${APP_PREFIX_PATH}/apps/pos/new`,
+        key: 'pos',
+        path: `/pos/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <POS {...props} isPos={true} />
@@ -162,8 +163,8 @@ export const protectedRoutes = [
         ),
     },
     {
-        key: 'apps.corporate',
-        path: `${APP_PREFIX_PATH}/apps/corporate`,
+        key: 'corporate',
+        path: `/corporate`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <BookingList {...props} isCorporate={true} />
@@ -172,32 +173,32 @@ export const protectedRoutes = [
     },
     /// attendess
     {
-        key: 'apps.attendees',
-        path: `${APP_PREFIX_PATH}/apps/attendees`,
+        key: 'attendees',
+        path: `/attendees`,
         component: React.lazy(() => import('views/events/event/Attendees')),
     },
     {
-        key: 'apps.admin-settings',
-        path: `${APP_PREFIX_PATH}/apps/settings/admin-settings`,
+        key: 'admin-settings',
+        path: `/settings/admin-settings`,
         component: React.lazy(() => import('views/events/Settings/Admin_Settings/AdminSetting')),
     },
 
     /// payment routes
     {
-        key: 'apps.payment-gateways',
-        path: `${APP_PREFIX_PATH}/apps/settings/payment-gateways`,
+        key: 'payment-gateways',
+        path: `/settings/payment-gateways`,
         component: React.lazy(() => import('views/events/Settings/Payment_Gateway/PaymentGateway')),
     },
 
     // footer settings
     {
-        key: 'apps.footer-settings',
-        path: `${APP_PREFIX_PATH}/apps/settings/footer`,
+        key: 'footer-settings',
+        path: `/settings/footer`,
         component: React.lazy(() => import('views/events/Settings/Admin_Settings/Footer_settings/FooterData')),
     },
     {
-        key: 'apps.new-user',
-        path: `${APP_PREFIX_PATH}/apps/users/new`,
+        key: 'new-user',
+        path: `/users/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <ManageUser mode="create" />
@@ -205,8 +206,8 @@ export const protectedRoutes = [
         ),
     },
     {
-        key: 'apps.edit-user',
-        path: `${APP_PREFIX_PATH}/apps/users/edit/:id`,
+        key: 'edit-user',
+        path: `/users/edit/:id`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 {/* <UserForm mode="edit" /> */}
@@ -216,7 +217,7 @@ export const protectedRoutes = [
     },
     {
         key: 'login-1',
-        path: `${APP_PREFIX_PATH}/login-1`,
+        path: `/login-1`,
         component: React.lazy(() => import('views/auth-views/authentication/login-1')),
         meta: {
             blankLayout: true
@@ -224,7 +225,7 @@ export const protectedRoutes = [
     },
     {
         key: 'register-1',
-        path: `${APP_PREFIX_PATH}/register-1`,
+        path: `/register-1`,
         component: React.lazy(() => import('views/auth-views/authentication/register-1')),
         meta: {
             blankLayout: true
@@ -232,7 +233,7 @@ export const protectedRoutes = [
     },
     {
         key: 'forgot-password',
-        path: `${APP_PREFIX_PATH}/forgot-password`,
+        path: `/forgot-password`,
         component: React.lazy(() => import('views/auth-views/authentication/forgot-password')),
         meta: {
             blankLayout: true
@@ -240,7 +241,7 @@ export const protectedRoutes = [
     },
     {
         key: 'error-page-1',
-        path: `${APP_PREFIX_PATH}/error-page-1`,
+        path: `/error-page-1`,
         component: React.lazy(() => import('views/auth-views/errors/error-page-1')),
         meta: {
             blankLayout: true
@@ -248,7 +249,7 @@ export const protectedRoutes = [
     },
     {
         key: 'error-page-2',
-        path: `${APP_PREFIX_PATH}/error-page-2`,
+        path: `/error-page-2`,
         component: React.lazy(() => import('views/auth-views/errors/error-page-2')),
         meta: {
             blankLayout: true
@@ -257,23 +258,63 @@ export const protectedRoutes = [
    
     // settings configs
     {
-        key: 'apps.settings.mail_config',
-        path: `${APP_PREFIX_PATH}/apps/settings/mail-config`,
+        key: 'settings.mail_config',
+        path: `/settings/mail-config`,
         component: React.lazy(() => import('views/events/Settings/Admin_configs/MailSettings')),
     },
     {
-        key: 'apps.settings.whats_config',
-        path: `${APP_PREFIX_PATH}/apps/settings/whatsapp-config`,
+        key: 'settings.whats_config',
+        path: `/settings/whatsapp-config`,
         component: React.lazy(() => import('views/events/Settings/Admin_configs/WhatsAppConfig')),
     },
     {
-        key: 'apps.settings.sms_config',
-        path: `${APP_PREFIX_PATH}/apps/settings/sms-config`,
+        key: 'settings.sms_config',
+        path: `/settings/sms-config`,
         component: React.lazy(() => import('views/events/Settings/Admin_configs/SmsSetting')),
     },
     {
-        key: 'apps.settings.banners',
-        path: `${APP_PREFIX_PATH}/apps/settings/banners`,
+        key: 'settings.banners',
+        path: `/settings/banners`,
         component: React.lazy(() => import('views/events/Settings/Banner/BannerConfig')),
+    },
+    // payment logs
+    {
+        key: 'payment-log',
+        path: `/payment-log`,
+        component: React.lazy(() => import('views/events/PaymentLog/index')),
+    },
+    // tax config
+    {
+        key: 'tax-commision',
+        path: `/tax-commision`,
+        component: React.lazy(() => import('views/events/TaxComission/index')),
+    },
+
+
+    //scan and check in
+    {
+        key: 'scan.camera',
+        path: `/scan/camera`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                {/* <UserForm mode="edit" /> */}
+                <TicketVerification scanMode="camera" />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'scan.scanner',
+        path: `/scan/scanner`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                {/* <UserForm mode="edit" /> */}
+                <TicketVerification scanMode="manual" />
+            </React.Suspense>
+        ),
+    },
+    {
+        key: 'scan.history',
+        path: `/scan/history`,
+        component: React.lazy(() => import('views/events/Scan/ScanHistory')),
     },
 ]

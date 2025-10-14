@@ -22,20 +22,24 @@ import {
   ScanOutlined,
   CameraOutlined,
   BarcodeOutlined,
-  DashboardOutlined
+  DashboardOutlined,
+  WhatsAppOutlined
 } from '@ant-design/icons';
+
 const appsNavTree = [
+  // Dashboard
   {
-        key: 'dashbaord',
-        path: `dashbaord`,
-        title: 'Dashbaord',
-        icon: DashboardOutlined,
-        breadcrumb: false,
-        submenu: []
-      },
+    key: 'dashboard', // ✅ Fixed typo
+    path: `dashboard`,
+    title: 'Dashboard', // ✅ Fixed typo
+    icon: DashboardOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+
   // User Management Group
   {
-    key: 'user-management',
+    key: 'user-management-group', // ✅ Added -group suffix
     path: `user-management`,
     title: 'User Management',
     icon: TeamOutlined,
@@ -59,7 +63,7 @@ const appsNavTree = [
         submenu: []
       },
       {
-        key: 'role',
+        key: 'roles', // ✅ Made plural for consistency
         path: `role`,
         title: 'Role Permission',
         icon: SafetyOutlined,
@@ -87,7 +91,7 @@ const appsNavTree = [
 
   // Event Management Group
   {
-    key: 'event-management',
+    key: 'event-management-group', // ✅ Added -group suffix
     path: `event-management`,
     title: 'Event Management',
     icon: CalendarOutlined,
@@ -103,7 +107,7 @@ const appsNavTree = [
         submenu: []
       },
       {
-        key: 'category',
+        key: 'categories', // ✅ Made plural for consistency
         path: `category`,
         title: 'Category',
         icon: AppstoreOutlined,
@@ -119,7 +123,7 @@ const appsNavTree = [
         submenu: []
       },
       {
-        key: 'artist',
+        key: 'artists', // ✅ Made plural for consistency
         path: `artist`,
         title: 'Artist',
         icon: CustomerServiceOutlined,
@@ -139,7 +143,7 @@ const appsNavTree = [
 
   // Sales & Operations Group
   {
-    key: 'sales-operations',
+    key: 'sales-operations-group', // ✅ Added -group suffix
     path: `sales-operations`,
     title: 'Sales & Operations',
     icon: ShoppingOutlined,
@@ -170,7 +174,7 @@ const appsNavTree = [
         breadcrumb: true,
         submenu: [
           {
-            key: 'camera-scan',
+            key: 'scan-camera',
             path: `scan/camera`,
             title: 'Scan By Camera',
             icon: CameraOutlined,
@@ -178,13 +182,21 @@ const appsNavTree = [
             submenu: []
           },
           {
-            key: 'scanner-scan',
+            key: 'scan-scanner',
             path: `scan/scanner`,
             title: 'Scan By Scanner',
             icon: BarcodeOutlined,
             breadcrumb: false,
             submenu: []
-          }
+          },
+          {
+            key: 'scan-history',
+            path: `scan/history`,
+            title: 'Scan History',
+            icon: BarcodeOutlined,
+            breadcrumb: false,
+            submenu: []
+          },
         ]
       }
     ]
@@ -192,7 +204,7 @@ const appsNavTree = [
 
   // Financial Management Group
   {
-    key: 'financial-management',
+    key: 'financial-management-group', // ✅ Added -group suffix
     path: `financial-management`,
     title: 'Financial Management',
     icon: DollarOutlined,
@@ -200,7 +212,7 @@ const appsNavTree = [
     isGroupTitle: true,
     submenu: [
       {
-        key: 'wallet-agent',
+        key: 'wallet-agents', // ✅ Made plural for consistency
         path: `wallet-agent`,
         title: 'Wallet Agent',
         icon: WalletOutlined,
@@ -208,7 +220,7 @@ const appsNavTree = [
         submenu: []
       },
       {
-        key: 'payment-log',
+        key: 'payment-logs', // ✅ Made plural for consistency
         path: `payment-log`,
         title: 'Payment Log',
         icon: DollarOutlined,
@@ -216,7 +228,7 @@ const appsNavTree = [
         submenu: []
       },
       {
-        key: 'tax-commision',
+        key: 'tax-commission', // ✅ Fixed typo: "commision" → "commission"
         path: `tax-commision`,
         title: 'Tax Commission',
         icon: PercentageOutlined,
@@ -228,7 +240,7 @@ const appsNavTree = [
 
   // Partners & Clients Group
   {
-    key: 'partners-clients',
+    key: 'partners-clients-group', // ✅ Added -group suffix
     path: `partners-clients`,
     title: 'Partners & Clients',
     icon: CrownOutlined,
@@ -236,7 +248,7 @@ const appsNavTree = [
     isGroupTitle: true,
     submenu: [
       {
-        key: 'corporate',
+        key: 'corporates', // ✅ Made plural for consistency
         path: `corporate`,
         title: 'Corporate',
         icon: CrownOutlined,
@@ -256,7 +268,7 @@ const appsNavTree = [
 
   // System Settings Group
   {
-    key: 'system-settings',
+    key: 'system-settings-group', // ✅ Added -group suffix
     path: `system-settings`,
     title: 'System Settings',
     icon: SettingOutlined,
@@ -268,10 +280,10 @@ const appsNavTree = [
         path: `settings`,
         title: 'Settings',
         icon: SettingOutlined,
-        breadcrumb: true,
+        breadcrumb: false,
         submenu: [
           {
-            key: 'settings-mail-config',
+            key: 'settings-mail',
             path: `settings/mail-config`,
             title: 'Mail Config',
             icon: MailOutlined,
@@ -279,7 +291,7 @@ const appsNavTree = [
             submenu: []
           },
           {
-            key: 'settings-sms-gateway',
+            key: 'settings-sms',
             path: `settings/sms-config`,
             title: 'SMS Gateway',
             icon: MessageOutlined,
@@ -287,10 +299,10 @@ const appsNavTree = [
             submenu: []
           },
           {
-            key: 'settings-whats-config',
+            key: 'settings-whatsapp',
             path: `settings/whatsapp-config`,
             title: 'WhatsApp Config',
-            icon: MessageOutlined,
+            icon: WhatsAppOutlined, // ✅ Better icon
             breadcrumb: false,
             submenu: []
           },
@@ -303,7 +315,7 @@ const appsNavTree = [
             submenu: []
           },
           {
-            key: 'settings-admin-settings',
+            key: 'settings-admin', // ✅ Removed redundant "settings"
             path: `settings/admin-settings`,
             title: 'Admin Settings',
             icon: SettingOutlined,
@@ -311,7 +323,7 @@ const appsNavTree = [
             submenu: []
           },
           {
-            key: 'settings-payment-gateways',
+            key: 'settings-payment', // ✅ Shorter key
             path: `settings/payment-gateways`,
             title: 'Payment Gateways',
             icon: DollarOutlined,
@@ -319,7 +331,7 @@ const appsNavTree = [
             submenu: []
           },
           {
-            key: 'settings-footer-settings',
+            key: 'settings-footer',
             path: `settings/footer`,
             title: 'Footer Settings',
             icon: SettingOutlined,
@@ -332,8 +344,6 @@ const appsNavTree = [
   }
 ];
 
-const navigationConfig = [
-  ...appsNavTree,
-]
+const navigationConfig = [...appsNavTree];
 
 export default navigationConfig;

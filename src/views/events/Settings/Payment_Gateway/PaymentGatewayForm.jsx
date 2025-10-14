@@ -91,7 +91,7 @@ const PaymentGatewayForm = ({
             {gatewayType} Configuration
           </Title>
           <Badge
-            status={status ? 'success' : 'default'}
+            status={status ? 'success' : 'error'}
             text={status ? 'Enabled' : 'Disabled'}
           />
         </Space>
