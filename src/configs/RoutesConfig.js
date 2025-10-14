@@ -48,12 +48,12 @@ export const protectedRoutes = [
 
     {
         key: 'apps.users',
-        path: `${APP_PREFIX_PATH}/apps/users`,
+        path: `/users`,
         component: React.lazy(() => import('views/events/users/Users')),
     },
     {
         key: 'apps.organizers',
-        path: `${APP_PREFIX_PATH}/apps/organizers`,
+        path: `/organizers`,
         component: React.lazy(() => import('views/events/users/Organizers')),
     },
     {
@@ -63,27 +63,32 @@ export const protectedRoutes = [
     },
     {
         key: 'apps.category',
-        path: `${APP_PREFIX_PATH}/apps/category`,
+        path: `/category`,
         component: React.lazy(() => import('views/events/Settings/Category/Category')),
     },
     {
         key: 'apps.role',
-        path: `${APP_PREFIX_PATH}/apps/role/:id/:name/permission`,
+        path: `/role/:id/:name/permission`,
         component: React.lazy(() => import('views/events/RolePermission/Permisson')),
     },
     {
         key: 'apps.events',
-        path: `${APP_PREFIX_PATH}/apps/events`,
+        path: `/events`,
         component: React.lazy(() => import('views/events/event/list')),
     },
     {
         key: 'apps.fields',
-        path: `${APP_PREFIX_PATH}/apps/fields`,
+        path: `/fields`,
         component: React.lazy(() => import('views/events/Settings/Fields/index')),
+    },
+    {
+        key: 'dashboard',
+        path: `/dashboard`,
+        component: React.lazy(() => import('views/events/Dashboard/index')),
     },
         {
         key: 'apps.events.create',
-        path: `${APP_PREFIX_PATH}/apps/events/update/:id`,
+        path: `/events/update/:id`,
          component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <EventStepperForm  />
