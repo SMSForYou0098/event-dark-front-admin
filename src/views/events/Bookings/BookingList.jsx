@@ -1,150 +1,126 @@
 import React, { memo, Fragment, useState, useCallback, useMemo } from "react";
-import axios from "axios";
 import DataTable from "../common/DataTable";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
 import { Button, Tag, Space, Tooltip, Dropdown, Switch, message } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
-import { useMutation, useQuery } from '@tanstack/react-query';
-import PermissionChecker from "layouts/PermissionChecker";
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
+import api from 'auth/FetchInterceptor';
 
-const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorporate = false }) => {
-    const { api, UserData, formatDateTime, sendTickets, authToken, truncateString, isMobile, UserPermissions, ErrorAlert } = useMyContext();
+const BookingList = memo(({ type = 'agent' }) => {
+    const { UserData, formatDateTime, sendTickets, truncateString, isMobile, UserPermissions } = useMyContext();
 
     const [dateRange, setDateRange] = useState(null);
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
 
-    // Export route
-    const exportRoute = isSponser
-        ? 'export-sponsorBooking'
-        : isAccreditation
-            ? 'export-accreditationBooking'
-            : isCorporate
-                ? 'export-corporateBooking'
-                : 'export-agentBooking';
+    // Configuration based on type
+    const config = useMemo(() => {
+        const configs = {
+            agent: {
+                title: 'Agent Bookings',
+                apiUrl: `agents/list/${UserData?.id}`,
+                exportRoute: 'export-agentBooking',
+                exportPermission: 'Export Agent Bookings',
+                deleteEndpoint: (data) => data.is_deleted 
+                    ? `agent-restore-booking/${data?.token || data?.order_id}`
+                    : `agent-delete-booking/${data?.token || data?.order_id}`,
+            },
+            sponsor: {
+                title: 'Sponsor Bookings',
+                apiUrl: `sponsor/list/${UserData?.id}`,
+                exportRoute: 'export-sponsorBooking',
+                exportPermission: 'Export Sponsor Bookings',
+                deleteEndpoint: (data) => data.is_deleted
+                    ? `sponsor-restore-booking/${data?.token || data?.order_id}`
+                    : `sponsor-delete-booking/${data?.token || data?.order_id}`,
+            },
+            accreditation: {
+                title: 'Accreditation Bookings',
+                apiUrl: `accreditation/list/${UserData?.id}`,
+                exportRoute: 'export-accreditationBooking',
+                exportPermission: 'Export Accreditation Bookings',
+                deleteEndpoint: (data) => data.is_deleted
+                    ? `accreditation-restore-booking/${data?.token || data?.order_id}`
+                    : `accreditation-delete-booking/${data?.token || data?.order_id}`,
+            },
+            corporate: {
+                title: 'Corporate Bookings',
+                apiUrl: `corporate-bookings/${UserData?.id}`,
+                exportRoute: 'export-corporateBooking',
+                exportPermission: 'Export Corporate Bookings',
+                deleteEndpoint: (data) => data.is_deleted
+                    ? `restore-corporate-booking/${data?.id || data?.order_id}`
+                    : `delete-corporate-booking/${data?.id || data?.order_id}`,
+            },
+        };
 
-    // API URL
-    const getUrl = useCallback(() => {
-        if (isSponser) {
-            return `${api}sponsor/list/${UserData?.id}`;
-        } else if (isAccreditation) {
-            return `${api}accreditation/list/${UserData?.id}`;
-        } else if (isCorporate) {
-            return `${api}corporate-bookings/${UserData?.id}`;
-        } else {
-            return `${api}agents/list/${UserData?.id}`;
-        }
-    }, [api, UserData, isSponser, isAccreditation, isCorporate]);
+        return configs[type] || configs.agent;
+    }, [type, UserData?.id]);
 
     // TanStack Query for bookings
-    const fetchBookings = async () => {
-        let queryParams = '';
-        if (dateRange && dateRange.startDate && dateRange.endDate) {
-            queryParams = `?date=${dateRange.startDate},${dateRange.endDate}`;
-        }
-        const url = getUrl() + queryParams;
-        const res = await axios.get(url, {
-            headers: {
-                'Authorization': 'Bearer ' + authToken,
-            }
-        });
-        if (!res.data.status) throw new Error(res.data?.message || 'Failed to fetch bookings');
-        return res.data.bookings;
-    };
-
     const {
         data: bookings = [],
         isLoading,
         error,
         refetch,
     } = useQuery({
-        queryKey: ['agentBookings', { isSponser, isAccreditation, isCorporate, dateRange, userId: UserData?.id }],
-        queryFn: fetchBookings,
-        enabled: !!authToken && !!UserData?.id,
+        queryKey: ['bookings', type, dateRange, UserData?.id],
+        queryFn: async () => {
+            let queryParams = '';
+            if (dateRange && dateRange.startDate && dateRange.endDate) {
+                queryParams = `?date=${dateRange.startDate},${dateRange.endDate}`;
+            }
+            const url = `${config.apiUrl}${queryParams}`;
+            
+            const response = await api.get(url);
+
+            if (response.status && response.bookings) {
+                return response.bookings;
+            } else {
+                throw new Error(response?.message || 'Failed to fetch bookings');
+            }
+        },
+        enabled: !!UserData?.id,
         staleTime: 5 * 60 * 1000,
-        cacheTime: 30 * 60 * 1000,
-        onError: (err) => ErrorAlert(err.message),
+        refetchOnWindowFocus: false,
     });
 
-
-    // Delete/Restore booking logic
-    const toggleBookingStatus = async ({ id, data, api, authToken, isAccreditation, isSponser, isCorporate }) => {
-        let endpoint;
-
-        if (isAccreditation) {
-            endpoint = data.is_deleted
-                ? `${api}accreditation-restore-booking/${data?.token || data?.order_id}`
-                : `${api}accreditation-delete-booking/${data?.token || data?.order_id}`;
-        } else if (isSponser) {
-            endpoint = data.is_deleted
-                ? `${api}sponsor-restore-booking/${data?.token || data?.order_id}`
-                : `${api}sponsor-delete-booking/${data?.token || data?.order_id}`;
-        } else if (isCorporate) {
-            endpoint = data.is_deleted
-                ? `${api}restore-corporate-booking/${data?.id || data?.order_id}`
-                : `${api}delete-corporate-booking/${data?.id || data?.order_id}`;
-        } else {
-            endpoint = data.is_deleted
-                ? `${api}agent-restore-booking/${data?.token || data?.order_id}`
-                : `${api}agent-delete-booking/${data?.token || data?.order_id}`;
-        }
-
-        const request = data.is_deleted ? axios.get : axios.delete;
-
-        const response = await request(endpoint, {
-            headers: { Authorization: "Bearer " + authToken }
-        });
-
-        if (!response.data.status) {
-            throw new Error(response.data.message || 'Failed to update booking');
-        }
-
-        return response.data;
-    };
-
-    // Create the mutation
+    // Toggle booking status mutation
     const toggleBookingMutation = useMutation({
-        mutationFn: toggleBookingStatus,
+        mutationFn: async ({ id, data }) => {
+            const endpoint = config.deleteEndpoint(data);
+            const request = data.is_deleted ? api.get : api.delete;
+
+            const response = await request(endpoint);
+
+            if (!response.status) {
+                throw new Error(response.message || 'Failed to update booking');
+            }
+
+            return response;
+        },
         onSuccess: (data, variables) => {
-            refetch(); // Refetch bookings list
-            message.success({
-                content: variables.data.is_deleted
+            queryClient.invalidateQueries(['bookings', type]);
+            message.success(
+                variables.data.is_deleted
                     ? 'Ticket enabled successfully!'
-                    : 'Ticket disabled successfully!',
-                duration: 3,
-            });
+                    : 'Ticket disabled successfully!'
+            );
         },
         onError: (error) => {
-            message.error({
-                content: error.response?.data?.message || error.message || 'Failed to update booking',
-                duration: 3,
-            });
+            message.error(error.message || 'Failed to update booking');
         },
     });
-    // Updated DeleteBooking function
+
+    // Delete/Restore booking
     const DeleteBooking = useCallback((id) => {
         const data = bookings?.find((item) => item?.id === id);
         if (!data) return;
 
-        toggleBookingMutation.mutate({
-            id,
-            data,
-            api,
-            authToken,
-            isAccreditation,
-            isSponser,
-            isCorporate,
-        });
-    }, [
-        bookings,
-        api,
-        authToken,
-        isAccreditation,
-        isSponser,
-        isCorporate,
-        toggleBookingMutation,
-    ]);
+        toggleBookingMutation.mutate({ id, data });
+    }, [bookings, toggleBookingMutation]);
 
     // Format data for table
     const formatBookingData = (bookings) => {
@@ -161,8 +137,8 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             dataIndex: 'id',
             key: 'id',
             align: 'center',
+            width: 60,
             render: (_, __, index) => index + 1,
-            searchable: false,
         },
         {
             title: 'Event',
@@ -195,7 +171,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         },
         {
             title: 'Ticket',
-            dataIndex: 'ticket.name',
+            dataIndex: ['ticket', 'name'],
             key: 'ticket_name',
             align: 'center',
             searchable: true,
@@ -205,14 +181,14 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             dataIndex: 'quantity',
             key: 'quantity',
             align: 'center',
-            searchable: false,
+            width: 80,
         },
         {
             title: 'Disc',
             dataIndex: 'discount',
             key: 'discount',
             align: 'center',
-            searchable: false,
+            width: 100,
             render: (cell) => <span className="text-danger">₹{cell}</span>,
         },
         {
@@ -221,13 +197,14 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             key: 'payment_method',
             align: 'center',
             searchable: true,
+            width: 120,
         },
         {
             title: 'Amt',
             dataIndex: 'amount',
             key: 'amount',
             align: 'center',
-            searchable: false,
+            width: 120,
             render: (cell) => `₹${cell}`,
         },
         {
@@ -235,7 +212,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             dataIndex: 'status',
             key: 'status',
             align: 'center',
-            searchable: false,
+            width: 100,
             render: (cell) => (
                 <Tag color={cell === "0" ? "orange" : "green"}>
                     {cell === "0" ? "Uncheck" : "Checked"}
@@ -247,7 +224,6 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             dataIndex: 'is_deleted',
             key: 'ticket_status',
             align: 'center',
-            searchable: false,
             width: 120,
             render: (isDeleted, record) => (
                 <Switch
@@ -265,7 +241,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             key: 'actions',
             align: 'center',
             fixed: 'right',
-            searchable: false,
+            width: isMobile ? 70 : 120,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
 
@@ -276,6 +252,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                         icon: <Ticket size={14} />,
                         onClick: () => {
                             // TODO: Add your generate logic here
+                            message.info('Generate ticket functionality coming soon');
                         },
                         disabled: isDisabled,
                     },
@@ -309,14 +286,12 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                     );
                 }
 
-                // For desktop, show buttons
                 return (
                     <Space size="small">
-                        {actions.map((action, index) => (
-                            <Tooltip key={index} title={action.label}>
+                        {actions.map((action) => (
+                            <Tooltip key={action.key} title={action.label}>
                                 <Button
                                     type={action.type}
-                                    danger={action.key === 'toggle' && !record?.is_deleted}
                                     icon={action.icon}
                                     onClick={action.onClick}
                                     disabled={action.disabled}
@@ -328,69 +303,58 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                 );
             },
         },
-
         {
             title: 'Purchase Date',
             dataIndex: 'created_at',
             key: 'created_at',
             align: 'center',
-            searchable: false,
+            width: 160,
             render: (date) => formatDateTime(date),
+            sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
         },
     ], [
         truncateString,
-        toggleBookingMutation,
+        toggleBookingMutation.isPending,
         formatDateTime,
         sendTickets,
         isMobile,
         DeleteBooking,
     ]);
 
-    const handleDateRangeChange = (dates) => {
+    const handleDateRangeChange = useCallback((dates) => {
         setDateRange(dates ? {
             startDate: dates[0].format('YYYY-MM-DD'),
             endDate: dates[1].format('YYYY-MM-DD')
         } : null);
-    };
-
-    const exportPermission = isAccreditation
-        ? 'Export Accreditation Bookings'
-        : isSponser
-            ? 'Export Sponsor Bookings'
-            : isCorporate
-                ? 'Export Corporate Bookings'
-                : 'Export Agent Bookings';
+    }, []);
 
     return (
         <Fragment>
             <DataTable
-                title={`${isAccreditation ? 'Accreditation' : isSponser ? "Sponsor" : isCorporate ? 'Corporate' : "Agent"} Bookings`}
+                title={config.title}
                 data={formatBookingData(bookings)}
                 columns={columns}
                 showDateRange={true}
                 showRefresh={true}
                 showTotal={true}
-                showAddButton={true}
                 extraHeaderContent={
-                    // <PermissionChecker permission="New Booking">
-                        <Tooltip title={"Add Booking"}>
-                            <Button
-                                type="primary"
-                                icon={<PlusIcon size={16} />}
-                                onClick={navigate('new')}
-                            />
-                        </Tooltip>
-                    // </PermissionChecker>
+                    <Tooltip title="Add Booking">
+                        <Button
+                            type="primary"
+                            icon={<PlusIcon size={16} />}
+                            onClick={() => navigate(`new`)}
+                        />
+                    </Tooltip>
                 }
                 dateRange={dateRange}
                 onDateRangeChange={handleDateRangeChange}
-                loading={isLoading}
+                loading={isLoading || toggleBookingMutation.isPending}
                 error={error}
                 enableExport={true}
-                exportRoute={exportRoute}
-                ExportPermission={UserPermissions?.includes(exportPermission)}
-                authToken={authToken}
+                exportRoute={config.exportRoute}
+                ExportPermission={UserPermissions?.includes(config.exportPermission)}
                 onRefresh={refetch}
+                emptyText={`No ${type} bookings found`}
                 tableProps={{
                     scroll: { x: 1500 },
                     size: isMobile ? "small" : "middle",

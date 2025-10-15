@@ -6,6 +6,7 @@ import ManageUser from 'views/events/users/Manage'
 import PosBooking from 'views/events/Bookings/pos/Bookings'
 import POS from 'views/events/Bookings/pos/NewPosBooking'
 import TicketVerification from 'views/events/Scan/TicketVerification'
+import NewBooking from 'views/events/Bookings/NewBooking'
 
 // ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
@@ -156,7 +157,7 @@ export const protectedRoutes = [
         path: `/bookings/agent`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <BookingList {...props} />
+                <BookingList {...props} type="agent" />
             </React.Suspense>
         ),
     },
@@ -166,7 +167,7 @@ export const protectedRoutes = [
         path: `/sponsors`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <BookingList {...props} isSponser={true} />
+                <BookingList {...props} type="sponsor" />
             </React.Suspense>
         ),
     },
@@ -182,7 +183,17 @@ export const protectedRoutes = [
         path: `/corporate`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <BookingList {...props} isCorporate={true} />
+                <BookingList {...props} type="corporate" />
+            </React.Suspense>
+        ),
+    },
+    // Accreditation Bookings
+    {
+        key: 'accreditation-bookings',
+        path: `/bookings/accreditation`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} type="accreditation" />
             </React.Suspense>
         ),
     },
@@ -199,7 +210,7 @@ export const protectedRoutes = [
     },
     {
         key: 'pos-new',
-        path: `/pos/new`,
+        path: `/bookings/pos/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <POS {...props} isPos={true} />
@@ -397,5 +408,15 @@ export const protectedRoutes = [
         meta: {
             blankLayout: true
         }
+    },
+        // ==================== New Booking Page ====================
+    {
+        key: 'new-booking',
+        path: `/bookings/agent/new`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <NewBooking {...props} type="agent" />
+            </React.Suspense>
+        ),
     },
 ]
