@@ -326,3 +326,25 @@ input:-internal-autofill-previewed {
 .ant-steps-item-icon .ant-steps-icon {
     color: var(--text-white) !important;
 } */
+
+
+.ant-collapse .ant-collapse-content{
+    background: transparent !important;
+}
+.ant-collapse.ant-collapse-icon-position-start.mb-4.css-dev-only-do-not-override-1u1move{
+  border: 1px solid var(--bg-secondary);
+  padding: 1rem !important;
+}
+.ant-collapse>.ant-collapse-item{
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 1px solid var(--bg-secondary);
+}
+.ant-collapse .ant-collapse-content {
+    padding-top: 0.3rem;
+     border-top: 1px solid var(--bg-secondary);
+}
+:where(.css-dev-only-do-not-override-1u1move).ant-btn-dashed{
+    background-color: transparent !important;
+    color: white;
+}

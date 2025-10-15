@@ -419,4 +419,10 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
     },
+        // ==================== Agreement ====================
+    {
+        key: 'new-booking',
+        path: `/agreements/partner`,
+        component: React.lazy(() => import('views/events/Agreement/AgreementCreator')),
+    },
 ]

@@ -13,6 +13,34 @@
 @import url('./jodit.css');
 
 
+.gap-1 {
+  margin-right: 8px;
+  margin-left: 8px;
+}
+
+.gap-2 {
+  margin-right: 16px;
+  margin-left: 16px;
+}
+
+.gap-3 {
+  margin-right: 24px;
+  margin-left: 24px;
+}
+
+.gap-4 {
+  margin-right: 32px;
+  margin-left: 32px;
+}
+
+.gap-5 {
+  margin-right: 40px;
+  margin-left: 40px;
+}
+
+.css-9jut26-Footer {
+  border-top: 1px solid var(--border-secondary) !important;
+}
 .counter input {
   font-size: large !important;
   text-align: center !important;
@@ -482,4 +510,21 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
   backdrop-filter: blur(15px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(15px) saturate(180%) !important;
   transition: box-shadow 0.3s, background 0.3s;
+}
+
+
+/* Add margin between each card inside the carousel */
+.custom-carousel .carousel-slide {
+  padding: 0 12px; /* Horizontal gap between cards */
+}
+
+/* Add space between cards and the dots (bottom spacing) */
+.custom-carousel .slick-dots {
+  margin-top: 24px;
+}
+
+/* Optional: adjust overall padding */
+.custom-carousel .slick-slide {
+  display: flex;
+  justify-content: center;
 }

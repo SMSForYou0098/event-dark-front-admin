@@ -2391,11 +2391,11 @@ button.bg-dark:hover {
 }
 
 .border {
-    border: 1px solid #4d5b75 !important
+    border: 1px solid var(--border-secondary) !important
 }
 
 .border-top {
-    border-top: 1px solid #4d5b75 !important
+    border-top: 1px solid var(--border-secondary) !important
 }
 
 .border-bottom {

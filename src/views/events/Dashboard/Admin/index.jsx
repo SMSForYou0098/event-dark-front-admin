@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { Card, Row, Col, Statistic, Table, Typography, Tag, Skeleton, Alert, Divider, Select } from 'antd';
-import { UserOutlined, TeamOutlined, ShoppingOutlined, DollarOutlined, ShopOutlined, IdcardOutlined, TrophyOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, LineChartOutlined, WalletOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Statistic, Table, Typography, Tag, Skeleton, Alert, Divider, Switch, Carousel } from 'antd';
+import { UserOutlined, TeamOutlined, ShoppingOutlined, ShopOutlined, IdcardOutlined, TrophyOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, LineChartOutlined, WalletOutlined, SyncOutlined, ClockCircleOutlined, } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';
-import { useEffect } from 'react';
 import ChartWidget from 'components/ChartWidget';
-import { COLORS } from 'constants/ChartConstant';
+import DataCard from './DataCard';
+import { useMyContext } from 'Context/MyContextProvider';
 
 const { Title, Text } = Typography;
 
@@ -20,6 +20,8 @@ const queryClient = new QueryClient({
 });
 
 const DashboardContent = ({ UserData }) => {
+    const { isMobile } = useMyContext()
+    const [showToday, setShowToday] = useState(true);
     // Fetch functions
     const fetchBookingData = async () => {
         try {
@@ -50,15 +52,6 @@ const DashboardContent = ({ UserData }) => {
         queryFn: fetchSalesData,
         enabled: !!UserData?.id, // Only run query if UserData.id exists
     });
-
-    useEffect(() => {
-        if (bookingData) {
-            console.log(bookingData)
-        }
-        if (salesData) {
-            console.log(salesData)
-        }
-    }, [salesData, bookingData])
 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
@@ -120,33 +113,54 @@ const DashboardContent = ({ UserData }) => {
         );
     }
 
+    const eventStats = [
+        {
+            title: 'Ongoing',
+            value: 123 || 0,
+            icon: <SyncOutlined />,
+            color: '#1890ff',
+        },
+        {
+            title: 'Upcoming',
+            value: 452 || 0,
+            icon: <ClockCircleOutlined />,
+            color: '#52c41a',
+        },
+        {
+            title: 'Successful',
+            value: 899 || 0,
+            icon: <CheckCircleOutlined />,
+            color: '#fa8c16',
+        }
+    ];
+
     const bookingStats = [
         {
             title: 'Online Bookings',
             value: bookingData.onlineBookings || 0,
             icon: <ShoppingOutlined />,
-            // color: '#1890ff',
+            color: '#1890ff',
             // suffix: 'bookings'
         },
         {
             title: 'Online Tickets',
             value: bookingData.onlineBookingsTicket || 0,
             icon: <LineChartOutlined />,
-            // color: '#52c41a',
+            color: '#52c41a',
             // suffix: 'tickets'
         },
         {
             title: 'Offline Bookings',
             value: bookingData.offlineBookings || 0,
             icon: <ShopOutlined />,
-            // color: '#722ed1',
+            color: '#722ed1',
             // suffix: 'bookings'
         },
         {
             title: 'Offline Tickets',
             value: bookingData.offlineBookingsTicket || 0,
             icon: <LineChartOutlined />,
-            // color: '#fa8c16',
+            color: '#fa8c16',
             // suffix: 'tickets'
         }
     ];
@@ -156,55 +170,50 @@ const DashboardContent = ({ UserData }) => {
             title: 'Total Users',
             value: bookingData.userCount || 0,
             icon: <UserOutlined />,
-            // color: '#1890ff'
+            color: '#1890ff'
         },
         {
             title: 'Agents',
             value: bookingData.agentCount || 0,
             icon: <IdcardOutlined />,
-            // color: '#52c41a'
+            color: '#52c41a'
         },
         {
             title: 'Sponsors',
             value: bookingData.sponsorCount || 0,
             icon: <TrophyOutlined />,
-            // color: '#faad14'
+            color: '#faad14'
         },
         {
             title: 'POS',
             value: bookingData.posCount || 0,
             icon: <ShopOutlined />,
-            // color: '#722ed1'
+            color: '#722ed1'
         },
         {
             title: 'Organizers',
             value: bookingData.organizerCount || 0,
             icon: <TeamOutlined />,
-            // color: '#eb2f96'
+            color: '#eb2f96'
         },
         {
             title: 'Scanners',
             value: bookingData.scannerCount || 0,
             icon: <ScanOutlined />,
-            // color: '#13c2c2'
+            color: '#13c2c2'
         }
     ];
 
     const revenueStats = [
-        {
-            title: 'POS Amount',
-            value: salesData.posAmount || 0,
-            color: '#1890ff'
-        },
         {
             title: 'Online Amount',
             value: salesData.onlineAmount || 0,
             color: '#52c41a'
         },
         {
-            title: 'Offline Amount',
-            value: salesData.offlineAmount || 0,
-            color: '#722ed1'
+            title: 'POS Amount',
+            value: salesData.posAmount || 0,
+            color: '#1890ff'
         },
         {
             title: 'Agent Booking',
@@ -215,14 +224,21 @@ const DashboardContent = ({ UserData }) => {
             title: 'Sponsor Booking',
             value: salesData.sponsorBooking || 0,
             color: '#eb2f96'
-        }
+        },
+        {
+            title: 'Total Offline Amount',
+            value: salesData.offlineAmount || 0,
+            color: '#722ed1'
+        },
     ];
 
-    const gatewayData = salesData.activeGateways
-        ? Object.entries(salesData.activeGateways).map(([key, value]) => ({
+    const gatewayData = salesData.pgData
+        ? Object.entries(salesData.pgData).map(([key, value]) => ({
+            key, // optional key
             gateway: key.charAt(0).toUpperCase() + key.slice(1),
-            status: value,
-            amount: salesData[`${key}TotalAmount`] || 0
+            active: value.active,
+            today_total: value.today_total,
+            all_total: value.all_total,
         }))
         : [];
 
@@ -231,28 +247,35 @@ const DashboardContent = ({ UserData }) => {
             title: 'Payment Gateway',
             dataIndex: 'gateway',
             key: 'gateway',
-            render: (text) => <Text strong>{text}</Text>
+            render: (text) => <Text strong>{text}</Text>,
         },
         {
             title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            render: (status) => (
+            dataIndex: 'active',
+            key: 'active',
+            render: (active) => (
                 <Tag
-                    icon={status ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
-                    color={status ? 'success' : 'error'}
+                    icon={active ? <CheckCircleOutlined /> : <CloseCircleOutlined />}
+                    color={active ? 'success' : 'error'}
                 >
-                    {status ? 'Active' : 'Inactive'}
+                    {active ? 'Active' : 'Inactive'}
                 </Tag>
-            )
+            ),
         },
         {
-            title: 'Amount',
-            dataIndex: 'amount',
-            key: 'amount',
-            render: (amount) => formatCurrency(amount)
-        }
+            title: 'Today Collection',
+            dataIndex: 'today_total',
+            key: 'today_total',
+            render: (amount) => formatCurrency(amount),
+        },
+        {
+            title: 'Overall Collection',
+            dataIndex: 'all_total',
+            key: 'all_total',
+            render: (amount) => formatCurrency(amount),
+        },
     ];
+
 
     const discountData = [
         { type: 'Online Discount', amount: salesData.onlineDiscount || 0 },
@@ -280,6 +303,7 @@ const DashboardContent = ({ UserData }) => {
         return result;
     };
 
+    // graph data format 
     const bookingStatsData = {
         series: [
             {
@@ -307,77 +331,107 @@ const DashboardContent = ({ UserData }) => {
         categories: getLast7DaysWeekdays()
     }
 
+    const StatSection = ({ title, stats, colConfig, extraHeader, containerCol = { xs: 24, md: 24 } }) => {
+        const renderCard = (stat, index) => <DataCard data={stat} key={`card-${index}`} />;
+
+        const renderContent = () => {
+            if (isMobile) {
+                return (
+                    <Col span={24}>
+                        <Carousel dots swipeToSlide draggable>
+                            {stats.map((stat, index) => (
+                                <div key={`carousel-${index}`} style={{ padding: '0 8px' }}>
+                                    {renderCard(stat, index)}
+                                </div>
+                            ))}
+                        </Carousel>
+                    </Col>
+                );
+            }
+
+            return stats.map((stat, index) => (
+                <Col {...colConfig} key={`col-${index}`}>
+                    {renderCard(stat, index)}
+                </Col>
+            ));
+        };
+
+        return (
+            <Col {...containerCol}>
+                <Row gutter={[16, 16]}>
+                    <Col span={24}>
+                        <Title level={4} className={extraHeader ? 'd-flex justify-content-between mb-3' : 'mt-0 mb-3'}>
+                            {title}
+                            {extraHeader}
+                        </Title>
+                    </Col>
+                    <Col span={24}>
+                        <Row gutter={[16, 16]}>
+                            {renderContent()}
+                        </Row>
+                    </Col>
+                </Row>
+            </Col>
+        );
+    };
     return (
         <div className="container-fluid p-4 bg-light min-vh-100">
             {/* Booking Statistics */}
-            <Title level={4} className="mt-0 mb-3">
-                Booking Statistics
-            </Title>
-            <Row gutter={[16, 16]} className="mb-4">
-                {bookingStats.map((stat, index) => (
-                    <Col xs={24} sm={12} lg={6} key={index}>
-                        <Card bordered={false} className="border-start border-4">
-                            <Statistic
-                                title={stat.title}
-                                value={stat.value}
-                                prefix={stat.icon}
-                                suffix={stat.suffix}
-                                valueStyle={{ color: stat.color, fontSize: '24px' }}
-                            />
-                        </Card>
-                    </Col>
-                ))}
+            <Row gutter={[24, 24]}>
+
+                {/* Revenue Section */}
+                <StatSection
+                    title="Revenue Overview"
+                    stats={revenueStats}
+                    colConfig={{ xs: 24, sm: 12, md: 8, lg: 6, xl: 4, style: { flex: '1 1 20%', maxWidth: isMobile ? '100%' : '20%' } }}
+                    extraHeader={
+                        <Switch
+                            checked={showToday}
+                            onChange={(checked) => setShowToday(checked)}
+                            checkedChildren="Today"
+                            unCheckedChildren="Overall"
+                        />
+                    }
+                />
+
+                {/* Booking Statistics Section */}
+                <StatSection
+                    title="Booking Statistics"
+                    stats={bookingStats}
+                    colConfig={{ xs: 24, sm: 12, lg: 6 }}
+                    containerCol={{ xs: 24, md: 12 }}
+                />
+
+                {/* Event Info Section */}
+                <StatSection
+                    title="Events Info"
+                    stats={eventStats}
+                    colConfig={{ xs: 24, sm: 12, lg: 8 }}
+                    containerCol={{ xs: 24, md: 12 }}
+                />
+
+                {/* User Management Section */}
+                <StatSection
+                    title="User Management"
+                    stats={userStats}
+                    colConfig={{ xs: 24, sm: 12, lg: 4 }}
+                />
+
             </Row>
 
             <Divider />
-
-            {/* User Management Statistics */}
-            <Title level={4} className="mb-3">
-                User Management
-            </Title>
-            <Row gutter={[16, 16]} className="mb-4">
-                {userStats.map((stat, index) => (
-                    <Col xs={12} sm={8} lg={4} key={index}>
-                        <Card bordered={false} hoverable>
-                            <Statistic
-                                title={stat.title}
-                                value={stat.value}
-                                prefix={stat.icon}
-                                valueStyle={{ color: stat.color }}
-                            />
-                        </Card>
-                    </Col>
-                ))}
-            </Row>
-
-            <Divider />
-
-            {/* Revenue Statistics */}
-            <Title level={4} className="mb-3">
-                Revenue Overview
-            </Title>
-            <Row gutter={[16, 16]} className="mb-4">
-                {revenueStats.map((stat, index) => (
-                    <Col xs={24} sm={12} lg={8} xl={Math.floor(24 / revenueStats.length)} key={index}>
-                        <Card bordered={false} className="border-top border-3">
-                            <Statistic
-                                title={stat.title}
-                                value={stat.value}
-                                prefix={<WalletOutlined />}
-                                valueStyle={{ color: stat.color, fontWeight: 'bold' }}
-                                formatter={(value) => formatCurrency(value)}
-                            />
-                        </Card>
-                    </Col>
-                ))}
-            </Row>
-
-            <Divider />
-
             {/* Payment Gateways & Discounts */}
-            <Row gutter={[16, 16]} className="mb-4">
+            <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
-                    <Card title="Payment Gateways" bordered={false} className="h-100">
+                    <ChartWidget
+                        title="Weekly Bookings"
+                        series={bookingStatsData?.series}
+                        xAxis={bookingStatsData.categories}
+                        height={'400px'}
+                    />
+                </Col>
+                <Col xs={24} lg={12}>
+                    <Card bordered={false}>
                         <Table
                             dataSource={gatewayData}
                             columns={gatewayColumns}
@@ -388,13 +442,28 @@ const DashboardContent = ({ UserData }) => {
                     </Card>
                 </Col>
 
+            </Row>
+
+            <Divider />
+
+            {/* Sales Data Summary */}
+            <Row gutter={[16, 16]}>
+
                 <Col xs={24} lg={12}>
-                    <Card title="Discounts & CNC" bordered={false} className="h-100">
-                        <div className="mb-4">
+                    <ChartWidget
+                        title="Weekly Convenience Fee"
+                        series={concvStatsData?.series}
+                        xAxis={concvStatsData.categories}
+                        height={'400px'}
+                    />
+                </Col>
+                <Col xs={24} lg={12}>
+                    <Card title="Discounts & CNC" bordered={false}>
+                        <div>
                             <Text strong className="fs-6">Discounts</Text>
                             <div className="mt-2">
                                 {discountData.map((item, index) => (
-                                    <div key={index} className="d-flex justify-content-between mb-2">
+                                    <div key={index} className="d-flex justify-content-between">
                                         <Text>{item.type}</Text>
                                         <Text strong>{formatCurrency(item.amount)}</Text>
                                     </div>
@@ -406,7 +475,7 @@ const DashboardContent = ({ UserData }) => {
                             <Text strong className="fs-6">Convenience Charges</Text>
                             <div className="mt-2">
                                 {cncData.map((item, index) => (
-                                    <div key={index} className="d-flex justify-content-between mb-2">
+                                    <div key={index} className="d-flex justify-content-between">
                                         <Text>{item.type}</Text>
                                         <Text strong>{formatCurrency(item.amount)}</Text>
                                     </div>
@@ -414,28 +483,6 @@ const DashboardContent = ({ UserData }) => {
                             </div>
                         </div>
                     </Card>
-                </Col>
-            </Row>
-
-            <Divider />
-
-            {/* Sales Data Summary */}
-            <Row gutter={[16, 16]}>
-                <Col xs={24} lg={12}>
-                    <ChartWidget
-                        title="Weekly Bookings"
-                        series={bookingStatsData?.series}
-                        xAxis={bookingStatsData.categories}
-                        height={'400px'}
-                    />
-                </Col>
-                <Col xs={24} lg={12}>
-                    <ChartWidget
-                        title="Weekly Convenience Fee"
-                        series={concvStatsData?.series}
-                        xAxis={concvStatsData.categories}
-                        height={'400px'}
-                    />
                 </Col>
             </Row>
         </div>
