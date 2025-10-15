@@ -1,8 +1,6 @@
 // hooks/useEventOptions.js
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
-import axios from 'axios';
-
 export const useOrganizers = () =>
   useQuery({
     queryKey: ['organizers'],
