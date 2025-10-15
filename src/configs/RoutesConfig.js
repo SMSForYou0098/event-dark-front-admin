@@ -251,6 +251,13 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/WalletAgent/index')),
     },
 
+    // ==================== SUPPORT AND CUSTOMER INQUIERIES ====================
+    {
+        key:'contact-us-applications',
+        path: `/customer-inquiries`,
+        component: React.lazy(() => import('views/events/Support/ContactUsApplications')),
+    },
+
     // ==================== VENUES & ARTISTS ====================
     {
         key: 'venues',
@@ -355,6 +362,23 @@ export const protectedRoutes = [
         meta: {
             blankLayout: true
         }
+    },
+
+    // ==================== Reports ====================
+    {
+        key: 'event-reports',
+        path: `/reports/event`,
+        component: React.lazy(() => import('views/events/Reports/EventsReport')),
+    },
+    {
+        key: 'pos-reports',
+        path: `/reports/pos`,
+        component: React.lazy(() => import('views/events/Reports/PosReport')),
+    },
+    {
+        key: 'agent-reports',
+        path: `/reports/agent`,
+        component: React.lazy(() => import('views/events/Reports/AgentReport')),
     },
 
     // ==================== ERROR PAGES (Blank Layout) ====================
