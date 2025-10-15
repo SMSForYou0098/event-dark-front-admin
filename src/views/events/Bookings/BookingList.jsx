@@ -1,56 +1,32 @@
-import React, { memo, Fragment, useRef, useState, useCallback, useMemo } from "react";
+import React, { memo, Fragment, useState, useCallback, useMemo } from "react";
 import axios from "axios";
-import Swal from "sweetalert2";
 import DataTable from "../common/DataTable";
-import { Send, Ticket, CheckCircle, XCircle, Printer, PlusIcon } from 'lucide-react';
-import { Button, Tag, Image, Space, Tooltip, Dropdown, Switch, message } from 'antd';
+import { Send, Ticket, PlusIcon } from 'lucide-react';
+import { Button, Tag, Space, Tooltip, Dropdown, Switch, message } from 'antd';
 import { MoreOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import PermissionChecker from "layouts/PermissionChecker";
+import { useNavigate } from "react-router-dom";
 
-const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorporate = false, isPos = false }) => {
-    const {
-        api,
-        UserData,
-        formatDateTime,
-        sendTickets,
-        authToken,
-        truncateString,
-        isMobile,
-        userRole,
-        UserPermissions,
-        ErrorAlert
-    } = useMyContext();
+const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorporate = false }) => {
+    const { api, UserData, formatDateTime, sendTickets, authToken, truncateString, isMobile, UserPermissions, ErrorAlert } = useMyContext();
 
-    // State declarations
-    const [stickerData, setStickerData] = useState({});
-    const [openStickerModal, setOpenStickerModal] = useState(false);
-    const [printInvoiceData, setPrintInvoiceData] = useState({});
-    const [showPrintModel, setShowPrintModel] = useState(false);
     const [dateRange, setDateRange] = useState(null);
-    const [ticketData, setTicketData] = useState([]);
-    const [ticketType, setTicketType] = useState();
-    const [show, setShow] = useState(false);
-    const ticketRefs = useRef([]);
-    const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
     // Export route
-    const exportRoute = isPos
-        ? 'export-posBooking'
-        : isSponser
-            ? 'export-sponsorBooking'
-            : isAccreditation
-                ? 'export-accreditationBooking'
-                : isCorporate
-                    ? 'export-corporateBooking'
-                    : 'export-agentBooking';
+    const exportRoute = isSponser
+        ? 'export-sponsorBooking'
+        : isAccreditation
+            ? 'export-accreditationBooking'
+            : isCorporate
+                ? 'export-corporateBooking'
+                : 'export-agentBooking';
 
     // API URL
     const getUrl = useCallback(() => {
-        if (isPos) {
-            return `${api}pos-bookings/${UserData?.id}`;
-        } else if (isSponser) {
+        if (isSponser) {
             return `${api}sponsor/list/${UserData?.id}`;
         } else if (isAccreditation) {
             return `${api}accreditation/list/${UserData?.id}`;
@@ -59,7 +35,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         } else {
             return `${api}agents/list/${UserData?.id}`;
         }
-    }, [api, UserData, isPos, isSponser, isAccreditation, isCorporate]);
+    }, [api, UserData, isSponser, isAccreditation, isCorporate]);
 
     // TanStack Query for bookings
     const fetchBookings = async () => {
@@ -83,7 +59,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         error,
         refetch,
     } = useQuery({
-        queryKey: ['agentBookings', { isPos, isSponser, isAccreditation, isCorporate, dateRange, userId: UserData?.id }],
+        queryKey: ['agentBookings', { isSponser, isAccreditation, isCorporate, dateRange, userId: UserData?.id }],
         queryFn: fetchBookings,
         enabled: !!authToken && !!UserData?.id,
         staleTime: 5 * 60 * 1000,
@@ -91,37 +67,12 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         onError: (err) => ErrorAlert(err.message),
     });
 
-    // Print modal logic
-    const handlePrintReceipt = (data) => {
-        setPrintInvoiceData({
-            event: data?.ticket?.event,
-            bookingData: {
-                token: data?.token,
-                created_at: data?.created_at,
-                quantity: data?.quantity,
-                payment_method: data?.payment_method,
-                ticket: {
-                    name: data?.ticket?.name,
-                    price: data?.ticket?.price
-                },
-            },
-            grandTotal: data?.amount,
-            discount: data?.discount || 0,
-            totalTax: data?.totalTax || 0,
-            subtotal: data?.subtotal || 0,
-        });
-        setShowPrintModel(true);
-    };
 
     // Delete/Restore booking logic
-    const toggleBookingStatus = async ({ id, data, api, authToken, isPos, isAccreditation, isSponser, isCorporate }) => {
+    const toggleBookingStatus = async ({ id, data, api, authToken, isAccreditation, isSponser, isCorporate }) => {
         let endpoint;
 
-        if (isPos) {
-            endpoint = data.is_deleted
-                ? `${api}restore-pos-booking/${id}`
-                : `${api}delete-pos-booking/${id}`;
-        } else if (isAccreditation) {
+        if (isAccreditation) {
             endpoint = data.is_deleted
                 ? `${api}accreditation-restore-booking/${data?.token || data?.order_id}`
                 : `${api}accreditation-delete-booking/${data?.token || data?.order_id}`;
@@ -181,7 +132,6 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             data,
             api,
             authToken,
-            isPos,
             isAccreditation,
             isSponser,
             isCorporate,
@@ -190,7 +140,6 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         bookings,
         api,
         authToken,
-        isPos,
         isAccreditation,
         isSponser,
         isCorporate,
@@ -217,14 +166,12 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         },
         {
             title: 'Event',
-            dataIndex: isPos ? 'ticket.event.name' : 'event_name',
+            dataIndex: 'event_name',
             key: 'event_name',
             align: 'center',
             searchable: true,
             render: (_, record) => {
-                const eventName = isPos
-                    ? record?.ticket?.event?.name
-                    : record?.bookings?.[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
+                const eventName = record?.bookings?.[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
                 return (
                     <Tooltip title={eventName}>
                         <span>{truncateString(eventName)}</span>
@@ -232,18 +179,16 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                 );
             },
         },
-        ...(userRole !== 'POS' && !isPos
-            ? [{
-                title: 'User',
-                dataIndex: 'user_name',
-                key: 'user_name',
-                align: 'center',
-                searchable: true,
-            }]
-            : []),
+        {
+            title: 'User',
+            dataIndex: 'user_name',
+            key: 'user_name',
+            align: 'center',
+            searchable: true,
+        },
         {
             title: 'Organizer',
-            dataIndex: isPos ? 'reporting_user_name' : 'agent_name',
+            dataIndex: 'agent_name',
             key: 'organizer',
             align: 'center',
             searchable: true,
@@ -319,54 +264,43 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             title: 'Actions',
             key: 'actions',
             align: 'center',
-            fixed : 'right',
+            fixed: 'right',
             searchable: false,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
+
                 const actions = [
                     {
-                        key: 'print',
-                        label: 'Print Ticket',
-                        icon: <Printer size={14} />,
-                        onClick: () => handlePrintReceipt(record),
-                        disabled: isDisabled,
-                    },
-                    // {
-                    //     key: 'toggle',
-                    //     label: record?.is_deleted ? 'Enable Ticket' : 'Disable Ticket',
-                    //     icon: record?.is_deleted ? <CheckCircle size={14} /> : <XCircle size={14} />,
-                    //     onClick: () => DeleteBooking(record.id),
-                    //     disabled: false,
-                    // }
-                ];
-                if (!isPos) {
-                    actions.unshift({
-                        key: 'resend',
-                        label: 'Resend Ticket',
-                        type : 'primary',
-                        icon: <Send size={14} />,
-                        onClick: () => sendTickets(record, "old", true, "Online Booking"),
-                        disabled: isDisabled,
-                    });
-                    actions.unshift({
                         key: 'generate',
                         label: 'Generate Ticket',
                         icon: <Ticket size={14} />,
-                        onClick: () => { }, // Add your generate logic here
+                        onClick: () => {
+                            // TODO: Add your generate logic here
+                        },
                         disabled: isDisabled,
-                    });
-                }
-                // For mobile, use dropdown
+                    },
+                    {
+                        key: 'resend',
+                        label: 'Resend Ticket',
+                        type: 'primary',
+                        icon: <Send size={14} />,
+                        onClick: () => sendTickets(record, "old", true, "Online Booking"),
+                        disabled: isDisabled,
+                    },
+                ];
+
                 if (isMobile) {
                     return (
                         <Dropdown
                             menu={{
-                                items: actions.filter(action => !action.disabled).map(action => ({
-                                    key: action.key,
-                                    label: action.label,
-                                    icon: action.icon,
-                                    onClick: action.onClick,
-                                }))
+                                items: actions
+                                    .filter(action => !action.disabled)
+                                    .map(action => ({
+                                        key: action.key,
+                                        label: action.label,
+                                        icon: action.icon,
+                                        onClick: action.onClick,
+                                    })),
                             }}
                             trigger={['click']}
                         >
@@ -374,13 +308,14 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                         </Dropdown>
                     );
                 }
+
                 // For desktop, show buttons
                 return (
                     <Space size="small">
                         {actions.map((action, index) => (
                             <Tooltip key={index} title={action.label}>
                                 <Button
-                                    type={action.type} 
+                                    type={action.type}
                                     danger={action.key === 'toggle' && !record?.is_deleted}
                                     icon={action.icon}
                                     onClick={action.onClick}
@@ -393,6 +328,7 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                 );
             },
         },
+
         {
             title: 'Purchase Date',
             dataIndex: 'created_at',
@@ -402,11 +338,8 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
             render: (date) => formatDateTime(date),
         },
     ], [
-        isPos,
-        userRole,
         truncateString,
         toggleBookingMutation,
-        handlePrintReceipt,
         formatDateTime,
         sendTickets,
         isMobile,
@@ -420,20 +353,18 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
         } : null);
     };
 
-    const exportPermission = isPos
-        ? 'Export POS Bookings'
-        : isAccreditation
-            ? 'Export Accreditation Bookings'
-            : isSponser
-                ? 'Export Sponsor Bookings'
-                : isCorporate
-                    ? 'Export Corporate Bookings'
-                    : 'Export Agent Bookings';
+    const exportPermission = isAccreditation
+        ? 'Export Accreditation Bookings'
+        : isSponser
+            ? 'Export Sponsor Bookings'
+            : isCorporate
+                ? 'Export Corporate Bookings'
+                : 'Export Agent Bookings';
 
     return (
         <Fragment>
             <DataTable
-                title={`${isPos ? 'POS' : isAccreditation ? 'Accreditation' : isSponser ? "Sponsor" : isCorporate ? 'Corporate' : "Agent"} Bookings`}
+                title={`${isAccreditation ? 'Accreditation' : isSponser ? "Sponsor" : isCorporate ? 'Corporate' : "Agent"} Bookings`}
                 data={formatBookingData(bookings)}
                 columns={columns}
                 showDateRange={true}
@@ -441,15 +372,15 @@ const BookingList = memo(({ isSponser = false, isAccreditation = false, isCorpor
                 showTotal={true}
                 showAddButton={true}
                 extraHeaderContent={
-                    <PermissionChecker permission="New Booking">
+                    // <PermissionChecker permission="New Booking">
                         <Tooltip title={"Add Booking"}>
                             <Button
                                 type="primary"
                                 icon={<PlusIcon size={16} />}
-                            // onClick={handleBookings}
+                                onClick={navigate('new')}
                             />
                         </Tooltip>
-                    </PermissionChecker>
+                    // </PermissionChecker>
                 }
                 dateRange={dateRange}
                 onDateRangeChange={handleDateRangeChange}

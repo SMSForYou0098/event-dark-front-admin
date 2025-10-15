@@ -1,0 +1,355 @@
+/* Jodit Editor Dark Theme - Matching Panel Design */
+
+/* Main Editor Container */
+.jodit-container {
+  background-color: #1a1a1a !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  border-radius: 15px !important;
+  overflow: hidden !important;
+}
+
+/* Toolbar */
+.jodit-toolbar {
+  background-color: #0f0f0f !important;
+  border-bottom: 1px solid var(--border-secondary, #2d2d2d) !important;
+  padding: 8px !important;
+  border-radius: 0 !important;
+}
+
+.jodit-toolbar__box {
+  background-color: transparent !important;
+  border: none !important;
+}
+
+
+
+/* Toolbar Buttons */
+.jodit-toolbar__box:not(:empty) .jodit-toolbar-editor-collection:after,
+.jodit-toolbar__box:not(:empty) .jodit-toolbar-editor-collection:before{
+    background-color : var(--border-secondary) !important;
+}
+.jodit-ui-group_separated_true:not(:last-child):not(.jodit-ui-group_before-spacer_true):after
+{
+    border-right : 1px solid var(--border-secondary) !important;
+}
+.jodit-toolbar-button__button[aria-pressed=true]:not([disabled]),
+.jodit-toolbar-button__button:hover:not([disabled]),
+.jodit-toolbar-button__trigger:hover:not([disabled])
+{
+    background-color: var(--primary-color) !important;
+     color: #ffffff !important;
+     .jodit-toolbar-button__icon .jodit-icon_bold jodit-icon{
+         color: #ffffff !important;
+     }
+}
+.jodit-toolbar-button .jodit-icon,
+.jodit-toolbar-button__trigger {
+  stroke: white !important;
+  fill: white !important;
+}
+.jodit-toolbar-button,
+.jodit-ui-button {
+  background-color: transparent !important;
+  color: #ffffff !important;
+  border: 1px solid transparent !important;
+  border-radius: 4px !important;
+}
+
+.jodit-toolbar-button,.jodit-tabs .jodit-tabs__buttons {
+  background-color: #0f0f0f !important;
+  color: #ffffff !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  border-radius: 4px !important;
+}
+
+.jodit-toolbar-button[aria-pressed="true"]{
+  background-color: var(--primary-color) !important;
+  color: #ffffff !important;
+}
+
+.jodit-toolbar-button[aria-pressed="true"] .jodit-toolbar-button__text {
+  color: #ffffff !important;
+}
+
+.jodit-toolbar-button .jodit-toolbar-button__text , .jodit-ui-button[aria-pressed=true]:not([disabled]) .jodit-ui-button__text  {
+  color: #ffffff !important;
+  background-color: #0f0f0f !important;
+}
+
+/* Editor Workplace (Content Area) */
+.jodit-workplace,
+.jodit-wysiwyg {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border: none !important;
+}
+
+.jodit-wysiwyg {
+  padding: 15px !important;
+  border: none !important;
+  outline: none !important;
+}
+
+/* Status Bar */
+.jodit-status-bar {
+  background-color: #0f0f0f !important;
+  border-top: 1px solid var(--border-secondary) !important;
+  color: #888888 !important;
+  padding: 5px 10px !important;
+  border-radius: 0 !important;
+}
+
+.jodit-status-bar__item {
+  color: #888888 !important;
+}
+
+/* Dropdowns */
+.jodit-popup,
+.jodit-popup__content {
+  background-color: #1a1a1a !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 6px !important;
+}
+
+.jodit-popup__content {
+  color: #ffffff !important;
+}
+
+/* Dropdown Items */
+.jodit-ui-list__item,
+.jodit-toolbar-collection__item {
+  color: #ffffff !important;
+  background-color: transparent !important;
+  border-radius: 4px !important;
+}
+
+.jodit-ui-list__item:hover,
+.jodit-toolbar-collection__item:hover {
+  background-color: #2d2d2d !important;
+}
+
+.jodit-ui-list__item_active,
+.jodit-toolbar-collection__item_active {
+  background-color: var(--primary-color, #dc3545) !important;
+  color: #ffffff !important;
+}
+
+/* Color Picker */
+.jodit-color-picker {
+  background-color: #1a1a1a !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  border-radius: 6px !important;
+}
+
+.jodit-color-picker__native {
+  background-color: #0f0f0f !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  border-radius: 4px !important;
+}
+
+/* Input Fields */
+.jodit-ui-input,
+.jodit-input {
+  background-color: #0f0f0f !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  color: #ffffff !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+}
+
+.jodit-ui-input:focus,
+.jodit-input:focus {
+  border-color: var(--primary-color, #dc3545) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* Placeholder Text */
+.jodit-placeholder {
+  color: #666666 !important;
+}
+
+/* Selection/Highlighted Text */
+.jodit-wysiwyg ::selection {
+  background-color: var(--primary-color, #dc3545) !important;
+  color: #ffffff !important;
+}
+
+/* Scrollbar */
+.jodit-workplace::-webkit-scrollbar,
+.jodit-wysiwyg::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.jodit-workplace::-webkit-scrollbar-track,
+.jodit-wysiwyg::-webkit-scrollbar-track {
+  background-color: #0f0f0f !important;
+}
+
+.jodit-workplace::-webkit-scrollbar-thumb,
+.jodit-wysiwyg::-webkit-scrollbar-thumb {
+  background-color: #2d2d2d !important;
+  border-radius: 4px !important;
+}
+
+.jodit-workplace::-webkit-scrollbar-thumb:hover,
+.jodit-wysiwyg::-webkit-scrollbar-thumb:hover {
+  background-color: #3d3d3d !important;
+}
+
+/* Separator Lines */
+.jodit-toolbar-button__separator,
+.jodit-ui-separator {
+  background-color: var(--border-secondary, #2d2d2d) !important;
+}
+
+/* Tabs */
+.jodit-ui-tabs__button {
+  background-color: transparent !important;
+  color: #888888 !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 4px 4px 0 0 !important;
+}
+
+.jodit-ui-tabs__button:hover {
+  color: #ffffff !important;
+}
+
+.jodit-ui-tabs__button_active {
+  color: #ffffff !important;
+  border-bottom-color: var(--primary-color, #dc3545) !important;
+}
+
+/* Modal/Dialog */
+.jodit-dialog {
+  background-color: #1a1a1a !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.jodit-dialog__header {
+  background-color: #0f0f0f !important;
+  border-bottom: 1px solid var(--border-secondary, #2d2d2d) !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+}
+
+.jodit-dialog__content {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+}
+
+.jodit-dialog__footer {
+  background-color: #0f0f0f !important;
+  border-top: 1px solid var(--border-secondary, #2d2d2d) !important;
+  border-radius: 0 !important;
+}
+
+/* Buttons in Dialog */
+.jodit-ui-button_primary {
+  background-color: var(--primary-color, #dc3545) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 4px !important;
+}
+
+.jodit-ui-button_primary:hover {
+  background-color: #c82333 !important;
+}
+
+.jodit-ui-button_secondary {
+  background-color: #2d2d2d !important;
+  color: #ffffff !important;
+  border: 1px solid var(--border-secondary, #3d3d3d) !important;
+  border-radius: 4px !important;
+}
+
+.jodit-ui-button_secondary:hover {
+  background-color: #3d3d3d !important;
+}
+
+/* Table Editor */
+.jodit-table-resizer {
+  border-color: var(--primary-color, #dc3545) !important;
+}
+
+/* Source Code Mode */
+.jodit-source {
+  background-color: #0f0f0f !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-family: 'Courier New', monospace !important;
+}
+
+/* Tooltip */
+.jodit-tooltip {
+  background-color: #0f0f0f !important;
+  color: #ffffff !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 4px !important;
+}
+
+/* Link Preview */
+.jodit-link-preview {
+  background-color: #1a1a1a !important;
+  border: 1px solid var(--border-secondary, #2d2d2d) !important;
+  color: #ffffff !important;
+  border-radius: 4px !important;
+}
+
+/* Powered By Text */
+.jodit-status-bar a {
+  color: var(--primary-color, #dc3545) !important;
+}
+
+.jodit-status-bar a:hover {
+  color: #ff6b7a !important;
+}
+
+/* Disabled State */
+.jodit-toolbar-button_disabled,
+.jodit-ui-button_disabled {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+/* Focus State */
+.jodit-container:focus-within {
+  border-color: var(--primary-color, #dc3545) !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* Remove any white borders from iframe or content area */
+.jodit-wysiwyg,
+.jodit-wysiwyg * {
+  border-color: var(--border-secondary, #2d2d2d) !important;
+}
+
+/* Remove white outline from any focused element */
+.jodit-container *:focus {
+  outline: none !important;
+}
+
+/* Fix for any remaining white borders */
+.jodit-container *,
+.jodit-popup *,
+.jodit-dialog * {
+  border-color: var(--border-secondary, #2d2d2d) !important;
+}
+
+/* Ensure toolbar groups don't have white borders */
+.jodit-toolbar-button__group {
+  border: none !important;
+}
+
+/* Fix for dropdown borders */
+.jodit-ui-group {
+  border-color: var(--border-secondary, #2d2d2d) !important;
+  border-radius: 4px !important;
+}
