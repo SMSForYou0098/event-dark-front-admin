@@ -25,7 +25,7 @@ const SelectedAttendees = ({ attendees = [], onRemove, onEdit, categoryFields = 
             key={index}
             size="small"
             hoverable
-            style={{ backgroundColor: '#fafafa' }}
+        
           >
             <Row gutter={[8, 8]} align="middle">
               <Col flex="none">

@@ -93,11 +93,6 @@ const AttendeeSuggestion = ({
                 return (
                   <Card
                     size="small"
-                    style={{
-                      marginBottom: 12,
-                      border: isSelected ? '2px solid #52c41a' : '1px solid #d9d9d9',
-                      backgroundColor: isSelected ? '#f6ffed' : 'transparent',
-                    }}
                     hoverable={!isSelected}
                   >
                     <List.Item
