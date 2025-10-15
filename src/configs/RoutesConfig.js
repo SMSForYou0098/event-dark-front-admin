@@ -6,7 +6,7 @@ import ManageUser from 'views/events/users/Manage'
 import PosBooking from 'views/events/Bookings/pos/Bookings'
 import POS from 'views/events/Bookings/pos/NewPosBooking'
 import TicketVerification from 'views/events/Scan/TicketVerification'
-import NewBooking from 'views/events/Bookings/NewBooking'
+import NewBooking from 'views/events/Bookings/agent/NewAgentBooking'
 
 // ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
