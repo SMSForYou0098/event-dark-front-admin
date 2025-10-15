@@ -25,7 +25,7 @@ const AgentReports = memo(() => {
 
       const response = await api.get(url);
 
-      if (response.status && response.data) {
+      if (response.data) {
         return response.data;
       } else {
         throw new Error(response?.message || 'Failed to fetch agent reports');

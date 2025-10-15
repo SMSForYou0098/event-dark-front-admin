@@ -81,8 +81,8 @@ const EventStepperForm = () => {
 
     // Load event details for current step only
     const stepName = STEP_NAMES[current];
-    const { data: detail, isLoading: loadingDetail, isError: detailError } = useEventDetail(
-        id, 
+    const { data: detail, isLoading: loadingDetail, isError: detailError, refetch: refetchDetail } = useEventDetail(
+        id,
         stepName,
         { enabled: isEdit }
     );
@@ -133,8 +133,8 @@ const EventStepperForm = () => {
                 start_time: detail?.start_time,
                 end_time: detail?.end_time,
                 event_type: detail?.event_type,
-                map_code: detail?.map_code || undefined,
-                address: detail?.address || undefined,
+                // map_code: detail?.map_code || undefined,
+                // address: detail?.address || undefined,
             });
 
             if (detail?.date_range) {
@@ -223,7 +223,7 @@ const EventStepperForm = () => {
         onSuccess: (res) => {
             message.success(res?.message || 'Event created successfully!');
             const eventId = res?.event?.event_key || res?.data?.event_key || res?.event_key;
-
+            refetchDetail();
             if (eventId) {
                 setTimeout(() => {
                     navigate(`/app/apps/events/update/${eventId}`, { state: { step: 1 } });
@@ -241,6 +241,7 @@ const EventStepperForm = () => {
     const { mutateAsync: updateEvent, isPending: updating } = useUpdateEvent({
         onSuccess: (res) => {
             message.success(res?.message || 'Event updated successfully!');
+            refetchDetail();
         },
         onError: (error) => {
             message.error(error?.message || 'Failed to update event');
@@ -294,7 +295,7 @@ const EventStepperForm = () => {
             { title: 'Artist', content: <ArtistStep artistList={detail?.artists_list} form={form} />, icon: <EnvironmentOutlined /> },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
             { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
-            { title: 'Publish', content: <PublishStep eventData={detail}  formData={getFormData()} />, icon: <CheckCircleOutlined /> },
+            { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
         [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
     );
@@ -339,29 +340,29 @@ const EventStepperForm = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }, []);
 
-const handleSaveDraft = useCallback(async () => {
-  try {
-    // Get all current form values
-    const draftValues = getFormData();
+    const handleSaveDraft = useCallback(async () => {
+        try {
+            // Get all current form values
+            const draftValues = getFormData();
 
-    // Force status to 0 for drafts
-    const body = buildEventFormData({
-      ...draftValues,
-      status: 0,
-      step: stepName,
-    });
+            // Force status to 0 for drafts
+            const body = buildEventFormData({
+                ...draftValues,
+                status: 0,
+                step: stepName,
+            });
 
-    if (id) {
-      await updateEvent({ id, body });
-      message.success('Draft saved successfully!');
-    } else {
-      message.error('Cannot save draft: Event ID missing.');
-    }
-  } catch (error) {
-    console.error('Save draft error:', error);
-    message.error('Failed to save draft. Please check your form.');
-  }
-}, [getFormData, id, updateEvent]);
+            if (id) {
+                await updateEvent({ id, body });
+                message.success('Draft saved successfully!');
+            } else {
+                message.error('Cannot save draft: Event ID missing.');
+            }
+        } catch (error) {
+            console.error('Save draft error:', error);
+            message.error('Failed to save draft. Please check your form.');
+        }
+    }, [getFormData, id, updateEvent]);
 
 
     const handleSubmit = async () => {
@@ -442,12 +443,12 @@ const handleSaveDraft = useCallback(async () => {
                         }}
                     >
                         {
-                            isEdit &&  
-                        <Tooltip title="Save current progress">
-                            <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
-                                Save Draft
-                            </Button>
-                        </Tooltip>
+                            isEdit &&
+                            <Tooltip title="Save current progress">
+                                <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
+                                    Save Draft
+                                </Button>
+                            </Tooltip>
                         }
 
                         <div style={{ display: 'flex', gap: 8 }}>
@@ -457,7 +458,7 @@ const handleSaveDraft = useCallback(async () => {
                                 </Button>
                             )}
 
-                            {current < steps.length - 2 && (
+                            {current < steps.length - 1 && (
                                 <Button
                                     type="primary"
                                     onClick={next}

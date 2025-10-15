@@ -230,7 +230,7 @@ const ContactUsApplications = () => {
   return (
     <>
       <DataTable
-        title="Contact Us Applications"
+        title="Customer Inquiries"
         data={applications}
         columns={columns}
         showDateRange={true}

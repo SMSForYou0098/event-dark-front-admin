@@ -109,7 +109,6 @@ export const useCreateEvent = (options = {}) =>
 // buildEventFormData.js
 export function buildEventFormData(values) {
   const fd = new FormData();
-
   const appendIfDefined = (k, v) => {
     if (v === undefined || v === null) return;
     fd.append(k, String(v));
@@ -122,7 +121,7 @@ export function buildEventFormData(values) {
     fd.append(key, f.originFileObj, f.name || 'file');
   };
 
-  // --- GALLERY HELPERS (only these are new/kept) ---
+  // --- GALLERY HELPERS ---
   const appendExistingGalleryUrls = (fileList) => {
     if (!Array.isArray(fileList)) return;
     fileList.forEach((f) => {
@@ -142,74 +141,88 @@ export function buildEventFormData(values) {
   };
 
   // ---------- BASIC ----------
-  appendIfDefined('user_id', values.org_id);
-  appendIfDefined('category', values.category);
-  appendIfDefined('name', values.name);
-  appendIfDefined('venue_id', values.venue_id);
-  appendIfDefined('description', values.description);
+  if (values.step === 'basic') {
+    appendIfDefined('user_id', values.org_id);
+    appendIfDefined('category', values.category);
+    appendIfDefined('name', values.name);
+    appendIfDefined('venue_id', values.venue_id);
+    appendIfDefined('description', values.description);
+  }
 
-  // ---------- CONTROLS (unchanged except booking key if you want) ----------
-  appendIfDefined('scan_detail', values.scan_detail);
-  appendIfDefined('event_feature', values.event_feature ?? 0);
-  appendIfDefined('status', values.status ?? 1); // safer default to match BE
-  appendIfDefined('house_full', values.house_full ?? 0);
-  appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
-  appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
-  appendIfDefined('multi_scan', values.multi_scan ?? 0);
-  appendIfDefined('ticket_system', values.ticket_system ?? 0);
-  // if backend expects snake_case, prefer this line:
-  appendIfDefined('booking_by_seat', values.bookingBySeat ?? 0);
-
-  appendIfDefined('insta_whts_url', values.insta_whts_url);
-  appendIfDefined('whts_note', values.whts_note);
-  appendIfDefined('ticket_terms', values.ticket_terms);
+  // ---------- CONTROLS ----------
+  if (values.step === 'controls') {
+    appendIfDefined('scan_detail', values.scan_detail);
+    appendIfDefined('event_feature', values.event_feature ?? 0);
+    appendIfDefined('status', values.status ?? 1);
+    appendIfDefined('house_full', values.house_full ?? 0);
+    appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
+    appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
+    appendIfDefined('insta_whts_url', values.insta_whts_url);
+    appendIfDefined('whts_note', values.whts_note);
+  }
 
   // ---------- TIMING ----------
-  appendIfDefined('date_range', values.date_range);
-  appendIfDefined('entry_time', values.entry_time);
-  appendIfDefined('start_time', values.start_time);
-  appendIfDefined('end_time', values.end_time);
-  appendIfDefined('event_type', values.event_type);
-
-  // ---------- Artist ----------
-  appendIfDefined('artist_id', values.artist_id);
-  appendIfDefined('step', values.step || ''); // <-- add this
-
-
-  // ---------- SEO (ignored by current BE, but harmless) ----------
-  appendIfDefined('meta_title', values.meta_title);
-  appendIfDefined('meta_description', values.meta_description);
-  appendIfDefined('meta_tag', values.meta_tag);
-  appendIfDefined('meta_keyword', values.meta_keyword);
-  appendIfDefined('seo_type', 'event');
-  
+  if (values.step === 'timing') {
+    appendIfDefined('date_range', values.date_range);
+    appendIfDefined('entry_time', values.entry_time);
+    appendIfDefined('start_time', values.start_time);
+    appendIfDefined('end_time', values.end_time);
+    appendIfDefined('event_type', values.event_type);
+  }
 
   // ---------- TICKETS ----------
-  if (Array.isArray(values.tickets)) {
-    fd.append('tickets', JSON.stringify(values.tickets));
+  if (values.step === 'tickets') {
+    if (Array.isArray(values.tickets)) {
+      fd.append('tickets', JSON.stringify(values.tickets));
+    }
+    appendIfDefined('ticket_terms', values.ticket_terms);
+    appendIfDefined('multi_scan', values.multi_scan ?? 0);
+    appendIfDefined('ticket_system', values.ticket_system ?? 0);
   }
 
-  // ---------- FILES ----------
-  if (Array.isArray(values.thumbnail)) appendSingleUpload('thumbnail', values.thumbnail);
-  if (Array.isArray(values.insta_thumbnail)) appendSingleUpload('insta_thumbnail', values.insta_thumbnail);
-  if (Array.isArray(values.layout_image)) appendSingleUpload('layout_image', values.layout_image);
-
-  // ---------- GALLERY (this is the only real change you asked for) ----------
-  if (Array.isArray(values.images)) {
-    // 1) keep URLs that still exist in the list (no originFileObj)
-    appendExistingGalleryUrls(values.images);
-    // 2) add newly picked files as a PHP array: images[]
-    appendGalleryUploadsAsArray(values.images);
+  // ---------- ARTIST ----------
+  if (values.step === 'artist') {
+    appendIfDefined('artist_id', values.artist_id);
   }
 
-  // URLs removed by the user (MediaStep pushes into remove_images)
-  if (Array.isArray(values.remove_images)) {
-    values.remove_images.forEach((url) => fd.append('remove_images[]', url));
+  // ---------- MEDIA ----------
+  if (values.step === 'media') {
+    if (Array.isArray(values.thumbnail)) appendSingleUpload('thumbnail', values.thumbnail);
+    if (Array.isArray(values.insta_thumbnail)) appendSingleUpload('insta_thumbnail', values.insta_thumbnail);
+    if (Array.isArray(values.layout_image)) appendSingleUpload('layout_image', values.layout_image);
+
+    // Gallery images
+    if (Array.isArray(values.images)) {
+      appendExistingGalleryUrls(values.images);
+      appendGalleryUploadsAsArray(values.images);
+    }
+
+    // Removed images
+    if (Array.isArray(values.remove_images)) {
+      values.remove_images.forEach((url) => fd.append('remove_images[]', url));
+    }
+
+    // Media URLs
+    appendIfDefined('youtube_url', values.youtube_url);
+    appendIfDefined('insta_url', values.instagram_media_url);
   }
 
-  // ---------- URL fields ----------
-  appendIfDefined('youtube_url', values.youtube_url);
-  appendIfDefined('insta_url', values.instagram_media_url);
+  // ---------- SEO ----------
+  if (values.step === 'seo') {
+    appendIfDefined('meta_title', values.meta_title);
+    appendIfDefined('meta_description', values.meta_description);
+    appendIfDefined('meta_tag', values.meta_tag);
+    appendIfDefined('meta_keyword', values.meta_keyword);
+    appendIfDefined('seo_type', 'event');
+  }
+
+  // ---------- PUBLISH ----------
+  if (values.step === 'publish') {
+    appendIfDefined('status', values.status ?? 1);
+  }
+
+  // Always append the step identifier
+  appendIfDefined('step', values.step || '');
 
   return fd;
 }
@@ -235,6 +248,8 @@ export const useEventDetail = (id, step = null, options = {}) =>
       return res?.event || {}; // Return event data
     },
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: false, // Don't refetch on window focus (optional)
     retry: (count, err) => {
       const status = err?.response?.status;
       return status >= 500 && count < 2; // Retry only on 5xx

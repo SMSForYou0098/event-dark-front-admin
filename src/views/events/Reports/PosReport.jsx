@@ -25,7 +25,7 @@ const PosReports = memo(() => {
 
       const response = await api.get(url);
         console.log('rrr',response)
-      if (response.status && response.data) {
+      if (response.data) {
         return response.data;
       } else {
         throw new Error(response?.message || 'Failed to fetch POS reports');
