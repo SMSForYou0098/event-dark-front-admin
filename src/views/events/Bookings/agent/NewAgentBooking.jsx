@@ -1,6 +1,6 @@
 import { useMyContext } from 'Context/MyContextProvider';
 import React, { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Card, Col, message, Row, Space, Statistic, Typography, Modal, Divider } from 'antd';
+import { Button, Card, Col, message, Row, Space, Statistic, Typography, Modal, Divider, Tag } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import PosEvents from '../components/PosEvents';
@@ -622,7 +622,7 @@ const NewAgentBooking = memo(() => {
     return ticket?.price;
   };
 
-    const isLoading = storeAttendeesMutation.isPending ||
+  const isLoading = storeAttendeesMutation.isPending ||
     corporateBookingMutation.isPending ||
     agentBookingMutation.isPending ||
     masterBookingMutation.isPending ||
@@ -1139,7 +1139,7 @@ const NewAgentBooking = memo(() => {
                   }
                 >
                   <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    {selectedTickets.map((ticket) => {
+                    {selectedTickets?.map((ticket) => {
                       if (Number(ticket.quantity) === 0) return null;
 
                       const requiredCount = Number(ticket.quantity);
@@ -1151,15 +1151,19 @@ const NewAgentBooking = memo(() => {
                         <Card
                           key={ticket.id}
                           size="small"
-                          type={isComplete ? "default" : "inner"}
-                        >
-                          <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
+                          title={
+                              <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
+                               <h5>{`Select Attendee For ${ticket?.category}`}</h5>  
                             <Space>
                               <Text strong>{ticket.name}</Text>
-                              <Text type={isComplete ? "success" : "danger"}>
+                              <Tag color={isComplete ? 'green' : 'red'} className='py-0 m-0'>
                                 ({currentCount}/{requiredCount})
-                              </Text>
+                              </Tag>
                             </Space>
+
+                          </Flex>
+                          }
+                          extra={
                             <Space.Compact>
                               <Button
                                 size="small"
@@ -1179,7 +1183,9 @@ const NewAgentBooking = memo(() => {
                                 Select
                               </Button>
                             </Space.Compact>
-                          </Flex>
+                          }
+                        >
+                        
 
                           {currentTicketAttendees.length > 0 && (
                             <SelectedAttendees
@@ -1248,9 +1254,9 @@ const NewAgentBooking = memo(() => {
                       loading={isLoading}
                       disabled={selectedTickets.length === 0}
                     >
-                      {currentStep === 0 
-                        ? (isAttendeeRequire ? 'Next: Add Attendees' : 'Checkout')
-                        : 'Save & Continue'
+                      {currentStep === 0
+                        ? (isAttendeeRequire ? 'Proceed to Attendee' : 'Checkout')
+                        : 'Checkout'
                       }
                     </Button>
                   </div>
@@ -1276,7 +1282,10 @@ const NewAgentBooking = memo(() => {
                           loading={isLoading}
                           disabled={selectedTickets.length === 0}
                         >
-                          {currentStep === 0 ? 'Next' : 'Save'}
+                          {currentStep === 0
+                            ? (isAttendeeRequire ? 'Next' : 'Checkout')
+                            : 'Checkout'
+                          }
                         </Button>
                       }
                     />

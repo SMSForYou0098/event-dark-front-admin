@@ -7,6 +7,10 @@
     background-color: inherit !important;
 }
 
+.ant-btn{
+  border-color: none !important;
+  border : none !important;
+}
 /* Hover state for disabled buttons */
 .ant-btn:disabled:hover,
 .ant-btn[disabled]:hover,

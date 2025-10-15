@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { Card, Row, Col, Statistic, Table, Typography, Tag, Skeleton, Alert, Divider, Switch, Carousel } from 'antd';
-import { UserOutlined, TeamOutlined, ShoppingOutlined, ShopOutlined, IdcardOutlined, TrophyOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, LineChartOutlined, WalletOutlined, SyncOutlined, ClockCircleOutlined, } from '@ant-design/icons';
+import { Card, Row, Col, Table, Typography, Tag, Skeleton, Alert, Divider, Switch, Carousel } from 'antd';
+import { UserOutlined, TeamOutlined, ShoppingOutlined, ShopOutlined, IdcardOutlined, TrophyOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, LineChartOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';
 import ChartWidget from 'components/ChartWidget';
 import DataCard from './DataCard';
@@ -374,6 +374,7 @@ const DashboardContent = ({ UserData }) => {
             </Col>
         );
     };
+
     return (
         <div className="container-fluid p-4 bg-light min-vh-100">
             {/* Booking Statistics */}
@@ -448,7 +449,6 @@ const DashboardContent = ({ UserData }) => {
 
             {/* Sales Data Summary */}
             <Row gutter={[16, 16]}>
-
                 <Col xs={24} lg={12}>
                     <ChartWidget
                         title="Weekly Convenience Fee"
