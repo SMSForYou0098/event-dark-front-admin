@@ -1,29 +1,33 @@
-import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 import React, { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { cancelToken } from "auth/FetchInterceptor";
 import { Button, Card, Col, message, Row, Space, Statistic, Typography } from 'antd';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import api from 'auth/FetchInterceptor';
 import PosEvents from '../components/PosEvents';
 import BookingTickets from '../components/BookingTickets';
 import Flex from 'components/shared-components/Flex';
 import OrderCalculation from '../components/OrderCalculation';
 import DiscoutFIeldGroup from '../components/DiscoutFIeldGroup';
 import StickyLayout from 'utils/MobileStickyBottom.jsx/StickyLayout';
-import { SearchOutlined, CalendarOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import { ArrowRightOutlined, CalendarOutlined, UserAddOutlined, TeamOutlined } from "@ant-design/icons";
+import AttendeesField from './AttendeesField';
+import AttendeeSuggestion from './AttendeeSuggestion';
+import SelectedAttendees from './SelectedAttendees';
+
 const { Title, Text } = Typography;
+
 const NewAgentBooking = memo(() => {
   const {
-    api,
     UserData,
     isMobile,
-    ErrorAlert,
-    authToken,
     getCurrencySymbol,
+    fetchCategoryData,
     formatDateRange
   } = useMyContext();
 
   // State management
-  const [eventID, setEventID] = useState(true);
+  const [eventID, setEventID] = useState(null);
+  const [categoryId, setCategoryId] = useState(null);
   const [isCheckOut, setIsCheckOut] = useState(true);
   const [event, setEvent] = useState([]);
   const [selectedTickets, setSelectedTickets] = useState([]);
@@ -45,11 +49,20 @@ const NewAgentBooking = memo(() => {
   const [discountValue, setDiscountValue] = useState();
   const [bookings, setBookings] = useState([]);
   const [isAmusment, setIsAmusment] = useState(false);
-
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [showAttendeeModel, setShowAttendeeModel] = useState(false);
   const [method, setMethod] = useState('Cash');
   const [tickets, setTickets] = useState([]);
+  const [isAttendeeRequire, setIsAttendeeRequire] = useState(false);
+  const [categoryFields, setCategoryFields] = useState([]);
+  const [attendees, setAttendees] = useState([]);
+  const [showAttendeeFieldModal, setShowAttendeeFieldModal] = useState(false);
+  const [editingAttendeeIndex, setEditingAttendeeIndex] = useState(null);
+  const [editingAttendeeData, setEditingAttendeeData] = useState({});
+  const [showAttendeeSuggestion, setShowAttendeeSuggestion] = useState(false);
+  const [isCorporate, setIsCorporate] = useState(false);
+  const [isAgent, setIsAgent] = useState(true); // Set based on your logic
+
   // Memoized calculations
   const bookingStats = useMemo(() => ({
     total: bookings?.allbookings?.length ?? 0,
@@ -57,29 +70,72 @@ const NewAgentBooking = memo(() => {
     discount: (parseInt(bookings?.discount) ?? 0).toFixed(2)
   }), [bookings]);
 
-  // API calls with useCallback
-  const GetBookings = useCallback(async () => {
-    try {
-      const url = `${api}pos-bookings/${UserData?.id}`;
-      const res = await axios.get(url, {
-        headers: { 'Authorization': 'Bearer ' + authToken }
-      });
-      if (res.data.status) {
-        setBookings(res.data);
+  // Fetch existing attendees query
+  const { data: existingAttendees = [], refetch: refetchAttendees } = useQuery({
+    queryKey: ['user-attendees', UserData?.id, categoryId, isCorporate, isAgent],
+    queryFn: async () => {
+      if (!isAttendeeRequire || !categoryId || !UserData?.id) {
+        return [];
       }
-    } catch (err) {
-      console.log(err);
-    }
-  }, [api, UserData?.id, authToken]);
 
+      const endpoint = isCorporate
+        ? `corporate-attendee/${UserData.id}/${categoryId}`
+        : `user-attendee/${UserData.id}/${categoryId}?isAgent=${isAgent}`;
 
+      const response = await api.get(endpoint);
+
+      if (response.status && Array.isArray(response.attendees)) {
+        return response.attendees;
+      }
+      return [];
+    },
+    enabled: isAttendeeRequire && !!categoryId && !!UserData?.id,
+  });
+
+  // TanStack Query mutation for booking
+  const bookingMutation = useMutation({
+    mutationFn: async (requestData) => {
+      const endpoint = isAmusment
+        ? `amusementBook-pos/${eventID}`
+        : `book-pos/${eventID}`;
+
+      const response = await api.post(endpoint, requestData);
+
+      if (!response.status) {
+        throw new Error(response?.message || 'Failed to create booking');
+      }
+
+      return response;
+    },
+    onSuccess: (res) => {
+      if (res.status && res.bookings) {
+        setShowPrintModel(true);
+        setBookingData(res.bookings);
+        message.success('Booking created successfully!');
+        resetfields();
+      } else {
+        message.error(res?.message || 'Failed to create booking');
+      }
+    },
+    onError: (error) => {
+      console.error('Booking error:', error);
+      message.error(error.response?.data?.message || 'Failed to create booking');
+    },
+  });
 
   const StorePOSBooking = useCallback(async () => {
     setShowAttendeeModel(false);
+    
     const validTickets = selectedTickets?.filter(ticket => ticket?.quantity > 0);
 
-    if (validTickets[0]?.quantity === undefined) {
-      ErrorAlert('Please Select A Ticket');
+    if (!validTickets || validTickets.length === 0 || validTickets[0]?.quantity === undefined) {
+      message.error('Please select at least one ticket');
+      return;
+    }
+
+    // Check if attendees are required and if they are added
+    if (isAttendeeRequire && attendees.length === 0) {
+      message.error('Please add attendee details');
       return;
     }
 
@@ -91,27 +147,92 @@ const NewAgentBooking = memo(() => {
       discount,
       amount: grandTotal,
       payment_method: method,
+      ...(isAttendeeRequire && { attendees }), // Add attendees if required
     };
 
-    try {
-      const url = isAmusment
-        ? `${api}amusementBook-pos/${eventID}`
-        : `${api}book-pos/${eventID}`;
+    bookingMutation.mutate(requestData);
+  }, [
+    selectedTickets,
+    UserData?.id,
+    number,
+    name,
+    discount,
+    grandTotal,
+    method,
+    isAttendeeRequire,
+    attendees,
+    bookingMutation
+  ]);
 
-      const res = await axios.post(url, requestData, {
-        headers: { 'Authorization': 'Bearer ' + authToken },
-        cancelToken
+  // Handle attendee save
+  const handleAttendeeSave = useCallback((attendeeData, editingIndex) => {
+    if (editingIndex !== null) {
+      // Update existing attendee
+      setAttendees(prev => {
+        const updated = [...prev];
+        updated[editingIndex] = attendeeData;
+        return updated;
       });
-
-      if (res.data.status) {
-        setShowPrintModel(true);
-        setBookingData(res.data?.bookings);
-        GetBookings();
-      }
-    } catch (err) {
-      console.log(err);
+      message.success('Attendee updated successfully');
+    } else {
+      // Add new attendee
+      setAttendees(prev => [...prev, attendeeData]);
+      message.success('Attendee added successfully');
     }
-  }, [selectedTickets, UserData?.id, number, name, discount, grandTotal, method, isAmusment, api, eventID, authToken, ErrorAlert, GetBookings]);
+    
+    setShowAttendeeFieldModal(false);
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+  }, []);
+
+  // Handle select attendee from suggestions
+  const handleSelectAttendee = useCallback((attendee) => {
+    const isAlreadySelected = attendees.some(a => a.id === attendee.id);
+    
+    if (isAlreadySelected) {
+      message.warning('This attendee is already selected');
+      return;
+    }
+
+    setAttendees(prev => [...prev, attendee]);
+    message.success('Attendee added successfully');
+  }, [attendees]);
+
+  // Handle remove attendee
+  const handleRemoveAttendee = useCallback((index) => {
+    setAttendees(prev => prev.filter((_, i) => i !== index));
+    message.success('Attendee removed');
+  }, []);
+
+  // Handle edit attendee
+  const handleEditAttendee = useCallback((index) => {
+    setEditingAttendeeIndex(index);
+    setEditingAttendeeData(attendees[index]);
+    setShowAttendeeFieldModal(true);
+  }, [attendees]);
+
+  // Handle attendee modal open
+  const handleOpenAttendeeModal = useCallback(() => {
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+    setShowAttendeeFieldModal(true);
+  }, []);
+
+  // Handle attendee modal close
+  const handleCloseAttendeeModal = useCallback(() => {
+    setShowAttendeeFieldModal(false);
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+  }, []);
+
+  // Handle show attendee suggestions
+  const handleShowSuggestions = useCallback(() => {
+    if (existingAttendees.length === 0) {
+      message.info('No existing attendees found');
+      return;
+    }
+    setShowAttendeeSuggestion(true);
+  }, [existingAttendees]);
 
   // Effects
   useEffect(() => {
@@ -121,14 +242,7 @@ const NewAgentBooking = memo(() => {
   }, [isMobile]);
 
   useEffect(() => {
-    GetBookings();
-  }, [GetBookings]);
-
-
-
-  useEffect(() => {
     if (selectedTickets?.length > 0) {
-      // Sum values across all selected tickets
       const totalBaseAmount = selectedTickets.reduce(
         (acc, ticket) => acc + (ticket.baseAmount * ticket.quantity),
         0
@@ -150,17 +264,14 @@ const NewAgentBooking = memo(() => {
         0
       );
 
-      // Update state
       setBaseAmount(+totalBaseAmount.toFixed(2));
       setCentralGST(+totalCentralGST.toFixed(2));
       setStateGST(+totalStateGST.toFixed(2));
       setTotalTax(+totalTax.toFixed(2));
 
-      // Grand total = totalFinalAmount - discount
       const grandTotal = totalFinalAmount - discount;
       setGrandTotal(+grandTotal.toFixed(2));
     } else {
-      // Reset all
       setBaseAmount(0);
       setCentralGST(0);
       setStateGST(0);
@@ -168,7 +279,6 @@ const NewAgentBooking = memo(() => {
       setGrandTotal(0);
     }
   }, [selectedTickets, discount]);
-
 
   const handleDiscount = useCallback(() => {
     if (discountValue) {
@@ -207,15 +317,31 @@ const NewAgentBooking = memo(() => {
     }
   }, [bookingHistory, event?.tickets]);
 
-  const handleButtonClick = useCallback((evnt, tkts) => {
-    setEvent(evnt)
-    console.log(event)
-    setTickets(tkts)
-  }, []);
+  const handleButtonClick = useCallback(async(evnt, tkts) => {
+    setEvent(evnt);
+    setEventID(evnt?.id);
+    setTickets(tkts);
+    setAttendees([]); // Reset attendees when event changes
+    setCategoryId(evnt?.category);
+    
+    const response = await fetchCategoryData(evnt?.category);
+    
+    if(response.status){
+      const attendeeRequired = response?.categoryData?.attendy_required === 1;
+      setIsAttendeeRequire(attendeeRequired);
+
+      if(attendeeRequired){
+        setCategoryFields(response?.customFieldsData || []);
+      } else {
+        setCategoryFields([]);
+      }
+    }
+    
+    setIsAmusment(evnt?.event_type === 'amusement');
+  }, [fetchCategoryData]);
 
   const closePrintModel = () => {
     setShowPrintModel(false);
-    resetfields();
   };
 
   const resetfields = () => {
@@ -225,6 +351,7 @@ const NewAgentBooking = memo(() => {
     setDiscount(0);
     setSelectedTickets([]);
     setDisableChoice(false);
+    setAttendees([]);
   };
 
   const handleClose = useCallback((skip) => {
@@ -235,17 +362,20 @@ const NewAgentBooking = memo(() => {
   }, [StorePOSBooking]);
 
   const handleBooking = useCallback(() => {
-    // console.log(selectedTickets)
     const hasValidTicket = selectedTickets.some(ticket => Number(ticket?.quantity) > 0);
 
     if (!hasValidTicket) {
       message.error('Please select at least one ticket');
-    } else {
-      setShowAttendeeModel(true);
+      return;
     }
-  }, [selectedTickets]);
 
+    if (isAttendeeRequire && attendees.length === 0) {
+      message.warning('Please add attendee details before checkout');
+      return;
+    }
 
+    setShowAttendeeModel(true);
+  }, [selectedTickets, isAttendeeRequire, attendees]);
 
   const stats = [
     {
@@ -268,30 +398,27 @@ const NewAgentBooking = memo(() => {
 
   return (
     <Fragment>
-      {/* <POSAttendeeModal
-        show={showAttendeeModel}
-        handleClose={handleClose}
-        setName={setName}
-        name={name}
-        setNumber={setNumber}
-        number={number}
-        handleSubmit={StorePOSBooking}
-        setMethod={setMethod}
-      /> */}
-      {/* use normal attendee modal */}
+      {/* Attendee Field Modal */}
+      {isAttendeeRequire && (
+        <>
+          <AttendeesField
+            showModal={showAttendeeFieldModal}
+            handleCloseModal={handleCloseAttendeeModal}
+            apiData={categoryFields}
+            onSave={handleAttendeeSave}
+            initialData={editingAttendeeData}
+            editingIndex={editingAttendeeIndex}
+          />
 
-      {/* <POSPrintModal
-        showPrintModel={showPrintModel}
-        closePrintModel={closePrintModel}
-        event={event}
-        bookingData={bookingData}
-        subtotal={subtotal}
-        totalTax={totalTax}
-        discount={discount}
-        grandTotal={grandTotal}
-      /> */}
-      {/* use ticket modal instead of print modal */}
-
+          <AttendeeSuggestion
+            showModal={showAttendeeSuggestion}
+            handleCloseModal={() => setShowAttendeeSuggestion(false)}
+            attendees={existingAttendees}
+            onSelectAttendee={handleSelectAttendee}
+            selectedAttendeeIds={attendees.map(a => a.id)}
+          />
+        </>
+      )}
 
       <Row gutter={[16, 16]}>
         <Col span={24}>
@@ -301,7 +428,7 @@ const NewAgentBooking = memo(() => {
         <Col xs={24} lg={16}>
           <Card
             bordered={false}
-            title={event?.name}
+            title={event?.name || 'Select an Event'}
             extra={event?.date_range && (
               <Space>
                 <CalendarOutlined className="text-primary" />
@@ -324,7 +451,6 @@ const NewAgentBooking = memo(() => {
           </Card>
         </Col>
 
-
         <Col xs={24} lg={8}>
           <Card bordered={false}>
             <Flex justify="space-around" wrap="wrap" gap={16} style={{ marginBottom: 16 }}>
@@ -334,10 +460,9 @@ const NewAgentBooking = memo(() => {
                   title={item.title}
                   value={item.value}
                   prefix={item.prefix}
-                  valueStyle={{ ...item.valueStyle, fontSize: '14px' , fontWeight : 'bold' }}
+                  valueStyle={{ ...item.valueStyle, fontSize: '14px', fontWeight: 'bold' }}
                 />
               ))}
-
             </Flex>
 
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
@@ -359,12 +484,47 @@ const NewAgentBooking = memo(() => {
                 handleDiscount={handleDiscount}
               />
 
+              {/* Attendee Management - Only show if required */}
+              {isAttendeeRequire && (
+                <>
+                  <Space.Compact block>
+                    <Button
+                      type="dashed"
+                      icon={<UserAddOutlined />}
+                      onClick={handleOpenAttendeeModal}
+                      disabled={!eventID}
+                      block
+                    >
+                      Add New Attendee
+                    </Button>
+                    <Button
+                      type="default"
+                      icon={<TeamOutlined />}
+                      onClick={handleShowSuggestions}
+                      disabled={!eventID || existingAttendees.length === 0}
+                    >
+                      Select
+                    </Button>
+                  </Space.Compact>
+
+                  {attendees.length > 0 && (
+                    <SelectedAttendees
+                      attendees={attendees}
+                      onRemove={handleRemoveAttendee}
+                      onEdit={handleEditAttendee}
+                      categoryFields={categoryFields}
+                    />
+                  )}
+                </>
+              )}
+
               <Flex justifyContent="space-between" align="center">
                 <Title level={5} style={{ margin: 0 }}>Order Total</Title>
                 <Title level={3} type="primary" style={{ margin: 0 }}>
                   {ticketCurrency}{grandTotal}
                 </Title>
               </Flex>
+
               <div className="d-none d-sm-block">
                 <Button
                   type="primary"
@@ -372,10 +532,13 @@ const NewAgentBooking = memo(() => {
                   size="large"
                   block
                   onClick={handleBooking}
+                  loading={bookingMutation.isPending}
+                  disabled={!eventID || selectedTickets.length === 0}
                 >
                   Checkout
                 </Button>
               </div>
+
               <div className="d-block d-sm-none">
                 <StickyLayout
                   left={
@@ -391,9 +554,11 @@ const NewAgentBooking = memo(() => {
                       type="primary"
                       icon={<ArrowRightOutlined />}
                       size="large"
-                      style={{width:'10rem'}}
+                      style={{ width: '10rem' }}
                       block
                       onClick={handleBooking}
+                      loading={bookingMutation.isPending}
+                      disabled={!eventID || selectedTickets.length === 0}
                     >
                       Checkout
                     </Button>
@@ -408,5 +573,6 @@ const NewAgentBooking = memo(() => {
   );
 });
 
-export default NewAgentBooking
+NewAgentBooking.displayName = 'NewAgentBooking';
+export default NewAgentBooking;
 
