@@ -1,5 +1,5 @@
 import { useMyContext } from 'Context/MyContextProvider';
-import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Col, message, Row, Modal } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import PosEvents from '../components/PosEvents';
@@ -26,7 +26,6 @@ import {
   useMasterBooking,
   buildAttendeesFormData,
 } from './useAgentBookingHooks';
-import { CloudCog } from 'lucide-react';
 
 const { confirm: showConfirm } = Modal;
 
@@ -68,9 +67,10 @@ const NewAgentBooking = memo(() => {
   const [tickets, setTickets] = useState([]);
   const [isAttendeeRequire, setIsAttendeeRequire] = useState(false);
   const [categoryFields, setCategoryFields] = useState([]);
+  const [ticketAttendees, setTicketAttendees] = useState({}); // Local attendees (before saving)
   const [savedAttendeeIds, setSavedAttendeeIds] = useState({}); // ✅ NEW: Store saved attendee IDs by ticket
   const [currentTicketId, setCurrentTicketId] = useState(null);
-
+  const [showAttendeeFieldModal, setShowAttendeeFieldModal] = useState(false);
   const [editingAttendeeIndex, setEditingAttendeeIndex] = useState(null);
   const [editingAttendeeData, setEditingAttendeeData] = useState({});
   const [showAttendeeSuggestion, setShowAttendeeSuggestion] = useState(false);
@@ -90,6 +90,10 @@ const NewAgentBooking = memo(() => {
   const [mainBookings, setMainBookings] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
 
+  // Computed values
+  const allAttendees = useMemo(() => {
+    return Object.values(ticketAttendees).flat();
+  }, [ticketAttendees]);
 
   const bookingStats = useMemo(
     () => ({
@@ -154,7 +158,48 @@ const NewAgentBooking = memo(() => {
     },
   });
 
+  // ✅ Update storeAttendeesMutation to save attendee IDs
+  const storeAttendeesMutation = useStoreAttendees({
+    onSuccess: (response) => {
+      if (response.status && response.data) {
 
+        // ✅ Map saved attendees to their ticket IDs
+        const attendeeIdsByTicket = {};
+
+        // response.data is array of saved attendees with their IDs
+        response.data.forEach((savedAttendee) => {
+          // Find which ticket this attendee belongs to
+          Object.entries(ticketAttendees).forEach(([ticketId, attendees]) => {
+            const matchingAttendee = attendees.find(att =>
+              att.Mo === savedAttendee.Mo || att.Name === savedAttendee.Name
+            );
+
+            if (matchingAttendee) {
+              if (!attendeeIdsByTicket[ticketId]) {
+                attendeeIdsByTicket[ticketId] = [];
+              }
+              attendeeIdsByTicket[ticketId].push(savedAttendee.id);
+            }
+          });
+        });
+
+        setSavedAttendeeIds(attendeeIdsByTicket);
+
+        message.success('Attendees saved successfully!');
+
+        // ✅ Don't show print modal yet, wait for booking
+        if (isCorporate) {
+          handleCorporateBooking(response.data);
+        } else {
+          setShowPrintModel(true);
+        }
+      }
+    },
+    onError: (error) => {
+      console.error('Store attendees error:', error);
+      message.error(error.message || 'Failed to store attendees');
+    },
+  });
 
   const corporateBookingMutation = useCorporateBooking({
     onSuccess: (response) => {
@@ -226,8 +271,114 @@ const NewAgentBooking = memo(() => {
     },
   });
 
+  // Handlers
+  const handleCorporateBooking = useCallback((savedAttendees) => {
+    const attendee = savedAttendees[0];
+    const ticket = selectedTickets[0];
+
+    const payload = {
+      user_id: UserData.id,
+      number: attendee?.Mo?.toString() || '',
+      name: attendee?.Name || '',
+      attendee_id: attendee.id || '',
+      tickets: [
+        {
+          category: ticket.category,
+          quantity: ticket.quantity,
+          price: ticket.price,
+          id: ticket.id,
+        },
+      ],
+      discount: 0,
+      amount: (ticket.price * ticket.quantity).toFixed(2),
+    };
+
+    corporateBookingMutation.mutate(payload);
+  }, [UserData, selectedTickets, corporateBookingMutation]);
+
+
+  const getAttendeeCountForTicket = useCallback((ticketId) => {
+    return ticketAttendees[ticketId]?.length || 0;
+  }, [ticketAttendees]);
+
+  const getRequiredAttendeeCountForTicket = useCallback((ticketId) => {
+    const ticket = selectedTickets.find(t => t.id === ticketId);
+    return ticket ? Number(ticket.quantity) : 0;
+  }, [selectedTickets]);
+
+  const validateTicketAttendees = useCallback(() => {
+    for (const ticket of selectedTickets) {
+      if (Number(ticket.quantity) > 0) {
+        const requiredCount = Number(ticket.quantity);
+        const currentCount = getAttendeeCountForTicket(ticket.id);
+
+        if (currentCount !== requiredCount) {
+          return {
+            valid: false,
+            message: `Ticket "${ticket.category || ticket.name || 'Unknown'}" requires ${requiredCount} attendee(s), but only ${currentCount} added`
+          };
+        }
+      }
+    }
+    return { valid: true };
+  }, [selectedTickets, getAttendeeCountForTicket]);
+
+  const handleSaveAttendees = useCallback(() => {
+    const validation = validateTicketAttendees();
+
+    if (!validation.valid) {
+      message.error(validation.message);
+      return;
+    }
+
+    const totalAttendees = allAttendees.length;
+
+    if (totalAttendees === 0) {
+      message.warning('Please add at least one attendee');
+      return;
+    }
+
+    showConfirm({
+      title: 'Are you sure?',
+      icon: <ExclamationCircleOutlined />,
+      content: "You won't be able to revert this!",
+      okText: 'Yes, Save it!',
+      cancelText: 'No, cancel!',
+      onOk: () => {
+        const sanitizedAttendees = sanitizeData(allAttendees);
+
+        // Check for duplicates
+        const phoneSet = new Set();
+        for (let i = 0; i < sanitizedAttendees.length; i++) {
+          const phone = sanitizedAttendees[i]?.Mo?.toString().trim();
+          if (phone && phoneSet.has(phone)) {
+            message.error(`Duplicate phone number found in attendee #${i + 1}`);
+            return;
+          }
+          if (phone) {
+            phoneSet.add(phone);
+          }
+        }
+
+        // ✅ Use helper to build FormData
+        const formData = buildAttendeesFormData({
+          attendees: sanitizedAttendees,
+          userMeta: {
+            user_id: UserData?.id,
+            user_name: sanitizeInput(UserData?.name),
+            event_name: sanitizeInput(event?.name),
+            isAgentBooking: true
+          },
+          fieldGroupName: isCorporate ? 'corporateUser' : 'attendees'
+        });
+
+        storeAttendeesMutation.mutate({ formData, isCorporate });
+      },
+    });
+  }, [allAttendees, validateTicketAttendees, isCorporate, UserData, event, storeAttendeesMutation]);
 
   const handleBookingAfterUser = useCallback(async (user, attendeeIdsByTicket = {}) => {
+
     // ✅ Validate user exists
     if (!user || !user.id) {
       console.error('❌ No user provided to handleBookingAfterUser');
@@ -292,6 +443,9 @@ const NewAgentBooking = memo(() => {
     }, {
       onSuccess: (response) => {
         message.success('Booking created successfully!');
+
+        // Reset form
+        setTicketAttendees({});
         setSavedAttendeeIds({});
         setSelectedTickets([]);
         // Don't set showPrintModel here, let the mutation success handler do it
@@ -308,12 +462,14 @@ const NewAgentBooking = memo(() => {
     email,
     name,
     method,
+    subtotal,
+    grandTotal,
+    discount,
     event,
     isAmusment,
     eventID,
     agentBookingMutation
   ]);
-
   const handleUserSubmit = useCallback(async () => {
     if (!name) {
       message.error("Name is required");
@@ -327,9 +483,9 @@ const NewAgentBooking = memo(() => {
 
     // ✅ Validate attendees
     if (isAttendeeRequire) {
-      const validation = attendeeStepRef.current?.validateAttendees?.();
-      if (!validation?.valid) {
-        message.error(validation?.message || 'Please complete attendees');
+      const validation = validateTicketAttendees();
+      if (!validation.valid) {
+        message.error(validation.message);
         return;
       }
     }
@@ -412,7 +568,7 @@ const NewAgentBooking = memo(() => {
 
       const attendeeIdsByTicket = {};
 
-      Object.entries(GetTicketAttendees()).forEach(([ticketId, attendees]) => {
+      Object.entries(ticketAttendees).forEach(([ticketId, attendees]) => {
 
         const ids = attendees
           .map(att => {
@@ -441,13 +597,64 @@ const NewAgentBooking = memo(() => {
     doc,
     UserData,
     isAttendeeRequire,
+    ticketAttendees,
+    validateTicketAttendees,
     checkEmailMutation,
     createUserMutation,
     updateUserMutation,
     handleBookingAfterUser // ✅ Keep this dependency
   ]);
 
-  const isLoading =
+
+
+  const getTicketPrice = (category) => {
+    let ticket = event?.tickets?.find((item) => item.name === category);
+    return ticket?.price;
+  };
+
+  const handleSendMail = async (data) => {
+    if (data?.length > 0) {
+      const Booking = data?.map((item) => {
+        const number = item?.number ?? item?.bookings?.[0]?.number ?? 'Unknown';
+        const email = item?.email ?? item?.bookings?.[0]?.email ?? 'Unknown';
+        const thumbnail = item?.ticket?.event?.thumbnail ?? item?.bookings?.[0]?.ticket?.event?.thumbnail ?? 'https://smsforyou.biz/ticketcopy.jpg';
+        const name = item?.user?.name ?? item?.bookings?.[0]?.user?.name ?? 'Guest';
+        const qty = item?.bookings?.length ?? 1;
+        const category = item?.ticket?.name ?? item?.bookings?.[0]?.ticket?.name ?? 'General';
+        const eventName = item?.ticket?.event?.name ?? item?.bookings?.[0]?.ticket?.event?.name ?? 'Event';
+        const eventDate = item?.ticket?.event?.date_range ?? item?.bookings?.[0]?.ticket?.event?.date_range ?? 'TBD';
+        const eventTime = item?.ticket?.event?.start_time ?? item?.bookings?.[0]?.ticket?.event?.start_time ?? 'TBD';
+        const address = item?.ticket?.event?.address ?? item?.bookings?.[0]?.ticket?.event?.address ?? 'No Address Provided';
+        const location = address.replace(/,/g, '|');
+        const DateTime = formateTemplateTime(eventDate, eventTime);
+
+        return {
+          email,
+          number,
+          thumbnail,
+          category,
+          qty,
+          name,
+          price: (getTicketPrice(category) * qty)?.toFixed(2),
+          eventName,
+          eventDate,
+          eventTime,
+          DateTime,
+          address,
+          location,
+          convenience_fee: totalTax,
+          total: grandTotal
+        };
+      });
+
+      if (Booking?.length > 0) {
+        let template = isAmusment ? 'Amusement Booking' : 'Booking Confirmation';
+        sendTickets(Booking, 'new', false, template);
+      }
+    }
+  };
+
+  const isLoading = storeAttendeesMutation.isPending ||
     corporateBookingMutation.isPending ||
     agentBookingMutation.isPending ||
     masterBookingMutation.isPending ||
@@ -494,6 +701,22 @@ const NewAgentBooking = memo(() => {
     }
   }, [selectedTickets, discount, subtotal]);
 
+  useEffect(() => {
+    const validTicketIds = selectedTickets
+      .filter(t => Number(t.quantity) > 0)
+      .map(t => t.id);
+
+    const newTicketAttendees = {};
+    validTicketIds.forEach(ticketId => {
+      if (ticketAttendees[ticketId]) {
+        const ticket = selectedTickets.find(t => t.id === ticketId);
+        const maxCount = Number(ticket.quantity);
+        newTicketAttendees[ticketId] = ticketAttendees[ticketId].slice(0, maxCount);
+      }
+    });
+
+    setTicketAttendees(newTicketAttendees);
+  }, [selectedTickets]);
 
   useEffect(() => {
     if (masterBookings.length > 0 || normalBookings.length > 0) {
@@ -506,18 +729,18 @@ const NewAgentBooking = memo(() => {
     }
   }, [masterBookings, normalBookings]);
 
+  useEffect(() => {
+    if (mainBookings?.length > 0) {
+      handleSendMail(mainBookings);
+    }
+  }, [mainBookings]);
 
-  const validateTicketAttendees = (data) => {
-    console.log(data)
-  }
-  const GetTicketAttendees = () => {
 
-  }
-  const attendeeStepRef = useRef(null);
   const handleButtonClick = useCallback(async (evnt, tkts) => {
     setEvent(evnt);
     setEventID(evnt?.id);
     setTickets(tkts);
+    setTicketAttendees({});
     setCategoryId(evnt?.category);
     setCurrentStep(0); // Reset to step 0
 
@@ -536,6 +759,189 @@ const NewAgentBooking = memo(() => {
 
     setIsAmusment(evnt?.event_type === 'amusement');
   }, [fetchCategoryData]);
+
+
+
+  // ✅ Add missing handleOpenAttendeeModal function
+  const handleOpenAttendeeModal = useCallback((ticketId) => {
+    setCurrentTicketId(ticketId);
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+    setShowAttendeeFieldModal(true);
+  }, []);
+
+  const handleCloseAttendeeModal = useCallback(() => {
+    setShowAttendeeFieldModal(false);
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+    setCurrentTicketId(null);
+  }, []);
+
+  // ✅ Get all selected attendee IDs across all tickets
+  const getAllSelectedAttendeeIds = useCallback(() => {
+    const allIds = [];
+    Object.values(ticketAttendees).forEach(attendees => {
+      attendees.forEach(att => {
+        if (att.id) {
+          allIds.push(att.id);
+        }
+      });
+    });
+    return allIds;
+  }, [ticketAttendees]);
+
+  const handleAttendeeSave = useCallback((attendeeData, editingIndex) => {
+    const currentTicketAttendees = ticketAttendees[currentTicketId] || [];
+
+    if (editingIndex !== null) {
+      // ✅ Update existing attendee
+      const updatedAttendees = [...currentTicketAttendees];
+      updatedAttendees[editingIndex] = {
+        ...attendeeData,
+        ...(attendeeData.id && { id: attendeeData.id }), // Keep existing ID if present
+        isNew: !attendeeData.id, // ✅ Mark as new if no ID
+        isEdited: true
+      };
+
+      setTicketAttendees(prev => ({
+        ...prev,
+        [currentTicketId]: updatedAttendees
+      }));
+
+      message.success('Attendee updated successfully');
+    } else {
+      // ✅ Add new attendee (no id, needs to be saved)
+      const requiredCount = getRequiredAttendeeCountForTicket(currentTicketId);
+
+      if (currentTicketAttendees.length >= requiredCount) {
+        message.warning(`Maximum ${requiredCount} attendees allowed for this ticket`);
+        return;
+      }
+
+      setTicketAttendees(prev => ({
+        ...prev,
+        [currentTicketId]: [...currentTicketAttendees, {
+          ...attendeeData,
+          isNew: true, // ✅ Mark as new (needs to be saved)
+          needsSaving: true // ✅ Flag for API call
+        }]
+      }));
+
+      message.success('Attendee added successfully');
+    }
+
+    handleCloseAttendeeModal();
+  }, [currentTicketId, ticketAttendees, getRequiredAttendeeCountForTicket, handleCloseAttendeeModal]);
+
+  // Replace the entire handler with this toggle version
+  const handleSelectAttendee = useCallback((attendee) => {
+    const currentTicketAttendees = ticketAttendees[currentTicketId] || [];
+    const requiredCount = getRequiredAttendeeCountForTicket(currentTicketId);
+
+    if (currentTicketAttendees.length >= requiredCount) {
+      message.warning(`Maximum ${requiredCount} attendees allowed for this ticket`);
+      return;
+    }
+
+    // Prevent duplicate across any ticket
+    const allSelectedIds = getAllSelectedAttendeeIds();
+    if (allSelectedIds.includes(attendee.id)) {
+      message.warning('This attendee is already added to another ticket');
+      return;
+    }
+
+    // Add existing attendee (already has ID)
+    const updated = [
+      ...currentTicketAttendees,
+      {
+        id: attendee.id,
+        Name: attendee.Name,
+        Mo: attendee.Mo,
+        Photo: attendee.Photo,
+        Company_Name: attendee.Company_Name,
+        isExisting: true,
+        needsSaving: false,
+      },
+    ];
+
+    setTicketAttendees(prev => ({
+      ...prev,
+      [currentTicketId]: updated,
+    }));
+
+    message.success('Attendee added successfully');
+
+    // Auto-close when filled up
+    const newCount = updated.length;
+    if (newCount >= requiredCount) {
+      setShowAttendeeSuggestion(false);
+      setCurrentTicketId(null);
+    }
+  }, [
+    currentTicketId,
+    ticketAttendees,
+    getRequiredAttendeeCountForTicket,
+    getAllSelectedAttendeeIds,
+    setTicketAttendees,
+    setShowAttendeeSuggestion,
+    setCurrentTicketId
+  ]);
+  // Add this memo near other memos/callbacks
+  const attendeeToTicketMap = useMemo(() => {
+    const map = {};
+    Object.entries(ticketAttendees).forEach(([tId, attendees]) => {
+      const ticket = selectedTickets.find(t => t.id === (isNaN(tId) ? tId : Number(tId)));
+      const ticketName = ticket?.category || ticket?.name || `Ticket ${tId}`;
+      const ticketIdVal = ticket?.id ?? (isNaN(tId) ? tId : Number(tId));
+      attendees.forEach(a => {
+        if (a?.id) {
+          map[a.id] = { ticketId: ticketIdVal, ticketName };
+        }
+      });
+    });
+    return map;
+  }, [ticketAttendees, selectedTickets]);
+
+  // When rendering AttendeeSuggestion, pass new props
+  <AttendeeSuggestion
+    showModal={showAttendeeSuggestion}
+    handleCloseModal={() => {
+      setShowAttendeeSuggestion(false);
+      setCurrentTicketId(null);
+    }}
+    attendees={existingAttendees}
+    onSelectAttendee={handleSelectAttendee}
+    currentTicketId={currentTicketId}
+    currentTicketSelectedIds={(ticketAttendees[currentTicketId] || [])
+      .map(a => a.id)
+      .filter(id => id !== undefined && id !== null)}
+    attendeeToTicketMap={attendeeToTicketMap}
+  />
+  // ✅ Pass all selected IDs to AttendeeSuggestion modal
+  const handleShowSuggestions = useCallback((ticketId) => {
+    setCurrentTicketId(ticketId);
+    setShowAttendeeSuggestion(true);
+  }, []);
+
+  const handleRemoveAttendee = useCallback((ticketId, index) => {
+    const currentTicketAttendees = ticketAttendees[ticketId] || [];
+    const updated = currentTicketAttendees.filter((_, i) => i !== index);
+
+    setTicketAttendees(prev => ({
+      ...prev,
+      [ticketId]: updated
+    }));
+
+    message.success('Attendee removed');
+  }, [ticketAttendees]);
+
+  const handleEditAttendee = useCallback((ticketId, index) => {
+    const currentTicketAttendees = ticketAttendees[ticketId] || [];
+    setCurrentTicketId(ticketId);
+    setEditingAttendeeIndex(index);
+    setEditingAttendeeData(currentTicketAttendees[index]);
+    setShowAttendeeFieldModal(true);
+  }, [ticketAttendees]);
 
   const handleDiscount = useCallback(() => {
     if (!discountValue || discountValue <= 0) {
@@ -567,27 +973,35 @@ const NewAgentBooking = memo(() => {
   // ✅ Updated goToNextStep with proper validation
   const goToNextStep = useCallback(() => {
     if (currentStep === 0) {
+      // ✅ Step 0 → Step 1: Validate tickets are selected
       const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
+
       if (!hasValidTicket) {
         message.error('Please select at least one ticket');
         return;
       }
+
+      // ✅ Move to next step based on attendee requirement
       if (isAttendeeRequire) {
-        setCurrentStep(1);
+        setCurrentStep(1); // Go to attendee management
       } else {
+        // No attendees required, show checkout modal directly
         setShowPrintModel(true);
       }
     } else if (currentStep === 1) {
+      // ✅ Step 1 → Step 2: Validate attendees
       if (isAttendeeRequire) {
-        const validation = attendeeStepRef.current?.validateAttendees?.();
-        if (!validation?.valid) {
-          message.error(validation?.message || 'Please complete attendees');
+        const validation = validateTicketAttendees();
+        if (!validation.valid) {
+          message.error(validation.message);
           return;
         }
       }
+
+      // Show checkout modal
       setShowPrintModel(true);
     }
-  }, [currentStep, selectedTickets, isAttendeeRequire]);
+  }, [currentStep, selectedTickets, isAttendeeRequire, validateTicketAttendees]);
 
   const goToPreviousStep = useCallback(() => {
     if (currentStep > 0) {
@@ -638,7 +1052,33 @@ const NewAgentBooking = memo(() => {
         selectedTickets={selectedTickets}
       />
 
+      {isAttendeeRequire && (
+        <>
+          <AttendeesField
+            showModal={showAttendeeFieldModal}
+            handleCloseModal={handleCloseAttendeeModal}
+            apiData={categoryFields}
+            onSave={handleAttendeeSave}
+            initialData={editingAttendeeData}
+            editingIndex={editingAttendeeIndex}
+          />
 
+          <AttendeeSuggestion
+            showModal={showAttendeeSuggestion}
+            handleCloseModal={() => {
+              setShowAttendeeSuggestion(false);
+              setCurrentTicketId(null);
+            }}
+            attendees={existingAttendees}
+            onSelectAttendee={handleSelectAttendee}
+            currentTicketId={currentTicketId}
+            currentTicketSelectedIds={(ticketAttendees[currentTicketId] || [])
+              .map(a => a.id)
+              .filter(id => id !== undefined && id !== null)}
+            attendeeToTicketMap={attendeeToTicketMap}
+          />
+        </>
+      )}
 
       <Row gutter={[16]}>
         <Col span={24}>
@@ -676,11 +1116,17 @@ const NewAgentBooking = memo(() => {
             {currentStep === 1 && isAttendeeRequire && (
               <Col xs={24} lg={16}>
                 <AttendeeManagementStep
-                  ref={attendeeStepRef}
                   selectedTickets={selectedTickets}
+                  ticketAttendees={ticketAttendees}
                   categoryFields={categoryFields}
                   existingAttendees={existingAttendees}
                   eventID={eventID}
+                  getAttendeeCountForTicket={getAttendeeCountForTicket}
+                  handleOpenAttendeeModal={handleOpenAttendeeModal}
+                  handleShowSuggestions={handleShowSuggestions}
+                  handleRemoveAttendee={handleRemoveAttendee}
+                  handleEditAttendee={handleEditAttendee}
+                  onNext={goToNextStep} // ✅ Pass navigation function
                   onBack={goToPreviousStep}
                 />
               </Col>

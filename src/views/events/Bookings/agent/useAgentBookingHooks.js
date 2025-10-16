@@ -281,7 +281,7 @@ export const useAgentBooking = (options = {}) => {
         `${url}`,
         payload, // ✅ Send as JSON
       );
-      return response.data;
+      return response;
     },
     ...options
   });

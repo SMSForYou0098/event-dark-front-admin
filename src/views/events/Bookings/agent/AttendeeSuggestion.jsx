@@ -11,7 +11,7 @@ import {
   Typography,
   Card,
 } from 'antd';
-import { UserOutlined, SearchOutlined, CheckCircleFilled } from '@ant-design/icons';
+import { UserOutlined, SearchOutlined, CheckCircleFilled, PlusOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
 const { Search } = Input;
@@ -25,6 +25,7 @@ const AttendeeSuggestion = ({
   currentTicketId,
   currentTicketSelectedIds = [],
   attendeeToTicketMap = {},
+  handleOpenAttendeeModal
 }) => {
   const [searchText, setSearchText] = useState('');
 
@@ -44,6 +45,14 @@ const AttendeeSuggestion = ({
     onSelectAttendee(attendee);
   };
 
+  const handleAddNewClick = () => {
+    if (typeof handleOpenAttendeeModal === 'function') {
+      handleOpenAttendeeModal(currentTicketId);
+    }
+    if (typeof handleCloseModal === 'function') {
+      handleCloseModal();
+    }
+  };
   return (
     <Modal
       title={
@@ -71,7 +80,22 @@ const AttendeeSuggestion = ({
 
         <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
           {filteredAttendees.length === 0 ? (
-            <Empty description={searchText ? 'No attendees found matching your search' : 'No existing attendees available'} />
+            <div style={{ textAlign: 'center' }}>
+              <Empty
+                description={
+                  attendees.length === 0
+                    ? 'No existing attendees available'
+                    : 'No attendees found matching your search'
+                }
+              />
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleAddNewClick}
+              >
+                Add New Attendee
+              </Button>
+            </div>
           ) : (
             <List
               itemLayout="horizontal"
