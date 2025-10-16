@@ -16,30 +16,31 @@ import { UserOutlined, SearchOutlined, CheckCircleFilled } from '@ant-design/ico
 const { Text } = Typography;
 const { Search } = Input;
 
+// Update props
 const AttendeeSuggestion = ({
   showModal,
   handleCloseModal,
   attendees = [],
   onSelectAttendee,
-  selectedAttendeeIds = [],
+  currentTicketId,
+  currentTicketSelectedIds = [],
+  attendeeToTicketMap = {},
 }) => {
   const [searchText, setSearchText] = useState('');
 
-  // Filter attendees based on search
   const filteredAttendees = useMemo(() => {
     if (!searchText) return attendees;
-
     const search = searchText.toLowerCase();
     return attendees.filter(attendee => {
       const name = attendee.Name?.toLowerCase() || '';
       const email = attendee.email?.toLowerCase() || '';
       const phone = attendee.Mo?.toString() || '';
-      
       return name.includes(search) || email.includes(search) || phone.includes(search);
     });
   }, [attendees, searchText]);
 
-  const handleSelect = (attendee) => {
+  const handleToggle = (attendee, isDisabled) => {
+    if (isDisabled) return;
     onSelectAttendee(attendee);
   };
 
@@ -49,21 +50,16 @@ const AttendeeSuggestion = ({
         <Space>
           <UserOutlined />
           <span>Select Existing Attendee</span>
-          <Tag color="blue">{attendees.length} Available</Tag>
         </Space>
       }
       open={showModal}
       onCancel={handleCloseModal}
       footer={[
-        <Button key="close" onClick={handleCloseModal}>
-          Close
-        </Button>,
+        <Button key="close" onClick={handleCloseModal}>Close</Button>,
       ]}
-      width={700}
-      style={{ top: 20 }}
+      width={900}
     >
       <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-        {/* Search Bar */}
         <Search
           placeholder="Search by name, email, or phone"
           prefix={<SearchOutlined />}
@@ -73,39 +69,44 @@ const AttendeeSuggestion = ({
           size="large"
         />
 
-        {/* Attendees List */}
         <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
           {filteredAttendees.length === 0 ? (
-            <Empty
-              description={
-                searchText
-                  ? 'No attendees found matching your search'
-                  : 'No existing attendees available'
-              }
-            />
+            <Empty description={searchText ? 'No attendees found matching your search' : 'No existing attendees available'} />
           ) : (
             <List
               itemLayout="horizontal"
               dataSource={filteredAttendees}
               renderItem={(attendee) => {
-                const isSelected = selectedAttendeeIds.includes(attendee.id);
+                const isSelected = currentTicketSelectedIds.includes(attendee.id);
+                const usedIn = attendeeToTicketMap[attendee.id];
+                const isDisabled = !isSelected && usedIn && usedIn.ticketId !== currentTicketId;
 
                 return (
                   <Card
                     size="small"
-                    hoverable={!isSelected}
+                    hoverable={!isDisabled}
+                    style={isDisabled ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
+                    onClick={() => handleToggle(attendee, isDisabled)}
                   >
                     <List.Item
                       actions={[
                         isSelected ? (
-                          <Tag icon={<CheckCircleFilled />} color="success">
+                          <Tag icon={<CheckCircleFilled />} color="success" key="selected">
                             Selected
+                          </Tag>
+                        ) : isDisabled ? (
+                          <Tag color="default" key="in-other">
+                            Used in {usedIn?.ticketName || 'other ticket'}
                           </Tag>
                         ) : (
                           <Button
+                            key="select"
                             type="primary"
                             size="small"
-                            onClick={() => handleSelect(attendee)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggle(attendee, isDisabled);
+                            }}
                           >
                             Select
                           </Button>

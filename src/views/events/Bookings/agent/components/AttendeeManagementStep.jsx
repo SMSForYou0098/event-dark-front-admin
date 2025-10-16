@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Button, Card, Space, Tag, Typography } from 'antd';
 import { UserAddOutlined, TeamOutlined } from '@ant-design/icons';
 import Flex from 'components/shared-components/Flex';
@@ -19,6 +19,7 @@ const AttendeeManagementStep = ({
   handleEditAttendee,
   onBack,
 }) => {
+
   return (
     <Card
       bordered={false}
@@ -42,41 +43,39 @@ const AttendeeManagementStep = ({
             <Card
               key={ticket.id}
               size="small"
-              title={
-                <Flex justify="space-between" align="center">
-                  <h5>{`Select Attendee For ${ticket?.category}`}</h5>
-                  <Space>
-                    <Text strong>{ticket.name}</Text>
-                    <Tag color={isComplete ? 'green' : 'red'}>
-                      ({currentCount}/{requiredCount})
-                    </Tag>
-                  </Space>
-                </Flex>
-              }
+              title={`Select Attendee For ${ticket?.category}`}
               extra={
-                <Space.Compact>
-                  <Button
-                    size="small"
-                    type="primary"
-                    icon={<UserAddOutlined />}
-                    onClick={() => handleOpenAttendeeModal(ticket.id)}
-                    disabled={currentCount >= requiredCount}
-                  >
-                    Add
-                  </Button>
-                  <Button
-                    size="small"
-                    icon={<TeamOutlined />}
-                    onClick={() => handleShowSuggestions(ticket.id)}
-                    disabled={
-                      !eventID ||
-                      existingAttendees.length === 0 ||
-                      currentCount >= requiredCount
-                    }
-                  >
-                    Select
-                  </Button>
-                </Space.Compact>
+                <>
+                  <Tag color={isComplete ? 'green' : 'red'}>
+                    ({currentCount}/{requiredCount})
+                  </Tag>
+                  {currentCount !== requiredCount && (
+                    <Space.Compact>
+                      <Button
+                        size="small"
+                        type="primary"
+                        icon={<UserAddOutlined />}
+                        onClick={() => handleOpenAttendeeModal(ticket.id)}
+                        disabled={currentCount >= requiredCount}
+                      >
+                        Add
+                      </Button>
+                      <Button
+                        size="small"
+                        icon={<TeamOutlined />}
+                        onClick={() => handleShowSuggestions(ticket.id)}
+                        disabled={
+                          !eventID ||
+                          existingAttendees.length === 0 ||
+                          currentCount >= requiredCount
+                        }
+                      >
+                        Select
+                      </Button>
+                    </Space.Compact>
+                  )}
+
+                </>
               }
             >
               {currentTicketAttendees.length > 0 && (

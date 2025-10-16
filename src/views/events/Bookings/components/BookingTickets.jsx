@@ -3,11 +3,12 @@ import React, { useCallback, useEffect } from 'react'
 import CommonPricingComp from './CommonPricingComp';
 import Counter from 'utils/QuantityCounter';
 import { useMyContext } from 'Context/MyContextProvider';
+import { CloudCog } from 'lucide-react';
 const { Text } = Typography;
 
 const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST, setTotalTax, event, setGrandTotal, getCurrencySymbol, setSelectedTickets, selectedTickets }) => {
   // Reset selected tickets when event changes
-  const {isMobile} = useMyContext()
+  const { isMobile } = useMyContext()
   useEffect(() => {
     setSelectedTickets([]);
   }, [event?.id]); // Reset when event ID changes
@@ -42,7 +43,7 @@ const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST
     {
       title: 'Quantity',
       key: 'quantity',
-      width : isMobile ? 200 : 250,
+      width: isMobile ? 200 : 250,
       render: (_, record) => {
         const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
         return (
@@ -58,50 +59,111 @@ const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST
         );
       },
     },
-     // 👉 Conditionally include "Total" column
-  ...(!isMobile ? [{
-    title: 'Total',
-    key: 'total',
-    align: 'right',
-    width: 150,
-    render: (_, record) => {
-      const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
-      const quantity = selectedTicket?.quantity || 0;
+    // 👉 Conditionally include "Total" column
+    ...(!isMobile ? [{
+      title: 'Total',
+      key: 'total',
+      align: 'right',
+      width: 150,
+      render: (_, record) => {
+        const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
+        const quantity = selectedTicket?.quantity || 0;
 
-      if (quantity === 0) {
-        return '-';
-      }
+        if (quantity === 0) {
+          return '-';
+        }
 
-      const price = record?.sale === 1 ? record?.sale_price : record?.price;
-      const total = price * quantity;
-      return `${getCurrencySymbol(record?.currency)}${total}`;
-    },
-  }] : [])
+        const price = record?.sale === 1 ? record?.sale_price : record?.price;
+        const total = price * quantity;
+        return `${getCurrencySymbol(record?.currency)}${total}`;
+      },
+    }] : [])
   ];
 
+  // const getTicketCount = useCallback((quantity, category, price, id) => {
+  //   setSelectedTickets(prevTickets => {
+  //     const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
+
+  //     // Sample tax and fee logic (customize as needed)
+  //     const baseAmount = +(price ).toFixed(2); // 18% GST included
+  //     const centralGST = +(baseAmount * 0.09).toFixed(2);
+  //     const stateGST = +(baseAmount * 0.09).toFixed(2);
+  //     const convenienceFee = baseAmount *0.01; // flat fee
+  //     const totalTax = +(centralGST + stateGST).toFixed(2);
+  //     const finalAmount = +((price * quantity) + convenienceFee + totalTax).toFixed(2);
+
+  //     const ticketData = {
+  //       id,
+  //       category,
+  //       quantity,
+  //       price: +price.toFixed(2),
+  //       baseAmount,
+  //       centralGST,
+  //       stateGST,
+  //       totalTax,
+  //       convenienceFee,
+  //       finalAmount,
+  //     };
+
+  //     // Remove if quantity is 0
+  //     if (quantity === 0) {
+  //       return existingIndex !== -1
+  //         ? prevTickets.filter((_, index) => index !== existingIndex)
+  //         : prevTickets;
+  //     }
+
+  //     // Update existing ticket
+  //     if (existingIndex !== -1) {
+  //       const updatedTickets = [...prevTickets];
+  //       updatedTickets[existingIndex] = ticketData;
+  //       return updatedTickets;
+  //     }
+
+  //     // Add new ticket
+  //     return [...prevTickets, ticketData];
+  //   });
+  // }, [setSelectedTickets]);
   const getTicketCount = useCallback((quantity, category, price, id) => {
     setSelectedTickets(prevTickets => {
       const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
 
-      // Sample tax and fee logic (customize as needed)
-      const baseAmount = +(price ).toFixed(2); // 18% GST included
-      const centralGST = +(baseAmount * 0.09).toFixed(2);
-      const stateGST = +(baseAmount * 0.09).toFixed(2);
-      const convenienceFee = baseAmount *0.01; // flat fee
-      const totalTax = +(centralGST + stateGST).toFixed(2);
-      const finalAmount = +((price * quantity) + convenienceFee + totalTax).toFixed(2);
+      // Per-unit calculations (adjust the formulae as per your tax policy)
+      const unitBaseAmount = +(price).toFixed(2);
+      const unitCentralGST = +(unitBaseAmount * 0.09).toFixed(2);
+      const unitStateGST = +(unitBaseAmount * 0.09).toFixed(2);
+      const unitConvenienceFee = +(unitBaseAmount * 0.01).toFixed(2);
+      const unitTotalTax = +(unitCentralGST + unitStateGST).toFixed(2);
+      const unitFinalAmount = +((price) + unitConvenienceFee + unitTotalTax).toFixed(2);
+
+      // Totals for the selected quantity
+      const totalBaseAmount = +(unitBaseAmount * quantity).toFixed(2);
+      const totalCentralGST = +(unitCentralGST * quantity).toFixed(2);
+      const totalStateGST = +(unitStateGST * quantity).toFixed(2);
+      const totalConvenienceFee = +(unitConvenienceFee * quantity).toFixed(2);
+      const totalTotalTax = +(totalCentralGST + totalStateGST + totalConvenienceFee).toFixed(2);
+      const totalFinalAmount = +((price * quantity) + totalTotalTax).toFixed(2);
 
       const ticketData = {
         id,
         category,
         quantity,
-        price: +price.toFixed(2),
-        baseAmount,
-        centralGST,
-        stateGST,
-        totalTax,
-        convenienceFee,
-        finalAmount,
+        price: +(+price).toFixed(2),
+
+        // per-unit
+        baseAmount: unitBaseAmount,
+        centralGST: unitCentralGST,
+        stateGST: unitStateGST,
+        totalTax: unitTotalTax,
+        convenienceFee: unitConvenienceFee,
+        finalAmount: unitFinalAmount,
+
+        // totals
+        totalBaseAmount,
+        totalCentralGST,
+        totalStateGST,
+        totalTaxTotal: totalTotalTax,
+        totalConvenienceFee,
+        totalFinalAmount,
       };
 
       // Remove if quantity is 0
@@ -124,8 +186,8 @@ const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST
   }, [setSelectedTickets]);
 
 
-
   useEffect(() => {
+    // console.log(selectedTickets);
     if (selectedTickets?.length > 0) {
       const total = selectedTickets?.reduce((acc, ticket) => {
         return acc + (ticket.price * ticket.quantity);

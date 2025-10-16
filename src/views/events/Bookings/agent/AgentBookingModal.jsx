@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Modal, Form, Input, Button, Upload, Row, Col, Typography, Space, Radio, Image, Alert, Spin } from 'antd';
+import { Modal, Form, Input, Button, Upload, Row, Col, Typography, Space, Radio, Image, Alert, Spin, Segmented } from 'antd';
 import { MailOutlined, WhatsAppOutlined, MessageOutlined, UploadOutlined, FileImageOutlined, FileTextOutlined, FileOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import api from 'auth/FetchInterceptor';
@@ -500,19 +500,14 @@ const AgentBookingModal = (props) => {
                   name="method"
                   rules={[{ required: true, message: 'Please select payment method' }]}
                 >
-                  <Radio.Group
-                    onChange={(e) => setMethod(e.target.value)}
+                  <Segmented
+                    options={paymentOptions.map(option => ({
+                      label: option,
+                      value: option
+                    }))}
+                    onChange={(value) => setMethod(value)}
                     value={method}
-                    style={{ width: '100%' }}
-                  >
-                    <Row gutter={[8, 8]}>
-                      {paymentOptions.map((option) => (
-                        <Col span={8} key={option}>
-                          <Radio value={option}>{option}</Radio>
-                        </Col>
-                      ))}
-                    </Row>
-                  </Radio.Group>
+                  />
                 </Form.Item>
               </Col>
 

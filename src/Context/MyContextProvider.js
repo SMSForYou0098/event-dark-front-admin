@@ -86,8 +86,6 @@ export const MyContextProvider = ({ children }) => {
             );
           }
         };
-        // Usage (replace "Admin" with the actual role as needed)
-        const filteredList = filterOrganizerList(data, UserData.role);
         setOrganizerList(organizer);
         return data;
       } else {
@@ -141,7 +139,6 @@ export const MyContextProvider = ({ children }) => {
       console.error('Error fetching data: ', error);
     }
   }
-
 
   const initializeLocationData = async () => {
     // Try cache first
@@ -213,7 +210,6 @@ export const MyContextProvider = ({ children }) => {
         DownloadExcelFile(data, fName);
       })
       .catch(error => {
-        //console.log(error);
       });
   }
   const handleMakeReport = async (number, message_id,) => {
@@ -233,7 +229,6 @@ export const MyContextProvider = ({ children }) => {
   };
 
   const formatDateTime = (dateTime) => {
-    // console.log(dateTime)
     const date = new Date(dateTime);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
