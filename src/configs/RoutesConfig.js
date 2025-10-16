@@ -425,4 +425,9 @@ export const protectedRoutes = [
         path: `/agreements/partner`,
         component: React.lazy(() => import('views/events/Agreement/AgreementCreator')),
     },
+    {
+        key: 'live-users',
+        path: `/live-users`,
+        component: React.lazy(() => import('views/events/other/LiveUsers')),
+    },
 ]

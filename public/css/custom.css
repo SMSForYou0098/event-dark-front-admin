@@ -534,3 +534,34 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
 .nav-logo {
   padding: 0 3rem !important;
 }
+
+/* ..ant-segmented */
+/* Segmented container */
+.ant-segmented {
+  background: transparent !important;
+  color: var(--text-white);
+  border : 1px solid var(--border-secondary);
+  padding : 0.5rem;
+}
+
+/* Selected item */
+.ant-segmented .ant-segmented-item-selected {
+  background-color: var(--primary-color) !important;
+  color: var(--text-white);
+}
+
+/* The sliding thumb background - THIS IS WHAT YOU NEED */
+.ant-segmented .ant-segmented-thumb {
+  background-color: var(--primary-color) !important;
+}
+
+/* Optional: Unselected items color */
+.ant-segmented .ant-segmented-item:not(.ant-segmented-item-selected) {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+/* Optional: Hover effect */
+.ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
+  color: var(--text-white);
+  background: rgba(255, 255, 255, 0.1);
+}

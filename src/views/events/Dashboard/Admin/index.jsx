@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { Card, Row, Col, Table, Typography, Tag, Skeleton, Alert, Divider, Switch, Carousel } from 'antd';
+import { Card, Row, Col, Table, Typography, Tag, Skeleton, Alert, Divider, Switch, Carousel, Space } from 'antd';
 import { UserOutlined, TeamOutlined, ShoppingOutlined, ShopOutlined, IdcardOutlined, TrophyOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, LineChartOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';
 import ChartWidget from 'components/ChartWidget';
 import DataCard from './DataCard';
 import { useMyContext } from 'Context/MyContextProvider';
+import DashSkeleton from './DashSkeleton';
+import BasicArea from './GradientChart';
 
 const { Title, Text } = Typography;
 
@@ -92,11 +94,7 @@ const DashboardContent = ({ UserData }) => {
     }
 
     if (isLoading) {
-        return (
-            <div className="p-4">
-                <Skeleton active paragraph={{ rows: 10 }} />
-            </div>
-        );
+        return <DashSkeleton />
     }
 
     // Additional safety check - ensure data exists before rendering
@@ -428,7 +426,8 @@ const DashboardContent = ({ UserData }) => {
                         title="Weekly Bookings"
                         series={bookingStatsData?.series}
                         xAxis={bookingStatsData.categories}
-                        height={'400px'}
+                        height={'300px'}
+                        type='area'
                     />
                 </Col>
                 <Col xs={24} lg={12}>
@@ -451,14 +450,15 @@ const DashboardContent = ({ UserData }) => {
             <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
                     <ChartWidget
+                        type='area'
                         title="Weekly Convenience Fee"
                         series={concvStatsData?.series}
                         xAxis={concvStatsData.categories}
-                        height={'400px'}
+                        height={'300px'}
                     />
                 </Col>
                 <Col xs={24} lg={12}>
-                    <Card title="Discounts & CNC" bordered={false}>
+                    <Card title="Discounts & Convenience Fee" bordered={false}>
                         <div>
                             <Text strong className="fs-6">Discounts</Text>
                             <div className="mt-2">

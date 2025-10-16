@@ -8,7 +8,7 @@ import {
 	signInWithPopup,
 	GoogleAuthProvider,
 	FacebookAuthProvider
-} from 'firebase/auth'
+} from 'firebase/auth';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 
