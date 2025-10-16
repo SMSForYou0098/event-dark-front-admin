@@ -6,7 +6,7 @@ import utils from 'utils';
 import { Grid } from 'antd';
 import styled from '@emotion/styled';
 import { TEMPLATE } from 'constants/ThemeConstant';
-
+import logoUrl from '../../assets/event/stock/logo.webp'
 const LogoWrapper = styled.div(() => ({
 	height: TEMPLATE.HEADER_HEIGHT,
 	display: 'flex',
@@ -39,24 +39,11 @@ export const Logo = ({ mobileLogo, logoType }) => {
 			return `${SIDE_NAV_WIDTH}px`
 		}
 	}
-	
-	const getLogo = () => {
-		if(logoType === 'light') {
-			if(navCollapsed) {
-			return '/img/logo-sm-white.png'
-			}
-			return '/img/logo-white.png'
-		}
-	
-		if (navCollapsed) {
-			return '/img/logo-sm.png'
-		}
-		return '/img/logo.png'
-	}
+
 
 	return (
-		<LogoWrapper className={isMobile && !mobileLogo ? 'd-none' : 'logo'} style={{width: `${getLogoWidthGutter()}`}}>
-			<img src={getLogo()} alt={`${APP_NAME} logo`}/>
+		<LogoWrapper className={`nav-logo ${isMobile && !mobileLogo ? 'd-none' : 'logo'}`} style={{width: `${getLogoWidthGutter()}`}}>
+			<img src={logoUrl} alt={`${APP_NAME} logo`} height={55} width={90}/>
 		</LogoWrapper>
 	)
 }

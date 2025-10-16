@@ -528,3 +528,9 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
   display: flex;
   justify-content: center;
 }
+
+
+/* //nav logo  */
+.nav-logo {
+  padding: 0 3rem !important;
+}
