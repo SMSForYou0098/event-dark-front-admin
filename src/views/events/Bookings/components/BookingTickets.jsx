@@ -84,12 +84,12 @@ const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST
       const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
 
       // Sample tax and fee logic (customize as needed)
-      const baseAmount = +(price / 1.18).toFixed(2); // 18% GST included
+      const baseAmount = +(price ).toFixed(2); // 18% GST included
       const centralGST = +(baseAmount * 0.09).toFixed(2);
       const stateGST = +(baseAmount * 0.09).toFixed(2);
-      const convenienceFee = 10; // flat fee
+      const convenienceFee = baseAmount *0.01; // flat fee
       const totalTax = +(centralGST + stateGST).toFixed(2);
-      const finalAmount = +((price * quantity) + convenienceFee).toFixed(2);
+      const finalAmount = +((price * quantity) + convenienceFee + totalTax).toFixed(2);
 
       const ticketData = {
         id,

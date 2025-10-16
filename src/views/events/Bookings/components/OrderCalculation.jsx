@@ -1,6 +1,15 @@
 import React from 'react'
 const OrderCalculation = (props) => {
-    const { ticketCurrency, subtotal, discount, baseAmount, centralGST, totalTax } = props
+    // use toFixed(2) to the values
+    const { ticketCurrency, selectedTickets } = props
+    const subtotal = selectedTickets.reduce((acc, curr) => acc + curr.price, 0).toFixed(2);
+    const discount = selectedTickets.reduce((acc, curr) => acc + curr.discount * curr.quantity, 0).toFixed(2);
+    const baseAmount = selectedTickets.reduce((acc, curr) => acc + curr.price * curr.quantity, 0).toFixed(2);
+    const centralGST = selectedTickets.reduce((acc, curr) => acc + (curr.price * curr.quantity) * 0.09, 0).toFixed(2);
+    const totalTax = selectedTickets.reduce((acc, curr) => acc + (curr.price * curr.quantity) * 0.09, 0).toFixed(2);
+    const convenienceFee = selectedTickets.reduce((acc, curr) => acc + (curr.price * curr.quantity) * 0.1, 0).toFixed(2);
+    // add another for convinence of 10 % and add total amount below the total tax
+    // const grandTotal = (subtotal + discount + baseAmount + centralGST + totalTax + convenienceFee).toFixed(2);
     return (
         <>
             <div className="d-flex justify-content-between mb-2">
@@ -25,7 +34,7 @@ const OrderCalculation = (props) => {
             </div>
             <div className="d-flex justify-content-between">
                 <h5>Convenience fees</h5>
-                <h5 className="text-success">{ticketCurrency}{totalTax}</h5>
+                <h5 className="text-success">{ticketCurrency}{convenienceFee}</h5>
             </div>
         </>
     )

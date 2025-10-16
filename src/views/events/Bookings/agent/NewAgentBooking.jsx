@@ -1,25 +1,33 @@
 import { useMyContext } from 'Context/MyContextProvider';
-import React, { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react'
-import { Button, Card, Col, message, Row, Space, Statistic, Typography, Modal, Divider, Tag } from 'antd';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import api from 'auth/FetchInterceptor';
+import React, { Fragment, memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { Col, message, Row, Modal } from 'antd';
+import { ExclamationCircleOutlined } from '@ant-design/icons';
 import PosEvents from '../components/PosEvents';
-import BookingTickets from '../components/BookingTickets';
-import Flex from 'components/shared-components/Flex';
-import OrderCalculation from '../components/OrderCalculation';
-import DiscoutFIeldGroup from '../components/DiscoutFIeldGroup';
-import StickyLayout from 'utils/MobileStickyBottom.jsx/StickyLayout';
-import { ArrowRightOutlined, CalendarOutlined, UserAddOutlined, TeamOutlined, ExclamationCircleOutlined } from "@ant-design/icons";
 import AttendeesField from './AttendeesField';
 import AttendeeSuggestion from './AttendeeSuggestion';
-import SelectedAttendees from './SelectedAttendees';
 import AgentBookingModal from './AgentBookingModal';
 import { processImageFile, sanitizeData, sanitizeInput } from './utils';
 
-const { Title, Text } = Typography;
-const { confirm: showConfirm } = Modal;
+// Import step components
+import StepIndicator from './components/StepIndicator';
+import TicketSelectionStep from './components/TicketSelectionStep';
+import AttendeeManagementStep from './components/AttendeeManagementStep';
+import OrderSummary from './components/OrderSummary';
 
-// Utility function to sanitize input
+// Import custom hooks
+import {
+  useUserAttendees,
+  useCheckEmail,
+  useCreateUser,
+  useUpdateUser,
+  useStoreAttendees,
+  useCorporateBooking,
+  useAgentBooking,
+  useMasterBooking,
+  buildAttendeesFormData,
+} from './useAgentBookingHooks';
+
+const { confirm: showConfirm } = Modal;
 
 
 const NewAgentBooking = memo(() => {
@@ -27,19 +35,17 @@ const NewAgentBooking = memo(() => {
     UserData,
     isMobile,
     getCurrencySymbol,
-    fetchCategoryData,
     formatDateRange,
     sendTickets,
-    formateTemplateTime
+    fetchCategoryData,
+    formateTemplateTime,
   } = useMyContext();
 
   // State management
   const [eventID, setEventID] = useState(null);
   const [categoryId, setCategoryId] = useState(null);
-  const [isCheckOut, setIsCheckOut] = useState(true);
   const [event, setEvent] = useState([]);
   const [selectedTickets, setSelectedTickets] = useState([]);
-  const [bookingHistory, setBookingHistory] = useState([]);
   const [subtotal, setSubTotal] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
@@ -61,11 +67,9 @@ const NewAgentBooking = memo(() => {
   const [tickets, setTickets] = useState([]);
   const [isAttendeeRequire, setIsAttendeeRequire] = useState(false);
   const [categoryFields, setCategoryFields] = useState([]);
-
-  // ✅ NEW: Ticket-based attendee management
-  const [ticketAttendees, setTicketAttendees] = useState({});
+  const [ticketAttendees, setTicketAttendees] = useState({}); // Local attendees (before saving)
+  const [savedAttendeeIds, setSavedAttendeeIds] = useState({}); // ✅ NEW: Store saved attendee IDs by ticket
   const [currentTicketId, setCurrentTicketId] = useState(null);
-
   const [showAttendeeFieldModal, setShowAttendeeFieldModal] = useState(false);
   const [editingAttendeeIndex, setEditingAttendeeIndex] = useState(null);
   const [editingAttendeeData, setEditingAttendeeData] = useState({});
@@ -84,64 +88,52 @@ const NewAgentBooking = memo(() => {
   const [normalBookings, setNormalBookings] = useState([]);
   const [masterBookings, setMasterBookings] = useState([]);
   const [mainBookings, setMainBookings] = useState([]);
-  const [currentStep, setCurrentStep] = useState(0); // Add step state
+  const [currentStep, setCurrentStep] = useState(0);
 
-  // ✅ Computed: Get all attendees as flat array
+  // Computed values
   const allAttendees = useMemo(() => {
     return Object.values(ticketAttendees).flat();
   }, [ticketAttendees]);
 
-  // Memoized calculations
-  const bookingStats = useMemo(() => ({
-    total: bookings?.allbookings?.length ?? 0,
-    amount: (parseInt(bookings?.amount) ?? 0).toFixed(2),
-    discount: (parseInt(bookings?.discount) ?? 0).toFixed(2)
-  }), [bookings]);
+  const bookingStats = useMemo(
+    () => ({
+      total: bookings?.allbookings?.length ?? 0,
+      amount: (parseInt(bookings?.amount) ?? 0).toFixed(2),
+      discount: (parseInt(bookings?.discount) ?? 0).toFixed(2),
+    }),
+    [bookings]
+  );
 
-  // Fetch existing attendees query
-  const { data: existingAttendees = [], refetch: refetchAttendees } = useQuery({
-    queryKey: ['user-attendees', UserData?.id, categoryId, isCorporate, isAgent],
-    queryFn: async () => {
-      if (!isAttendeeRequire || !categoryId || !UserData?.id) {
-        return [];
-      }
-
-      const endpoint = isCorporate
-        ? `corporate-attendee/${UserData.id}/${categoryId}`
-        : `user-attendee/${UserData.id}/${categoryId}?isAgent=${isAgent}`;
-
-      const response = await api.get(endpoint);
-
-      if (response.status && Array.isArray(response.attendees)) {
-        return response.attendees;
-      }
-      return [];
+  const stats = [
+    {
+      title: 'Bookings',
+      value: bookingStats.total,
     },
+    {
+      title: 'Amount',
+      value: bookingStats.amount,
+      prefix: '₹',
+      valueStyle: { color: 'var(--primary-color)' },
+    },
+    {
+      title: 'Discount',
+      value: bookingStats.discount,
+      prefix: '₹',
+      valueStyle: { color: '#1890ff' },
+    },
+  ];
+
+  // Custom hooks
+  const { data: existingAttendees = [], refetch: refetchAttendees } = useUserAttendees({
+    userId: UserData?.id,
+    categoryId,
+    isCorporate,
+    isAgent,
     enabled: isAttendeeRequire && !!categoryId && !!UserData?.id,
   });
 
-  // Mutation for checking email
-  const checkEmailMutation = useMutation({
-    mutationFn: async ({ email, number }) => {
-      const response = await api.post('chek-email', {
-        email,
-        number
-      });
-      return response;
-    }
-  });
-
-  // Mutation for creating user
-  const createUserMutation = useMutation({
-    mutationFn: async (formData) => {
-      const response = await api.post('create-user', formData);
-
-      if (!response.status) {
-        throw new Error(response?.message || 'Failed to create user');
-      }
-
-      return response;
-    },
+  const checkEmailMutation = useCheckEmail();
+  const createUserMutation = useCreateUser({
     onSuccess: (response) => {
       if (response.status && response.user) {
         setCreatedUser(response.user);
@@ -150,46 +142,52 @@ const NewAgentBooking = memo(() => {
     },
     onError: (error) => {
       console.error('Create user error:', error);
-      message.error(error.response?.data?.message || 'Failed to create user');
-    }
-  });
-
-  // Mutation for updating user
-  const updateUserMutation = useMutation({
-    mutationFn: async ({ userId, formData }) => {
-      const response = await api.post(`update-user/${userId}`, formData);
-
-      if (!response.status) {
-        throw new Error(response?.message || 'Failed to update user');
-      }
-
-      return response;
-    }
-  });
-
-  // Mutation for storing attendees
-  const storeAttendeesMutation = useMutation({
-    mutationFn: async (formData) => {
-      const endpoint = isCorporate ? 'corporate-user-store' : 'attndy-store';
-
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
-
-      const response = await api.post(endpoint, formData, config);
-
-      if (!response.status) {
-        throw new Error(response?.message || 'Failed to store attendees');
-      }
-
-      return response;
+      message.error(error.message || 'Failed to create user');
     },
+  });
+
+  const updateUserMutation = useUpdateUser({
+    onSuccess: (response) => {
+      if (response.status && response.user) {
+        message.success('User updated successfully!');
+      }
+    },
+    onError: (error) => {
+      console.error('Update user error:', error);
+      message.error(error.message || 'Failed to update user');
+    },
+  });
+
+  // ✅ Update storeAttendeesMutation to save attendee IDs
+  const storeAttendeesMutation = useStoreAttendees({
     onSuccess: (response) => {
       if (response.status && response.data) {
-        message.success('Attendees saved successfully!');
+        
+        // ✅ Map saved attendees to their ticket IDs
+        const attendeeIdsByTicket = {};
+        
+        // response.data is array of saved attendees with their IDs
+        response.data.forEach((savedAttendee) => {
+          // Find which ticket this attendee belongs to
+          Object.entries(ticketAttendees).forEach(([ticketId, attendees]) => {
+            const matchingAttendee = attendees.find(att => 
+              att.Mo === savedAttendee.Mo || att.Name === savedAttendee.Name
+            );
+            
+            if (matchingAttendee) {
+              if (!attendeeIdsByTicket[ticketId]) {
+                attendeeIdsByTicket[ticketId] = [];
+              }
+              attendeeIdsByTicket[ticketId].push(savedAttendee.id);
+            }
+          });
+        });
 
+        setSavedAttendeeIds(attendeeIdsByTicket);
+        
+        message.success('Attendees saved successfully!');
+        
+        // ✅ Don't show print modal yet, wait for booking
         if (isCorporate) {
           handleCorporateBooking(response.data);
         } else {
@@ -199,35 +197,20 @@ const NewAgentBooking = memo(() => {
     },
     onError: (error) => {
       console.error('Store attendees error:', error);
-      message.error(error.response?.data?.message || 'Failed to store attendees');
+      message.error(error.message || 'Failed to store attendees');
     },
   });
 
-  // Mutation for corporate booking
-  const corporateBookingMutation = useMutation({
-    mutationFn: async (payload) => {
-      const response = await api.post('corporate-pos/true', payload);
-
-      if (!response.status) {
-        throw new Error(response?.message || 'Failed to create corporate booking');
-      }
-
-      return response;
-    },
+  const corporateBookingMutation = useCorporateBooking({
     onSuccess: (response) => {
       if (response.status && response.bookings) {
         message.success('Ticket purchased successfully!');
-
         const { bookings } = response;
         const corporateUser = bookings.corporate_user;
         const data = bookings;
 
         setSelectedTickets(null);
-
-        setStickerData({
-          ...corporateUser
-        });
-
+        setStickerData({ ...corporateUser });
         setPrintInvoiceData({
           event: data?.ticket?.event,
           bookingData: {
@@ -237,7 +220,7 @@ const NewAgentBooking = memo(() => {
             payment_method: data?.payment_method,
             ticket: {
               name: data?.ticket?.name,
-              price: data?.ticket?.price
+              price: data?.ticket?.price,
             },
           },
           grandTotal: data?.amount,
@@ -253,26 +236,15 @@ const NewAgentBooking = memo(() => {
     },
     onError: (error) => {
       console.error('Corporate booking error:', error);
-      message.error(error.response?.data?.message || 'Failed to process corporate ticket purchase');
+      message.error(error.message || 'Failed to process corporate ticket purchase');
     },
   });
 
-  // Mutation for agent booking
-  const agentBookingMutation = useMutation({
-    mutationFn: async ({ url, formData }) => {
-      const response = await api.post(url, formData);
-
-      if (!response.status) {
-        throw new Error(response?.message || 'Failed to create booking');
-      }
-
-      return response;
-    },
+  const agentBookingMutation = useAgentBooking({
     onSuccess: (response) => {
       if (response.status && response.bookings) {
-        setBookingHistory(response.bookings);
         const bookings = response.bookings;
-        setNormalBookings(prev => [...prev, ...bookings]);
+        setNormalBookings((prev) => [...prev, ...bookings]);
 
         message.success('Booking created successfully!');
         setIsConfirmed(true);
@@ -286,36 +258,26 @@ const NewAgentBooking = memo(() => {
     },
     onError: (error) => {
       console.error('Booking error:', error);
-      message.error(error.response?.data?.message || error.response?.data?.error || 'Failed to create booking');
+      message.error(error.message || error.server?.error || 'Failed to create booking');
     },
   });
 
-  // Mutation for master booking
-  const masterBookingMutation = useMutation({
-    mutationFn: async ({ url, payload }) => {
-      const response = await api.post(url, payload);
-
-      if (!response.status) {
-        throw new Error(response?.message || 'Failed to create master booking');
-      }
-
-      return response;
-    },
+  const masterBookingMutation = useMasterBooking({
     onSuccess: (response) => {
       if (response.status && response.booking) {
         const master = response.booking;
-        setMasterBookings(prev => [...prev, master]);
+        setMasterBookings((prev) => [...prev, master]);
         setShowPrintModel(true);
         message.success('Master booking created successfully!');
       }
     },
     onError: (error) => {
       console.error('Master booking error:', error);
-      message.error(error.response?.data?.message || 'Failed to create master booking');
-    }
+      message.error(error.message || 'Failed to create master booking');
+    },
   });
 
-  // Handle corporate booking after attendees are saved
+  // Handlers
   const handleCorporateBooking = useCallback((savedAttendees) => {
     const attendee = savedAttendees[0];
     const ticket = selectedTickets[0];
@@ -340,7 +302,6 @@ const NewAgentBooking = memo(() => {
     corporateBookingMutation.mutate(payload);
   }, [UserData, selectedTickets, corporateBookingMutation]);
 
-  // Handle master booking
   const handleMasterBooking = useCallback((bookings, sessionId) => {
     const bookingIds = bookings.map(booking => booking?.id);
     const masterUrl = `agent-master-booking/${createdUser?.id}`;
@@ -357,18 +318,15 @@ const NewAgentBooking = memo(() => {
     masterBookingMutation.mutate({ url: masterUrl, payload });
   }, [createdUser, UserData, grandTotal, method, masterBookingMutation]);
 
-  // ✅ NEW: Get attendee count for specific ticket
   const getAttendeeCountForTicket = useCallback((ticketId) => {
     return ticketAttendees[ticketId]?.length || 0;
   }, [ticketAttendees]);
 
-  // ✅ NEW: Get required attendee count for ticket
   const getRequiredAttendeeCountForTicket = useCallback((ticketId) => {
     const ticket = selectedTickets.find(t => t.id === ticketId);
     return ticket ? Number(ticket.quantity) : 0;
   }, [selectedTickets]);
 
-  // ✅ NEW: Validate all tickets have required attendees
   const validateTicketAttendees = useCallback(() => {
     for (const ticket of selectedTickets) {
       if (Number(ticket.quantity) > 0) {
@@ -378,7 +336,7 @@ const NewAgentBooking = memo(() => {
         if (currentCount !== requiredCount) {
           return {
             valid: false,
-            message: `Ticket "${ticket.name}" requires ${requiredCount} attendee(s), but only ${currentCount} added`
+            message: `Ticket "${ticket.category || ticket.name || 'Unknown'}" requires ${requiredCount} attendee(s), but only ${currentCount} added`
           };
         }
       }
@@ -386,7 +344,6 @@ const NewAgentBooking = memo(() => {
     return { valid: true };
   }, [selectedTickets, getAttendeeCountForTicket]);
 
-  // ✅ UPDATED: Handle save attendees with ticket validation
   const handleSaveAttendees = useCallback(() => {
     const validation = validateTicketAttendees();
 
@@ -409,7 +366,6 @@ const NewAgentBooking = memo(() => {
       okText: 'Yes, Save it!',
       cancelText: 'No, cancel!',
       onOk: () => {
-        // ✅ Sanitize attendee data (removes system fields)
         const sanitizedAttendees = sanitizeData(allAttendees);
 
         // Check for duplicates
@@ -425,47 +381,110 @@ const NewAgentBooking = memo(() => {
           }
         }
 
-        // Create FormData
-        const formData = new FormData();
-        const fieldGroupName = isCorporate ? 'corporateUser' : 'attendees';
-
-        sanitizedAttendees.forEach((attendee, index) => {
-          Object.keys(attendee).forEach((fieldKey) => {
-            const fieldValue = attendee[fieldKey];
-
-            // Handle file fields
-            if (typeof fieldValue === 'string' && fieldValue.startsWith('data:')) {
-              const arr = fieldValue.split(',');
-              const mime = arr[0].match(/:(.*?);/)[1];
-              const bstr = atob(arr[1]);
-              let n = bstr.length;
-              const u8arr = new Uint8Array(n);
-              while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-              }
-              const blob = new Blob([u8arr], { type: mime });
-              const file = new File([blob], `${fieldKey}_${index}.${mime.split('/')[1]}`, { type: mime });
-              formData.append(`${fieldGroupName}[${index}][${fieldKey}]`, file);
-            } else if (fieldValue instanceof File) {
-              formData.append(`${fieldGroupName}[${index}][${fieldKey}]`, fieldValue);
-            } else {
-              formData.append(`${fieldGroupName}[${index}][${fieldKey}]`, sanitizeInput(fieldValue));
-            }
-          });
+        // ✅ Use helper to build FormData
+        const formData = buildAttendeesFormData({
+          attendees: sanitizedAttendees,
+          userMeta: {
+            user_id: UserData?.id,
+            user_name: sanitizeInput(UserData?.name),
+            event_name: sanitizeInput(event?.name),
+            isAgentBooking: true
+          },
+          fieldGroupName: isCorporate ? 'corporateUser' : 'attendees'
         });
 
-        // Append metadata
-        formData.append('user_id', UserData?.id);
-        formData.append('user_name', sanitizeInput(UserData?.name));
-        formData.append('event_name', sanitizeInput(event?.name));
-        formData.append('isAgentBooking', true);
-
-        storeAttendeesMutation.mutate(formData);
+        storeAttendeesMutation.mutate({ formData, isCorporate });
       },
     });
   }, [allAttendees, validateTicketAttendees, isCorporate, UserData, event, storeAttendeesMutation]);
 
-  // Handle user submission from modal
+    const handleBookingAfterUser = useCallback(async (user, attendeeIdsByTicket = {}) => {
+
+    // ✅ Validate user exists
+    if (!user || !user.id) {
+      console.error('❌ No user provided to handleBookingAfterUser');
+      message.error('User information is missing');
+      return;
+    }
+
+    const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
+
+    if (!hasValidTicket) {
+      message.error('Please select at least one ticket');
+      return;
+    }
+
+    // ✅ Build tickets array with attendee IDs
+    const ticketsPayload = selectedTickets.map(ticket => {
+      const ticketId = ticket.id.toString(); // ✅ Ensure string for comparison
+      const attendeeIds = attendeeIdsByTicket[ticketId] || attendeeIdsByTicket[ticket.id] || [];
+      
+
+      return {
+        id: ticket.id,
+        category: ticket.category,
+        quantity: ticket.quantity,
+        price: ticket.price,
+        baseAmount: ticket.baseAmount,
+        centralGST: ticket.centralGST,
+        stateGST: ticket.stateGST,
+        totalTax: ticket.totalTax,
+        convenienceFee: ticket.convenienceFee,
+        finalAmount: ticket.finalAmount,
+        attendee_ids: attendeeIds // ✅ Should contain IDs like [6, 7]
+      };
+    });
+
+    const bookingPayload = {
+      agent_id: UserData?.id,
+      user_id: user?.id, // ✅ Make sure user_id is always included
+      number: user?.number || number,
+      email: user?.email || email,
+      name: user?.name || name,
+      payment_method: method,
+      base_amount: subtotal,
+      amount: grandTotal,
+      discount: discount,
+      type: event?.event_type || 'daily',
+      tickets: ticketsPayload
+    };
+
+    const url = isAmusment ? `amusement-agent-book-ticket/${eventID}` : `booking/agent/${eventID}`;
+
+    // ✅ Call booking API ONLY ONCE
+    agentBookingMutation.mutate({ 
+      url, 
+      payload: bookingPayload
+    }, {
+      onSuccess: (response) => {
+        message.success('Booking created successfully!');
+        
+        // Reset form
+        setTicketAttendees({});
+        setSavedAttendeeIds({});
+        setSelectedTickets([]);
+        // Don't set showPrintModel here, let the mutation success handler do it
+      },
+      onError: (error) => {
+        console.error('❌ Booking error:', error);
+        message.error(error.message || 'Booking failed');
+      }
+    });
+  }, [
+    selectedTickets,
+    UserData, 
+    number,
+    email,
+    name,
+    method, 
+    subtotal, 
+    grandTotal, 
+    discount, 
+    event,
+    isAmusment,
+    eventID,
+    agentBookingMutation
+  ]);
   const handleUserSubmit = useCallback(async () => {
     if (!name) {
       message.error("Name is required");
@@ -477,16 +496,27 @@ const NewAgentBooking = memo(() => {
       return;
     }
 
+    // ✅ Validate attendees
+    if (isAttendeeRequire) {
+      const validation = validateTicketAttendees();
+      if (!validation.valid) {
+        message.error(validation.message);
+        return;
+      }
+    }
+
     try {
       const checkResult = await checkEmailMutation.mutateAsync({
         email,
         number
       });
 
+      let user = null;
+
       if (checkResult?.exists) {
         if (checkResult.is_email_and_mobile_different_users) {
           message.error('This number & email is already registered');
-          return false;
+          return;
         } else {
           if (checkResult?.mobile_exists) {
             const formData = new FormData();
@@ -507,13 +537,16 @@ const NewAgentBooking = memo(() => {
               formData
             });
 
-            setCreatedUser(checkResult.user);
-            handleBookingAfterUser(checkResult.user);
+            user = checkResult.user; // ✅ Set user here
+            setCreatedUser(user);
+            // ❌ REMOVE: handleBookingAfterUser(checkResult.user); // This was causing first call without attendees
           } else if (checkResult?.email_exists) {
             message.error('This email is already registered');
+            return; // ✅ Add return to prevent further execution
           }
         }
       } else {
+        // New user creation
         const formData = new FormData();
         formData.append('name', name);
         formData.append('email', email);
@@ -534,100 +567,65 @@ const NewAgentBooking = memo(() => {
 
         const result = await createUserMutation.mutateAsync(formData);
         if (result.user) {
-          setCreatedUser(result.user);
-          handleBookingAfterUser(result.user);
+          user = result.user; // ✅ Set user here
+          setCreatedUser(user);
+          // ❌ REMOVE: handleBookingAfterUser(result.user); // This was also causing issues
         }
       }
+
+      // ✅ Only proceed if user exists
+      if (!user) {
+        message.error('Failed to create or retrieve user');
+        return;
+      }
+
+      // ✅ Collect attendee IDs (all attendees already have IDs from AttendeesField API call)
+
+      const attendeeIdsByTicket = {};
+
+      Object.entries(ticketAttendees).forEach(([ticketId, attendees]) => {
+        
+        const ids = attendees
+          .map(att => {
+            return att.id;
+          })
+          .filter(id => id !== undefined && id !== null);
+
+        attendeeIdsByTicket[ticketId] = ids;
+      });
+
+
+      // ✅ SINGLE CALL - Create booking with attendee IDs
+      await handleBookingAfterUser(user, attendeeIdsByTicket);
+
     } catch (err) {
-      console.error(err);
-      message.error("An error occurred, please try again.");
+      console.error('Error in handleUserSubmit:', err);
+      message.error(err.message || "An error occurred, please try again.");
     }
-  }, [name, number, email, companyName, designation, photo, doc, UserData, checkEmailMutation, createUserMutation, updateUserMutation]);
+  }, [
+    name, 
+    number, 
+    email, 
+    companyName, 
+    designation, 
+    photo, 
+    doc, 
+    UserData, 
+    isAttendeeRequire,
+    ticketAttendees,
+    validateTicketAttendees,
+    checkEmailMutation, 
+    createUserMutation, 
+    updateUserMutation,
+    handleBookingAfterUser // ✅ Keep this dependency
+  ]);
 
-  // Handle booking after user is created/updated
-  const handleBookingAfterUser = useCallback((user) => {
-    const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
 
-    if (!hasValidTicket) {
-      message.error('Please select at least one ticket');
-      return;
-    }
-
-    const url = isAmusment ? `amusement-agent-book-ticket/${eventID}` : `agent-book-ticket/${eventID}`;
-
-    const formData = new FormData();
-
-    // ✅ Add attendees with clean data
-    allAttendees?.forEach((attendee, index) => {
-      // Clean attendee object
-      const cleanAttendee = {};
-      Object.keys(attendee).forEach(key => {
-        if (!['id', 'created_at', 'updated_at', 'deleted_at', 'status',
-          'booking_id', 'user_id', 'agent_id', 'token', 'ticketId'].includes(key)) {
-          cleanAttendee[key] = attendee[key];
-        }
-      });
-
-      Object.entries(cleanAttendee).forEach(([fieldKey, fieldValue]) => {
-        formData.append(`attendees[${index}][${fieldKey}]`, fieldValue);
-      });
-    });
-
-    const requestData = {
-      agent_id: UserData?.id,
-      user_id: user?.id,
-      number: user?.number,
-      email: user?.email,
-      base_amount: subtotal,
-      type: event?.event_type,
-      name: user?.name,
-      payment_method: method,
-      amount: grandTotal,
-      discount: discount,
-    };
-
-    Object.entries(requestData).forEach(([key, value]) => {
-      formData.append(key, value);
-    });
-
-    selectedTickets?.forEach((ticket, index) => {
-      Object.entries(ticket).forEach(([ticketKey, ticketValue]) => {
-        formData.append(`tickets[${index}][${ticketKey}]`, ticketValue);
-      });
-    });
-
-    agentBookingMutation.mutate({ url, formData });
-  }, [selectedTickets, UserData, subtotal, event, method, grandTotal, discount, allAttendees, isAmusment, eventID, agentBookingMutation]);
-
-  // Handle send email
-  useEffect(() => {
-    if (masterBookings.length > 0 || normalBookings.length > 0) {
-      const masterBookingIds = masterBookings.flatMap((data) => data?.booking_id);
-      const filteredNormalBookings = normalBookings.filter(
-        (booking) => !masterBookingIds.includes(booking?.id)
-      );
-      const combinedBookings = [...masterBookings, ...filteredNormalBookings];
-      setMainBookings(combinedBookings);
-    }
-  }, [masterBookings, normalBookings]);
-
-  useEffect(() => {
-    if (mainBookings?.length > 0) {
-      handleSendMail(mainBookings);
-    }
-  }, [mainBookings]);
 
   const getTicketPrice = (category) => {
     let ticket = event?.tickets?.find((item) => item.name === category);
     return ticket?.price;
   };
-
-  const isLoading = storeAttendeesMutation.isPending ||
-    corporateBookingMutation.isPending ||
-    agentBookingMutation.isPending ||
-    masterBookingMutation.isPending ||
-    createUserMutation.isPending ||
-    updateUserMutation.isPending;
 
   const handleSendMail = async (data) => {
     if (data?.length > 0) {
@@ -671,142 +669,12 @@ const NewAgentBooking = memo(() => {
     }
   };
 
-  // ✅ UPDATED: Handle attendee save with ticket association
-  const handleAttendeeSave = useCallback((attendeeData, editingIndex) => {
-    if (!currentTicketId) {
-      message.error('Please select a ticket first');
-      return;
-    }
-
-    const currentTicketAttendees = ticketAttendees[currentTicketId] || [];
-    const requiredCount = getRequiredAttendeeCountForTicket(currentTicketId);
-
-    if (editingIndex !== null) {
-      // Update existing attendee
-      const updated = [...currentTicketAttendees];
-      updated[editingIndex] = {
-        ...attendeeData,
-        ticketId: currentTicketId
-      };
-      setTicketAttendees(prev => ({
-        ...prev,
-        [currentTicketId]: updated
-      }));
-      message.success('Attendee updated successfully');
-    } else {
-      // Check if we can add more attendees
-      if (currentTicketAttendees.length >= requiredCount) {
-        message.warning(`Maximum ${requiredCount} attendee(s) allowed for this ticket`);
-        return;
-      }
-
-      // Add new attendee
-      const newAttendee = {
-        ...attendeeData,
-        ticketId: currentTicketId
-      };
-      setTicketAttendees(prev => ({
-        ...prev,
-        [currentTicketId]: [...currentTicketAttendees, newAttendee]
-      }));
-      message.success('Attendee added successfully');
-    }
-
-    setShowAttendeeFieldModal(false);
-    setEditingAttendeeIndex(null);
-    setEditingAttendeeData({});
-    setCurrentTicketId(null);
-  }, [currentTicketId, ticketAttendees, getRequiredAttendeeCountForTicket]);
-
-  // ✅ UPDATED: Handle select attendee from suggestions with ticket association
-  const handleSelectAttendee = useCallback((attendee) => {
-    if (!currentTicketId) {
-      message.error('Please select a ticket first');
-      return;
-    }
-
-    const currentTicketAttendees = ticketAttendees[currentTicketId] || [];
-    const requiredCount = getRequiredAttendeeCountForTicket(currentTicketId);
-
-    if (currentTicketAttendees.length >= requiredCount) {
-      message.warning(`Maximum ${requiredCount} attendee(s) allowed for this ticket`);
-      return;
-    }
-
-    const isAlreadySelected = currentTicketAttendees.some(a => a.id === attendee.id);
-
-    if (isAlreadySelected) {
-      message.warning('This attendee is already selected for this ticket');
-      return;
-    }
-
-    const newAttendee = {
-      ...attendee,
-      ticketId: currentTicketId
-    };
-
-    setTicketAttendees(prev => ({
-      ...prev,
-      [currentTicketId]: [...currentTicketAttendees, newAttendee]
-    }));
-
-    message.success('Attendee added successfully');
-  }, [currentTicketId, ticketAttendees, getRequiredAttendeeCountForTicket]);
-
-  // ✅ UPDATED: Handle remove attendee with ticket association
-  const handleRemoveAttendee = useCallback((ticketId, index) => {
-    const currentTicketAttendees = ticketAttendees[ticketId] || [];
-    const updated = currentTicketAttendees.filter((_, i) => i !== index);
-
-    setTicketAttendees(prev => ({
-      ...prev,
-      [ticketId]: updated
-    }));
-
-    message.success('Attendee removed');
-  }, [ticketAttendees]);
-
-  // ✅ UPDATED: Handle edit attendee with ticket association
-  const handleEditAttendee = useCallback((ticketId, index) => {
-    const currentTicketAttendees = ticketAttendees[ticketId] || [];
-    setCurrentTicketId(ticketId);
-    setEditingAttendeeIndex(index);
-    setEditingAttendeeData(currentTicketAttendees[index]);
-    setShowAttendeeFieldModal(true);
-  }, [ticketAttendees]);
-
-  // ✅ UPDATED: Handle attendee modal open
-  const handleOpenAttendeeModal = useCallback((ticketId) => {
-    setCurrentTicketId(ticketId);
-    setEditingAttendeeIndex(null);
-    setEditingAttendeeData({});
-    setShowAttendeeFieldModal(true);
-  }, []);
-
-  // Handle attendee modal close
-  const handleCloseAttendeeModal = useCallback(() => {
-    setShowAttendeeFieldModal(false);
-    setEditingAttendeeIndex(null);
-    setEditingAttendeeData({});
-    setCurrentTicketId(null);
-  }, []);
-
-  // ✅ UPDATED: Handle show attendee suggestions
-  const handleShowSuggestions = useCallback((ticketId) => {
-    if (existingAttendees.length === 0) {
-      message.info('No existing attendees found');
-      return;
-    }
-    setCurrentTicketId(ticketId);
-    setShowAttendeeSuggestion(true);
-  }, [existingAttendees]);
-
-  // Effects
-  useEffect(() => {
-    if (isMobile) {
-      setIsCheckOut(true);
-    }
-  }, [isMobile]);
+  const isLoading = storeAttendeesMutation.isPending ||
+    corporateBookingMutation.isPending ||
+    agentBookingMutation.isPending ||
+    masterBookingMutation.isPending ||
+    createUserMutation.isPending ||
+    updateUserMutation.isPending;
 
   useEffect(() => {
     if (selectedTickets?.length > 0) {
@@ -824,23 +692,40 @@ const NewAgentBooking = memo(() => {
 
   useEffect(() => {
     if (selectedTickets?.length > 0) {
-      const totalBaseAmount = selectedTickets.reduce(
-        (acc, ticket) => acc + ((ticket.baseAmount || 0) * (ticket.quantity || 0)),
-        0
-      );
-
-      const totalCentralGST = selectedTickets.reduce(
-        (acc, ticket) => acc + ((ticket.centralGST || 0) * (ticket.quantity || 0)),
-        0
-      );
-
-      const totalStateGST = selectedTickets.reduce(
-        (acc, ticket) => acc + ((ticket.stateGST || 0) * (ticket.quantity || 0)),
-        0
-      );
-
+      // here is console of selected tickets [
+//     {
+//       "id": 2,
+//       "category": "dummy",
+//       "quantity": 1,
+//       "price": 20,
+//       "baseAmount": 20,
+//       "centralGST": 1.8,
+//       "stateGST": 1.8,
+//       "totalTax": 3.6,
+//       "convenienceFee": 0.2,
+//       "finalAmount": 23.8
+//   },
+//   {
+//       "id": 3,
+//       "category": "34",
+//       "quantity": 1,
+//       "price": 34,
+//       "baseAmount": 34,
+//       "centralGST": 3.06,
+//       "stateGST": 3.06,
+//       "totalTax": 6.12,
+//       "convenienceFee": 0.34,
+//       "finalAmount": 40.46
+//   }
+// ]  update the calculation of the total amount
+      console.log(selectedTickets);
+      //here i think we need to add the convenience fee to the total amount
+      const totalConvenienceFee = selectedTickets.reduce((acc, ticket) => acc + (ticket.convenienceFee * ticket.quantity), 0);
+      const totalBaseAmount = selectedTickets.reduce((acc, ticket) => acc + (ticket.baseAmount * ticket.quantity), 0);
+      const totalCentralGST = selectedTickets.reduce((acc, ticket) => acc + (ticket.centralGST * ticket.quantity), 0);
+      const totalStateGST = selectedTickets.reduce((acc, ticket) => acc + (ticket.stateGST * ticket.quantity), 0);
       const totalTax = totalCentralGST + totalStateGST;
-      const totalAmount = subtotal + totalTax;
+      const totalAmount = subtotal + totalTax + totalConvenienceFee;
 
       setBaseAmount(+totalBaseAmount.toFixed(2));
       setCentralGST(+totalCentralGST.toFixed(2));
@@ -858,7 +743,6 @@ const NewAgentBooking = memo(() => {
     }
   }, [selectedTickets, discount, subtotal]);
 
-  // ✅ NEW: Reset attendees when tickets change
   useEffect(() => {
     const validTicketIds = selectedTickets
       .filter(t => Number(t.quantity) > 0)
@@ -876,66 +760,23 @@ const NewAgentBooking = memo(() => {
     setTicketAttendees(newTicketAttendees);
   }, [selectedTickets]);
 
-  const handleDiscount = useCallback(() => {
-    if (discountValue && subtotal > 0) {
-      let disc = 0;
-      if (discountType === 'fixed') {
-        disc = Number(discountValue);
-        setDiscount(disc);
-      } else if (discountType === 'percentage') {
-        disc = (subtotal * Number(discountValue)) / 100;
-        setDiscount(+disc.toFixed(2));
-      }
-      setDisableChoice(true);
+  useEffect(() => {
+    if (masterBookings.length > 0 || normalBookings.length > 0) {
+      const masterBookingIds = masterBookings.flatMap((data) => data?.booking_id);
+      const filteredNormalBookings = normalBookings.filter(
+        (booking) => !masterBookingIds.includes(booking?.id)
+      );
+      const combinedBookings = [...masterBookings, ...filteredNormalBookings];
+      setMainBookings(combinedBookings);
     }
-  }, [discountValue, discountType, subtotal]);
+  }, [masterBookings, normalBookings]);
 
-  const handleBooking = useCallback(() => {
-    if (currentStep === 0) {
-      // Step 0: Ticket Selection
-      const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
-
-      if (!hasValidTicket || selectedTickets.length === 0) {
-        message.error('Please select at least one ticket');
-        return;
-      }
-
-      if (isAttendeeRequire) {
-        setCurrentStep(1); // Go to attendee step
-      } else {
-        setShowPrintModel(true); // Directly open checkout
-      }
-    } else if (currentStep === 1) {
-      // Step 1: Attendee Management
-      const validation = validateTicketAttendees();
-
-      if (!validation.valid) {
-        message.warning(validation.message);
-        return;
-      }
-
-      handleSaveAttendees();
+  useEffect(() => {
+    if (mainBookings?.length > 0) {
+      handleSendMail(mainBookings);
     }
-  }, [currentStep, selectedTickets, isAttendeeRequire, validateTicketAttendees, handleSaveAttendees]);
+  }, [mainBookings]);
 
-  const stats = [
-    {
-      title: "Bookings",
-      value: bookingStats.total,
-    },
-    {
-      title: "Amount",
-      value: bookingStats.amount,
-      prefix: "₹",
-      valueStyle: { color: "var(--primary-color)" },
-    },
-    {
-      title: "Discount",
-      value: bookingStats.discount,
-      prefix: "₹",
-      valueStyle: { color: "#1890ff" },
-    },
-  ];
 
   const handleButtonClick = useCallback(async (evnt, tkts) => {
     setEvent(evnt);
@@ -944,7 +785,7 @@ const NewAgentBooking = memo(() => {
     setTicketAttendees({});
     setCategoryId(evnt?.category);
     setCurrentStep(0); // Reset to step 0
-
+    
     const response = await fetchCategoryData(evnt?.category);
 
     if (response.status) {
@@ -961,7 +802,219 @@ const NewAgentBooking = memo(() => {
     setIsAmusment(evnt?.event_type === 'amusement');
   }, [fetchCategoryData]);
 
-  // Replace the row section (around line 1034-1090) with:
+
+
+  // ✅ Add missing handleOpenAttendeeModal function
+  const handleOpenAttendeeModal = useCallback((ticketId) => {
+    setCurrentTicketId(ticketId);
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+    setShowAttendeeFieldModal(true);
+  }, []);
+
+  const handleCloseAttendeeModal = useCallback(() => {
+    setShowAttendeeFieldModal(false);
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+    setCurrentTicketId(null);
+  }, []);
+
+  // ✅ Get all selected attendee IDs across all tickets
+  const getAllSelectedAttendeeIds = useCallback(() => {
+    const allIds = [];
+    Object.values(ticketAttendees).forEach(attendees => {
+      attendees.forEach(att => {
+        if (att.id) {
+          allIds.push(att.id);
+        }
+      });
+    });
+    return allIds;
+  }, [ticketAttendees]);
+
+  const handleAttendeeSave = useCallback((attendeeData, editingIndex) => {
+    const currentTicketAttendees = ticketAttendees[currentTicketId] || [];
+    
+    if (editingIndex !== null) {
+      // ✅ Update existing attendee
+      const updatedAttendees = [...currentTicketAttendees];
+      updatedAttendees[editingIndex] = {
+        ...attendeeData,
+        ...(attendeeData.id && { id: attendeeData.id }), // Keep existing ID if present
+        isNew: !attendeeData.id, // ✅ Mark as new if no ID
+        isEdited: true
+      };
+      
+      setTicketAttendees(prev => ({
+        ...prev,
+        [currentTicketId]: updatedAttendees
+      }));
+      
+      message.success('Attendee updated successfully');
+    } else {
+      // ✅ Add new attendee (no id, needs to be saved)
+      const requiredCount = getRequiredAttendeeCountForTicket(currentTicketId);
+      
+      if (currentTicketAttendees.length >= requiredCount) {
+        message.warning(`Maximum ${requiredCount} attendees allowed for this ticket`);
+        return;
+      }
+
+      setTicketAttendees(prev => ({
+        ...prev,
+        [currentTicketId]: [...currentTicketAttendees, {
+          ...attendeeData,
+          isNew: true, // ✅ Mark as new (needs to be saved)
+          needsSaving: true // ✅ Flag for API call
+        }]
+      }));
+      
+      message.success('Attendee added successfully');
+    }
+    
+    handleCloseAttendeeModal();
+  }, [currentTicketId, ticketAttendees, getRequiredAttendeeCountForTicket, handleCloseAttendeeModal]);
+
+  const handleSelectAttendee = useCallback((attendee) => {
+    const currentTicketAttendees = ticketAttendees[currentTicketId] || [];
+    const requiredCount = getRequiredAttendeeCountForTicket(currentTicketId);
+
+    if (currentTicketAttendees.length >= requiredCount) {
+      message.warning(`Maximum ${requiredCount} attendees allowed for this ticket`);
+      return;
+    }
+
+    // ✅ Check if attendee is already used in ANY ticket
+    const allSelectedIds = getAllSelectedAttendeeIds();
+    if (allSelectedIds.includes(attendee.id)) {
+      message.warning('This attendee is already added to another ticket');
+      return;
+    }
+
+    // ✅ Add existing attendee (already has ID, no need to save)
+    setTicketAttendees(prev => ({
+      ...prev,
+      [currentTicketId]: [...currentTicketAttendees, {
+        id: attendee.id, // ✅ Already has ID
+        Name: attendee.Name,
+        Mo: attendee.Mo,
+        Photo: attendee.Photo,
+        Company_Name: attendee.Company_Name,
+        isExisting: true, // ✅ Mark as existing
+        needsSaving: false // ✅ No need to save
+      }]
+    }));
+
+    message.success('Attendee added successfully');
+    setShowAttendeeSuggestion(false);
+  }, [currentTicketId, ticketAttendees, getRequiredAttendeeCountForTicket, getAllSelectedAttendeeIds]);
+
+  // ✅ Pass all selected IDs to AttendeeSuggestion modal
+  const handleShowSuggestions = useCallback((ticketId) => {
+    setCurrentTicketId(ticketId);
+    setShowAttendeeSuggestion(true);
+  }, []);
+
+  const handleRemoveAttendee = useCallback((ticketId, index) => {
+    const currentTicketAttendees = ticketAttendees[ticketId] || [];
+    const updated = currentTicketAttendees.filter((_, i) => i !== index);
+
+    setTicketAttendees(prev => ({
+      ...prev,
+      [ticketId]: updated
+    }));
+
+    message.success('Attendee removed');
+  }, [ticketAttendees]);
+
+  const handleEditAttendee = useCallback((ticketId, index) => {
+    const currentTicketAttendees = ticketAttendees[ticketId] || [];
+    setCurrentTicketId(ticketId);
+    setEditingAttendeeIndex(index);
+    setEditingAttendeeData(currentTicketAttendees[index]);
+    setShowAttendeeFieldModal(true);
+  }, [ticketAttendees]);
+
+  const handleDiscount = useCallback(() => {
+    if (!discountValue || discountValue <= 0) {
+      message.warning('Please enter a valid discount value');
+      return;
+    }
+
+    let calculatedDiscount = 0;
+
+    if (discountType === 'percentage') {
+      if (discountValue > 100) {
+        message.error('Percentage cannot be more than 100%');
+        return;
+      }
+      calculatedDiscount = (subtotal * discountValue) / 100;
+    } else {
+      if (discountValue > subtotal) {
+        message.error('Discount cannot be more than subtotal');
+        return;
+      }
+      calculatedDiscount = discountValue;
+    }
+
+    setDiscount(+calculatedDiscount.toFixed(2));
+    setDisableChoice(true);
+    message.success('Discount applied successfully');
+  }, [discountValue, discountType, subtotal]);
+
+  // ✅ Updated goToNextStep with proper validation
+  const goToNextStep = useCallback(() => {
+    if (currentStep === 0) {
+      // ✅ Step 0 → Step 1: Validate tickets are selected
+      const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
+      
+      if (!hasValidTicket) {
+        message.error('Please select at least one ticket');
+        return;
+      }
+
+      // ✅ Move to next step based on attendee requirement
+      if (isAttendeeRequire) {
+        setCurrentStep(1); // Go to attendee management
+      } else {
+        // No attendees required, show checkout modal directly
+        setShowPrintModel(true);
+      }
+    } else if (currentStep === 1) {
+      // ✅ Step 1 → Step 2: Validate attendees
+      if (isAttendeeRequire) {
+        const validation = validateTicketAttendees();
+        if (!validation.valid) {
+          message.error(validation.message);
+          return;
+        }
+      }
+      
+      // Show checkout modal
+      setShowPrintModel(true);
+    }
+  }, [currentStep, selectedTickets, isAttendeeRequire, validateTicketAttendees]);
+
+  const goToPreviousStep = useCallback(() => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+    }
+  }, [currentStep]);
+
+  // ✅ Also update handleBooking to not interfere
+  const handleBooking = useCallback(() => {
+    // This should only be called from the final checkout step
+    const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
+
+    if (!hasValidTicket) {
+      message.error('Please select at least one ticket');
+      return;
+    }
+
+    // Show checkout modal (user details form)
+    setShowPrintModel(true);
+  }, [selectedTickets]);
+
   return (
     <Fragment>
       <AgentBookingModal
@@ -972,8 +1025,8 @@ const NewAgentBooking = memo(() => {
         loading={isLoading}
         setName={setName}
         name={name}
-        number={number}
         setNumber={setNumber}
+        number={number}
         email={email}
         setEmail={setEmail}
         handleSubmit={handleUserSubmit}
@@ -1010,12 +1063,12 @@ const NewAgentBooking = memo(() => {
             }}
             attendees={existingAttendees}
             onSelectAttendee={handleSelectAttendee}
-            selectedAttendeeIds={currentTicketId ? (ticketAttendees[currentTicketId] || []).map(a => a.id) : []}
+            selectedAttendeeIds={getAllSelectedAttendeeIds()} // ✅ Pass ALL selected IDs
           />
         </>
       )}
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={[16]}>
         <Col span={24}>
           <PosEvents handleButtonClick={handleButtonClick} />
         </Col>
@@ -1024,274 +1077,74 @@ const NewAgentBooking = memo(() => {
           <>
             {/* Step Indicator */}
             <Col span={24}>
-              <Card size="small">
-                <Space size="large" style={{ width: '100%', justifyContent: 'center' }}>
-                  <Space>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        backgroundColor: currentStep >= 0 ? 'var(--primary-color)' : '#d9d9d9',
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      1
-                    </div>
-                    <Text strong={currentStep === 0}>Select Tickets</Text>
-                  </Space>
-
-                  <ArrowRightOutlined style={{ color: '#d9d9d9' }} />
-
-                  {isAttendeeRequire && (
-                    <>
-                      <Space>
-                        <div
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: '50%',
-                            backgroundColor: currentStep >= 1 ? 'var(--primary-color)' : 'var(--secondary-color)',
-                            color: '#fff',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          2
-                        </div>
-                        <Text strong={currentStep === 1}>Add Attendees</Text>
-                      </Space>
-
-                      <ArrowRightOutlined style={{ color: '#d9d9d9' }} />
-                    </>
-                  )}
-
-                  <Space>
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        backgroundColor: currentStep >= 1 ? 'var(--primary-color)' : 'var(--secondary-color)',
-                        color: '#fff',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 'bold',
-                      }}
-                    >
-                      {isAttendeeRequire ? 3 : 2}
-                    </div>
-                    <Text>Checkout</Text>
-                  </Space>
-                </Space>
-              </Card>
+              <StepIndicator currentStep={currentStep} isAttendeeRequire={isAttendeeRequire} />
             </Col>
 
             {/* Step 0: Ticket Selection */}
             {currentStep === 0 && (
               <Col xs={24} lg={16}>
-                <Card
-                  bordered={false}
-                  title={event?.name || 'Select an Event'}
-                  extra={event?.date_range && (
-                    <Space>
-                      <CalendarOutlined className="text-primary" />
-                      <Text>{formatDateRange(event?.date_range)}</Text>
-                    </Space>
-                  )}
-                >
-                  <BookingTickets
-                    setSubTotal={setSubTotal}
-                    setBaseAmount={setBaseAmount}
-                    setCentralGST={setCentralGST}
-                    setStateGST={setStateGST}
-                    setTotalTax={setTotalTax}
-                    event={event}
-                    selectedTickets={selectedTickets}
-                    setSelectedTickets={setSelectedTickets}
-                    setGrandTotal={setGrandTotal}
-                    getCurrencySymbol={getCurrencySymbol}
-                  />
-                </Card>
+                <TicketSelectionStep
+                  event={event}
+                  selectedTickets={selectedTickets}
+                  setSelectedTickets={setSelectedTickets}
+                  setSubTotal={setSubTotal}
+                  setBaseAmount={setBaseAmount}
+                  setCentralGST={setCentralGST}
+                  setStateGST={setStateGST}
+                  setTotalTax={setTotalTax}
+                  setGrandTotal={setGrandTotal}
+                  getCurrencySymbol={getCurrencySymbol}
+                  formatDateRange={formatDateRange}
+                  onNext={goToNextStep} // ✅ Pass navigation function
+                />
               </Col>
             )}
 
             {/* Step 1: Attendee Management */}
             {currentStep === 1 && isAttendeeRequire && (
               <Col xs={24} lg={16}>
-                <Card
-                  bordered={false}
-                  title="Attendee Details"
-                  extra={
-                    <Button
-                      type="link"
-                      onClick={() => setCurrentStep(0)}
-                    >
-                      Back to Tickets
-                    </Button>
-                  }
-                >
-                  <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                    {selectedTickets?.map((ticket) => {
-                      if (Number(ticket.quantity) === 0) return null;
-
-                      const requiredCount = Number(ticket.quantity);
-                      const currentCount = getAttendeeCountForTicket(ticket.id);
-                      const currentTicketAttendees = ticketAttendees[ticket.id] || [];
-                      const isComplete = currentCount === requiredCount;
-
-                      return (
-                        <Card
-                          key={ticket.id}
-                          size="small"
-                          title={
-                              <Flex justify="space-between" align="center" style={{ marginBottom: 12 }}>
-                               <h5>{`Select Attendee For ${ticket?.category}`}</h5>  
-                            <Space>
-                              <Text strong>{ticket.name}</Text>
-                              <Tag color={isComplete ? 'green' : 'red'} className='py-0 m-0'>
-                                ({currentCount}/{requiredCount})
-                              </Tag>
-                            </Space>
-
-                          </Flex>
-                          }
-                          extra={
-                            <Space.Compact>
-                              <Button
-                                size="small"
-                                type="primary"
-                                icon={<UserAddOutlined />}
-                                onClick={() => handleOpenAttendeeModal(ticket.id)}
-                                disabled={currentCount >= requiredCount}
-                              >
-                                Add
-                              </Button>
-                              <Button
-                                size="small"
-                                icon={<TeamOutlined />}
-                                onClick={() => handleShowSuggestions(ticket.id)}
-                                disabled={!eventID || existingAttendees.length === 0 || currentCount >= requiredCount}
-                              >
-                                Select
-                              </Button>
-                            </Space.Compact>
-                          }
-                        >
-                        
-
-                          {currentTicketAttendees.length > 0 && (
-                            <SelectedAttendees
-                              attendees={currentTicketAttendees}
-                              onRemove={(index) => handleRemoveAttendee(ticket.id, index)}
-                              onEdit={(index) => handleEditAttendee(ticket.id, index)}
-                              categoryFields={categoryFields}
-                            />
-                          )}
-                        </Card>
-                      );
-                    })}
-                  </Space>
-                </Card>
+                <AttendeeManagementStep
+                  selectedTickets={selectedTickets}
+                  ticketAttendees={ticketAttendees}
+                  categoryFields={categoryFields}
+                  existingAttendees={existingAttendees}
+                  eventID={eventID}
+                  getAttendeeCountForTicket={getAttendeeCountForTicket}
+                  handleOpenAttendeeModal={handleOpenAttendeeModal}
+                  handleShowSuggestions={handleShowSuggestions}
+                  handleRemoveAttendee={handleRemoveAttendee}
+                  handleEditAttendee={handleEditAttendee}
+                  onNext={goToNextStep} // ✅ Pass navigation function
+                  onBack={goToPreviousStep}
+                />
               </Col>
             )}
 
             {/* Right Sidebar - Order Summary */}
             <Col xs={24} lg={8}>
-              <Card bordered={false}>
-                <Flex justify="space-around" wrap="wrap" gap={16} style={{ marginBottom: 16 }}>
-                  {stats.map((item, index) => (
-                    <Statistic
-                      key={index}
-                      title={item.title}
-                      value={item.value}
-                      prefix={item.prefix}
-                      valueStyle={{ ...item.valueStyle, fontSize: '14px', fontWeight: 'bold' }}
-                    />
-                  ))}
-                </Flex>
-
-                <Space direction="vertical" size="small" style={{ width: '100%' }}>
-                  <OrderCalculation
-                    ticketCurrency={ticketCurrency}
-                    subtotal={subtotal}
-                    discount={discount}
-                    baseAmount={baseAmount}
-                    centralGST={centralGST}
-                    totalTax={totalTax}
-                  />
-
-                  <DiscoutFIeldGroup
-                    discountType={discountType}
-                    setDiscountType={setDiscountType}
-                    discountValue={discountValue}
-                    setDiscountValue={setDiscountValue}
-                    disableChoice={disableChoice}
-                    handleDiscount={handleDiscount}
-                  />
-
-                  <Flex justifyContent="space-between" align="center">
-                    <Title level={5} style={{ margin: 0 }}>Order Total</Title>
-                    <Title level={3} type="primary" style={{ margin: 0 }}>
-                      {ticketCurrency}{grandTotal}
-                    </Title>
-                  </Flex>
-
-                  <div className="d-none d-sm-block">
-                    <Button
-                      type="primary"
-                      icon={<ArrowRightOutlined />}
-                      size="large"
-                      block
-                      onClick={handleBooking}
-                      loading={isLoading}
-                      disabled={selectedTickets.length === 0}
-                    >
-                      {currentStep === 0
-                        ? (isAttendeeRequire ? 'Proceed to Attendee' : 'Checkout')
-                        : 'Checkout'
-                      }
-                    </Button>
-                  </div>
-
-                  <div className="d-block d-sm-none">
-                    <StickyLayout
-                      left={
-                        <span className="p-0 m-0">
-                          <Title level={5} className="p-0 m-0">Order Total</Title>
-                          <Title level={3} type="primary" className="p-0 m-0">
-                            {ticketCurrency}{grandTotal}
-                          </Title>
-                        </span>
-                      }
-                      right={
-                        <Button
-                          type="primary"
-                          icon={<ArrowRightOutlined />}
-                          size="large"
-                          style={{ width: '10rem' }}
-                          block
-                          onClick={handleBooking}
-                          loading={isLoading}
-                          disabled={selectedTickets.length === 0}
-                        >
-                          {currentStep === 0
-                            ? (isAttendeeRequire ? 'Next' : 'Checkout')
-                            : 'Checkout'
-                          }
-                        </Button>
-                      }
-                    />
-                  </div>
-                </Space>
-              </Card>
+              <OrderSummary
+                stats={stats}
+                ticketCurrency={ticketCurrency}
+                discountType={discountType}
+                setDiscountType={setDiscountType}
+                discountValue={discountValue}
+                setDiscountValue={setDiscountValue}
+                disableChoice={disableChoice}
+                handleDiscount={handleDiscount}
+                currentStep={currentStep}
+                isAttendeeRequire={isAttendeeRequire}
+                selectedTickets={selectedTickets}
+                isLoading={isLoading}
+                onNext={goToNextStep} // ✅ Pass navigation function
+                onCheckout={handleBooking} // ✅ Only used for final checkout
+                isMobile={isMobile}
+                subtotal={subtotal}
+                discount={discount}
+                baseAmount={baseAmount}
+                centralGST={centralGST}
+                totalTax={totalTax}
+                grandTotal={grandTotal}
+              />
             </Col>
           </>
         )}

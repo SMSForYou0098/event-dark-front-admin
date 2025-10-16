@@ -112,6 +112,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
     }, [eventId, fetchTickets, fetchAreas, fetchPromocodes, fetchCurrencies]);
 
+
     // Currency conversion
     useEffect(() => {
         const price = form.getFieldValue('price');
@@ -284,7 +285,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             }
 
             const endpoint = editMode
-                ? `update-ticket/${eventId}`
+                ? `update-ticket/${editingTicket.id}`
                 : `create-ticket/${eventId}`;
 
             const response = await apiClient.post(endpoint, formData, {
