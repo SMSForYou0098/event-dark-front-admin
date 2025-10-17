@@ -63,7 +63,7 @@ const StepIndicator = ({ currentStep, isAttendeeRequire }) => {
               width: 32,
               height: 32,
               borderRadius: '50%',
-              backgroundColor: 'var(--bg-secondary)',
+              backgroundColor: currentStep <= (isAttendeeRequire ? 1 : 0) ? 'var(--bg-secondary)' : 'var(--primary-color)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',

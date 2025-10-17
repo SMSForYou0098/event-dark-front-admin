@@ -95,6 +95,7 @@ const AgentBookingModal = (props) => {
     companyName,
     designation,
     setDesignation,
+    setConfirmed,
     event,
     selectedTickets,
     isAccreditation = false
@@ -176,6 +177,7 @@ const AgentBookingModal = (props) => {
     if (!disabled) {
       resetAllFields();
       handleClose();
+      setConfirmed(false);
     }
   };
 

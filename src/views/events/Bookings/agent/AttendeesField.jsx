@@ -110,7 +110,7 @@ const AttendeesField = ({
       const formData = buildAttendeesFormData({
         attendees: [completeAttendeeData], // Single attendee
         userMeta: {
-          user_id: userId || null,
+          user_id: UserData?.id || userId || null,
           user_name: eventName || '',
           event_name: eventName || '',
           isAgentBooking: true

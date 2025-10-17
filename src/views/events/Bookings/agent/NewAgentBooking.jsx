@@ -27,6 +27,7 @@ import {
   buildAttendeesFormData,
 } from './useAgentBookingHooks';
 import { CloudCog } from 'lucide-react';
+import BookingSummary from './components/BookingSummary';
 
 const { confirm: showConfirm } = Modal;
 
@@ -69,11 +70,6 @@ const NewAgentBooking = memo(() => {
   const [isAttendeeRequire, setIsAttendeeRequire] = useState(false);
   const [categoryFields, setCategoryFields] = useState([]);
   const [savedAttendeeIds, setSavedAttendeeIds] = useState({}); // ✅ NEW: Store saved attendee IDs by ticket
-  const [currentTicketId, setCurrentTicketId] = useState(null);
-
-  const [editingAttendeeIndex, setEditingAttendeeIndex] = useState(null);
-  const [editingAttendeeData, setEditingAttendeeData] = useState({});
-  const [showAttendeeSuggestion, setShowAttendeeSuggestion] = useState(false);
   const [isCorporate, setIsCorporate] = useState(false);
   const [isAgent, setIsAgent] = useState(true);
   const [stickerData, setStickerData] = useState(null);
@@ -86,10 +82,9 @@ const NewAgentBooking = memo(() => {
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [createdUser, setCreatedUser] = useState(null);
   const [normalBookings, setNormalBookings] = useState([]);
-  const [masterBookings, setMasterBookings] = useState([]);
-  const [mainBookings, setMainBookings] = useState([]);
+  // const [masterBookings, setMasterBookings] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
-
+  const [bookingResponse, setBookingResponse] = useState(null);
 
   const bookingStats = useMemo(
     () => ({
@@ -195,39 +190,26 @@ const NewAgentBooking = memo(() => {
     },
   });
 
-  const agentBookingMutation = useAgentBooking({
-    onSuccess: (response) => {
-      if (response.status && response.bookings) {
-        const bookings = response.bookings;
-        setNormalBookings((prev) => [...prev, ...bookings]);
+  const agentBookingMutation = useAgentBooking();
 
-        message.success('Booking created successfully!');
-        setIsConfirmed(true);
-      }
-    },
-    onError: (error) => {
-      console.error('Booking error:', error);
-      message.error(error.message || error.server?.error || 'Failed to create booking');
-    },
-  });
-
-  const masterBookingMutation = useMasterBooking({
-    onSuccess: (response) => {
-      if (response.status && response.booking) {
-        const master = response.booking;
-        setMasterBookings((prev) => [...prev, master]);
-        setShowPrintModel(true);
-        message.success('Master booking created successfully!');
-      }
-    },
-    onError: (error) => {
-      console.error('Master booking error:', error);
-      message.error(error.message || 'Failed to create master booking');
-    },
-  });
+  // const masterBookingMutation = useMasterBooking({
+  //   onSuccess: (response) => {
+  //     if (response.status && response.booking) {
+  //       const master = response.booking;
+  //       setMasterBookings((prev) => [...prev, master]);
+  //       setShowPrintModel(true);
+  //       message.success('Master booking created successfully!');
+  //     }
+  //   },
+  //   onError: (error) => {
+  //     console.error('Master booking error:', error);
+  //     message.error(error.message || 'Failed to create master booking');
+  //   },
+  // });
 
 
-  const handleBookingAfterUser = useCallback(async (user, attendeeIdsByTicket = {}) => {
+    const handleBookingAfterUser = useCallback(async (user, attendeeIdsByTicket = {}) => {
+
     // ✅ Validate user exists
     if (!user || !user.id) {
       console.error('❌ No user provided to handleBookingAfterUser');
@@ -244,7 +226,7 @@ const NewAgentBooking = memo(() => {
 
     // ✅ Build tickets array with attendee IDs
     const ticketsPayload = selectedTickets.map(ticket => {
-      const ticketId = ticket.id.toString(); // ✅ Ensure string for comparison
+      const ticketId = ticket.id.toString();
       const attendeeIds = attendeeIdsByTicket[ticketId] || attendeeIdsByTicket[ticket.id] || [];
 
 
@@ -259,7 +241,7 @@ const NewAgentBooking = memo(() => {
         totalTax: ticket.totalTax,
         convenienceFee: ticket.convenienceFee,
         finalAmount: ticket.finalAmount,
-        attendee_ids: attendeeIds, // ✅ Should contain IDs like [6, 7]
+        attendee_ids: attendeeIds, // ✅ Should contain [14, 15] based on your console
         totalFinalAmount: ticket.totalFinalAmount,
         totalBaseAmount: ticket.totalBaseAmount,
         totalCentralGST: ticket.totalCentralGST,
@@ -271,14 +253,11 @@ const NewAgentBooking = memo(() => {
 
     const bookingPayload = {
       agent_id: UserData?.id,
-      user_id: user?.id, // ✅ Make sure user_id is always included
+      user_id: user?.id,
       number: user?.number || number,
       email: user?.email || email,
       name: user?.name || name,
       payment_method: method,
-      // base_amount: subtotal,
-      // amount: grandTotal,
-      // discount: discount,
       type: event?.event_type || 'daily',
       tickets: ticketsPayload
     };
@@ -291,14 +270,20 @@ const NewAgentBooking = memo(() => {
       payload: bookingPayload
     }, {
       onSuccess: (response) => {
-        message.success('Booking created successfully!');
-        setSavedAttendeeIds({});
-        setSelectedTickets([]);
-        // Don't set showPrintModel here, let the mutation success handler do it
+        if(response.status){
+          message.success(response.message ||'Booking created successfully!');
+          setBookingResponse(response.bookings || null);
+          setSavedAttendeeIds({});
+          setSelectedTickets([]);
+          setCurrentStep(currentStep + 1);
+          setIsConfirmed(true);
+        }
+        // setCurrentStep(currentStep + 1);
       },
       onError: (error) => {
         console.error('❌ Booking error:', error);
         message.error(error.message || 'Booking failed');
+        // setCurrentStep(currentStep + 1);
       }
     });
   }, [
@@ -311,10 +296,11 @@ const NewAgentBooking = memo(() => {
     event,
     isAmusment,
     eventID,
-    agentBookingMutation
+    agentBookingMutation,
+    currentStep
   ]);
 
-  const handleUserSubmit = useCallback(async () => {
+    const handleUserSubmit = useCallback(async () => {
     if (!name) {
       message.error("Name is required");
       return;
@@ -366,12 +352,11 @@ const NewAgentBooking = memo(() => {
               formData
             });
 
-            user = checkResult.user; // ✅ Set user here
+            user = checkResult.user;
             setCreatedUser(user);
-            // ❌ REMOVE: handleBookingAfterUser(checkResult.user); // This was causing first call without attendees
           } else if (checkResult?.email_exists) {
             message.error('This email is already registered');
-            return; // ✅ Add return to prevent further execution
+            return;
           }
         }
       } else {
@@ -396,9 +381,8 @@ const NewAgentBooking = memo(() => {
 
         const result = await createUserMutation.mutateAsync(formData);
         if (result.user) {
-          user = result.user; // ✅ Set user here
+          user = result.user;
           setCreatedUser(user);
-          // ❌ REMOVE: handleBookingAfterUser(result.user); // This was also causing issues
         }
       }
 
@@ -408,21 +392,48 @@ const NewAgentBooking = memo(() => {
         return;
       }
 
-      // ✅ Collect attendee IDs (all attendees already have IDs from AttendeesField API call)
-
+      
+      const ticketAttendeesData = attendeeStepRef.current?.getAttendeeIdsByTicket?.();
       const attendeeIdsByTicket = {};
 
-      Object.entries(GetTicketAttendees()).forEach(([ticketId, attendees]) => {
+      if (ticketAttendeesData) {
+        Object.entries(ticketAttendeesData).forEach(([ticketId, attendees]) => {
+          
+          if (Array.isArray(attendees)) {
+            // ✅ If it's already an array of IDs (numbers)
+            const ids = attendees.filter(id => {
+              const isValid = typeof id === 'number' && id > 0;
+              return isValid;
+            });
+            
+            attendeeIdsByTicket[ticketId] = ids;
+          } else {
+            console.warn(`Ticket ${ticketId} has invalid attendees format:`, attendees);
+            attendeeIdsByTicket[ticketId] = [];
+          }
+        });
+      } else {
+        console.warn('No attendee data returned from getAttendeeIdsByTicket');
+      }
 
-        const ids = attendees
-          .map(att => {
-            return att.id;
-          })
-          .filter(id => id !== undefined && id !== null);
 
-        attendeeIdsByTicket[ticketId] = ids;
-      });
+      // ✅ Validate that we have attendee IDs if required
+      if (isAttendeeRequire) {
+        const hasAttendeesForAllTickets = selectedTickets.every(ticket => {
+          const ticketId = ticket.id.toString();
+          const attendeeIds = attendeeIdsByTicket[ticketId] || attendeeIdsByTicket[ticket.id] || [];
+          return attendeeIds.length > 0;
+        });
 
+        if (!hasAttendeesForAllTickets) {
+          message.error('Please add attendees for all tickets');
+          console.error('Missing attendees for some tickets:', {
+            attendeeIdsByTicket,
+            selectedTickets: selectedTickets.map(t => ({ id: t.id, category: t.category }))
+          });
+          return;
+        }
+      }
 
       // ✅ SINGLE CALL - Create booking with attendee IDs
       await handleBookingAfterUser(user, attendeeIdsByTicket);
@@ -441,16 +452,17 @@ const NewAgentBooking = memo(() => {
     doc,
     UserData,
     isAttendeeRequire,
+    selectedTickets,
     checkEmailMutation,
     createUserMutation,
     updateUserMutation,
-    handleBookingAfterUser // ✅ Keep this dependency
+    handleBookingAfterUser
   ]);
 
   const isLoading =
     corporateBookingMutation.isPending ||
     agentBookingMutation.isPending ||
-    masterBookingMutation.isPending ||
+    // masterBookingMutation.isPending ||
     createUserMutation.isPending ||
     updateUserMutation.isPending;
 
@@ -495,24 +507,16 @@ const NewAgentBooking = memo(() => {
   }, [selectedTickets, discount, subtotal]);
 
 
-  useEffect(() => {
-    if (masterBookings.length > 0 || normalBookings.length > 0) {
-      const masterBookingIds = masterBookings.flatMap((data) => data?.booking_id);
-      const filteredNormalBookings = normalBookings.filter(
-        (booking) => !masterBookingIds.includes(booking?.id)
-      );
-      const combinedBookings = [...masterBookings, ...filteredNormalBookings];
-      setMainBookings(combinedBookings);
-    }
-  }, [masterBookings, normalBookings]);
+  // useEffect(() => {
+  //   if (masterBookings.length > 0 || normalBookings.length > 0) {
+  //     const masterBookingIds = masterBookings.flatMap((data) => data?.booking_id);
+  //     const filteredNormalBookings = normalBookings.filter(
+  //       (booking) => !masterBookingIds.includes(booking?.id)
+  //     );
+  //     const combinedBookings = [...masterBookings, ...filteredNormalBookings];
+  //   }
+  // }, [masterBookings, normalBookings]);
 
-
-  const validateTicketAttendees = (data) => {
-    console.log(data)
-  }
-  const GetTicketAttendees = () => {
-
-  }
   const attendeeStepRef = useRef(null);
   const handleButtonClick = useCallback(async (evnt, tkts) => {
     setEvent(evnt);
@@ -615,6 +619,7 @@ const NewAgentBooking = memo(() => {
         showPrintModel={showPrintModel}
         handleClose={() => setShowPrintModel(false)}
         confirm={isConfirmed}
+        setConfirmed={setIsConfirmed}
         disabled={isLoading}
         loading={isLoading}
         setName={setName}
@@ -687,6 +692,8 @@ const NewAgentBooking = memo(() => {
             )}
 
             {/* Right Sidebar - Order Summary */}
+            {
+              currentStep <= (isAttendeeRequire ? 1 : 0) ? 
             <Col xs={24} lg={8}>
               <OrderSummary
                 stats={stats}
@@ -711,7 +718,12 @@ const NewAgentBooking = memo(() => {
                 totalTax={totalTax}
                 grandTotal={grandTotal}
               />
+            </Col> 
+            : <Col xs={24}>
+
+              <BookingSummary response={bookingResponse} setResponse={setBookingResponse} setCurrentStep={setCurrentStep}  />
             </Col>
+            }
           </>
         )}
       </Row>
