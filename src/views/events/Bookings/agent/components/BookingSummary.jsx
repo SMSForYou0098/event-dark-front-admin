@@ -1,6 +1,8 @@
 import React from 'react';
-import { Button, Card, Typography, Descriptions, List, Tag, Divider, Space, Avatar, Row, Col } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Button, Card, Typography, Descriptions, List, Divider, Space, Avatar, Row, Col } from 'antd';
+import { MailOutlined, PhoneOutlined, ShoppingOutlined, TagOutlined, UserOutlined } from '@ant-design/icons';
+import { ROW_GUTTER } from 'constants/ThemeConstant';
+import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil';
 
 const { Text, Title } = Typography;
 
@@ -38,11 +40,11 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
         attendees: []
       };
     }
-    
+
     acc[ticketId].bookings.push(booking);
     acc[ticketId].totalAmount += parseFloat(booking.total_amount || 0);
     acc[ticketId].totalDiscount += parseFloat(booking.discount || 0);
-    
+
     // Add attendee if exists
     if (booking.attendee) {
       acc[ticketId].attendees.push({
@@ -50,7 +52,7 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
         bookingId: booking.id
       });
     }
-    
+
     return acc;
   }, {});
 
@@ -61,178 +63,227 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
   // Get customer info from first booking
   const customerInfo = bookings[0];
 
+  // Derive event name from normal or master booking structures
+  const eventName = (() => {
+    // Find the first booking entry that contains event/ticket details
+    const sample = bookings.find((b) => b?.ticket?.event?.name || b?.ticket?.event?.title || b?.ticket?.name) || bookings[0];
+    if (!sample) return '-';
+    return (
+      sample?.ticket?.event?.name ||
+      sample?.ticket?.event?.title ||
+      sample?.ticket?.name ||
+      '-'
+    );
+  })();
+
   const formatINR = (value) => {
     const num = parseFloat(value || 0);
-    return new Intl.NumberFormat('en-IN', { 
-      style: 'currency', 
-      currency: 'INR' 
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR'
     }).format(num);
   };
-
+  const customerData = [
+    {
+      icon: <UserOutlined />,
+      label: 'Name',
+      value: customerInfo.name,
+      strong: true
+    },
+    {
+      icon: <MailOutlined />,
+      label: 'Email',
+      value: customerInfo.email,
+      strong: false
+    },
+    {
+      icon: <PhoneOutlined />,
+      label: 'Phone',
+      value: customerInfo.number,
+      strong: false
+    }
+  ];
   return (
     <Card
-      bordered
-      style={{ width: '100%', margin: '16px 0' }}
-      title={
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
-          <Title level={4} style={{ margin: 0 }}>Booking Summary</Title>
-          <Button type="primary" onClick={handleBookNew}>
-            Book New
-          </Button>
-        </div>
-      }
+      bordered={false}
+      className='bg-transparent'
+      title={`Booking Confirmed : ${eventName}`}
+      extra={<Button type="primary" onClick={handleBookNew}>
+        Book New
+      </Button>}
     >
       {/* Success Message */}
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
-        <Tag color="success" style={{ fontSize: 14, padding: '8px 16px' }}>
-          ✅ Booking completed successfully!
-        </Tag>
-
-        {/* Customer Details */}
-        <Card size="small" title="Customer Information">
-          <Descriptions column={{ xs: 1, sm: 2, md: 3 }} size="small">
-            <Descriptions.Item label="Name">
-              <Text strong>{customerInfo.name || '-'}</Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="Email">
-              {customerInfo.email || '-'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Phone">
-              {customerInfo.number || '-'}
-            </Descriptions.Item>
-          </Descriptions>
-        </Card>
-
-        {/* Overall Summary */}
-        <Card size="small" title="Order Summary">
-          <Row gutter={[16, 16]}>
-            <Col xs={24} sm={8}>
-              <Text type="secondary">Total Bookings:</Text>
-              <div><Text strong style={{ fontSize: 18 }}>{bookings.length}</Text></div>
+      <Row gutter={ROW_GUTTER}>
+        <Col xs={24} md={8}>
+          <Row>
+            <Col xs={24} md={24}>
+              <Card
+                size="small"
+                title={
+                  <Space size={8}>
+                    <Avatar
+                      size={40}
+                      shape='square'
+                      icon={<UserOutlined />}
+                      style={{
+                        backgroundColor: getBackgroundWithOpacity('var(--primary-color)', 0.15)
+                      }}
+                    />
+                    Customer Information
+                  </Space>
+                }
+              >
+                <List
+                  size="small"
+                  dataSource={customerData}
+                  renderItem={(item) => (
+                    <List.Item style={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}>
+                      <List.Item.Meta
+                        avatar={item.icon}
+                        title={<Text style={{ opacity: 0.5 }}>{item.label}</Text>}
+                        description={<Text>{item.value || '-'}</Text>}
+                      />
+                    </List.Item>
+                  )}
+                />
+              </Card>
             </Col>
-            <Col xs={24} sm={8}>
-              <Text type="secondary">Total Amount:</Text>
-              <div><Text strong style={{ fontSize: 18, color: '#52c41a' }}>{formatINR(overallTotal)}</Text></div>
-            </Col>
-            <Col xs={24} sm={8}>
-              <Text type="secondary">Total Discount:</Text>
-              <div><Text strong style={{ fontSize: 18 }}>{formatINR(overallDiscount)}</Text></div>
+            <Col xs={24} md={24}>
+              <Card
+                size="small"
+                title={
+                  <Space size={8}>
+                    <Avatar
+                      size={32}
+                      shape='square'
+                      icon={<ShoppingOutlined />}
+                      style={{
+                        backgroundColor: '#faad14',
+                      }}
+                    />
+                    <Text strong style={{ fontSize: 16 }}>Order Summary</Text>
+                  </Space>
+                }
+              >
+                <List
+                  size="small"
+                  split={true}
+                  dataSource={[
+                    { label: 'Total Bookings', value: bookings.length, color: '#fff' },
+                    { label: 'Total Amount', value: formatINR(overallTotal), color: '#52c41a' },
+                    { label: 'Total Discount', value: formatINR(overallDiscount), color: '#faad14' }
+                  ]}
+                  renderItem={(item) => (
+                    <List.Item className='d-flex justify-content-between align-items-center' style={{ borderBottomColor: 'rgba(255, 255, 255, 0.1)' }}
+                    >
+                      <Text type="secondary">{item.label}</Text>
+                      <Text
+                        strong
+                        style={{
+                          fontSize: 24,
+                          color: item.color
+                        }}
+                      >
+                        {item.value}
+                      </Text>
+                    </List.Item>
+                  )}
+                />
+              </Card>
             </Col>
           </Row>
-        </Card>
+        </Col>
+        <Col xs={24} md={16}>
+          <Card title={
+             <Space size={8}>
+             <Avatar
+               size={32}
+               shape='square'
+               icon={<TagOutlined />}
+               style={{
+                 backgroundColor: '#1890ff',
+               }}
+             />
+             <Text strong style={{ fontSize: 18 }}>{'Ticket Details'}</Text>
+           </Space>
+          }>
+            <Row style={{maxHeight : '75vh' , overflow:'auto'}}>
+              {Object.entries(groupedByTicket).map(([ticketId, group]) => {
+                const ticket = group.ticket;
 
-        <Divider />
-
-        {/* Tickets Grouped by Ticket ID */}
-        <Title level={5}>Ticket Details</Title>
-        
-        {Object.entries(groupedByTicket).map(([ticketId, group]) => {
-          const ticket = group.ticket;
-          const event = ticket?.event;
-
-          return (
-            <Card 
-              key={ticketId}
-              size="small" 
-              style={{ marginBottom: 16 }}
-              title={
-                <Space>
-                  <Text strong style={{ fontSize: 16 }}>
-                    {ticket?.name || 'Ticket'} 
-                  </Text>
-                  <Tag color="blue">{group.bookings.length} booking(s)</Tag>
-                </Space>
-              }
-            >
-              {/* Event Info */}
-              {event && (
-                <Card size="small" >
-                  <Space direction="vertical" size={4}>
-                    <Text strong>Event: {event.name || '-'}</Text>
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      Event ID: {event.id}
-                    </Text>
-                  </Space>
-                </Card>
-              )}
-
-              {/* Ticket Summary */}
-              <Row gutter={[16, 8]} style={{ marginBottom: 12 }}>
-                <Col xs={12} sm={8}>
-                  <Text type="secondary">Quantity:</Text>
-                  <div><Text strong>{group.bookings.length}</Text></div>
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text type="secondary">Total Amount:</Text>
-                  <div><Text strong type="success">{formatINR(group.totalAmount)}</Text></div>
-                </Col>
-                <Col xs={12} sm={8}>
-                  <Text type="secondary">Discount:</Text>
-                  <div><Text strong>{formatINR(group.totalDiscount)}</Text></div>
-                </Col>
-              </Row>
-
-              <Divider style={{ margin: '12px 0' }} />
-
-              {/* Attendees List */}
-              <Text strong style={{ fontSize: 14 }}>Attendees ({group.attendees.length})</Text>
-              
-              <List
-                style={{ marginTop: 8 }}
-                dataSource={group.attendees}
-                locale={{ emptyText: 'No attendee information' }}
-                renderItem={(attendee) => (
-                  <List.Item key={attendee.id} style={{ padding: '8px 0' }}>
-                    <List.Item.Meta
-                      avatar={
-                        attendee.Photo ? (
-                          <Avatar src={attendee.Photo} size={48} />
-                        ) : (
-                          <Avatar icon={<UserOutlined />} size={48} />
-                        )
-                      }
-                      title={
-                        <Space>
-                          <Text strong>{attendee.Name || 'N/A'}</Text>
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            (ID: {attendee.id})
-                          </Text>
+                return (
+                  <Col xs={24} md={24} key={ticketId}>
+                    <Card
+                      size="small"
+                      style={{ marginBottom: 16 }}
+                      title={ticket?.name || 'N/A'}
+                      extra={
+                        <Space size={24}>
+                          <div  className='text-center'>
+                            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>QTY</Text>
+                            <Text strong style={{ fontSize: 18 }}>{group.bookings.length}</Text>
+                          </div>
+                          <div >
+                            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>AMOUNT</Text>
+                            <Text strong style={{ fontSize: 18, color: '#52c41a' }}>{formatINR(group.totalAmount)}</Text>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>DISCOUNT</Text>
+                            <Text strong style={{ fontSize: 18, color: '#00d9ff' }}>{formatINR(group.totalDiscount)}</Text>
+                          </div>
                         </Space>
                       }
-                      description={
-                        <Space direction="vertical" size={2}>
-                          {attendee.Email && (
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              📧 {attendee.Email}
-                            </Text>
-                          )}
-                          {attendee.Mo && (
-                            <Text type="secondary" style={{ fontSize: 12 }}>
-                              📱 {attendee.Mo}
-                            </Text>
-                          )}
-                          <Text type="secondary" style={{ fontSize: 11 }}>
-                            Booking ID: {attendee.bookingId}
-                          </Text>
-                        </Space>
-                      }
-                    />
-                  </List.Item>
-                )}
-              />
+                    >
+                      {/* Attendees Section */}
+                      <div className='border-top pt-2'>
+                        <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>
+                          ATTENDEES ({group.attendees.length})
+                        </Text>
 
-              {/* Individual Booking IDs */}
-              <Divider style={{ margin: '12px 0' }} />
-              <Space wrap size={4}>
-                <Text type="secondary" style={{ fontSize: 12 }}>Booking IDs:</Text>
-                {group.bookings.map(b => (
-                  <Tag key={b.id} style={{ fontSize: 11 }}>{b.id}</Tag>
-                ))}
-              </Space>
-            </Card>
-          );
-        })}
-      </Space>
+                        <Row gutter={[16, 16]} style={{ marginTop: 12 }}>
+                          {group.attendees.map((attendee) => (
+                            <Col xs={24} sm={12} md={8} key={attendee.id}>
+                              <Card
+                                size="small"
+                                style={{
+                                  border: '1px solid rgba(255, 255, 255, 0.1)'
+                                }}
+                              >
+                                <Space>
+                                  {attendee.Photo ? (
+                                    <Avatar src={attendee.Photo} size={48} shape="square" />
+                                  ) : (
+                                    <Avatar
+                                      icon={<UserOutlined />}
+                                      size={48}
+                                      shape="square"
+                                      style={{ backgroundColor: '#1890ff' }}
+                                    />
+                                  )}
+                                  <div>
+                                    <Text strong style={{ display: 'block' }}>
+                                      {attendee.Name || 'N/A'}
+                                    </Text>
+                                    {attendee.Mo && (
+                                      <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
+                                        📱 {attendee.Mo}
+                                      </Text>
+                                    )}
+                                  </div>
+                                </Space>
+                              </Card>
+                            </Col>
+                          ))}
+                        </Row>
+                      </div>
+                    </Card>
+                  </Col>
+                );
+              })}
+            </Row>
+          </Card>
+        </Col>
+      </Row>
     </Card>
   );
 };
