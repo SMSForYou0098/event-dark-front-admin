@@ -38,7 +38,9 @@
   --select-active-bg: rgba(181, 21, 21, 0.15);
   --select-selected-bg: var(--primary-color);
 }
-
+.border-secondary {
+    border:1px solid var(--border-secondary) !important;
+}
 .ant-badge .ant-badge-count {
     background-color: var(--primary-color);
     color: var(--text-white);

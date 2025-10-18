@@ -1,11 +1,14 @@
 :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead >tr>td,
+:where(.css-1u1move).ant-table-wrapper .ant-table-tbody>tr.ant-table-placeholder,
 table , 
 th,
 td
 {
     background-color:  transparent !important;
 }
-.ant-table-thead >tr>th, .ant-table-thead >tr>td {
+.ant-table-thead >tr>th, 
+.ant-table-thead >tr>td, 
+:where(.css-1u1move).ant-table-wrapper .ant-table-tbody >tr >td {
     border-bottom : 1px solid var(--border-secondary) !important;
 }
 

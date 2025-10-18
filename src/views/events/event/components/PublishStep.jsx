@@ -164,14 +164,6 @@ const PublishStep = ({ eventData, formData }) => {
                 Copy Link
               </Button>
             </div>
-            {shortUrl && (
-              <Alert
-                message="Using shortened URL for easier sharing"
-                type="success"
-                showIcon
-                className="mt-2"
-              />
-            )}
           </div>
         </Space>
       </Card>

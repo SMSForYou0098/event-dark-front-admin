@@ -4,7 +4,7 @@
     cursor: not-allowed !important;
     opacity: 0.6 !important;
     pointer-events: none !important;
-    background-color: inherit !important;
+    /* background-color: inherit !important; */
 }
 
 .ant-btn{
@@ -16,7 +16,6 @@
 .ant-btn[disabled]:hover,
 .ant-btn.disabled:hover {
     opacity: 0.6 !important;
-    background-color: inherit !important;
 }
 
 /* Active state for disabled buttons */
@@ -26,3 +25,12 @@
     pointer-events: none !important;
     background-color: inherit !important;
 }
+
+:where(.css-1u1move).ant-btn-default ,
+.ant-btn-default {
+    background-color: transparent !important;
+    border: 1px solid var(--border-secondary) !important;
+    color: var(--text-white) !important;
+    font-weight: bold !important;
+}
+ 

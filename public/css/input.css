@@ -64,6 +64,15 @@
     box-shadow: none !important;
 }
 
+/* Utility: Border-radius helpers */
+.rounded-1 { border-radius: 2px !important; }
+.rounded-2 { border-radius: 4px !important; }
+.rounded-3 { border-radius: 6px !important; }
+.rounded-4 { border-radius: 8px !important; }
+.rounded-5 { border-radius: 12px !important; }
+
+
+
 /* For standalone input fields (like username) */
 input.ant-input:not(.ant-input-affix-wrapper > input) {
     background: transparent !important;

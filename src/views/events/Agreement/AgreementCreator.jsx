@@ -16,9 +16,9 @@ import {
     Radio,
     Collapse,
     message,
-    Modal,
     Upload,
-    Tabs
+    Tabs,
+    Spin
 } from 'antd';
 import {
     FileTextOutlined,
@@ -28,11 +28,19 @@ import {
     EyeOutlined,
     UploadOutlined,
     EditOutlined,
-    FontSizeOutlined
+    FontSizeOutlined,
+    LoadingOutlined
 } from '@ant-design/icons';
+import { useParams, useNavigate } from 'react-router-dom';
+import dayjs from 'dayjs';
 import AgreementPreview from './Agreement';
+import {
+    useGetUserAgreement,
+    useCreateUserAgreement,
+    useUpdateUserAgreement
+} from './useAgreement';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 const { Panel } = Collapse;
@@ -47,7 +55,6 @@ const SIGNATURE_FONTS = [
 
 const AgreementCreator = () => {
     const [formInstance] = Form.useForm();
-    const [loading, setLoading] = useState(false);
     const [previewVisible, setPreviewVisible] = useState(false);
     const [formData, setFormData] = useState({});
     const [signatureType, setSignatureType] = useState('type');
@@ -56,29 +63,173 @@ const AgreementCreator = () => {
     const [uploadedSignature, setUploadedSignature] = useState(null);
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
+    
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const isEditMode = Boolean(id);
 
-    const handleSubmit = (values) => {
-        setLoading(true);
-        const agreementData = {
-            ...values,
-            signature: {
-                type: signatureType,
-                data: signatureType === 'draw' ? canvasRef.current?.toDataURL() :
-                    signatureType === 'type' ? typedSignature :
-                        uploadedSignature,
-                font: signatureType === 'type' ? selectedFont.name : null
+    // Use custom hooks for API calls
+    const { data: agreementData, isLoading: isFetchingAgreement } = useGetUserAgreement(id, {
+        onSuccess: (data) => {
+            // Populate form with fetched data
+            const formValues = {
+                ...data,
+                effectiveDate: data.effectiveDate ? dayjs(data.effectiveDate) : null,
+            };
+            formInstance.setFieldsValue(formValues);
+
+            // Set signature data
+            if (data.signatureType) {
+                setSignatureType(data.signatureType);
             }
-        };
-        console.log('Agreement Data:', agreementData);
-        setTimeout(() => {
-            message.success('Partner Agreement created successfully!');
-            setLoading(false);
-        }, 1000);
+            if (data.signatureType === 'type' && data.signatureText) {
+                setTypedSignature(data.signatureText);
+                if (data.signatureFont) {
+                    const font = SIGNATURE_FONTS.find(f => f.name === data.signatureFont);
+                    if (font) setSelectedFont(font);
+                }
+            } else if (data.signatureType === 'upload' && data.signatureUrl) {
+                setUploadedSignature(data.signatureUrl);
+            } else if (data.signatureType === 'draw' && data.signatureUrl) {
+                // Load drawn signature to canvas
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = canvasRef.current;
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        ctx.drawImage(img, 0, 0);
+                    }
+                };
+                img.src = data.signatureUrl;
+            }
+        }
+    });
+
+    const { mutate: createAgreement, isPending: isCreating } = useCreateUserAgreement({
+        onSuccess: () => {
+            // Optionally navigate or reset form
+            // navigate('/agreements');
+            // formInstance.resetFields();
+            // setTypedSignature('');
+            // setUploadedSignature(null);
+            // clearCanvas();
+        }
+    });
+
+    const { mutate: updateAgreement, isPending: isUpdating } = useUpdateUserAgreement({
+        onSuccess: () => {
+            // Optionally navigate
+            // navigate('/agreements');
+        }
+    });
+
+    const prepareFormData = async (values) => {
+        // Prepare signature data
+        let signatureData = null;
+        let signatureBlob = null;
+
+        if (signatureType === 'draw' && canvasRef.current) {
+            const canvas = canvasRef.current;
+            signatureBlob = await new Promise(resolve => {
+                canvas.toBlob(resolve, 'image/png');
+            });
+        } else if (signatureType === 'type' && typedSignature) {
+            signatureData = typedSignature;
+        } else if (signatureType === 'upload' && uploadedSignature) {
+            if (uploadedSignature.startsWith('data:')) {
+                const response = await fetch(uploadedSignature);
+                signatureBlob = await response.blob();
+            }
+        }
+
+        const formDataObj = new FormData();
+
+        // Append basic information
+        if (values.agreementTitle) formDataObj.append('agreementTitle', values.agreementTitle);
+        if (values.version) formDataObj.append('version', values.version);
+        if (values.effectiveDate) formDataObj.append('effectiveDate', values.effectiveDate.toISOString());
+        if (values.agreementStatus) formDataObj.append('agreementStatus', values.agreementStatus);
+        if (values.description) formDataObj.append('description', values.description);
+
+        // Append financial terms
+        if (values.currency) formDataObj.append('currency', values.currency);
+        if (values.commissionType) formDataObj.append('commissionType', values.commissionType);
+        if (values.commissionValue !== undefined) formDataObj.append('commissionValue', values.commissionValue);
+        if (values.platformFeeResponsibility) formDataObj.append('platformFeeResponsibility', values.platformFeeResponsibility);
+        if (values.settlementCycle) formDataObj.append('settlementCycle', values.settlementCycle);
+        if (values.minimumPayout !== undefined) formDataObj.append('minimumPayout', values.minimumPayout);
+
+        // Append event management
+        if (values.autoApproveEvents !== undefined) formDataObj.append('autoApproveEvents', values.autoApproveEvents);
+        if (values.eventCancellationNoticeDays !== undefined) formDataObj.append('eventCancellationNoticeDays', values.eventCancellationNoticeDays);
+        if (values.refundProcessingDays !== undefined) formDataObj.append('refundProcessingDays', values.refundProcessingDays);
+        if (values.allowedCategories) formDataObj.append('allowedCategories', JSON.stringify(values.allowedCategories));
+
+        // Append legal & policies
+        if (values.terminationNoticeDays !== undefined) formDataObj.append('terminationNoticeDays', values.terminationNoticeDays);
+        if (values.jurisdiction) formDataObj.append('jurisdiction', values.jurisdiction);
+        if (values.customerDataAccess) formDataObj.append('customerDataAccess', values.customerDataAccess);
+        if (values.customClauses) formDataObj.append('customClauses', values.customClauses);
+
+        // Append signature information
+        formDataObj.append('signatureType', signatureType);
+
+        if (signatureType === 'type') {
+            if (signatureData) formDataObj.append('signatureText', signatureData);
+            if (selectedFont.name) formDataObj.append('signatureFont', selectedFont.name);
+            if (selectedFont.style) formDataObj.append('signatureFontStyle', selectedFont.style);
+        } else if (signatureBlob) {
+            formDataObj.append('signature', signatureBlob, `signature-${Date.now()}.png`);
+        }
+
+        console.log('FormData Contents:');
+        for (let pair of formDataObj.entries()) {
+            console.log(pair[0], ':', pair[1]);
+        }
+
+        return formDataObj;
+    };
+
+    const handleSubmit = async (values) => {
+        try {
+            const formDataObj = await prepareFormData(values);
+
+            if (isEditMode) {
+                updateAgreement({ id, formData: formDataObj });
+            } else {
+                createAgreement(formDataObj);
+            }
+
+        } catch (error) {
+            console.error('Error preparing form data:', error);
+            message.error('Failed to prepare agreement data. Please try again.');
+        }
     };
 
     const showPreview = () => {
         const values = formInstance.getFieldsValue();
-        setFormData(values);
+        
+        let signatureData = null;
+        let signatureFont = null;
+        
+        if (signatureType === 'draw' && canvasRef.current) {
+            signatureData = canvasRef.current.toDataURL();
+        } else if (signatureType === 'type' && typedSignature) {
+            signatureData = typedSignature;
+            signatureFont = selectedFont.style;
+        } else if (signatureType === 'upload' && uploadedSignature) {
+            signatureData = uploadedSignature;
+        }
+
+        const previewData = {
+            ...values,
+            signature: signatureData,
+            signatureType: signatureType,
+            signatureFont: signatureFont
+        };
+        
+        setFormData(previewData);
         setPreviewVisible(true);
     };
 
@@ -139,18 +290,18 @@ const AgreementCreator = () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
 
-    const getSignaturePreview = () => {
-        if (signatureType === 'draw' && canvasRef.current) {
-            return <img src={canvasRef.current.toDataURL()} alt="Signature" className="img-fluid" />;
-        }
-        if (signatureType === 'type' && typedSignature) {
-            return <div style={{ fontFamily: selectedFont.style, fontSize: '32px' }}>{typedSignature}</div>;
-        }
-        if (signatureType === 'upload' && uploadedSignature) {
-            return <img src={uploadedSignature} alt="Signature" className="img-fluid" style={{ maxHeight: '80px' }} />;
-        }
-        return <Text type="secondary">No signature added</Text>;
-    };
+    const isPending = isCreating || isUpdating;
+
+    if (isFetchingAgreement) {
+        return (
+            <Card>
+                <div style={{ textAlign: 'center', padding: '50px' }}>
+                    <Spin indicator={<LoadingOutlined style={{ fontSize: 48 }} spin />} />
+                    <Title level={4} className="mt-3">Loading Agreement...</Title>
+                </div>
+            </Card>
+        );
+    }
 
     return (
         <>
@@ -158,9 +309,11 @@ const AgreementCreator = () => {
                 <div className="d-flex justify-content-between align-items-center flex-wrap mb-4">
                     <div className="mb-3 mb-md-0">
                         <Title level={2} className="mb-1">
-                            <FileTextOutlined /> Create Partner Agreement
+                            <FileTextOutlined /> {isEditMode ? 'Edit' : 'Create'} Partner Agreement
                         </Title>
-                        <Text type="secondary">Configure partnership terms and conditions</Text>
+                        <Text type="secondary">
+                            {isEditMode ? 'Update partnership terms and conditions' : 'Configure partnership terms and conditions'}
+                        </Text>
                     </div>
                     <Button type="primary" size="large" icon={<EyeOutlined />} onClick={showPreview}>
                         Preview Agreement
@@ -453,8 +606,8 @@ const AgreementCreator = () => {
                         <Button size="large" className='gap-1' type="default">
                             Save as Draft
                         </Button>
-                        <Button type="primary" htmlType="submit" size="large" className='gap-1' loading={loading}>
-                            Create Agreement
+                        <Button type="primary" htmlType="submit" size="large" className='gap-1' loading={isPending}>
+                            {isEditMode ? 'Update Agreement' : 'Create Agreement'}
                         </Button>
                     </div>
                 </Form>
@@ -462,13 +615,16 @@ const AgreementCreator = () => {
             <AgreementPreview
                 visible={previewVisible}
                 onClose={() => setPreviewVisible(false)}
-                // agreementData={sampleAgreementData}
-                // adminSignature={sampleAdminSignature}
-                // onAccept={handleAccept}
+                agreementData={formData}
+                adminSignature={{
+                    data: formData.signature,
+                    type: formData.signatureType,
+                    font: formData.signatureFont
+                }}
                 showAcceptance={true}
             />
         </>
     );
 };
 
-export default AgreementCreator
+export default AgreementCreator;

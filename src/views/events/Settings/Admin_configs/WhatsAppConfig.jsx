@@ -157,26 +157,29 @@ const WhatsAppConfig = () => {
     });
 
     return (
-      <div
+      <Tag
         ref={(node) => drag(drop(node))}
         style={{
           display: 'inline-flex',
           alignItems: 'center',
-          border: '1px dashed #d9d9d9',
-          borderRadius: '4px',
+          borderRadius: 4,
           padding: '4px 8px',
-          margin: '4px',
+          margin: 4,
           cursor: 'move',
           opacity: isDragging ? 0.5 : 1,
+          userSelect: 'none',
         }}
       >
-        <Badge count={index + 1} style={{ backgroundColor: '#52c41a', marginRight: 8 }} />
+        <Badge count={index + 1} className='bg-primary rounded-circle mr-2' />
         <span style={{ marginRight: 8 }}>{badge}</span>
         <CloseOutlined
-          style={{ fontSize: '12px', cursor: 'pointer', color: '#ff4d4f' }}
-          onClick={() => setBadges(badges.filter((_, i) => i !== index))}
+          style={{ fontSize: 12, cursor: 'pointer', color: '#ff4d4f' }}
+          onClick={(e) => {
+            e.stopPropagation();
+            setBadges((prev) => prev.filter((_, i) => i !== index));
+          }}
         />
-      </div>
+      </Tag>
     );
   };
 
@@ -509,11 +512,9 @@ const WhatsAppConfig = () => {
               <Col xs={24}>
                 <Form.Item label="Variables">
                   <div
+                  className='border-secondary rounded-5'
                     style={{
-                      border: '1px solid #d9d9d9',
-                      borderRadius: '4px',
                       padding: badges?.length > 0 ? '8px' : '0',
-                      minHeight: '40px',
                     }}
                   >
                     {badges?.map((badge, index) => (

@@ -7,7 +7,7 @@
 @import url('./notication.css');
 @import url('./table.css');
 @import url('./tag.css');
-@import url('./button.css`');
+@import url('./button.css');
 @import url('./alert.css');
 @import url('./modal.css');
 @import url('./jodit.css');
@@ -87,6 +87,12 @@ input[type=number] {
   padding: inherit !important;
 }
 
+.ant-collapse,
+:where(.css-1u1move).ant-collapse {
+
+  background-color: transparent !important;
+  border: none !important;
+}
 
 .fw-bold {
   font-weight: 700 !important;
@@ -104,7 +110,7 @@ input[type=number] {
 }
 
 
-.css-hrcas2-PageHeaderAlt {
+.css-hrcas2-PageHeaderAlt, .page-header-alt {
   background-color: var(--bg-secondary) !important;
   border: none !important;
   border-bottom: none !important;
