@@ -25,7 +25,7 @@ const StepIndicator = ({ currentStep, isAttendeeRequire }) => {
           >
             1
           </div>
-          <Text strong={currentStep === 0}>Select Tickets</Text>
+          <Text strong={currentStep === 0}>Tickets</Text>
         </Space>
 
         <ArrowRightOutlined style={{ color: '#d9d9d9' }} />
@@ -49,7 +49,7 @@ const StepIndicator = ({ currentStep, isAttendeeRequire }) => {
               >
                 2
               </div>
-              <Text strong={currentStep === 1}>Add Attendees</Text>
+              <Text strong={currentStep === 1}>Attendees</Text>
             </Space>
 
             <ArrowRightOutlined style={{ color: '#d9d9d9' }} />

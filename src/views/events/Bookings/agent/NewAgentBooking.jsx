@@ -138,11 +138,11 @@ const NewAgentBooking = memo(() => {
   });
 
   const updateUserMutation = useUpdateUser({
-    onSuccess: (response) => {
-      if (response.status && response.user) {
-        message.success('User updated successfully!');
-      }
-    },
+    // onSuccess: (response) => {
+    //   if (response.status && response.user) {
+    //     message.success('User updated successfully!');
+    //   }
+    // },
     onError: (error) => {
       console.error('Update user error:', error);
       message.error(error.message || 'Failed to update user');

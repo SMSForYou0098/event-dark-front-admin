@@ -47,9 +47,9 @@ const OrderSummary = ({
 
   const getButtonText = () => {
     if (currentStep === 0) {
-      return isAttendeeRequire ? 'Next: Add Attendees' : 'Proceed to Checkout';
+      return isAttendeeRequire ? 'Add Attendees' : 'Checkout';
     } else if (currentStep === 1) {
-      return 'Next: Checkout';
+      return 'Checkout';
     }
     return 'Complete Booking';
   };
