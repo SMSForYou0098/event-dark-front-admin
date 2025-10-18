@@ -646,10 +646,11 @@ const NewAgentBooking = memo(() => {
 
 
       <Row gutter={[16]}>
+        {currentStep === 0 && 
         <Col span={24}>
           <PosEvents handleButtonClick={handleButtonClick} />
         </Col>
-
+    }
         {eventID && (
           <>
             {/* Step Indicator */}
