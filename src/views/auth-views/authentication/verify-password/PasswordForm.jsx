@@ -1,6 +1,5 @@
 import React, {
   memo,
-  Fragment,
   useState,
   useEffect,
   useCallback,
@@ -10,16 +9,16 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout, signIn } from "../../../../store/slices/authSlice";
 
-// Ant Design
-import { Row, Col } from "antd";
-import { Card, Form, Input, Button, Alert, Typography, message } from "antd";
+import { Form, Input, Button, Alert, Typography, message } from "antd";
 import {
   ArrowLeftOutlined,
   ExclamationCircleOutlined,
+  QuestionCircleOutlined,
 } from "@ant-design/icons";
 import { persistor } from "store";
 import { AUTH_PREFIX_PATH } from "configs/AppConfig";
 import { Key } from "lucide-react";
+import Flex from "components/shared-components/Flex";
 
 const { Title, Paragraph } = Typography;
 
@@ -156,9 +155,12 @@ const VerifyPassword = memo(() => {
     [error]
   );
 
+  const handleForgotPassword = useCallback(() => {
+    navigate(`${AUTH_PREFIX_PATH}/forgot-password`);
+  }, [navigate]);
   return (
     <div>
-      <div style={{ marginBottom: 16 }}>
+      <Flex justifyContent="space-between" alignItems="center">
         <Button
           type="link"
           onClick={handleBack}
@@ -167,7 +169,15 @@ const VerifyPassword = memo(() => {
         >
           Back to Sign In
         </Button>
-      </div>
+        <Button
+          type="link"
+          onClick={handleForgotPassword}
+          icon={<QuestionCircleOutlined />}
+          style={{ padding: 0 }}
+        >
+         Forgot the password
+        </Button>
+      </Flex>
 
       <Title level={3} style={{ marginBottom: 8 }}>
         Password Verification

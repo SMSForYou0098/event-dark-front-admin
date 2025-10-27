@@ -163,8 +163,6 @@ const LoginHistory = () => {
   // Extra header content for log type selector (Admin only)
   const extraHeaderContent =
     UserData?.role === "Admin" ? (
-      <Space>
-        <span style={{ fontWeight: 500 }}>View:</span>
         <Select
           value={logType}
           onChange={handleLogTypeChange}
@@ -173,7 +171,6 @@ const LoginHistory = () => {
           <Option value="self">My Login History</Option>
           <Option value="all">All Users Login History</Option>
         </Select>
-      </Space>
     ) : null;
 
   return (

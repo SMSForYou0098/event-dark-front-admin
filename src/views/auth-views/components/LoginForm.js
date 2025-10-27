@@ -74,6 +74,7 @@ const LoginForm = ({
 
   return (
     <>
+    {showMessage && 
       <motion.div
         initial={{ opacity: 0, marginBottom: 0 }}
         animate={{
@@ -83,6 +84,7 @@ const LoginForm = ({
       >
         <Alert type="error" showIcon message={message} style={{ visibility: showMessage ? 'visible' : 'hidden' }} />
       </motion.div>
+    }
 
       <Form
         layout="vertical"

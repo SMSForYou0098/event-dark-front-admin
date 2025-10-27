@@ -2,6 +2,7 @@ import React from 'react'
 import { Card, Row, Col } from "antd";
 import { useSelector } from 'react-redux';
 import { useMyContext } from 'Context/MyContextProvider';
+import { Link } from 'react-router-dom';
 
 const backgroundStyle = {
     backgroundImage: 'url(/img/others/01.webp)',
@@ -10,8 +11,7 @@ const backgroundStyle = {
 }
 
 const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) => {
-    const theme = useSelector(state => state.theme.currentTheme)
-    const {system_setting} = useMyContext()
+    const {systemSetting} = useMyContext()
     return (
         <div className="h-100" style={backgroundStyle}>
             <div className="container d-flex flex-column justify-content-center h-100">
@@ -21,12 +21,13 @@ const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) 
                             <div className="my-4">
                                 <div className="text-center">
                                     <img 
-                                        className="img-fluid" 
-                                        src={`/img/${theme === 'light' ? 'logo.png': 'logo-white.png'}`} 
+                                        className="img-fluid"
+                                        src={systemSetting?.logo} 
                                         alt="logo" 
+                                        width={100}
                                     />
                                     {bottomText && (
-                                        <p>{bottomText} <a href={bottomLink}><strong>{bottomLinkText}</strong></a></p>
+                                        <p>{bottomText} <Link to={bottomLink}><strong>{bottomLinkText}</strong></Link></p>
                                     )}
                                 </div>
                                 <Row justify="center">

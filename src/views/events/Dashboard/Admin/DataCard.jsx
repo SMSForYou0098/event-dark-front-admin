@@ -3,7 +3,7 @@ import React from 'react'
 import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil'
 
 const DataCard = (props) => {
-    const { data, formatter } = props
+    const { data, formatter, value } = props
 
     // Function to convert hex/rgb color to rgba with opacity
 
@@ -11,7 +11,7 @@ const DataCard = (props) => {
         <Card bordered={false} title={data.title}>
             <Space direction="horizontal" size="large" className="w-100 d-flex justify-content-between">
                 <Statistic
-                    value={16}
+                    value={value}
                     valueStyle={{ color: '#fff', fontWeight: 'bold' }}
                      formatter={formatter || ''}
                 />
