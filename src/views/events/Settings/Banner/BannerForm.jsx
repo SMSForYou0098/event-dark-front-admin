@@ -216,7 +216,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         form.setFieldValue('org_id', String(UserData.id));
       }
     } else if (type === 'category') {
-      form.setFieldsValues({
+      form.setFieldsValue({
         org_id: undefined,
         event_id: undefined,
         event_key: undefined,
@@ -411,7 +411,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
           </Col>
 
           {/* Organization Dropdown */}
-          {showOrgDropdown && (
+          {bannerType === 'organization' && (
             <Col xs={24} md={12}>
               <OrganisationList onChange={handleOrgChange} />
             </Col>

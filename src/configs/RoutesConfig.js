@@ -419,6 +419,16 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
     },
+        // ==================== New Booking Page ====================
+    {
+        key: 'new-booking',
+        path: `/bookings/sponsors/new`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <NewBooking {...props} type="sponsors" />
+            </React.Suspense>
+        ),
+    },
         // ==================== Agreement ====================
     {
         key: 'new-booking',

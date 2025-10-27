@@ -41,6 +41,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     const [saleEnabled, setSaleEnabled] = useState(false);
     const [selectedCurrency, setSelectedCurrency] = useState('INR');
     const [imageValidationError, setImageValidationError] = useState('');
+    const [priceValue, setPriceValue] = useState('');
     const saleSectionRef = useRef(null);
 
     // Fetch tickets
@@ -76,6 +77,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
     // Fetch promocodes
     const fetchPromocodes = useCallback(async () => {
+        if (!UserData?.id) return;
         try {
             const response = await apiClient.get(`promo-list/${UserData?.id}`);
             const promoOptions = (response.promoCodes || []).map(promo => ({
@@ -112,21 +114,25 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
     }, [eventId, fetchTickets, fetchAreas, fetchPromocodes, fetchCurrencies]);
 
-
-    // Currency conversion
+    // Currency conversion - triggered by priceValue and selectedCurrency changes
     useEffect(() => {
-        const price = form.getFieldValue('price');
-        if (price && selectedCurrency !== 'INR') {
+        if (priceValue && selectedCurrency !== 'INR') {
             axios.get(`https://open.er-api.com/v6/latest/${selectedCurrency}`)
                 .then(response => {
                     const rate = response.data.rates.INR;
-                    setConvertedPrice((price * rate).toFixed(2));
+                    setConvertedPrice((priceValue * rate).toFixed(2));
                 })
                 .catch(() => setConvertedPrice(''));
         } else {
             setConvertedPrice('');
         }
-    }, [form.getFieldValue('price'), selectedCurrency]);
+    }, [priceValue, selectedCurrency]);
+
+    // Handle price change
+    const handlePriceChange = (e) => {
+        const value = e.target.value;
+        setPriceValue(value);
+    };
 
     // Validate image dimensions
     const validateImageDimensions = (file) => {
@@ -167,6 +173,8 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         setImagePreviewUrl('');
         setSaleEnabled(false);
         setImageValidationError('');
+        setPriceValue('');
+        setConvertedPrice('');
         setModalVisible(true);
     };
 
@@ -217,6 +225,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
         setSaleEnabled(ticket.sale === 1);
         setSelectedCurrency(ticket.currency);
+        setPriceValue(ticket.price);
         setImageValidationError('');
         setModalVisible(true);
     };
@@ -261,12 +270,12 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             formData.append('promocode_codes', JSON.stringify(values.promocode_codes || []));
 
             // Booleans
-            formData.append('sold_out', values.sold_out ? 1 : 0);
-            formData.append('booking_not_open', values.booking_not_open ? 1 : 0);
-            formData.append('fast_filling', values.fast_filling ? 1 : 0);
-            formData.append('modify_access_area', values.modify_access_area ? 1 : 0);
-            formData.append('status', values.status ? 1 : 0);
-            formData.append('sale', saleEnabled ? 1 : 0);
+            formData.append('sold_out', values.sold_out );
+            formData.append('booking_not_open', values.booking_not_open );
+            formData.append('fast_filling', values.fast_filling );
+            formData.append('modify_access_area', values.modify_access_area );
+            formData.append('status', values.status );
+            formData.append('sale', saleEnabled );
 
             // Sale data
             if (saleEnabled && values.sale_dates) {
@@ -522,6 +531,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                             type='number'
                                             style={{ width: '100%' }}
                                             min={0}
+                                            onChange={handlePriceChange}
                                         />
                                     </Form.Item>
                                 </Col>

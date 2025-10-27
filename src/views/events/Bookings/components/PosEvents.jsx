@@ -8,7 +8,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 import PosEventCard from './PosEventCard';
 import { SearchOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
-const PosEvents = ({ handleButtonClick }) => {
+const PosEvents = ({ type, handleButtonClick }) => {
     const { api, authToken, UserData, truncateString } = useMyContext();
     const [searchTerm, setSearchTerm] = useState('');
     const [activeKey, setActiveKey] = useState(['1']);

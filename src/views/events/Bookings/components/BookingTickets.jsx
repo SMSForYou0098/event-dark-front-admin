@@ -51,7 +51,7 @@ const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST
             key={`${event?.id}-${record.id}`} // Add key to force remount on event change
             getTicketCount={getTicketCount}
             category={record.name}
-            price={record?.sale === 1 ? record?.sale_price : record?.price}
+            price={record?.sale === 1 ? Number(record?.sale_price) : Number(record?.price)}
             limit={10}
             ticketID={record.id}
             initialValue={selectedTicket?.quantity || 0}
@@ -80,59 +80,17 @@ const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST
     }] : [])
   ];
 
-  // const getTicketCount = useCallback((quantity, category, price, id) => {
-  //   setSelectedTickets(prevTickets => {
-  //     const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
 
-  //     // Sample tax and fee logic (customize as needed)
-  //     const baseAmount = +(price ).toFixed(2); // 18% GST included
-  //     const centralGST = +(baseAmount * 0.09).toFixed(2);
-  //     const stateGST = +(baseAmount * 0.09).toFixed(2);
-  //     const convenienceFee = baseAmount *0.01; // flat fee
-  //     const totalTax = +(centralGST + stateGST).toFixed(2);
-  //     const finalAmount = +((price * quantity) + convenienceFee + totalTax).toFixed(2);
-
-  //     const ticketData = {
-  //       id,
-  //       category,
-  //       quantity,
-  //       price: +price.toFixed(2),
-  //       baseAmount,
-  //       centralGST,
-  //       stateGST,
-  //       totalTax,
-  //       convenienceFee,
-  //       finalAmount,
-  //     };
-
-  //     // Remove if quantity is 0
-  //     if (quantity === 0) {
-  //       return existingIndex !== -1
-  //         ? prevTickets.filter((_, index) => index !== existingIndex)
-  //         : prevTickets;
-  //     }
-
-  //     // Update existing ticket
-  //     if (existingIndex !== -1) {
-  //       const updatedTickets = [...prevTickets];
-  //       updatedTickets[existingIndex] = ticketData;
-  //       return updatedTickets;
-  //     }
-
-  //     // Add new ticket
-  //     return [...prevTickets, ticketData];
-  //   });
-  // }, [setSelectedTickets]);
   const getTicketCount = useCallback((quantity, category, price, id) => {
     setSelectedTickets(prevTickets => {
       const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
 
       // Per-unit calculations (adjust the formulae as per your tax policy)
-      const unitBaseAmount = +(price).toFixed(2);
-      const unitCentralGST = +(unitBaseAmount * 0.09).toFixed(2);
-      const unitStateGST = +(unitBaseAmount * 0.09).toFixed(2);
-      const unitConvenienceFee = +(unitBaseAmount * 0.01).toFixed(2);
-      const unitTotalTax = +(unitCentralGST + unitStateGST).toFixed(2);
+      const unitBaseAmount = +(price)?.toFixed(2);
+      const unitCentralGST = +(unitBaseAmount * 0.09)?.toFixed(2);
+      const unitStateGST = +(unitBaseAmount * 0.09)?.toFixed(2);
+      const unitConvenienceFee = +(unitBaseAmount * 0.01)?.toFixed(2);
+      const unitTotalTax = +(unitCentralGST + unitStateGST)?.toFixed(2);
       const unitFinalAmount = +((price) + unitConvenienceFee + unitTotalTax).toFixed(2);
 
       // Totals for the selected quantity

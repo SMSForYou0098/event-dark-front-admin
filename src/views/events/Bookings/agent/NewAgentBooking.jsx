@@ -1,12 +1,9 @@
 import { useMyContext } from 'Context/MyContextProvider';
 import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Col, message, Row, Modal } from 'antd';
-import { ExclamationCircleOutlined } from '@ant-design/icons';
 import PosEvents from '../components/PosEvents';
-import AttendeesField from './AttendeesField';
-import AttendeeSuggestion from './AttendeeSuggestion';
 import AgentBookingModal from './AgentBookingModal';
-import { processImageFile, sanitizeData, sanitizeInput } from './utils';
+import { processImageFile  } from './utils';
 
 // Import step components
 import StepIndicator from './components/StepIndicator';
@@ -20,27 +17,18 @@ import {
   useCheckEmail,
   useCreateUser,
   useUpdateUser,
-  useStoreAttendees,
   useCorporateBooking,
   useAgentBooking,
-  useMasterBooking,
-  buildAttendeesFormData,
 } from './useAgentBookingHooks';
-import { CloudCog } from 'lucide-react';
 import BookingSummary from './components/BookingSummary';
 
-const { confirm: showConfirm } = Modal;
-
-
-const NewAgentBooking = memo(() => {
+const NewAgentBooking = memo(({type}) => {
   const {
     UserData,
     isMobile,
     getCurrencySymbol,
     formatDateRange,
-    sendTickets,
     fetchCategoryData,
-    formateTemplateTime,
   } = useMyContext();
 
   // State management
@@ -262,7 +250,7 @@ const NewAgentBooking = memo(() => {
       tickets: ticketsPayload
     };
 
-    const url = isAmusment ? `amusement-agent-book-ticket/${eventID}` : `booking/agent/${eventID}`;
+    const url = isAmusment ? `amusement-agent-book-ticket/${eventID}` : `booking/${type}/${eventID}`;
 
     // ✅ Call booking API ONLY ONCE
     agentBookingMutation.mutate({
@@ -648,7 +636,7 @@ const NewAgentBooking = memo(() => {
       <Row gutter={[16]}>
         {currentStep === 0 && 
         <Col span={24}>
-          <PosEvents handleButtonClick={handleButtonClick} />
+          <PosEvents type={type} handleButtonClick={handleButtonClick} />
         </Col>
     }
         {eventID && (

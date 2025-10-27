@@ -29,7 +29,7 @@ const VENUE_TYPES = [
 ];
 
 const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
-    const { locationData, getCitiesByState, isMobile } = useMyContext();
+    const { locationData, getCitiesByState, isMobile, UserData, userRole } = useMyContext();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [cities, setCities] = useState([]);
@@ -42,7 +42,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
             // Set form values
             form.setFieldsValue({
                 name: venueData.name,
-                org_id: venueData.org_id,
+                org_id: userRole==='Organizer' ? UserData?.id : venueData.org_id,
                 address: venueData.address,
                 city: venueData.city,
                 state: venueData.state,
