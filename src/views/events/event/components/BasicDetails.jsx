@@ -1,18 +1,12 @@
 // BasicDetailsStep.jsx
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Form, Input, Select, Row, Col, Typography, Card, Space, Button, Spin, Alert,
-  message
-} from 'antd';
+import React, { useEffect, useMemo } from 'react';
+import {Form, Input, Select, Row, Col, Typography, Card, Space, Button, Alert, Empty} from 'antd';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
-import { CompassOutlined, EnvironmentOutlined, HomeOutlined } from '@ant-design/icons';
-import {
-  useOrganizers,
-  useVenuesByOrganizer,
-  useEventCategories
-} from '../hooks/useEventOptions';
+import { CompassOutlined, EnvironmentOutlined, HomeOutlined, PlusOutlined } from '@ant-design/icons';
+import { useVenuesByOrganizer, useEventCategories} from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
+import { useNavigate } from 'react-router-dom';
 
 const { TextArea } = Input;
 
@@ -90,6 +84,31 @@ const BasicDetailsStep = ({ form, isEdit }) => {
   }, [selectedVenueId, venues]);
 
   const isUserOrganizer = UserData?.role?.toLowerCase() === 'organizer';
+  const navigate = useNavigate()
+
+  const handleAddVenue = () => {
+    navigate('/venues');
+  };
+  
+  // Custom empty component with button
+  const customNotFoundContent = (
+    <Empty
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+      description={
+        <span>
+          {isUserOrganizer ? "No venues found" : "No venues available"}
+        </span>
+      }
+    >
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />}
+          onClick={handleAddVenue}
+        >
+          Add Venue
+        </Button>
+    </Empty>
+  );
   return (
     <Row gutter={ROW_GUTTER}>
       {/* Errors */}
@@ -186,6 +205,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
               return text.toLowerCase().includes(input.toLowerCase());
             }}
             style={{ width: '100%' }}
+            notFoundContent={customNotFoundContent}
           />
         </Form.Item>
       </Col>
