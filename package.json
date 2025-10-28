@@ -23,6 +23,7 @@
     "concurrently": "^5.3.0",
     "d3-fetch": "^2.0.0",
     "d3-scale": "^3.2.3",
+    "dayjs": "^1.11.18",
     "dompurify": "^3.2.7",
     "fabric-pure-browser": "^5.1.0",
     "face-api.js": "^0.22.2",

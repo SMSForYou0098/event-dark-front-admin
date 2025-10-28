@@ -7,12 +7,15 @@ import {
 } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined,
-    DollarOutlined, PercentageOutlined, TicketOutlined
+    DollarOutlined, PercentageOutlined, TicketOutlined,
+    CloseOutlined,
+    CheckOutlined
 } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
 import moment from 'moment';
 import axios from 'axios';
+import dayjs from 'dayjs';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -179,56 +182,64 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     };
 
     // Handle edit ticket
-    const handleEdit = (ticket) => {
+    const handleEdit = useCallback((ticket) => {
         setEditMode(true);
         setEditingTicket(ticket);
+        setModalVisible(true);
+
+        // Prepare sale dates if they exist
+        let saleDates = null;
+        if (ticket.sale_date) {
+            const [startDate, endDate] = ticket.sale_date.split(',');
+            if (startDate && endDate) {
+                saleDates = [dayjs(startDate.trim()), dayjs(endDate.trim())];
+            }
+        }
+
+        // Set sale enabled state BEFORE setting form values
+        // This prevents the useEffect from triggering unnecessarily
+        const hasSaleData = ticket.sale === 1 || ticket.sale === true;
+        setSaleEnabled(hasSaleData);
 
         // Set form values
         form.setFieldsValue({
             ticket_title: ticket.name,
             price: ticket.price,
-            currency: ticket.currency,
-            ticket_quantity: ticket.ticket_quantity,
-            booking_per_customer: ticket.booking_per_customer,
-            user_booking_limit: ticket.user_booking_limit,
-            ticket_description: ticket.description,
+            quantity: ticket.ticket_quantity,
+            currency: ticket.currency || 'INR',
+            user_booking_limit: ticket?.user_booking_limit,
+            booking_per_customer: ticket?.booking_per_customer,
+            ticket_description: ticket.ticket_description,
             taxes: ticket.taxes,
-            access_area: ticket.access_area || [],
+            access_area: ticket.access_area_ids || [],
             promocode_codes: ticket.promocode_ids || [],
+            sale: hasSaleData,
             sold_out: ticket.sold_out === 1,
             booking_not_open: ticket.booking_not_open === 1,
             fast_filling: ticket.fast_filling === 1,
-            modify_access_area: ticket.modify_as === 1,
+            modify_access_area: ticket.modify_access_area === 1,
             status: ticket.status === 1,
-            sale: ticket.sale === 1,
-            sale_price: ticket.sale_price,
+            sale_dates: saleDates,
+            sale_price: ticket.sale_price || null,
         });
 
-        // Set sale dates if exists
-        if (ticket.sale === 1 && ticket.sale_date) {
-            const [startDate, endDate] = ticket.sale_date.split(',');
-            if (startDate && endDate) {
-                form.setFieldValue('sale_dates', [moment(startDate), moment(endDate)]);
-            }
-        }
-
-        // Set image
-        if (ticket.background_image) {
+        // Handle image preview
+        if (ticket.ticket_image) {
+            setImagePreviewUrl(ticket.ticket_image);
             setImageFileList([{
                 uid: '-1',
-                name: 'image.jpg',
+                name: 'ticket-image.jpg',
                 status: 'done',
-                url: ticket.background_image,
+                url: ticket.ticket_image,
             }]);
-            setImagePreviewUrl(ticket.background_image);
+        } else {
+            setImagePreviewUrl('');
+            setImageFileList([]);
         }
 
-        setSaleEnabled(ticket.sale === 1);
-        setSelectedCurrency(ticket.currency);
+        setSelectedCurrency(ticket.currency || 'INR');
         setPriceValue(ticket.price);
-        setImageValidationError('');
-        setModalVisible(true);
-    };
+    }, [form]);
 
     // Handle delete ticket
     const handleDelete = async (ticketId) => {
@@ -253,13 +264,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     const handleSubmit = async (values) => {
         setLoading(true);
         try {
+            // console.log(values)
             const formData = new FormData();
-
             // Basic fields
             formData.append('ticket_title', values.ticket_title);
             formData.append('price', values.price);
             formData.append('currency', values.currency);
-            formData.append('ticket_quantity', values.ticket_quantity);
+            formData.append('ticket_quantity', values.quantity);
             formData.append('booking_per_customer', values.booking_per_customer);
             formData.append('user_booking_limit', values.user_booking_limit);
             formData.append('ticket_description', values.ticket_description || '');
@@ -270,12 +281,12 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             formData.append('promocode_codes', JSON.stringify(values.promocode_codes || []));
 
             // Booleans
-            formData.append('sold_out', values.sold_out );
-            formData.append('booking_not_open', values.booking_not_open );
-            formData.append('fast_filling', values.fast_filling );
-            formData.append('modify_access_area', values.modify_access_area );
-            formData.append('status', values.status );
-            formData.append('sale', saleEnabled );
+            formData.append('sold_out', values.sold_out);
+            formData.append('booking_not_open', values.booking_not_open);
+            formData.append('fast_filling', values.fast_filling);
+            formData.append('modify_access_area', values.modify_access_area);
+            formData.append('status', values.status);
+            formData.append('sale', saleEnabled);
 
             // Sale data
             if (saleEnabled && values.sale_dates) {
@@ -378,7 +389,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             render: (text, record) => (
                 <Space direction="vertical" size={0}>
                     <span className="fw-semibold">{text}</span>
-                    {record.status === 0 && <Tag color="red">Inactive</Tag>}
                 </Space>
             )
         },
@@ -409,8 +419,23 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             )
         },
         {
-            title: 'Status',
+            title: 'Active',
             key: 'status',
+            render: (_, record) => (
+                record.status === 0 ? (
+                    <Tag color="red">
+                        <CloseOutlined className='m-0'/>
+                    </Tag>
+                ) : (
+                    <Tag color="green">
+                        <CheckOutlined className='m-0'/>
+                    </Tag>
+                )
+            ),
+        },
+        {
+            title: 'Status',
+            key: null,
             render: (_, record) => (
                 <Space size="small">
                     {record.sold_out === 1 && <Tag color="red">Sold Out</Tag>}
@@ -444,6 +469,34 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 </Space>
             ),
         },
+    ];
+
+    const saleValue = Form.useWatch('sale', form);
+
+    // Update saleEnabled when form sale value changes
+    useEffect(() => {
+        if (saleValue !== undefined) {
+            setSaleEnabled(saleValue);
+
+            // Scroll to sale section when enabled
+            if (saleValue) {
+                setTimeout(() => {
+                    saleSectionRef.current?.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'nearest'
+                    });
+                }, 100);
+            }
+        }
+    }, [saleValue]);
+
+    const switchesConfig = [
+        { label: 'Sale', name: 'sale' },  // No onChange!                                       
+        { label: 'Sold Out', name: 'sold_out' },
+        { label: 'Not Open', name: 'booking_not_open' },
+        { label: 'Fast Filling', name: 'fast_filling' },
+        { label: 'Modify Area', name: 'modify_access_area' },
+        { label: 'Active', name: 'status' },
     ];
 
     return (
@@ -549,7 +602,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 <Col xs={24} md={8}>
                                     <Form.Item
                                         label="Total Quantity"
-                                        name="ticket_quantity"
+                                        name="quantity"
                                         rules={[{ required: true, message: 'Required' }]}
                                     >
                                         <InputNumber style={{ width: '100%' }} min={1} />
@@ -558,7 +611,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
                                 <Col xs={24} md={8}>
                                     <Form.Item
-                                        label="Tickets Per Booking"
+                                        label="Ticket Selection Limit"
                                         name="booking_per_customer"
                                         rules={[{ required: true, message: 'Required' }]}
                                     >
@@ -649,27 +702,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 {/* Switches */}
                                 <Col xs={24}>
                                     <Space size="large" wrap>
-                                        {[
-                                            {
-                                                label: 'Sale', name: 'sale', onChange: (checked) => {
-                                                    setSaleEnabled(checked);
-                                                    // Scroll to sale section when enabled
-                                                    if (checked) {
-                                                        setTimeout(() => {
-                                                            saleSectionRef.current?.scrollIntoView({
-                                                                behavior: 'smooth',
-                                                                block: 'nearest'
-                                                            });
-                                                        }, 100);
-                                                    }
-                                                }
-                                            },
-                                            { label: 'Sold Out', name: 'sold_out' },
-                                            { label: 'Not Open', name: 'booking_not_open' },
-                                            { label: 'Fast Filling', name: 'fast_filling' },
-                                            { label: 'Modify Area', name: 'modify_access_area' },
-                                            { label: 'Active', name: 'status' },
-                                        ].map((config) => (
+                                        {switchesConfig.map((config) => (
                                             <Form.Item
                                                 key={config.name}
                                                 label={config.label}
@@ -695,13 +728,20 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         </Col>
 
                                         <Col xs={24} md={12}>
-                                            <Form.Item
-                                                label="Sale Period"
-                                                name="sale_dates"
-                                                rules={[{ required: saleEnabled, message: 'Select sale dates' }]}
-                                            >
-                                                <RangePicker style={{ width: '100%' }} />
-                                            </Form.Item>
+                                            <Col xs={24} md={12}>
+                                                <Form.Item
+                                                    label="Sale Period"
+                                                    name="sale_dates"
+                                                    rules={[{ required: saleEnabled, message: 'Select sale dates' }]}
+                                                >
+                                                    <RangePicker
+                                                        style={{ width: '100%' }}
+                                                        format="YYYY-MM-DD"
+                                                        placeholder={['Start Date', 'End Date']}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+
                                         </Col>
 
                                         <Col xs={24} md={12}>
