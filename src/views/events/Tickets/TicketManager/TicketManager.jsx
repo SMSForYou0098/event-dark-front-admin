@@ -3,17 +3,15 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Modal, Form, Input, Select, Upload, Button, Table, Space,
     Switch, DatePicker, InputNumber, Row, Col, Alert, message,
-    Card, Tag, Tooltip, Image
+    Tag, Tooltip, Image
 } from 'antd';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined, UploadOutlined,
-    DollarOutlined, PercentageOutlined, TicketOutlined,
     CloseOutlined,
     CheckOutlined
 } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
-import moment from 'moment';
 import axios from 'axios';
 import dayjs from 'dayjs';
 
@@ -209,10 +207,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             currency: ticket.currency || 'INR',
             user_booking_limit: ticket?.user_booking_limit,
             booking_per_customer: ticket?.booking_per_customer,
-            ticket_description: ticket.ticket_description,
+            ticket_description: ticket.ticket_description || ticket?.description,
             taxes: ticket.taxes,
             access_area: ticket.access_area_ids || [],
-            promocode_codes: ticket.promocode_ids || [],
+            // promocode_codes: ticket.promocode_ids || [],
+            promocode_codes: ticket.promocode_ids
+                ? JSON.parse(ticket.promocode_ids)
+                : [],
             sale: hasSaleData,
             sold_out: ticket.sold_out === 1,
             booking_not_open: ticket.booking_not_open === 1,
@@ -278,7 +279,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
             // Arrays
             formData.append('access_area', JSON.stringify(values.access_area || []));
-            formData.append('promocode_codes', JSON.stringify(values.promocode_codes || []));
+            // formData.append('promocode_codes', JSON.stringify(values.promocode_codes || []));
+            if (values.promocode_codes && values.promocode_codes.length > 0) {
+                formData.append('promocode_codes', JSON.stringify(values.promocode_codes));
+            }
+
 
             // Booleans
             formData.append('sold_out', values.sold_out);

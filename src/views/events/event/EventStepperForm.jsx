@@ -92,7 +92,7 @@ const EventStepperForm = () => {
         if (!isEdit || !detail) return;
 
         const controls = detail?.event_controls ?? {};
-        const event_galleries = detail?.event_galleries ?? {};
+        const event_galleries = detail?.event_media ?? {};
         const event_seo = detail?.event_seo ?? {};
 
         const patch = {};
@@ -443,7 +443,7 @@ const EventStepperForm = () => {
                         }}
                     >
                         {
-                            isEdit &&
+                            isEdit && current !==steps.length-1 &&
                             <Tooltip title="Save current progress">
                                 <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
                                     Save Draft
@@ -452,13 +452,13 @@ const EventStepperForm = () => {
                         }
 
                         <div style={{ display: 'flex', gap: 8 }}>
-                            {current > 0 && (
+                            {current > 0 && current !==steps.length-1 && (
                                 <Button onClick={prev} size="large" disabled={isLoading}>
                                     Previous
                                 </Button>
                             )}
 
-                            {current < steps.length - 1 && (
+                            {current < steps.length - 2 && (
                                 <Button
                                     type="primary"
                                     onClick={next}
@@ -482,6 +482,9 @@ const EventStepperForm = () => {
                                     Publish Event
                                 </Button>
                             )}
+                            {
+
+                            }
                         </div>
                     </div>
                 </Form>

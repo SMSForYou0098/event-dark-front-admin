@@ -157,12 +157,12 @@ const PublishStep = ({ eventData, formData }) => {
               >
                 {urlToUse}
               </Text>
-              <Button
+              {/* <Button
                 icon={<LinkOutlined />}
                 onClick={handleCopyUrl}
               >
                 Copy Link
-              </Button>
+              </Button> */}
             </div>
           </div>
         </Space>

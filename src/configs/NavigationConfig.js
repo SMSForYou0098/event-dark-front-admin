@@ -1,4 +1,4 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined } from '@ant-design/icons';
 
 // Dashboard
 const dashboardNav = {
@@ -58,7 +58,7 @@ const partnersClientsSubmenu = [
   },
   {
     key: 'sponsors',
-    path: 'sponsors',
+    path: 'bookings/sponsor',
     title: 'Sponsors Bookings',
     icon: TrophyOutlined,
     breadcrumb: false,
@@ -394,14 +394,6 @@ const settingsSubmenu = [
     submenu: []
   },
   {
-    key: 'settings-banners',
-    path: 'settings/banners',
-    title: 'Banners',
-    icon: AppstoreOutlined,
-    breadcrumb: false,
-    submenu: []
-  },
-  {
     key: 'settings-admin',
     path: 'settings/admin-settings',
     title: 'Admin Settings',
@@ -435,6 +427,44 @@ const settingsNav = {
   breadcrumb: false,
   submenu: settingsSubmenu
 };
+
+// media blogs, gallerys banners Submenu
+const mediaSubmenu = [
+  {
+    key: 'media-banners',
+    path: 'media/banners',
+    title: 'Banners',
+    icon: AppstoreOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+  {
+    key: 'media-blogs',
+    path: 'media/blogs',
+    title: 'Blogs',
+    icon: BookOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+  {
+    key: 'media-gallery',
+    path: 'media/gallery',
+    title: 'Gallery',
+    icon: CameraOutlined,
+    breadcrumb: false,
+    submenu: []
+  }
+]
+const mediaNav = {
+  key: 'media',
+  path: 'media',
+  title: 'Media',
+  icon: SettingOutlined,
+  breadcrumb: false,
+  submenu: mediaSubmenu
+};
+
+
 const agreementsSubmenu = [
   {
     key: 'user-agreements',
@@ -481,7 +511,7 @@ const navigationConfig = [
   agreementsNav,
   salesOperationsNav,
   financialManagementNav,
-
+  mediaNav,
   settingsNav
 ];
 

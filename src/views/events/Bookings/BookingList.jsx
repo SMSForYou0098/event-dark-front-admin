@@ -20,7 +20,7 @@ const BookingList = memo(({ type = 'agent' }) => {
         const configs = {
             agent: {
                 title: 'Agent Bookings',
-                apiUrl: `agents/list/${UserData?.id}`,
+                apiUrl: `${type}/list/${UserData?.id}`,
                 exportRoute: 'export-agentBooking',
                 exportPermission: 'Export Agent Bookings',
                 deleteEndpoint: (data) => data.is_deleted 

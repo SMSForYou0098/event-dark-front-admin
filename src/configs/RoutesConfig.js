@@ -164,7 +164,7 @@ export const protectedRoutes = [
     // Sponsor Bookings
     {
         key: 'sponsor-bookings',
-        path: `/sponsors`,
+        path: `/bookings/sponsor`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <BookingList {...props} type="sponsor" />
@@ -176,6 +176,23 @@ export const protectedRoutes = [
         key: 'complimentary-bookings',
         path: `/bookings/complimentary`,
         component: React.lazy(() => import('views/events/ComplimentaryBooking')),
+    },
+
+    // blogs routes
+    {
+        key: 'blogs-new',
+        path: `/media/blogs/new`,
+        component: React.lazy(() => import('views/events/Blogs/NewPost')),
+    },
+    {
+        key: 'blogs-new',
+        path: `/media/blogs/update/:id`,
+        component: React.lazy(() => import('views/events/Blogs/EditPost')),
+    },
+    {
+        key: 'blogs',
+        path: `/media/blogs`,
+        component: React.lazy(() => import('views/events/Blogs/Posts')),
     },
     // Corporate Bookings
     {
@@ -332,8 +349,8 @@ export const protectedRoutes = [
     },
     // Banners
     {
-        key: 'banners',
-        path: `/settings/banners`,
+        key: 'media-banners',
+        path: `/media/banners`,
         component: React.lazy(() => import('views/events/Settings/Banner/BannerConfig')),
     },
     // Category Settings
@@ -411,7 +428,7 @@ export const protectedRoutes = [
     },
         // ==================== New Booking Page ====================
     {
-        key: 'new-booking',
+        key: 'new-booking-agent',
         path: `/bookings/agent/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
@@ -422,10 +439,10 @@ export const protectedRoutes = [
         // ==================== New Booking Page ====================
     {
         key: 'new-booking',
-        path: `/bookings/sponsors/new`,
+        path: `/bookings/sponsor/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
-                <NewBooking {...props} type="sponsors" />
+                <NewBooking {...props} type="sponsor" />
             </React.Suspense>
         ),
     },
