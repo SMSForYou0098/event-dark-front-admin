@@ -46,6 +46,7 @@ const EventControlsStep = ({ form, isEdit }) => {
             { name: 'house_full', label: 'House Full', tooltip: 'Mark event as sold out' },
             { name: 'online_att_sug', label: 'Hide Online Attendee Suggestion' },
             { name: 'offline_att_sug', label: 'Hide Agent Attendee Suggestion' },
+            { name: 'show_on_home', label: 'Display Event on Home Page' },
           ].map((f) => (
             <Col xs={24} sm={12} lg={8} key={f.name}>
               <Form.Item

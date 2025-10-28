@@ -120,6 +120,7 @@ const EventStepperForm = () => {
                 house_full: Number(controls?.house_full) || 0,
                 online_att_sug: Number(controls?.online_att_sug) || 0,
                 offline_att_sug: Number(controls?.offline_att_sug) || 0,
+                show_on_home: Number(controls?.show_on_home) || 0,
                 insta_whts_url: detail?.insta_whts_url || undefined,
                 whts_note: detail?.whts_note || undefined,
             });

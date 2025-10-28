@@ -173,6 +173,7 @@ export function buildEventFormData(values) {
     appendIfDefined('house_full', values.house_full ?? 0);
     appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
     appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
+    appendIfDefined('show_on_home', values.show_on_home ?? 0);
     appendIfDefined('insta_whts_url', values.insta_whts_url);
     appendIfDefined('whts_note', values.whts_note);
   }

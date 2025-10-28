@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Form, Input, Button, Row, Col, Select, Upload, message, Radio, Spin, Carousel, Image, Modal, } from 'antd';
+import { Card, Form, Input, Button, Row, Col, Select, Upload, message, Radio, Spin, Carousel, Image, Modal, Switch, } from 'antd';
 import { UploadOutlined, SaveOutlined } from '@ant-design/icons';
 import { OrganisationList } from 'utils/CommonInputs';
 import { useMyContext } from 'Context/MyContextProvider';
 import { useEventCategories } from 'views/events/event/hooks/useEventOptions';
 import { useOrganizerEvents, useCreateBanner, useUpdateBanner, useEventsByCategories, } from 'views/events/Settings/hooks/useBanners';
-import { IMAGE_FIELDS, TEXT_FIELDS, TEXTAREA_FIELDS } from './constants';
+import { IMAGE_FIELDS, SWITCH_FIELDS, TEXT_FIELDS, TEXTAREA_FIELDS } from './constants';
 import { CustomNextArrow, CustomPrevArrow } from 'views/events/Settings/Banner/CaroselArrows';
 
 const { TextArea } = Input;
@@ -92,7 +92,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       }
 
       // Set form values
-      form.setFieldsValue({
+      form.setFieldsValue({   
         banner_type: type,
         category: categoryId,
         title: data.title,
@@ -103,6 +103,8 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         external_url: data.external_url,
         event_id: data.event_id,
         event_key: data.event_key,
+        media_url: data.media_url, // NEW
+        display_in_popup: data.display_in_popup || false, // NEW
       });
 
       // Set images if they exist
@@ -487,6 +489,22 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
               </Form.Item>
             </Col>
           ))}
+          {/* Switch Fields - NEW SECTION */}
+          {SWITCH_FIELDS.map((field) => (
+            <Col key={field.name} {...field.span}>
+              <Form.Item
+                label={field.label}
+                name={field.name}
+                valuePropName="checked"
+                tooltip={field.tooltip}
+                initialValue={false}
+              >
+                <Switch />
+              </Form.Item>
+            </Col>
+          ))}
+
+
           {/* Image Upload Fields */}
           {IMAGE_FIELDS.map((field) => (
             <Col key={field.name} {...field.span}>

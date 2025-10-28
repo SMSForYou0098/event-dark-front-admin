@@ -33,6 +33,18 @@ export const TEXT_FIELDS = [
     ],
     placeholder: 'https://example.com',
   },
+  {
+    name: 'media_url',
+    label: 'Media URL (YouTube/Social)',
+    span: { xs: 24, md: 12 },
+    rules: [
+      {
+        type: 'url',
+        message: 'Please enter a valid URL',
+      },
+    ],
+    placeholder: 'https://youtube.com/watch?v=...',
+  },
 ];
 
 export const TEXTAREA_FIELDS = [
@@ -77,5 +89,16 @@ export const IMAGE_FIELDS = [
     span: { xs: 12, md: 8 },
     stateKey: 'mdImage',
     uploadText: 'Upload MD',
+  },
+];
+
+
+// NEW CONSTANT - Add after TEXT_FIELDS
+export const SWITCH_FIELDS = [
+  {
+    name: 'display_in_popup',
+    label: 'Display in Popup',
+    span: { xs: 24, md: 12 },
+    tooltip: 'Enable to show this banner in a popup modal',
   },
 ];
