@@ -89,6 +89,23 @@ export const useCreateEvent = (options = {}) =>
   useMutation({
     mutationFn: async (payloadOrFormData) => {
       const body = payloadOrFormData; // already FormData from the component
+      console.log('=== FormData Contents ===');
+      for (const [key, value] of body.entries()) {
+        // Check if value is a File/Blob
+        if (value instanceof File) {
+          console.log(`${key}:`, {
+            name: value.name,
+            size: value.size,
+            type: value.type,
+            lastModified: value.lastModified
+          });
+        } else {
+          console.log(`${key}:`, value);
+        }
+      }
+      console.log('========================');
+      
+      
       const res = await api.post('/create-event', body, {
         headers: { /* let browser set multipart boundary; omit Content-Type */ },
       });
@@ -106,6 +123,7 @@ export const useCreateEvent = (options = {}) =>
 // helpers/formData.js
 // buildEventFormData.js
 export function buildEventFormData(values) {
+  console.log('valuers in form data', values);
   const fd = new FormData();
   const appendIfDefined = (k, v) => {
     if (v === undefined || v === null) return;

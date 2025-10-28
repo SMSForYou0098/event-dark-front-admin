@@ -226,7 +226,7 @@ const EventStepperForm = () => {
             refetchDetail();
             if (eventId) {
                 setTimeout(() => {
-                    navigate(`/app/apps/events/update/${eventId}`, { state: { step: 1 } });
+                    navigate(`/events/update/${eventId}`, { state: { step: 1 } });
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 }, 500);
             } else {
@@ -307,7 +307,11 @@ const EventStepperForm = () => {
 
             // Create event on first step if not in edit mode
             if (current === 0 && !isEdit) {
-                const body = buildEventFormData(getFormData());
+                const formValues = getFormData();
+                const body = buildEventFormData({
+                    ...formValues,
+                    step: stepName,
+                });
                 await createEvent(body);
                 return; // Navigation handled in onSuccess
             }

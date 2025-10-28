@@ -44,7 +44,6 @@ const Posts = () => {
       title: 'Are you sure?',
       content: 'This action will permanently delete the blog post.',
       okText: 'Yes, delete it!',
-      okType: 'danger',
       cancelText: 'Cancel',
       onOk: async () => {
         try {
