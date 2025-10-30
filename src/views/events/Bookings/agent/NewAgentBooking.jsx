@@ -266,6 +266,7 @@ const NewAgentBooking = memo(({type}) => {
           setBookingResponse(response.bookings || null);
           setSavedAttendeeIds({});
           setSelectedTickets([]);
+          setTicketAttendees({})
           setCurrentStep(currentStep + 1);
           setIsConfirmed(true);
         }
@@ -589,6 +590,8 @@ const NewAgentBooking = memo(({type}) => {
   const goToPreviousStep = useCallback(() => {
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
+      setSelectedTickets([]);
+      setTicketAttendees({});
     }
   }, [currentStep]);
 

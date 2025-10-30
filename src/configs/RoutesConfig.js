@@ -175,7 +175,12 @@ export const protectedRoutes = [
     {
         key: 'complimentary-bookings',
         path: `/bookings/complimentary`,
-        component: React.lazy(() => import('views/events/ComplimentaryBooking')),
+        component: React.lazy(() => import('views/events/Bookings/ComplimentaryBooking')),
+    },
+    {
+        key: 'complimentary-bookings',
+        path: `/bookings/complimentary/new`,
+        component: React.lazy(() => import('views/events/Bookings/ComplimentaryBooking/ComplimentaryBookings')),
     },
 
     // blogs routes

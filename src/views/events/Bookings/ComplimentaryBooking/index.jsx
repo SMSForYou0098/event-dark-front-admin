@@ -11,8 +11,8 @@ import apiClient from "auth/FetchInterceptor";
 
 import DataTable from "views/events/common/DataTable";
 import { useMyContext } from "Context/MyContextProvider";
-import generateQRCodeZip from "../Tickets/generateQRCodeZip";
-import QRGenerator from "../Tickets/QRGenerator";
+import generateQRCodeZip from "../../Tickets/generateQRCodeZip";
+import QRGenerator from "../../Tickets/QRGenerator";
 import BatchDataModel from "./BatchDataModel";
 
 const { confirm } = Modal;
