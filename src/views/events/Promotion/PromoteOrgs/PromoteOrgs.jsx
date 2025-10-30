@@ -69,8 +69,9 @@ export default function PromoteOrgs() {
     const fetchOrgs = useCallback(async () => {
         setLoading(true);
         try {
-            const data = await api.get('/promoted-orgs'); // Expected [{id, name, thumbnail}]
-            setItems(Array.isArray(data) ? data : []);
+            const data = await api.get('/promote-orgs'); // Expected [{id, name, thumbnail}]
+            setItems(Array.isArray(data?.data) ? data?.data : []);
+            console.log('data',data)
         } catch {
             setItems([]);
         } finally {
@@ -118,7 +119,7 @@ export default function PromoteOrgs() {
                                 }}
                             >
                                 {items.map((item, idx) => (
-                                    <SortableOrg key={item.id} id={item.id} name={item.name} thumbnail={item.thumbnail} index={idx} />
+                                    <SortableOrg key={item.id} id={item.id} name={item.name} thumbnail={item.image} index={idx} />
                                 ))}
                             </div>
                         </SortableContext>
