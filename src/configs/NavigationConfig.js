@@ -1,4 +1,4 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined } from '@ant-design/icons';
 
 // Dashboard
 const dashboardNav = {
@@ -434,7 +434,7 @@ const mediaSubmenu = [
     key: 'media-banners',
     path: 'media/banners',
     title: 'Banners',
-    icon: AppstoreOutlined,
+    icon: PlayCircleFilled,
     breadcrumb: false,
     submenu: []
   },
@@ -459,7 +459,7 @@ const mediaNav = {
   key: 'media',
   path: 'media',
   title: 'Media',
-  icon: SettingOutlined,
+  icon: PlayCircleOutlined,
   breadcrumb: false,
   submenu: mediaSubmenu
 };
@@ -492,6 +492,27 @@ const agreementsNav = {
   submenu: agreementsSubmenu
 };
 
+const promotionSubMenu = [
+  {
+    key: 'orgs-promotion',
+    path: 'promotion/orgs',
+    title: 'Promote Orgs',
+    icon: TeamOutlined,
+    breadcrumb: false,
+    submenu: []
+  },
+];
+
+const promotionNav = {
+  key: 'promotion',
+  path: 'promotion',
+  title: 'Promotions',
+  icon: GiftOutlined,
+  breadcrumb: false,
+  submenu: promotionSubMenu
+};
+
+
 // Final Navigation Config
 const navigationConfig = [
   dashboardNav,
@@ -508,6 +529,7 @@ const navigationConfig = [
     breadcrumb: false,
     submenu: []
   },
+  promotionNav,
   agreementsNav,
   salesOperationsNav,
   financialManagementNav,

@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 import 'antd/dist/reset.css'
+import { notification } from 'antd'
+
+// Set global default duration for all Ant Design notifications
+notification.config({ duration: 2 })
 
 const container = document.getElementById('root');
 const root = createRoot(container); // createRoot(container!) if you use TypeScript

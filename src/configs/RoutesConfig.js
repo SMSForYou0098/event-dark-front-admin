@@ -194,6 +194,7 @@ export const protectedRoutes = [
         path: `/media/blogs`,
         component: React.lazy(() => import('views/events/Blogs/Posts')),
     },
+
     // Corporate Bookings
     {
         key: 'corporate-bookings',
@@ -266,7 +267,12 @@ export const protectedRoutes = [
         path: `/promo-codes`,
         component: React.lazy(() => import('views/events/PromoCodes/index')),
     },
-
+    // promotions
+    {
+        key: 'orgs-promotion',
+        path: 'promotion/orgs',
+        component: React.lazy(() => import('views/events/Promotion/PromoteOrgs/PromoteOrgs')),
+    },
     // ==================== BOX OFFICE & WALLET ====================
     {
         key: 'box-office',

@@ -108,8 +108,7 @@ const MetaFields = ({ meta, onChange }) => {
         />
       </Form.Item>
 
-
-      <Card className="mb-3" style={{ borderColor: '#1890ff' }}>
+      <div className="mb-3 border rounded-5 p-3">
         <Title level={5} style={{ color: '#1890ff', marginBottom: 16 }}>
           SEO Meta Fields
         </Title>
@@ -180,7 +179,7 @@ const MetaFields = ({ meta, onChange }) => {
             ))}
           </div>
         </Form.Item>
-      </Card>
+      </div>
     </>
   );
 };

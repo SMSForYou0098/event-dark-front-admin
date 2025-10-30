@@ -126,7 +126,7 @@ const Posts = () => {
           <Button
             type="primary"
             icon={<EditOutlined />}
-            onClick={() => navigate(`/blogs/update/${record.id}`)}
+            onClick={() => navigate(`update/${record.id}`)}
             size="small"
           />
           <Button
@@ -157,7 +157,7 @@ const Posts = () => {
           <Button
             type="primary"
             icon={<PlusOutlined />}
-            onClick={() => navigate('/blogs/new')}
+            onClick={() => navigate('new')}
           >
             Create Post
           </Button>
