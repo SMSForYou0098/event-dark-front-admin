@@ -1,53 +1,21 @@
 import React from 'react'
+import DiscoutFIeldGroup from './DiscoutFIeldGroup'
+import Flex from 'components/shared-components/Flex'
+import { Typography } from 'antd';
+import { calcTicketTotals } from 'utils/ticketCalculations';
+const { Title } = Typography;
+
 const OrderCalculation = (props) => {
-  const { ticketCurrency, selectedTickets = [] } = props
-
-  const safe = (n) => Number.isFinite(n) ? n : 0
-
-  // Sub Total = sum of (ticket price * quantity)
-  const subtotal = selectedTickets
-    .reduce((acc, t) => acc + safe(t.price) * safe(t.quantity), 0)
-    .toFixed(2)
-
-  // Totals using new fields with fallbacks to compute if missing
-  const baseAmount = selectedTickets
-    .reduce((acc, t) => acc + (
-      t.totalBaseAmount ??
-      (safe(t.baseAmount) * safe(t.quantity)) ??
-      (safe(t.price) * safe(t.quantity))
-    ), 0)
-    .toFixed(2)
-
-  const centralGST = selectedTickets
-    .reduce((acc, t) => acc + (
-      t.totalCentralGST ??
-      (safe(t.centralGST) * safe(t.quantity)) ??
-      0
-    ), 0)
-    .toFixed(2)
-
-  const stateGST = selectedTickets
-    .reduce((acc, t) => acc + (
-      t.totalStateGST ??
-      (safe(t.stateGST) * safe(t.quantity)) ??
-      0
-    ), 0)
-    .toFixed(2)
-
-  const totalTax = (
-    (parseFloat(centralGST) || 0) + (parseFloat(stateGST) || 0)
-  ).toFixed(2)
-
-  const convenienceFee = selectedTickets
-    .reduce((acc, t) => acc + (
-      t.totalConvenienceFee ??
-      (safe(t.convenienceFee) * safe(t.quantity)) ??
-      0
-    ), 0)
-    .toFixed(2)
-
-  // Optional: discount if you add it per ticket later; currently 0
-  const discount = (0).toFixed(2)
+  const { ticketCurrency, selectedTickets = [] } = props;
+  const {
+    subtotal,
+    baseAmount,
+    centralGST,
+    stateGST,
+    convenienceFee,
+    grandTotal,
+  } = calcTicketTotals(selectedTickets);
+  const discount = (0).toFixed(2);
 
   return (
     <>
@@ -75,6 +43,15 @@ const OrderCalculation = (props) => {
         <h5>Convenience fees</h5>
         <h5 className="text-success">{ticketCurrency}{convenienceFee}</h5>
       </div>
+
+      <DiscoutFIeldGroup {...props} />
+
+      <Flex justifyContent="space-between" align="center">
+        <Title level={5} style={{ margin: 0 }}>Order Total</Title>
+        <Title level={3} type="primary" style={{ margin: 0 }}>
+          {ticketCurrency}{grandTotal}
+        </Title>
+      </Flex>
     </>
   )
 }

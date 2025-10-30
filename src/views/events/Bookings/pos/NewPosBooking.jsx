@@ -1,13 +1,12 @@
 import React, { useState, memo, Fragment, useEffect, useMemo, useCallback } from "react";
-import { Button, Row, Col, Card, Input, Collapse, Space, Typography, Statistic, message } from "antd";
-import { SearchOutlined, CalendarOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import { Button, Row, Col, Card,Space, Typography, Statistic, message } from "antd";
+import { CalendarOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Flex from "components/shared-components/Flex";
 import POSAttendeeModal from "./POSAttendeeModal";
 import POSPrintModal from "./POSPrintModal";
 import PosEvents from "../components/PosEvents";
 import OrderCalculation from "../components/OrderCalculation";
-import DiscoutFIeldGroup from "../components/DiscoutFIeldGroup";
 import { useMyContext } from "Context/MyContextProvider";
 import { cancelToken } from "auth/FetchInterceptor";
 import BookingTickets from "../components/BookingTickets";
@@ -53,7 +52,7 @@ const POS = memo(() => {
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [showAttendeeModel, setShowAttendeeModel] = useState(false);
   const [method, setMethod] = useState('Cash');
-  const [tickets, setTickets] = useState([]);
+  // const [tickets, setTickets] = useState([]);
   // Memoized calculations
   const bookingStats = useMemo(() => ({
     total: bookings?.allbookings?.length ?? 0,
@@ -195,6 +194,10 @@ const POS = memo(() => {
     }
   }, [discountValue, discountType]);
 
+  useEffect(()=>{
+    console.log(selectedTickets)
+  },[selectedTickets])
+
   useEffect(() => {
     if (bookingHistory.length > 0) {
       const ticketMap = bookingHistory.reduce((acc, booking) => {
@@ -213,7 +216,7 @@ const POS = memo(() => {
 
   const handleButtonClick = useCallback((evnt, tkts) => {
     setEvent(evnt)
-    setTickets(tkts)
+    // setTickets(tkts)
   }, []);
 
   const closePrintModel = () => {
@@ -269,6 +272,8 @@ const POS = memo(() => {
     },
   ];
 
+  
+
   return (
     <Fragment>
       <POSAttendeeModal
@@ -312,15 +317,9 @@ const POS = memo(() => {
             )}
           >
             <BookingTickets
-              setSubTotal={setSubTotal}
-              setBaseAmount={setBaseAmount}
-              setCentralGST={setCentralGST}
-              setStateGST={setStateGST}
-              setTotalTax={setTotalTax}
               event={event}
               selectedTickets={selectedTickets}
               setSelectedTickets={setSelectedTickets}
-              setGrandTotal={setGrandTotal}
               getCurrencySymbol={getCurrencySymbol}
             />
           </Card>
@@ -345,14 +344,10 @@ const POS = memo(() => {
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               <OrderCalculation
                 ticketCurrency={ticketCurrency}
-                subtotal={subtotal}
                 discount={discount}
-                baseAmount={baseAmount}
-                centralGST={centralGST}
-                totalTax={totalTax}
-              />
+                selectedTickets={selectedTickets}
 
-              <DiscoutFIeldGroup
+                //disc props
                 discountType={discountType}
                 setDiscountType={setDiscountType}
                 discountValue={discountValue}
@@ -361,12 +356,6 @@ const POS = memo(() => {
                 handleDiscount={handleDiscount}
               />
 
-              <Flex justifyContent="space-between" align="center">
-                <Title level={5} style={{ margin: 0 }}>Order Total</Title>
-                <Title level={3} type="primary" style={{ margin: 0 }}>
-                  {ticketCurrency}{grandTotal}
-                </Title>
-              </Flex>
               <div className="d-none d-sm-block">
                 <Button
                   type="primary"

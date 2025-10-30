@@ -6,7 +6,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 import { CloudCog } from 'lucide-react';
 const { Text } = Typography;
 
-const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST, setTotalTax, event, setGrandTotal, getCurrencySymbol, setSelectedTickets, selectedTickets }) => {
+const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selectedTickets }) => {
   // Reset selected tickets when event changes
   const { isMobile } = useMyContext()
   useEffect(() => {
@@ -143,24 +143,6 @@ const BookingTickets = ({ setSubTotal, setBaseAmount, setCentralGST, setStateGST
     });
   }, [setSelectedTickets]);
 
-
-  useEffect(() => {
-    // console.log(selectedTickets);
-    if (selectedTickets?.length > 0) {
-      const total = selectedTickets?.reduce((acc, ticket) => {
-        return acc + (ticket.price * ticket.quantity);
-      }, 0);
-      setSubTotal(total);
-    } else {
-      // Reset all financial states when no tickets are selected
-      setSubTotal(0);
-      setBaseAmount(0);
-      setCentralGST(0);
-      setStateGST(0);
-      setTotalTax(0);
-      setGrandTotal(0);
-    }
-  }, [selectedTickets, setSubTotal, setBaseAmount, setCentralGST, setStateGST, setTotalTax, setGrandTotal]);
 
   if (!event || event?.length === 0) {
     return (
