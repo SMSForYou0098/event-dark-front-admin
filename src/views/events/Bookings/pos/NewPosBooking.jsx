@@ -11,6 +11,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import { cancelToken } from "auth/FetchInterceptor";
 import BookingTickets from "../components/BookingTickets";
 import StickyLayout from "utils/MobileStickyBottom.jsx/StickyLayout";
+import { calcTicketTotals } from "utils/ticketCalculations";
 
 const { Title, Text } = Typography;
 
@@ -174,18 +175,38 @@ const POS = memo(() => {
 
 
   const handleDiscount = useCallback(() => {
-    if (discountValue) {
-      let disc = 0;
-      if (discountType === 'fixed') {
-        setDiscount(discountValue);
-      } else if (discountType === 'percentage') {
-        disc = subtotal * discountValue / 100;
-        setDiscount(disc);
-      }
-      setDisableChoice(true);
-      setGrandTotal(grandTotal - disc);
+    // If discount is blank or 0, revert to original amounts
+    if (!discountValue || discountValue <= 0) {
+      setDiscount(0);
+      setDisableChoice(false); // Re-enable the button when discount is removed
+      message.info('Discount removed');
+      return;
     }
-  }, [discountValue, discountType, subtotal, grandTotal]);
+  
+    const { subtotal } = calcTicketTotals(selectedTickets);
+    const subtotalValue = parseFloat(subtotal);
+    
+    let calculatedDiscount = 0;
+    if (discountType === 'percentage') {
+      if (discountValue > 100) {
+        message.error('Percentage cannot be more than 100%');
+        return;
+      }
+      calculatedDiscount = (subtotalValue * discountValue) / 100;
+    } else {
+      if (discountValue > subtotalValue) {
+        message.error('Discount cannot be more than subtotal');
+        return;
+      }
+      calculatedDiscount = Number(discountValue);
+    }
+  
+    const finalDiscount = +calculatedDiscount.toFixed(2);
+    setDiscount(finalDiscount);
+    setDisableChoice(true); // Disable after first apply
+    
+    message.success('Discount applied successfully');
+  }, [discountValue, discountType, selectedTickets]);
 
   useEffect(() => {
     setDisableChoice(false);

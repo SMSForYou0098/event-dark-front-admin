@@ -3,7 +3,7 @@ import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useStat
 import { Col, message, Row, Modal } from 'antd';
 import PosEvents from '../components/PosEvents';
 import AgentBookingModal from './AgentBookingModal';
-import { processImageFile  } from './utils';
+import { processImageFile } from './utils';
 
 // Import step components
 import StepIndicator from './components/StepIndicator';
@@ -21,8 +21,9 @@ import {
   useAgentBooking,
 } from './useAgentBookingHooks';
 import BookingSummary from './components/BookingSummary';
+import { calcTicketTotals, getSubtotal } from 'utils/ticketCalculations';
 
-const NewAgentBooking = memo(({type}) => {
+const NewAgentBooking = memo(({ type }) => {
   const {
     UserData,
     isMobile,
@@ -36,14 +37,8 @@ const NewAgentBooking = memo(({type}) => {
   const [categoryId, setCategoryId] = useState(null);
   const [event, setEvent] = useState([]);
   const [selectedTickets, setSelectedTickets] = useState([]);
-  const [subtotal, setSubTotal] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
-  const [totalTax, setTotalTax] = useState(0);
-  const [grandTotal, setGrandTotal] = useState(0);
-  const [baseAmount, setBaseAmount] = useState(0);
-  const [centralGST, setCentralGST] = useState(0);
-  const [stateGST, setStateGST] = useState(0);
   const [number, setNumber] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -69,11 +64,10 @@ const NewAgentBooking = memo(({type}) => {
   const [designation, setDesignation] = useState('');
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [createdUser, setCreatedUser] = useState(null);
-  const [normalBookings, setNormalBookings] = useState([]);
   // const [masterBookings, setMasterBookings] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [bookingResponse, setBookingResponse] = useState(null);
-    const [ticketAttendees, setTicketAttendees] = useState({});
+  const [ticketAttendees, setTicketAttendees] = useState({});
 
   const bookingStats = useMemo(
     () => ({
@@ -181,23 +175,8 @@ const NewAgentBooking = memo(({type}) => {
 
   const agentBookingMutation = useAgentBooking();
 
-  // const masterBookingMutation = useMasterBooking({
-  //   onSuccess: (response) => {
-  //     if (response.status && response.booking) {
-  //       const master = response.booking;
-  //       setMasterBookings((prev) => [...prev, master]);
-  //       setShowPrintModel(true);
-  //       message.success('Master booking created successfully!');
-  //     }
-  //   },
-  //   onError: (error) => {
-  //     console.error('Master booking error:', error);
-  //     message.error(error.message || 'Failed to create master booking');
-  //   },
-  // });
 
-
-    const handleBookingAfterUser = useCallback(async (user, attendeeIdsByTicket = {}) => {
+  const handleBookingAfterUser = useCallback(async (user, attendeeIdsByTicket = {}) => {
 
     // ✅ Validate user exists
     if (!user || !user.id) {
@@ -259,8 +238,8 @@ const NewAgentBooking = memo(({type}) => {
       payload: bookingPayload
     }, {
       onSuccess: (response) => {
-        if(response.status){
-          message.success(response.message ||'Booking created successfully!');
+        if (response.status) {
+          message.success(response.message || 'Booking created successfully!');
           setBookingResponse(response.bookings || null);
           setSavedAttendeeIds({});
           setSelectedTickets([]);
@@ -276,21 +255,9 @@ const NewAgentBooking = memo(({type}) => {
         // setCurrentStep(currentStep + 1);
       }
     });
-  }, [
-    selectedTickets,
-    UserData,
-    number,
-    email,
-    name,
-    method,
-    event,
-    isAmusment,
-    eventID,
-    agentBookingMutation,
-    currentStep
-  ]);
+  }, [type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep]);
 
-    const handleUserSubmit = useCallback(async () => {
+  const handleUserSubmit = useCallback(async () => {
     if (!name) {
       message.error("Name is required");
       return;
@@ -382,20 +349,20 @@ const NewAgentBooking = memo(({type}) => {
         return;
       }
 
-      
+
       const ticketAttendeesData = attendeeStepRef.current?.getAttendeeIdsByTicket?.();
       const attendeeIdsByTicket = {};
 
       if (ticketAttendeesData) {
         Object.entries(ticketAttendeesData).forEach(([ticketId, attendees]) => {
-          
+
           if (Array.isArray(attendees)) {
             // ✅ If it's already an array of IDs (numbers)
             const ids = attendees.filter(id => {
               const isValid = typeof id === 'number' && id > 0;
               return isValid;
             });
-            
+
             attendeeIdsByTicket[ticketId] = ids;
           } else {
             console.warn(`Ticket ${ticketId} has invalid attendees format:`, attendees);
@@ -456,56 +423,6 @@ const NewAgentBooking = memo(({type}) => {
     createUserMutation.isPending ||
     updateUserMutation.isPending;
 
-  useEffect(() => {
-    if (selectedTickets?.length > 0) {
-      const totalSubtotal = selectedTickets.reduce((acc, ticket) => {
-        const ticketPrice = Number(ticket?.price) || 0;
-        const ticketQuantity = Number(ticket?.quantity) || 0;
-        return acc + (ticketPrice * ticketQuantity);
-      }, 0);
-
-      setSubTotal(+totalSubtotal.toFixed(2));
-    } else {
-      setSubTotal(0);
-    }
-  }, [selectedTickets]);
-
-  useEffect(() => {
-    if (selectedTickets?.length > 0) {
-      //here i think we need to add the convenience fee to the total amount
-      const totalConvenienceFee = selectedTickets?.reduce((acc, ticket) => acc + (ticket.convenienceFee * ticket.quantity), 0);
-      const totalBaseAmount = selectedTickets?.reduce((acc, ticket) => acc + (ticket.baseAmount * ticket.quantity), 0);
-      const totalCentralGST = selectedTickets?.reduce((acc, ticket) => acc + (ticket.centralGST * ticket.quantity), 0);
-      const totalStateGST = selectedTickets?.reduce((acc, ticket) => acc + (ticket.stateGST * ticket.quantity), 0);
-      const totalTax = totalCentralGST + totalStateGST;
-      const totalAmount = subtotal + totalTax + totalConvenienceFee;
-
-      setBaseAmount(+totalBaseAmount.toFixed(2));
-      setCentralGST(+totalCentralGST.toFixed(2));
-      setStateGST(+totalStateGST.toFixed(2));
-      setTotalTax(+totalTax.toFixed(2));
-
-      const grandTotal = totalAmount - discount;
-      setGrandTotal(+grandTotal.toFixed(2));
-    } else {
-      setBaseAmount(0);
-      setCentralGST(0);
-      setStateGST(0);
-      setTotalTax(0);
-      setGrandTotal(0);
-    }
-  }, [selectedTickets, discount, subtotal]);
-
-
-  // useEffect(() => {
-  //   if (masterBookings.length > 0 || normalBookings.length > 0) {
-  //     const masterBookingIds = masterBookings.flatMap((data) => data?.booking_id);
-  //     const filteredNormalBookings = normalBookings.filter(
-  //       (booking) => !masterBookingIds.includes(booking?.id)
-  //     );
-  //     const combinedBookings = [...masterBookings, ...filteredNormalBookings];
-  //   }
-  // }, [masterBookings, normalBookings]);
 
   const attendeeStepRef = useRef(null);
   const handleButtonClick = useCallback(async (evnt, tkts) => {
@@ -532,31 +449,39 @@ const NewAgentBooking = memo(({type}) => {
   }, [fetchCategoryData]);
 
   const handleDiscount = useCallback(() => {
+    // If discount is blank or 0, revert to original amounts
     if (!discountValue || discountValue <= 0) {
-      message.warning('Please enter a valid discount value');
+      setDiscount(0);
+      setDisableChoice(false); // Re-enable the button when discount is removed
+      message.info('Discount removed');
       return;
     }
-
+  
+    const { subtotal } = calcTicketTotals(selectedTickets);
+    const subtotalValue = parseFloat(subtotal);
+    
     let calculatedDiscount = 0;
     if (discountType === 'percentage') {
       if (discountValue > 100) {
         message.error('Percentage cannot be more than 100%');
         return;
       }
-      calculatedDiscount = (subtotal * discountValue) / 100;
+      calculatedDiscount = (subtotalValue * discountValue) / 100;
     } else {
-      if (discountValue > subtotal) {
+      if (discountValue > subtotalValue) {
         message.error('Discount cannot be more than subtotal');
         return;
       }
       calculatedDiscount = Number(discountValue);
     }
-
-    setDiscount(+calculatedDiscount.toFixed(2));
-    setGrandTotal(subtotal-calculatedDiscount);
-    // setDisableChoice(true);
+  
+    const finalDiscount = +calculatedDiscount.toFixed(2);
+    setDiscount(finalDiscount);
+    setDisableChoice(true); // Disable after first apply
+    
     message.success('Discount applied successfully');
-  }, [discountValue, discountType, subtotal]);
+  }, [discountValue, discountType, selectedTickets]);
+
   // ✅ Updated goToNextStep with proper validation
   const goToNextStep = useCallback(() => {
     if (currentStep === 0) {
@@ -637,11 +562,11 @@ const NewAgentBooking = memo(({type}) => {
 
 
       <Row gutter={[16]}>
-        {currentStep === 0 && 
-        <Col span={24}>
-          <PosEvents type={type} handleButtonClick={handleButtonClick} />
-        </Col>
-    }
+        {currentStep === 0 &&
+          <Col span={24}>
+            <PosEvents type={type} handleButtonClick={handleButtonClick} />
+          </Col>
+        }
         {eventID && (
           <>
             {/* Step Indicator */}
@@ -656,12 +581,6 @@ const NewAgentBooking = memo(({type}) => {
                   event={event}
                   selectedTickets={selectedTickets}
                   setSelectedTickets={setSelectedTickets}
-                  setSubTotal={setSubTotal}
-                  setBaseAmount={setBaseAmount}
-                  setCentralGST={setCentralGST}
-                  setStateGST={setStateGST}
-                  setTotalTax={setTotalTax}
-                  setGrandTotal={setGrandTotal}
                   getCurrencySymbol={getCurrencySymbol}
                   formatDateRange={formatDateRange}
                   onNext={goToNextStep} // ✅ Pass navigation function
@@ -687,36 +606,31 @@ const NewAgentBooking = memo(({type}) => {
 
             {/* Right Sidebar - Order Summary */}
             {
-              currentStep <= (isAttendeeRequire ? 1 : 0) ? 
-            <Col xs={24} lg={8}>
-              <OrderSummary
-                stats={stats}
-                ticketCurrency={ticketCurrency}
-                discountType={discountType}
-                setDiscountType={setDiscountType}
-                discountValue={discountValue}
-                setDiscountValue={setDiscountValue}
-                disableChoice={disableChoice}
-                handleDiscount={handleDiscount}
-                currentStep={currentStep}
-                isAttendeeRequire={isAttendeeRequire}
-                selectedTickets={selectedTickets}
-                isLoading={isLoading}
-                onNext={goToNextStep} // ✅ Pass navigation function
-                onCheckout={handleBooking} // ✅ Only used for final checkout
-                isMobile={isMobile}
-                subtotal={subtotal}
-                discount={discount}
-                baseAmount={baseAmount}
-                centralGST={centralGST}
-                totalTax={totalTax}
-                grandTotal={grandTotal}
-              />
-            </Col> 
-            : <Col xs={24}>
+              currentStep <= (isAttendeeRequire ? 1 : 0) ?
+                <Col xs={24} lg={8}>
+                  <OrderSummary
+                    stats={stats}
+                    ticketCurrency={ticketCurrency}
+                    discountType={discountType}
+                    setDiscountType={setDiscountType}
+                    discountValue={discountValue}
+                    setDiscountValue={setDiscountValue}
+                    disableChoice={disableChoice}
+                    handleDiscount={handleDiscount}
+                    currentStep={currentStep}
+                    isAttendeeRequire={isAttendeeRequire}
+                    selectedTickets={selectedTickets}
+                    isLoading={isLoading}
+                    onNext={goToNextStep} // ✅ Pass navigation function
+                    onCheckout={handleBooking} // ✅ Only used for final checkout
+                    isMobile={isMobile}
+                    discount={discount}
+                  />
+                </Col>
+                : <Col xs={24}>
 
-              <BookingSummary response={bookingResponse} setResponse={setBookingResponse} setCurrentStep={setCurrentStep}  />
-            </Col>
+                  <BookingSummary response={bookingResponse} setResponse={setBookingResponse} setCurrentStep={setCurrentStep} />
+                </Col>
             }
           </>
         )}

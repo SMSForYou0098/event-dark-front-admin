@@ -3,34 +3,12 @@ import { Button, Card, Space, Statistic, Typography } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
 import Flex from 'components/shared-components/Flex';
 import OrderCalculation from '../../components/OrderCalculation';
-import DiscoutFIeldGroup from '../../components/DiscoutFIeldGroup';
 import StickyLayout from 'utils/MobileStickyBottom.jsx/StickyLayout';
 
 const { Title } = Typography;
 
-const OrderSummary = ({
-  stats,
-  ticketCurrency,
-  subtotal,
-  discount,
-  baseAmount,
-  centralGST,
-  totalTax,
-  grandTotal,
-  discountType,
-  setDiscountType,
-  discountValue,
-  setDiscountValue,
-  disableChoice,
-  handleDiscount,
-  currentStep,
-  isAttendeeRequire,
-  selectedTickets,
-  isLoading,
-  onCheckout, // ✅ This should be goToNextStep for step 0
-  onNext, // ✅ Add onNext prop for navigation
-  isMobile,
-}) => {
+const OrderSummary = (props) => {
+  const { stats, ticketCurrency, discount, grandTotal, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
   // ✅ Determine which handler to use
   const handleButtonClick = () => {
     if (currentStep === 0) {
@@ -86,25 +64,6 @@ const OrderSummary = ({
           discountValue={discountValue}
           discount={discount}
         />
-
-        {/* <DiscoutFIeldGroup
-          discountType={discountType}
-          setDiscountType={setDiscountType}
-          discountValue={discountValue}
-          setDiscountValue={setDiscountValue}
-          disableChoice={disableChoice}
-          handleDiscount={handleDiscount}
-        /> */}
-
-        {/* <Flex justifyContent="space-between" align="center">
-          <Title level={5} style={{ margin: 0 }}>
-            Order Total
-          </Title>
-          <Title level={3} type="primary" style={{ margin: 0 }}>
-            {ticketCurrency}
-            {grandTotal}
-          </Title>
-        </Flex> */}
 
         {/* Desktop Button */}
         <div className="d-none d-sm-block">

@@ -4,13 +4,10 @@ export function getSubtotal(tickets = []) {
   return tickets.reduce((acc, t) => acc + safe(t.price) * safe(t.quantity), 0).toFixed(2);
 }
 
-export function getBaseAmount(tickets = []) {
-  return tickets.reduce((acc, t) =>
-    acc + (
-      t.totalBaseAmount ??
-      (safe(t.baseAmount) * safe(t.quantity)) ??
-      (safe(t.price) * safe(t.quantity))
-    ), 0).toFixed(2);
+export function getBaseAmount(tickets = [], discount = 0) {
+  const subtotal = parseFloat(getSubtotal(tickets));
+  const discountAmount = safe(discount);
+  return (subtotal - discountAmount).toFixed(2);
 }
 
 export function getCentralGST(tickets = []) {
@@ -37,18 +34,24 @@ export function getConvenienceFee(tickets = []) {
     0).toFixed(2);
 }
 
-export function getGrandTotal(tickets = []) {
-  return tickets.reduce((acc, t) => acc + safe(t.totalFinalAmount), 0).toFixed(2);
+export function getGrandTotal(tickets = [], discount = 0) {
+  const baseAmount = parseFloat(getBaseAmount(tickets, discount));
+  const centralGST = parseFloat(getCentralGST(tickets));
+  const stateGST = parseFloat(getStateGST(tickets));
+  const convenienceFee = parseFloat(getConvenienceFee(tickets));
+  
+  return (baseAmount + centralGST + stateGST + convenienceFee).toFixed(2);
 }
 
-export function calcTicketTotals(tickets = []) {
+export function calcTicketTotals(tickets = [], discount = 0) {
   return {
     subtotal: getSubtotal(tickets),
-    baseAmount: getBaseAmount(tickets),
+    baseAmount: getBaseAmount(tickets, discount),
     centralGST: getCentralGST(tickets),
     stateGST: getStateGST(tickets),
     totalTax: getTotalTax(tickets),
     convenienceFee: getConvenienceFee(tickets),
-    grandTotal: getGrandTotal(tickets)
+    grandTotal: getGrandTotal(tickets, discount)
   };
 }
+

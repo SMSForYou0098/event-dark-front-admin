@@ -10,12 +10,6 @@ const TicketSelectionStep = ({
   event,
   selectedTickets,
   setSelectedTickets,
-  setSubTotal,
-  setBaseAmount,
-  setCentralGST,
-  setStateGST,
-  setTotalTax,
-  setGrandTotal,
   getCurrencySymbol,
   onNext
 }) => {
@@ -34,15 +28,9 @@ const TicketSelectionStep = ({
       }
     >
       <BookingTickets
-        setSubTotal={setSubTotal}
-        setBaseAmount={setBaseAmount}
-        setCentralGST={setCentralGST}
-        setStateGST={setStateGST}
-        setTotalTax={setTotalTax}
         event={event}
         selectedTickets={selectedTickets}
-        setSelectedTickets={setSelectedTickets}
-        setGrandTotal={setGrandTotal}
+        setSelectedTickets={setSelectedTickets}y
         getCurrencySymbol={getCurrencySymbol}
       />
     </Card>

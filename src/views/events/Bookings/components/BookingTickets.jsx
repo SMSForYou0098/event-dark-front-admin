@@ -84,14 +84,16 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
   const getTicketCount = useCallback((quantity, category, price, id) => {
     setSelectedTickets(prevTickets => {
       const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
-
-      // Per-unit calculations (adjust the formulae as per your tax policy)
       const unitBaseAmount = +(price)?.toFixed(2);
-      const unitCentralGST = +(unitBaseAmount * 0.09)?.toFixed(2);
-      const unitStateGST = +(unitBaseAmount * 0.09)?.toFixed(2);
-      const unitConvenienceFee = +(unitBaseAmount * 0.01)?.toFixed(2);
+      //tax states      
+      const unitConvenienceFee = +(unitBaseAmount * 0.10)?.toFixed(2);
+      const unitCentralGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
+      const unitStateGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
+      // Per-unit calculations (adjust the formulae as per your tax policy)
+
       const unitTotalTax = +(unitCentralGST + unitStateGST)?.toFixed(2);
       const unitFinalAmount = +((price) + unitConvenienceFee + unitTotalTax).toFixed(2);
+
 
       // Totals for the selected quantity
       const totalBaseAmount = +(unitBaseAmount * quantity).toFixed(2);
