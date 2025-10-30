@@ -224,7 +224,7 @@ const EventStepperForm = () => {
         onSuccess: (res) => {
             message.success(res?.message || 'Event created successfully!');
             const eventId = res?.event?.event_key || res?.data?.event_key || res?.event_key;
-            refetchDetail();
+            // refetchDetail();
             if (eventId) {
                 setTimeout(() => {
                     navigate(`/events/update/${eventId}`, { state: { step: 1 } });

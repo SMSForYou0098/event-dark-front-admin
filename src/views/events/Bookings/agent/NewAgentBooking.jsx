@@ -73,6 +73,7 @@ const NewAgentBooking = memo(({type}) => {
   // const [masterBookings, setMasterBookings] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [bookingResponse, setBookingResponse] = useState(null);
+    const [ticketAttendees, setTicketAttendees] = useState({});
 
   const bookingStats = useMemo(
     () => ({
@@ -111,6 +112,8 @@ const NewAgentBooking = memo(({type}) => {
     enabled: isAttendeeRequire && !!categoryId && !!UserData?.id,
   });
 
+  console.log('object existingAttendees', existingAttendees);
+  console.log('custom fields', categoryFields);
   const checkEmailMutation = useCheckEmail();
   const createUserMutation = useCreateUser({
     onSuccess: (response) => {
@@ -558,6 +561,7 @@ const NewAgentBooking = memo(({type}) => {
 
   // ✅ Updated goToNextStep with proper validation
   const goToNextStep = useCallback(() => {
+    console.log('btn click')
     if (currentStep === 0) {
       const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
       if (!hasValidTicket) {
@@ -572,6 +576,7 @@ const NewAgentBooking = memo(({type}) => {
     } else if (currentStep === 1) {
       if (isAttendeeRequire) {
         const validation = attendeeStepRef.current?.validateAttendees?.();
+        console.log('validation', validation);
         if (!validation?.valid) {
           message.error(validation?.message || 'Please complete attendees');
           return;
@@ -676,6 +681,8 @@ const NewAgentBooking = memo(({type}) => {
                   existingAttendees={existingAttendees}
                   eventID={eventID}
                   onBack={goToPreviousStep}
+                  ticketAttendees={ticketAttendees}
+                  setTicketAttendees={setTicketAttendees}
                 />
               </Col>
             )}

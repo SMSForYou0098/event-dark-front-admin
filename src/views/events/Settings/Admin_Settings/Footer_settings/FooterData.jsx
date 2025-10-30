@@ -3,6 +3,7 @@ import { Card, message } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import FooterSettingComp from './FooterSettingComp';
 import apiClient from 'auth/FetchInterceptor';
+import FooterSlider from './FooterSlider';
 
 const FooterData = () => {
   const queryClient = useQueryClient();
@@ -91,6 +92,7 @@ const FooterData = () => {
         onSave={handleSave}
         isSaving={saveMutation.isPending}
       />
+      <FooterSlider />
     </Card>
   );
 };

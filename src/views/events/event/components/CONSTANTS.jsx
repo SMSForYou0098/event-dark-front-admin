@@ -45,8 +45,8 @@ export const CONSTANTS = {
         },
     ],
     userDataOptions: [
-        { value: '0', label: 'User Detail Only' },
-        { value: '1', label: 'Attendee Detail Only' },
-        { value: '2', label: 'Both' },
+        { value: 0, label: 'User Detail Only' },
+        { value: 1, label: 'Attendee Detail Only' },
+        { value: 2, label: 'Both' },
     ],
 };

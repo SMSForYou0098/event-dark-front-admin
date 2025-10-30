@@ -11,7 +11,8 @@ import {
   Alert,
   Row,
   Col,
-  Divider
+  Divider,
+  message
 } from 'antd';
 import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
 import axios from 'axios';
@@ -21,7 +22,7 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
-  const { api, successAlert, ErrorAlert, authToken, userRole } = useMyContext();
+  const { api, authToken, userRole } = useMyContext();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fieldType, setFieldType] = useState('');
@@ -135,15 +136,16 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
         },
       });
 
-      successAlert(
+      message.success(
         editState ? 'Field Updated Successfully' : 'New Field Added Successfully'
       );
       onSuccess?.();
       onClose();
     } catch (error) {
       console.error('Error submitting field:', error);
-      setError(error.response?.data?.message || 'Failed to save field');
-      ErrorAlert(error.response?.data?.message || 'Failed to save field');
+      const errorMessage = error.response?.data?.message || 'Failed to save field';
+      setError(errorMessage);
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -154,8 +156,6 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
     editData,
     options,
     needsOptions,
-    successAlert,
-    ErrorAlert,
     onSuccess,
     onClose,
   ]);

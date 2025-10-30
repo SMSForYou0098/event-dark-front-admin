@@ -36,6 +36,7 @@ const AttendeesField = ({
   eventName, // ✅ NEW: Pass event name
   isCorporate = false, // ✅ NEW: Pass corporate flag
 }) => {
+  console.log('iiiii',initialData)
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState({});
   const [uploadingFiles, setUploadingFiles] = useState({});
@@ -59,114 +60,92 @@ const AttendeesField = ({
   }, [showModal, initialData, form]);
 
   const handleAddAttendee = async () => {
+    setIsSaving(true);
     try {
-      setIsSaving(true);
-      
-      // ✅ Get all form values
       const formValues = form.getFieldsValue();
-      
-      // Check if any files are still uploading
-      const isUploading = Object.values(uploadingFiles).some(uploading => uploading);
+
+      // Block while files are uploading
+      const isUploading = Object.values(uploadingFiles).some(Boolean);
       if (isUploading) {
         message.warning('Please wait for file uploads to complete');
-        setIsSaving(false);
         return;
       }
 
-      // ✅ Validate form using Ant Design's validation
+      // AntD validation
       await form.validateFields();
-      
-      // ✅ Merge form values with uploaded files (base64)
+
+      // Merge with uploaded file/base64 values
       const completeAttendeeData = {
         ...formValues,
-        ...uploadedFiles, // Add uploaded file base64 strings
+        ...uploadedFiles,
       };
 
-
-      // ✅ If editing existing attendee with ID, just update locally
-      if (editingIndex !== null && initialData.id) {
-        const attendeeDataWithId = {
-          ...completeAttendeeData,
-          id: initialData.id,
-          isEdited: true,
-          needsSaving: false // Already has ID
-        };
-
-        onSave(attendeeDataWithId, editingIndex);
-        
-        handleCloseModal();
-        form.resetFields();
-        setFileList({});
-        setUploadingFiles({});
-        setUploadedFiles({});
-        setIsSaving(false);
-        
-        message.success('Attendee updated successfully');
-        return;
-      }
-
-      // ✅ NEW ATTENDEE: Call API to save and get ID
+      // 👇 Include id when editing (same API)
+      const attendeePayload = initialData?.id
+        ? { ...completeAttendeeData, id: initialData.id }
+        : completeAttendeeData;
 
       const formData = buildAttendeesFormData({
-        attendees: [completeAttendeeData], // Single attendee
+        attendees: [attendeePayload],
         userMeta: {
           user_id: UserData?.id || userId || null,
           user_name: eventName || '',
           event_name: eventName || '',
-          isAgentBooking: true
+          isAgentBooking: true,
         },
-        fieldGroupName: isCorporate ? 'corporateUser' : 'attendees'
+        fieldGroupName: isCorporate ? 'corporateUser' : 'attendees',
+      });
+      if (initialData?.id != null) {
+  formData.append(`${isCorporate ? 'corporateUser' : 'attendees'}[0][id]`, String(initialData.id));
+}
+
+      // ✅ SAME API for both create & edit
+      const response = await storeAttendeesMutation.mutateAsync({
+        formData,
+        isCorporate,
       });
 
-      // ✅ Call attndy-store API
-      const response = await storeAttendeesMutation.mutateAsync({ 
-        formData, 
-        isCorporate 
-      });
-
-
-      if (response.status && response.data && response.data.length > 0) {
-        const savedAttendee = response.data[0]; // Get first (and only) saved attendee
-        
-
-        // ✅ Pass saved attendee with ID to parent
-        const attendeeDataWithId = {
-          ...completeAttendeeData,
-          id: savedAttendee.id, // ✅ ID from API (52 in your case)
-          token: savedAttendee.token, // Also save token
-          Photo: savedAttendee.Photo, // Use server URL for photo
-          isNew: false,
-          needsSaving: false // Already saved
-        };
-
-        onSave(attendeeDataWithId, editingIndex);
-        
-        // Reset
-        handleCloseModal();
-        form.resetFields();
-        setFileList({});
-        setUploadingFiles({});
-        setUploadedFiles({});
-        
-        message.success(`Attendee saved successfully! ID: ${savedAttendee.id}`);
-      } else {
+      if (!response?.status || !response?.data || response.data.length === 0) {
         throw new Error('Failed to save attendee - No data in response');
       }
 
-      setIsSaving(false);
+      const saved = response.data[0];
+
+      const attendeeDataWithId = {
+        ...completeAttendeeData,
+        id: saved.id,                         // server id (create or update)
+        token: saved.token ?? initialData?.token,
+        Photo: saved.Photo ?? completeAttendeeData.Photo,
+        needsSaving: false,
+      };
+
+      onSave(attendeeDataWithId, editingIndex);
+
+      // Reset UI
+      handleCloseModal();
+      form.resetFields();
+      setFileList({});
+      setUploadingFiles({});
+      setUploadedFiles({});
+
+      message.success(
+        initialData?.id
+          ? `Attendee updated successfully (ID: ${saved.id})`
+          : `Attendee saved successfully! ID: ${saved.id}`
+      );
     } catch (error) {
       console.error('❌ Validation/Save failed:', error);
-      setIsSaving(false);
-      
-      if (error.errorFields) {
-        // Ant Design validation errors
-        const fieldNames = error.errorFields.map(f => f.name[0]).join(', ');
+      if (error?.errorFields) {
+        const fieldNames = error.errorFields.map(f => f.name?.[0]).join(', ');
         message.error(`Please fill required fields: ${fieldNames}`);
       } else {
-        message.error(error.message || 'Failed to save attendee');
+        message.error(error?.message || 'Failed to save attendee');
       }
+    } finally {
+      setIsSaving(false);
     }
   };
+
 
   const renderField = useCallback((field) => {
     const { field_name, lable, field_type, field_options = null, field_required } = field;

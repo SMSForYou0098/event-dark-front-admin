@@ -1,6 +1,6 @@
 // TimingStep.jsx
 import React from 'react';
-import { Form, DatePicker, TimePicker, Switch, Row, Col, Input } from 'antd';
+import { Form, DatePicker, TimePicker, Switch, Row, Col, Input, Select } from 'antd';
 import dayjs from 'dayjs';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import LocationStep from './LocationStep';
@@ -99,12 +99,13 @@ const TimingStep = ({ form, ...props }) => {
               name="event_type"
               label="Event Type"
               tooltip="Choose between Daily or Seasonal event"
-              rules={[{ required: true, message: 'Please choose event type' }]}
-              getValueProps={(v) => ({ value: v === 'daily' })}
-              getValueFromEvent={(checked) => (checked ? 'daily' : 'seasonal')}
+              rules={[{ required: true, message: "Please choose event type" }]}
               initialValue="daily"
             >
-              <Switch checkedChildren="Daily" unCheckedChildren="Seasonal" />
+              <Select placeholder="Select event type">
+                <Select.Option value="daily">Daily</Select.Option>
+                <Select.Option value="seasonal">Seasonal</Select.Option>
+              </Select>
             </Form.Item>
           </Col>
 

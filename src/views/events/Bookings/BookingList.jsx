@@ -157,13 +157,20 @@ const BookingList = memo(({ type = 'agent' }) => {
         },
         {
             title: 'User',
-            dataIndex: 'user_name',
+            dataIndex: ['user', 'name'],
             key: 'user_name',
             align: 'center',
             searchable: true,
         },
         {
             title: 'Organizer',
+            dataIndex: 'organizer',
+            key: 'organizer',
+            align: 'center',
+            searchable: true,
+        },
+        {
+            title: 'Booked By',
             dataIndex: 'agent_name',
             key: 'organizer',
             align: 'center',
@@ -201,8 +208,8 @@ const BookingList = memo(({ type = 'agent' }) => {
         },
         {
             title: 'Amt',
-            dataIndex: 'amount',
-            key: 'amount',
+            dataIndex: 'total_amount',
+            key: 'total_amount',
             align: 'center',
             width: 120,
             render: (cell) => `₹${cell}`,
