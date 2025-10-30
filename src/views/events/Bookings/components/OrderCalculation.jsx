@@ -6,7 +6,7 @@ import { calcTicketTotals } from 'utils/ticketCalculations';
 const { Title } = Typography;
 
 const OrderCalculation = (props) => {
-  const { ticketCurrency, selectedTickets = [] } = props;
+  const { ticketCurrency, selectedTickets = [],discount } = props;
   const {
     subtotal,
     baseAmount,
@@ -15,7 +15,6 @@ const OrderCalculation = (props) => {
     convenienceFee,
     grandTotal,
   } = calcTicketTotals(selectedTickets);
-  const discount = (0).toFixed(2);
 
   return (
     <>

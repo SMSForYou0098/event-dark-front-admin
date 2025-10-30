@@ -24,7 +24,6 @@ const PosReports = memo(() => {
       const url = `pos-report${queryParams}`;
 
       const response = await api.get(url);
-        console.log('rrr',response)
       if (response.data) {
         return response.data;
       } else {

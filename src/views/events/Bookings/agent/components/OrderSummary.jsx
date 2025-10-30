@@ -79,18 +79,24 @@ const OrderSummary = ({
         <OrderCalculation
           ticketCurrency={ticketCurrency}
           selectedTickets={selectedTickets}
+          setDiscountValue={setDiscountValue}
+          handleDiscount={handleDiscount}
+          discountType={discountType}
+          setDiscountType={setDiscountType}
+          discountValue={discountValue}
+          discount={discount}
         />
 
-        <DiscoutFIeldGroup
+        {/* <DiscoutFIeldGroup
           discountType={discountType}
           setDiscountType={setDiscountType}
           discountValue={discountValue}
           setDiscountValue={setDiscountValue}
           disableChoice={disableChoice}
           handleDiscount={handleDiscount}
-        />
+        /> */}
 
-        <Flex justifyContent="space-between" align="center">
+        {/* <Flex justifyContent="space-between" align="center">
           <Title level={5} style={{ margin: 0 }}>
             Order Total
           </Title>
@@ -98,7 +104,7 @@ const OrderSummary = ({
             {ticketCurrency}
             {grandTotal}
           </Title>
-        </Flex>
+        </Flex> */}
 
         {/* Desktop Button */}
         <div className="d-none d-sm-block">

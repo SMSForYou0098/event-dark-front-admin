@@ -36,7 +36,6 @@ const AttendeesField = ({
   eventName, // ✅ NEW: Pass event name
   isCorporate = false, // ✅ NEW: Pass corporate flag
 }) => {
-  console.log('iiiii',initialData)
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState({});
   const [uploadingFiles, setUploadingFiles] = useState({});

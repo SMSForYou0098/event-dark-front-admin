@@ -89,21 +89,6 @@ export const useCreateEvent = (options = {}) =>
   useMutation({
     mutationFn: async (payloadOrFormData) => {
       const body = payloadOrFormData; // already FormData from the component
-      console.log('=== FormData Contents ===');
-      for (const [key, value] of body.entries()) {
-        // Check if value is a File/Blob
-        if (value instanceof File) {
-          console.log(`${key}:`, {
-            name: value.name,
-            size: value.size,
-            type: value.type,
-            lastModified: value.lastModified
-          });
-        } else {
-          console.log(`${key}:`, value);
-        }
-      }
-      console.log('========================');
       
       
       const res = await api.post('/create-event', body, {

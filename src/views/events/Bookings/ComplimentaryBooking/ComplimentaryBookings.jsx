@@ -30,7 +30,7 @@ import CountUp from "react-countup";
 import api from "auth/FetchInterceptor";
 // import generateQRCodeZip from "../Events/Tickets/generateQRCodeZip";
 // import QRGenerator from "../Events/Tickets/QRGenerator";
-// import SendTickets from "./SendTickets";
+import SendTickets from "./SendTickets";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import generateQRCodeZip from "views/events/Tickets/generateQRCodeZip";
 import QRGenerator from "views/events/Tickets/QRGenerator";
@@ -580,6 +580,7 @@ const ComplimentaryBookings = memo(() => {
                       <Col xs={24} sm={12} md={8} lg={4}>
                         <Form.Item label="Send Tickets">
                           {/* <SendTicketsModal bookings={bookings} /> */}
+                          <SendTickets bookings={bookings} />
                         </Form.Item>
                       </Col>
                     )}

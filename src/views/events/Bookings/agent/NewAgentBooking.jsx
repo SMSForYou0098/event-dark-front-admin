@@ -112,8 +112,6 @@ const NewAgentBooking = memo(({type}) => {
     enabled: isAttendeeRequire && !!categoryId && !!UserData?.id,
   });
 
-  console.log('object existingAttendees', existingAttendees);
-  console.log('custom fields', categoryFields);
   const checkEmailMutation = useCheckEmail();
   const createUserMutation = useCreateUser({
     onSuccess: (response) => {
@@ -540,7 +538,6 @@ const NewAgentBooking = memo(({type}) => {
     }
 
     let calculatedDiscount = 0;
-
     if (discountType === 'percentage') {
       if (discountValue > 100) {
         message.error('Percentage cannot be more than 100%');
@@ -552,17 +549,16 @@ const NewAgentBooking = memo(({type}) => {
         message.error('Discount cannot be more than subtotal');
         return;
       }
-      calculatedDiscount = discountValue;
+      calculatedDiscount = Number(discountValue);
     }
 
     setDiscount(+calculatedDiscount.toFixed(2));
-    setDisableChoice(true);
+    setGrandTotal(subtotal-calculatedDiscount);
+    // setDisableChoice(true);
     message.success('Discount applied successfully');
   }, [discountValue, discountType, subtotal]);
-
   // ✅ Updated goToNextStep with proper validation
   const goToNextStep = useCallback(() => {
-    console.log('btn click')
     if (currentStep === 0) {
       const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
       if (!hasValidTicket) {
@@ -577,7 +573,6 @@ const NewAgentBooking = memo(({type}) => {
     } else if (currentStep === 1) {
       if (isAttendeeRequire) {
         const validation = attendeeStepRef.current?.validateAttendees?.();
-        console.log('validation', validation);
         if (!validation?.valid) {
           message.error(validation?.message || 'Please complete attendees');
           return;

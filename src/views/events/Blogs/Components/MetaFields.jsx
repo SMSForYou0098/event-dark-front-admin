@@ -10,7 +10,6 @@ const { Title } = Typography;
 
 
 const MetaFields = ({ meta, onChange }) => {
-  console.log('meta', meta);
   const { authToken, api } = useMyContext();
   const [categoryOptions, setCategoryOptions] = useState([]);
   const [selectedCategoryOptions, setSelectedCategoryOptions] = useState([]);
