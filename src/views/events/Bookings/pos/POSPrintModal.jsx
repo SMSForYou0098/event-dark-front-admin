@@ -1,6 +1,6 @@
 import { QRCodeSVG } from 'qrcode.react';
 import React, { useRef, useMemo } from 'react';
-import { Modal, Button, Table, Typography, Divider } from 'antd';
+import { Modal, Button, Table, Typography } from 'antd';
 import { PrinterOutlined, CloseOutlined } from '@ant-design/icons';
 import { useReactToPrint } from 'react-to-print';
 import { useMyContext } from '../../../../Context/MyContextProvider';

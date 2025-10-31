@@ -1,6 +1,6 @@
 import React, { Fragment, useState } from "react";
 import { Button, Tabs, Form, Spin } from "antd";
-import { ArrowLeftOutlined, UserOutlined, ShoppingOutlined, WalletOutlined, TransactionOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, UserOutlined, ShoppingOutlined, WalletOutlined, TransactionOutlined, SafetyOutlined } from "@ant-design/icons";
 import { useMyContext } from "Context/MyContextProvider";
 import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
 import Flex from "components/shared-components/Flex";
@@ -11,6 +11,7 @@ import { useParams } from "react-router-dom";
 import AssignCredit from "../wallet/AssignCredit";
 import UserBookings from "views/events/Bookings/UserBookings";
 import Transactions from "../wallet/Transaction";
+import PermissionsTab from "./PermissionsTab";
 
 const ManageUser = ({ mode = "edit" }) => {
   const { HandleBack } = useMyContext();
@@ -64,15 +65,15 @@ const ManageUser = ({ mode = "edit" }) => {
       ),
       children: <Transactions userId={id} />,
     },
-    // {
-    //   key: "5",
-    //   label: (
-    //     <span>
-    //       <Shield /> Permissions
-    //     </span>
-    //   ),
-    //   children: <PermissionsTab />,
-    // },
+    {
+      key: "5",
+      label: (
+        <span>
+          <SafetyOutlined /> Permissions
+        </span>
+      ),
+      children: <PermissionsTab userId={id} />,
+    },
   ];
 
   return (

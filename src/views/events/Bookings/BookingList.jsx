@@ -31,7 +31,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 apiUrl: `${type}/list/${UserData?.id}`,
                 exportRoute: 'export-agentBooking',
                 exportPermission: 'Export Agent Bookings',
-                deleteEndpoint: (data) => data.is_deleted 
+                deleteEndpoint: (data) => data.is_deleted
                     ? `agent-restore-booking/${data?.token || data?.order_id}`
                     : `agent-delete-booking/${data?.token || data?.order_id}`,
             },
@@ -81,7 +81,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 queryParams = `?date=${dateRange.startDate},${dateRange.endDate}`;
             }
             const url = `${config.apiUrl}${queryParams}`;
-            
+
             const response = await api.get(url);
 
             if (response.status && response.bookings) {
@@ -144,10 +144,6 @@ const BookingList = memo(({ type = 'agent' }) => {
         record?.user?.name ||
         "N/A";
 
-        const getTicketName = (record) =>
-  record?.bookings?.[0]?.ticket?.name ||  // nested booking ticket
-  record?.ticket?.name ||                 // direct ticket
-  "N/A"
 
     // Handle ticket option selection
     const handleTicketOption = useCallback((option) => {
@@ -225,19 +221,16 @@ const BookingList = memo(({ type = 'agent' }) => {
         {
             title: "Ticket",
             key: "ticket_name",
-            dataIndex: ["bookings", 0, "ticket", "name"], // helps AntD search/sort
             align: "center",
-            searchable: true,
             render: (_, record) => {
-                const ticketName = getTicketName(record);
-                return (
-                    <Tooltip title={ticketName}>
-                        <span>{truncateString(ticketName)}</span>
-                    </Tooltip>
-                );
+              const ticketName = record?.ticket?.name || record?.bookings[0]?.ticket?.name;
+              return (
+                <Tooltip title={ticketName}>
+                  <span>{truncateString(ticketName)}</span>
+                </Tooltip>
+              );
             },
-            sorter: (a, b) => getTicketName(a).localeCompare(getTicketName(b)),
-        },
+          },          
         {
             title: 'Qty',
             dataIndex: 'quantity',

@@ -527,37 +527,31 @@ const PosBooking = memo(() => {
         />
       )}
       
-      <Card>
-        <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-          <Space>
-            <Title level={4} style={{ margin: 0 }}>POS Bookings</Title>
-            <Tag color="blue">{bookings.length} Total</Tag>
-          </Space>
-          
-          <Space>
-            <RangePicker
-              value={dateRange}
-              onChange={handleDateRangeChange}
-              format="YYYY-MM-DD"
-            />
-            
-            <Tooltip title="Refresh">
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => refetch()}
-                loading={isLoading}
-              />
-            </Tooltip>
-            
-            <Tooltip title="New Event">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => navigate('new')}
-              />
-            </Tooltip>
-          </Space>
-        </Space>
+      <Card title="POS Bookings" extra={
+        <Space>
+        <RangePicker
+          value={dateRange}
+          onChange={handleDateRangeChange}
+          format="YYYY-MM-DD"
+        />
+        
+        <Tooltip title="Refresh">
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => refetch()}
+            loading={isLoading}
+          />
+        </Tooltip>
+        
+        <Tooltip title="New Event">
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate('new')}
+          />
+        </Tooltip>
+      </Space>
+      }>
 
         <Table
           columns={columns}

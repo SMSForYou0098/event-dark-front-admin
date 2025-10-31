@@ -1,10 +1,9 @@
 import React from 'react'
+import RolePermission from 'views/events/RolePermission/Permisson'
 
 const PermissionsTab = () => {
   return (
-    <div>
-      
-    </div>
+   <RolePermission isUser={true}/>
   )
 }
 

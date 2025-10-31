@@ -15,7 +15,8 @@ import {
     Spin,
     Empty,
     Tag,
-    Alert
+    Alert,
+    message
 } from 'antd';
 import { PlusOutlined, EditOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
 import { useMyContext } from '../../../../Context/MyContextProvider';
@@ -24,19 +25,19 @@ import Flex from 'components/shared-components/Flex';
 const { Panel } = Collapse;
 const { Search } = Input;
 
-const RolePermission = () => {
-    const { api, successAlert, ErrorAlert, authToken } = useMyContext();
+const RolePermission = ({ isUser = false }) => {
+    const { api, authToken } = useMyContext();
     const [form] = Form.useForm();
     const [permission, setPermission] = useState([]);
     const [initialPermission, setInitialPermission] = useState([]);
     const [filteredPermissions, setFilteredPermissions] = useState([]);
     const [existPermission, setExistPermission] = useState([]);
     const [initialExistPermission, setInitialExistPermission] = useState([]);
-    const [loading, setLoading] = useState(false);
     const { id } = useParams();
     const [selectAll, setSelectAll] = useState(false);
     const [roleName, setRoleName] = useState('');
     const [searchText, setSearchText] = useState('');
+    const permissionType = isUser ? 'user' : 'role';
     const navigate = useNavigate();
 
     // Modal state
@@ -65,6 +66,13 @@ const RolePermission = () => {
         });
     };
 
+    const handleCancel = useCallback(() => {
+        form.resetFields();
+        setEditId("");
+        setOpen(false);
+        setIsEdit(false);
+    }, [form]);
+
     const handlePermissionChange = (permissionId, isChecked) => {
         if (isChecked) {
             setExistPermission((prev) => [...(prev || []), parseInt(permissionId)]);
@@ -78,8 +86,8 @@ const RolePermission = () => {
 
     const PermissionData = useCallback(async () => {
         try {
-            setLoading(true);
-            const response = await axios.get(`${api}role-permission/${id}`, {
+            // setLoading(true);
+            const response = await axios.get(`${api}${permissionType}-permission/${id}`, {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
                 },
@@ -92,11 +100,11 @@ const RolePermission = () => {
             setInitialExistPermission(response.data.exist);
         } catch (error) {
             console.error('Error fetching permissions:', error);
-            ErrorAlert('Failed to fetch permissions');
+            message.error('Failed to fetch permissions');
         } finally {
-            setLoading(false);
+            // setLoading(false);
         }
-    }, [api, id, authToken, ErrorAlert]);
+    }, [api, id, authToken]);
 
     useEffect(() => {
         PermissionData();
@@ -124,14 +132,13 @@ const RolePermission = () => {
         const uniquePermissions = [...new Set(existPermission)];
 
         if (uniquePermissions.length === 0) {
-            ErrorAlert('You Have To Select At Least 1 Permission');
+            message.error('You Have To Select At Least 1 Permission');
             return;
         }
 
         try {
             setConfirmLoading(true);
-            await axios.post(
-                `${api}role-permission/${id}`,
+            axios.post(`${api}${permissionType}-permission/${id}`,
                 {
                     id,
                     permission_id: uniquePermissions,
@@ -142,16 +149,16 @@ const RolePermission = () => {
                     },
                 }
             );
-            successAlert('Permission Assigned Successfully');
+            message.success('Permission Assigned Successfully');
             setInitialExistPermission(uniquePermissions);
             scrollToTop();
         } catch (error) {
             console.error('Error assigning permissions:', error);
-            ErrorAlert('Failed to assign permissions');
+            message.error('Failed to assign permissions');
         } finally {
             setConfirmLoading(false);
         }
-    }, [api, id, authToken, existPermission, successAlert, ErrorAlert]);
+    }, [api, id, authToken, existPermission]);
 
     const handleDiscard = useCallback(() => {
         if (hasChanges) {
@@ -189,17 +196,17 @@ const RolePermission = () => {
                 }
             );
             await PermissionData();
-            successAlert('Permission created successfully');
+            message.success('Permission created successfully');
             handleCancel();
         } catch (error) {
             if (error.errorFields) return;
             console.error('Error creating permission:', error);
-            ErrorAlert('Failed to create permission');
+            message.error('Failed to create permission');
             handleCancel();
         } finally {
             setConfirmLoading(false);
         }
-    }, [form, api, authToken, PermissionData, successAlert, ErrorAlert]);
+    }, [form, api, authToken, PermissionData, handleCancel]);
 
     const UpdatePermission = useCallback(async () => {
         try {
@@ -215,24 +222,18 @@ const RolePermission = () => {
                 }
             );
             await PermissionData();
-            successAlert('Permission updated successfully');
+            message.success('Permission updated successfully');
             handleCancel();
         } catch (error) {
             if (error.errorFields) return;
             console.error('Error updating permission:', error);
-            ErrorAlert('Failed to update permission');
+            message.error('Failed to update permission');
             handleCancel();
         } finally {
             setConfirmLoading(false);
         }
-    }, [form, api, authToken, editId, PermissionData, successAlert, ErrorAlert]);
+    }, [form, api, authToken, editId, PermissionData, handleCancel]);
 
-    const handleCancel = () => {
-        form.resetFields();
-        setEditId('');
-        setOpen(false);
-        setIsEdit(false);
-    };
 
     const handleSearch = useCallback((value) => {
         setSearchText(value);
@@ -374,53 +375,40 @@ const RolePermission = () => {
             </Modal>
 
             <Card
-                title={`Role Permission - ${roleName}`}
+                title={`${isUser ? 'User' : 'Role'} Permission - ${roleName || (isUser ? 'User' : 'Role')}`}
                 extra={
-                    <Space>
-                        <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={showModal}
-                        >
-                            New Permission
-                        </Button>
-                    </Space>
-                }
-            >
-                <Space
-                    direction="vertical"
-                    size="middle"
-                    className='mb-3 w-100'
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Space>
-                            <Checkbox onChange={handleMultiSelect} checked={selectAll}>
-                                {selectAll ? 'Deselect All' : 'Select All'}
-                                {searchText && ` (${filteredPermissions.length} filtered)`}
-                            </Checkbox>
-                        </Space>
+                    <Space align="center" wrap>
+                      {/* ✅ Left Section: Checkbox + Search */}
+                      <Space align="center" wrap>
+                        <Checkbox onChange={handleMultiSelect} checked={selectAll}>
+                          {selectAll ? 'Deselect All' : 'Select All'}
+                          {searchText && ` (${filteredPermissions.length} filtered)`}
+                        </Checkbox>
+                  
                         <Search
-                            placeholder="Search Permission"
-                            allowClear
-                            value={searchText}
-                            onSearch={handleSearch}
-                            onChange={(e) => handleSearch(e.target.value)}
-                            style={{ width: 300 }}
+                          placeholder="Search Permission"
+                          allowClear
+                          value={searchText}
+                          onSearch={handleSearch}
+                          onChange={(e) => handleSearch(e.target.value)}
+                          style={{ width: 240 }}
                         />
-                    </div>
+                      </Space>
+                  
+                      {/* ✅ Right Section: New Permission Button */}
+                      <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={showModal}
+                      >
+                        New Permission
+                      </Button>
+                    </Space>
+                  }
+                  
+            >
 
-                    {/* Search Results Info */}
-                    {searchResultsInfo && (
-                        <Alert
-                            message={searchResultsInfo}
-                            type={filteredPermissions.length === 0 ? 'error' : 'success'}
-                            showIcon
-                            style={{ marginBottom: '16px' }}
-                        />
-                    )}
-                </Space>
-
-                <Row gutter={[16, 16]} style={{ maxHeight: '25rem', overflow: 'auto' }}>
+                <Row gutter={[16, 16]} style={{ maxHeight: '30rem', overflow: 'auto' }}>
                     {searchText && filteredPermissions.length === 0 ? (
                         <Col span={24}>
                             <Empty
@@ -449,7 +437,7 @@ const RolePermission = () => {
                                             }
                                             key="1"
                                         >
-                                            <Space direction="vertical" style={{ width: '100%' , maxHeight : '15rem' , overflow : 'auto' }}>
+                                            <Space direction="vertical" style={{ width: '100%', maxHeight: '15rem', overflow: 'auto' }}>
                                                 {groupedPermissions[category]?.map((item, index) => (
                                                     <div
                                                         key={index}
