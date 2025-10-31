@@ -10,9 +10,6 @@ import { CustomNextArrow, CustomPrevArrow } from 'views/events/Settings/Banner/C
 
 const { TextArea } = Input;
 
-// Field configurations
-
-
 const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visible }) => {
   const { UserData, userRole } = useMyContext();
   const isOrganizer = userRole === 'Organizer'
@@ -29,9 +26,28 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     mdImage: null,
   });
 
+  // Clear state when modal closes
+  useEffect(() => {
+    if (!visible) {
+      // Reset form fields
+      form.resetFields();
+      
+      // Reset all state to initial values
+      setBannerType(isOrganizer ? 'organization' : 'main');
+      setSelectedOrgId(isOrganizer ? UserData?.id : null);
+      setSelectedCategoryId(null);
+      setSelectedCategoryTitle(null);
+      setImages({
+        bannerImage: null,
+        smImage: null,
+        mdImage: null,
+      });
+    }
+  }, [visible, form, isOrganizer, UserData?.id]);
+
   // Set default org ID and banner type for organizers - IMMEDIATELY on mount
   useEffect(() => {
-    if (isOrganizer && UserData?.id) {
+    if (visible && isOrganizer && UserData?.id && !isEditMode) {
       const orgId = String(UserData.id);
       setSelectedOrgId(UserData.id);
       setBannerType('organization');
@@ -42,7 +58,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         banner_type: 'organization',
       });
     }
-  }, [isOrganizer, UserData?.id, form]);
+  }, [visible, isOrganizer, UserData?.id, form, isEditMode]);
 
   // Fetch categories
   const {
@@ -58,7 +74,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
 
   // Populate form with banner data in edit mode
   useEffect(() => {
-    if (isEditMode && bannerData) {
+    if (visible && isEditMode && bannerData) {
       const data = bannerData;
 
       // Determine banner type - use the type from data directly
@@ -103,8 +119,8 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         external_url: data.external_url,
         event_id: data.event_id,
         event_key: data.event_key,
-        media_url: data.media_url, // NEW
-        display_in_popup: data.display_in_popup || false, // NEW
+        media_url: data.media_url,
+        display_in_popup: data.display_in_popup ? 1 : 0,
       });
 
       // Set images if they exist
@@ -135,7 +151,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       }
       setImages(newImages);
     }
-  }, [isEditMode, bannerData, form, categories, isOrganizer, UserData]);
+  }, [visible, isEditMode, bannerData, form, categories, isOrganizer, UserData]);
 
   const {
     data: orgEvents = [],
@@ -272,7 +288,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       const IMAGE_KEYS = ['images', 'sm_image', 'md_image'];
 
       // Always send the normalized banner type
-      submitData.append('type', bannerType); // change to 'banner_type' if your API expects that
+      submitData.append('type', bannerType);
 
       // Append non-file fields (skip upload fields and irrelevant fields per type)
       Object.entries(values).forEach(([key, val]) => {
@@ -287,7 +303,13 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         if (bannerType === 'organization' && key === 'category') return;
         if (bannerType === 'category' && key === 'org_id') return;
 
-        // 4) append only meaningful values
+        // 4) Handle boolean fields - convert to 0 or 1
+        if (key === 'display_in_popup') {
+          submitData.append(key, val ? '1' : '0');
+          return;
+        }
+
+        // 5) append only meaningful values
         if (val !== undefined && val !== null && val !== '') {
           // Coerce to string to be consistent for FormData text fields
           submitData.append(key, String(val));
@@ -304,11 +326,6 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       if (images.mdImage?.originFileObj) {
         submitData.append('md_image', images.mdImage.originFileObj);
       }
-
-      // --- Debug: inspect what will be sent (optional) ---
-      // for (const [k, v] of submitData.entries()) {
-      //   console.log(k, v instanceof File ? `(file) ${v.name}` : v);
-      // }
 
       // Submit
       if (isEditMode) {
@@ -387,7 +404,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
           <Button
             type="primary"
             icon={<SaveOutlined />}
-            onClick={() => form.submit()} // Trigger form submission
+            onClick={() => form.submit()}
             loading={isSubmitting}
           >
             {isSubmitting
@@ -398,6 +415,10 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       }
       width={1200}
       destroyOnClose
+      afterClose={() => {
+        // Additional cleanup after modal animation completes
+        form.resetFields();
+      }}
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <Row gutter={[16, 16]}>

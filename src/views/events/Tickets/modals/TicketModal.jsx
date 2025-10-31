@@ -111,9 +111,9 @@ const TicketModal = (props) => {
                                 dots
                             >
                                 {ticketData.bookings.map((item, index) => {
-                                    const event = item?.ticket?.event || {};
-                                    const ticket = item?.ticket || {};
-
+                                    const event = item?.ticket?.event || item?.bookings[0]?.ticket?.event ||{};
+                                    const ticket = item?.ticket || item?.bookings[0]?.ticket || {};
+                                    console.log('ticket item:', item);
                                     return (
                                         <div key={index} style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
                                             <Col span={24}>

@@ -1,12 +1,14 @@
-import React, { memo, Fragment, useState, useCallback, useMemo } from "react";
+import React, { memo, Fragment, useState, useCallback, useMemo, useRef } from "react";
 import DataTable from "../common/DataTable";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
-import { Button, Tag, Space, Tooltip, Dropdown, Switch, message } from 'antd';
-import { MoreOutlined } from '@ant-design/icons';
+import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal } from 'antd';
+import { MoreOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import api from 'auth/FetchInterceptor';
+import TicketModal from "../Tickets/modals/TicketModal";
+import { downloadTickets } from "../Tickets/ticketUtils";
 
 const BookingList = memo(({ type = 'agent' }) => {
     const { UserData, formatDateTime, sendTickets, truncateString, isMobile, UserPermissions } = useMyContext();
@@ -14,6 +16,12 @@ const BookingList = memo(({ type = 'agent' }) => {
     const [dateRange, setDateRange] = useState(null);
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const [ticketData, setTicketData] = useState([]);
+    const [ticketType, setTicketType] = useState();
+    const [show, setShow] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [ticketOptionModal, setTicketOptionModal] = useState({ visible: false, hasMultiple: false });
+    const ticketRefs = useRef([]);
 
     // Configuration based on type
     const config = useMemo(() => {
@@ -130,6 +138,36 @@ const BookingList = memo(({ type = 'agent' }) => {
         }));
     };
 
+    const getUserName = (record) =>
+        record?.bookings?.[0]?.user?.name ||
+        record?.bookings?.[0]?.name ||
+        record?.user?.name ||
+        "N/A";
+
+        const getTicketName = (record) =>
+  record?.bookings?.[0]?.ticket?.name ||  // nested booking ticket
+  record?.ticket?.name ||                 // direct ticket
+  "N/A"
+
+    // Handle ticket option selection
+    const handleTicketOption = useCallback((option) => {
+        setTicketType({ type: option });
+        setTicketOptionModal({ visible: false, hasMultiple: false });
+        setShow(true);
+    }, []);
+
+    // Show ticket options modal
+    const showTicketOptionsModal = useCallback((hasMultiple) => {
+        setTicketOptionModal({ visible: true, hasMultiple });
+    }, []);
+
+    const GenerateTicket = useCallback((id) => {
+        let data = bookings?.find((item) => item?.id === id);
+        setTicketData(data);
+        const hasMultiple = data?.bookings?.length > 0;
+        showTicketOptionsModal(hasMultiple);
+    }, [bookings, showTicketOptionsModal]);
+
     // Columns for DataTable
     const columns = useMemo(() => [
         {
@@ -147,7 +185,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             align: 'center',
             searchable: true,
             render: (_, record) => {
-                const eventName = record?.bookings?.[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
+                const eventName = record?.bookings[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
                 return (
                     <Tooltip title={eventName}>
                         <span>{truncateString(eventName)}</span>
@@ -156,11 +194,19 @@ const BookingList = memo(({ type = 'agent' }) => {
             },
         },
         {
-            title: 'User',
-            dataIndex: ['user', 'name'],
-            key: 'user_name',
-            align: 'center',
-            searchable: true,
+            title: "User",
+            key: "user_name",
+            align: "center",
+            dataIndex: ["bookings", 0, "user", "name"],
+            render: (_, record) => {
+                const name = getUserName(record);
+                return (
+                    <Tooltip title={name}>
+                        <span>{truncateString(name)}</span>
+                    </Tooltip>
+                );
+            },
+            sorter: (a, b) => getUserName(a).localeCompare(getUserName(b)),
         },
         {
             title: 'Organizer',
@@ -177,11 +223,20 @@ const BookingList = memo(({ type = 'agent' }) => {
             searchable: true,
         },
         {
-            title: 'Ticket',
-            dataIndex: ['ticket', 'name'],
-            key: 'ticket_name',
-            align: 'center',
+            title: "Ticket",
+            key: "ticket_name",
+            dataIndex: ["bookings", 0, "ticket", "name"], // helps AntD search/sort
+            align: "center",
             searchable: true,
+            render: (_, record) => {
+                const ticketName = getTicketName(record);
+                return (
+                    <Tooltip title={ticketName}>
+                        <span>{truncateString(ticketName)}</span>
+                    </Tooltip>
+                );
+            },
+            sorter: (a, b) => getTicketName(a).localeCompare(getTicketName(b)),
         },
         {
             title: 'Qty',
@@ -257,10 +312,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         key: 'generate',
                         label: 'Generate Ticket',
                         icon: <Ticket size={14} />,
-                        onClick: () => {
-                            // TODO: Add your generate logic here
-                            message.info('Generate ticket functionality coming soon');
-                        },
+                        onClick: () => GenerateTicket(record.id),
                         disabled: isDisabled,
                     },
                     {
@@ -326,6 +378,7 @@ const BookingList = memo(({ type = 'agent' }) => {
         sendTickets,
         isMobile,
         DeleteBooking,
+        GenerateTicket,
     ]);
 
     const handleDateRangeChange = useCallback((dates) => {
@@ -335,8 +388,89 @@ const BookingList = memo(({ type = 'agent' }) => {
         } : null);
     }, []);
 
+    const downloadTicket = () => {
+        downloadTickets(ticketRefs, ticketType?.type, setLoading);
+    }
+
+    function handleCloseModal() {
+        setTicketData([])
+        setTicketType()
+        setShow(false)
+    }
+
+    function handleCloseTicketOptionModal() {
+        setTicketOptionModal({ visible: false, hasMultiple: false });
+        setTicketData([]);
+    }
+
     return (
         <Fragment>
+            {/* Ticket Options Modal */}
+            <Modal
+                title={
+                    <Space>
+                        <QuestionCircleOutlined style={{ color: '#1890ff', fontSize: 20 }} />
+                        <span>Select an Option</span>
+                    </Space>
+                }
+                open={ticketOptionModal.visible}
+                onCancel={handleCloseTicketOptionModal}
+                footer={null}
+                centered
+                width={400}
+            >
+                <div style={{ marginBottom: 16 }}>
+                    <p style={{ marginBottom: 20, fontSize: 14 }}>
+                        {ticketOptionModal.hasMultiple
+                            ? 'Would you like to combine the tickets or keep them individual?'
+                            : 'Would you like to combine the tickets?'}
+                    </p>
+                    <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                        <Button
+                            type="primary"
+                            block
+                            onClick={() => handleTicketOption('combine')}
+                            size="large"
+                        >
+                            Combine
+                        </Button>
+                        {ticketOptionModal.hasMultiple && (
+                            <>
+                                <Button
+                                    block
+                                    onClick={() => handleTicketOption('individual')}
+                                    size="large"
+                                >
+                                    Individual
+                                </Button>
+                                <Button
+                                    block
+                                    onClick={() => handleTicketOption('zip')}
+                                    size="large"
+                                >
+                                    Zip
+                                </Button>
+                            </>
+                        )}
+                    </Space>
+                </div>
+            </Modal>
+
+            {/* Ticket Display Modal */}
+            <TicketModal
+                show={show}
+                handleCloseModal={handleCloseModal}
+                ticketType={ticketType}
+                ticketData={ticketData}
+                ticketRefs={ticketRefs}
+                loading={loading}
+                isAccreditation={type === 'accreditation' ? true : false}
+                showTicketDetails={false}
+                downloadTicket={downloadTicket}
+                isMobile={isMobile}
+                formatDateRange={dateRange}
+            />
+
             <DataTable
                 title={config.title}
                 data={formatBookingData(bookings)}
