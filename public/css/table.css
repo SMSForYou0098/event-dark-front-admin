@@ -6,6 +6,7 @@ td
 {
     background-color:  transparent !important;
 }
+
 .ant-table-thead >tr>th, 
 .ant-table-thead >tr>td, 
 :where(.css-1u1move).ant-table-wrapper .ant-table-tbody >tr >td {
@@ -16,7 +17,7 @@ td
     border : none !important;
 }
 
-/* //all the text in the table :default color white */
+/* all the text in the table: default color white */
 .ant-table-wrapper .ant-table-tbody > tr > td {
     color: white !important;
 }
@@ -33,15 +34,145 @@ td
 {
     background-color: transparent !important;
 }
+
 .ant-btn {
     line-height: 0% !important;
 }
+
 .ant-table-cell-fix-right, .ant-table-cell-fix-left {
    background-color: transparent !important;
    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
 
+/* ============================================
+   EXPANDED ROW STYLES - Matching Normal Table
+   ============================================ */
 
+/* Expanded row container - transparent background */
+.ant-table-wrapper .ant-table-expanded-row,
+.ant-table-wrapper .ant-table-expanded-row > td {
+    background-color: transparent !important;
+}
 
+/* Nested/Expanded table wrapper - transparent */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-wrapper {
+    background-color: transparent !important;
+}
 
+/* Nested table itself - transparent */
+.ant-table-wrapper .ant-table-expanded-row .ant-table {
+    background-color: transparent !important;
+}
+
+/* Remove borders from nested table - matching normal table style */
+.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered > .ant-table-container {
+    border: none !important;
+}
+
+.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered > .ant-table-container > .ant-table-content > table > thead > tr > th,
+.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered > .ant-table-container > .ant-table-content > table > tbody > tr > td {
+    border-right: none !important;
+    border-left: none !important;
+    border-top: none !important;
+}
+
+/* Nested table header - white text with bold */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-thead > tr > th {
+    color: white !important;
+    font-weight: bold !important;
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--border-secondary) !important;
+    border-right: none !important;
+    border-left: none !important;
+    border-top: none !important;
+}
+
+/* Nested table body cells - white text, NO right borders */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-tbody > tr > td {
+    color: white !important;
+    background-color: transparent !important;
+    border-bottom: 1px solid var(--border-secondary) !important;
+    border-right: none !important;
+    border-left: none !important;
+    border-top: none !important;
+}
+
+/* Nested table rows on hover */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-tbody > tr:hover > td {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Expanded row content padding adjustment */
+.ant-table-wrapper .ant-table-expanded-row > .ant-table-cell {
+    padding: 16px 8px !important;
+}
+
+/* Remove default expanded row background colors */
+.ant-table-wrapper .ant-table-expanded-row-fixed::after {
+    background-color: transparent !important;
+}
+
+/* Expand icon styling */
+.ant-table-wrapper .ant-table-row-expand-icon {
+    color: white !important;
+    border: 1px solid var(--border-secondary) !important;
+    background-color: transparent !important;
+}
+
+.ant-table-wrapper .ant-table-row-expand-icon:hover {
+    color: white !important;
+    border-color: white !important;
+}
+
+.ant-table-wrapper .ant-table-row-expand-icon:focus {
+    color: white !important;
+    border-color: white !important;
+}
+
+/* Expanded icon when row is expanded */
+.ant-table-wrapper .ant-table-row-expand-icon-expanded {
+    color: white !important;
+}
+
+/* Cell with expand icon */
+.ant-table-wrapper .ant-table-row-expand-icon-cell {
+    background-color: transparent !important;
+}
+
+/* Additional specificity for nested table - remove ALL borders except bottom */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-wrapper .ant-table-thead > tr > th,
+.ant-table-wrapper .ant-table-expanded-row .ant-table-wrapper .ant-table-tbody > tr > td {
+    border-bottom: 1px solid var(--border-secondary) !important;
+    border-right: none !important;
+    border-left: none !important;
+    border-top: none !important;
+}
+
+/* Fix for nested table container */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-container {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+/* Fix for nested table content */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-content {
+    background-color: transparent !important;
+}
+
+/* Ensure expanded row level indicator is transparent */
+.ant-table-wrapper .ant-table-expanded-row-level-1 {
+    background-color: transparent !important;
+}
+
+/* Remove outer border from nested bordered table */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-bordered {
+    border: none !important;
+}
+
+/* Force remove all side borders from nested table cells */
+.ant-table-wrapper .ant-table-expanded-row .ant-table-bordered .ant-table-thead > tr > th,
+.ant-table-wrapper .ant-table-expanded-row .ant-table-bordered .ant-table-tbody > tr > td {
+    border-right: none !important;
+    border-left: none !important;
+}
