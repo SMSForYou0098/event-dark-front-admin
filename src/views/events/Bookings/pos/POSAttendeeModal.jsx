@@ -119,13 +119,13 @@ const POSAttendeeModal = (props) => {
           </div>
         )}
 
-        <Form.Item
+        {/* <Form.Item
           name="payment"
           label="Payment Method"
         >
           <Radio.Group 
             onChange={handleMethodChange} 
-            defaultValue="Cash"
+            initialValues="Cash"
             style={{ width: '100%' }}
           >
             <Space direction="horizontal" size="large" style={{ width: '100%', justifyContent: 'space-between' }}>
@@ -134,7 +134,7 @@ const POSAttendeeModal = (props) => {
               <Radio value="Net Banking">Net Banking</Radio>
             </Space>
           </Radio.Group>
-        </Form.Item>
+        </Form.Item> */}
 
         <Form.Item style={{ marginBottom: 0 }}>
           <Space style={{ width: '100%', justifyContent: 'center' }} size="middle">

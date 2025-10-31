@@ -11,7 +11,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import { cancelToken } from "auth/FetchInterceptor";
 import BookingTickets from "../components/BookingTickets";
 import StickyLayout from "utils/MobileStickyBottom.jsx/StickyLayout";
-import { calcTicketTotals } from "utils/ticketCalculations";
+import { calcTicketTotals, distributeDiscount } from "utils/ticketCalculations";
 
 const { Title, Text } = Typography;
 
@@ -31,29 +31,32 @@ const POS = memo(() => {
   const [isCheckOut, setIsCheckOut] = useState(true);
   const [event, setEvent] = useState([]);
   const [selectedTickets, setSelectedTickets] = useState([]);
-  const [bookingHistory, setBookingHistory] = useState([]);
-  const [subtotal, setSubTotal] = useState(0);
-  const [discount, setDiscount] = useState(0);
-  const [ticketCurrency, setTicketCurrency] = useState('₹');
-  const [totalTax, setTotalTax] = useState(0);
-  const [grandTotal, setGrandTotal] = useState(0);
-  const [baseAmount, setBaseAmount] = useState(0);
-  const [centralGST, setCentralGST] = useState(0);
-  const [stateGST, setStateGST] = useState(0);
+
+
   const [number, setNumber] = useState('');
   const [name, setName] = useState('');
-  const [disableChoice, setDisableChoice] = useState(false);
+
   const [ticketSummary, setTicketSummary] = useState([]);
   const [bookingData, setBookingData] = useState([]);
-  const [discountType, setDiscountType] = useState('fixed');
-  const [discountValue, setDiscountValue] = useState();
   const [bookings, setBookings] = useState([]);
   const [isAmusment, setIsAmusment] = useState(false);
+  const [ticketCurrency, setTicketCurrency] = useState('₹');
 
+
+  // disc state 
+  const [discount, setDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState('fixed');
+  const [discountValue, setDiscountValue] = useState();
+  const [disableChoice, setDisableChoice] = useState(false);
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [showAttendeeModel, setShowAttendeeModel] = useState(false);
   const [method, setMethod] = useState('Cash');
   // const [tickets, setTickets] = useState([]);
+
+  const {
+    grandTotal,
+  } = calcTicketTotals(selectedTickets, discount);
+
   // Memoized calculations
   const bookingStats = useMemo(() => ({
     total: bookings?.allbookings?.length ?? 0,
@@ -79,6 +82,9 @@ const POS = memo(() => {
 
 
   const StorePOSBooking = useCallback(async () => {
+    // console.log(selectedTickets);
+    // console.log(calcTicketTotals(selectedTickets , discount));
+    // return
     setShowAttendeeModel(false);
     const validTickets = selectedTickets?.filter(ticket => ticket?.quantity > 0);
 
@@ -86,7 +92,6 @@ const POS = memo(() => {
       ErrorAlert('Please Select A Ticket');
       return;
     }
-
     const requestData = {
       user_id: UserData?.id,
       number,
@@ -115,7 +120,7 @@ const POS = memo(() => {
     } catch (err) {
       console.log(err);
     }
-  }, [selectedTickets, UserData?.id, number, name, discount, grandTotal, method, isAmusment, api, eventID, authToken, ErrorAlert, GetBookings]);
+  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, eventID, authToken, ErrorAlert, GetBookings ,grandTotal]);
 
   // Effects
   useEffect(() => {
@@ -129,64 +134,19 @@ const POS = memo(() => {
   }, [GetBookings]);
 
 
-
-  useEffect(() => {
-    if (selectedTickets?.length > 0) {
-      // Sum values across all selected tickets
-      const totalBaseAmount = selectedTickets.reduce(
-        (acc, ticket) => acc + (ticket.baseAmount * ticket.quantity),
-        0
-      );
-
-      const totalCentralGST = selectedTickets.reduce(
-        (acc, ticket) => acc + (ticket.centralGST * ticket.quantity),
-        0
-      );
-
-      const totalStateGST = selectedTickets.reduce(
-        (acc, ticket) => acc + (ticket.stateGST * ticket.quantity),
-        0
-      );
-
-      const totalTax = totalCentralGST + totalStateGST;
-      const totalFinalAmount = selectedTickets.reduce(
-        (acc, ticket) => acc + ticket.finalAmount,
-        0
-      );
-
-      // Update state
-      setBaseAmount(+totalBaseAmount.toFixed(2));
-      setCentralGST(+totalCentralGST.toFixed(2));
-      setStateGST(+totalStateGST.toFixed(2));
-      setTotalTax(+totalTax.toFixed(2));
-
-      // Grand total = totalFinalAmount - discount
-      const grandTotal = totalFinalAmount - discount;
-      setGrandTotal(+grandTotal.toFixed(2));
-    } else {
-      // Reset all
-      setBaseAmount(0);
-      setCentralGST(0);
-      setStateGST(0);
-      setTotalTax(0);
-      setGrandTotal(0);
-    }
-  }, [selectedTickets, discount]);
-
-
   const handleDiscount = useCallback(() => {
-    // If discount is blank or 0, revert to original amounts
+    const { subtotal } = calcTicketTotals(selectedTickets);
+  
     if (!discountValue || discountValue <= 0) {
       setDiscount(0);
-      setDisableChoice(false); // Re-enable the button when discount is removed
+      setDisableChoice(false);
       message.info('Discount removed');
       return;
     }
   
-    const { subtotal } = calcTicketTotals(selectedTickets);
     const subtotalValue = parseFloat(subtotal);
-    
     let calculatedDiscount = 0;
+  
     if (discountType === 'percentage') {
       if (discountValue > 100) {
         message.error('Percentage cannot be more than 100%');
@@ -202,11 +162,16 @@ const POS = memo(() => {
     }
   
     const finalDiscount = +calculatedDiscount.toFixed(2);
+    // ✅ Apply the discount to tickets before updating totals
+    const updatedTickets = distributeDiscount(selectedTickets, finalDiscount);
+  
+    setSelectedTickets(updatedTickets); // important step
     setDiscount(finalDiscount);
-    setDisableChoice(true); // Disable after first apply
-    
+    setDisableChoice(true);
+  
     message.success('Discount applied successfully');
   }, [discountValue, discountType, selectedTickets]);
+  
 
   useEffect(() => {
     setDisableChoice(false);
@@ -215,25 +180,6 @@ const POS = memo(() => {
     }
   }, [discountValue, discountType]);
 
-  useEffect(()=>{
-    console.log(selectedTickets)
-  },[selectedTickets])
-
-  useEffect(() => {
-    if (bookingHistory.length > 0) {
-      const ticketMap = bookingHistory.reduce((acc, booking) => {
-        const ticket = event.tickets?.find(item => item.id === booking.ticket_id);
-        if (ticket) {
-          if (!acc[ticket.name]) {
-            acc[ticket.name] = { ...ticket, quantity: 0 };
-          }
-          acc[ticket.name].quantity += 1;
-        }
-        return acc;
-      }, {});
-      setTicketSummary(Object.values(ticketMap));
-    }
-  }, [bookingHistory, event?.tickets]);
 
   const handleButtonClick = useCallback((evnt, tkts) => {
     setEvent(evnt)
@@ -313,8 +259,8 @@ const POS = memo(() => {
         closePrintModel={closePrintModel}
         event={event}
         bookingData={bookingData}
-        subtotal={subtotal}
-        totalTax={totalTax}
+        subtotal={'subtotal'}
+        totalTax={'totalTax'}
         discount={discount}
         grandTotal={grandTotal}
       />

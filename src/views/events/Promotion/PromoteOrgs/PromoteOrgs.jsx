@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Avatar, Card, Typography, Button, Spin } from 'antd';
+import React, { useState } from 'react';
+import { Avatar, Card, Typography, Button, Spin, Popconfirm, message, Row, Col } from 'antd';
 import {
     DndContext,
     closestCenter,
@@ -14,13 +14,14 @@ import {
     rectSortingStrategy
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { HolderOutlined } from '@ant-design/icons';
+import { HolderOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import CreatePromoteOrgModal from './CreatePromoteOrgModal';
 import api from 'auth/FetchInterceptor';
 
 const { Text } = Typography;
 
-function SortableOrg({ id, name, thumbnail, index }) {
+function SortableOrg({ id, name, thumbnail, index, onEdit, onDelete }) {
     const {
         attributes,
         listeners,
@@ -31,31 +32,46 @@ function SortableOrg({ id, name, thumbnail, index }) {
     } = useSortable({ id });
 
     const style = {
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '10px 12px',
-        border: '1px solid var(--ant-color-border)',
-        borderRadius: 8,
         boxShadow: isDragging ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
         background: isDragging ? 'var(--ant-color-fill-tertiary, #fafafa)' : undefined,
-        userSelect: 'none',
-        touchAction: 'pan-x pan-y',
-        minHeight: 68,
-        minWidth: 0,
         transition,
-        transform: CSS.Transform.toString(transform),
+        transform: CSS.Transform.toString(transform)
     };
 
     return (
-        <Card ref={setNodeRef} style={style} {...attributes}>
-            <span {...listeners} style={{ cursor: 'grab', fontSize: 22, marginRight: 6, color: '#bbb', lineHeight: 0 }}>
-                <HolderOutlined />
-            </span>
-            <Avatar shape="square" size={48} src={thumbnail} alt={name} />
-            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <Text strong ellipsis>{name}</Text>
-                <Text type="secondary">Position: {index + 1}</Text>
+        <Card ref={setNodeRef} style={style} {...attributes} classNames={{ body: 'py-2' }}>
+            <div className="d-flex align-items-center justify-content-between">
+                <div className="d-flex align-items-center">
+                    <span {...listeners} className="cursor-grab fs-5 text-muted mr-2">
+                        <HolderOutlined />
+                    </span>
+                    <Avatar shape="square" size={48} src={thumbnail} alt={name} className='mr-2' />
+                    <div className="d-flex flex-column">
+                        <Text strong ellipsis>{name}</Text>
+                    </div>
+                </div>
+                <div className="d-flex gap-2">
+                    <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => onEdit(id)}
+                        size="small"
+                    />
+                    <Popconfirm
+                        title="Remove Sponsored Organization"
+                        description="Are you sure you want to remove this organization from sponsors?"
+                        onConfirm={() => onDelete(id)}
+                        okText="Yes"
+                        cancelText="No"
+                    >
+                        <Button
+                            type="text"
+                            danger
+                            icon={<DeleteOutlined />}
+                            size="small"
+                        />
+                    </Popconfirm>
+                </div>
             </div>
         </Card>
     );
@@ -63,25 +79,53 @@ function SortableOrg({ id, name, thumbnail, index }) {
 
 export default function PromoteOrgs() {
     const [modalOpen, setModalOpen] = useState(false);
-    const [loading, setLoading] = useState(true);
-    const [items, setItems] = useState([]);
+    const [editingOrg, setEditingOrg] = useState(null);
+    const queryClient = useQueryClient();
 
-    const fetchOrgs = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await api.get('/promote-orgs'); // Expected [{id, name, thumbnail}]
-            setItems(Array.isArray(data?.data) ? data?.data : []);
-            console.log('data',data)
-        } catch {
-            setItems([]);
-        } finally {
-            setLoading(false);
-        }
-    }, []);
+    // Fetch organizations
+    const { data: items = [], isLoading } = useQuery({
+        queryKey: ['promote-orgs'],
+        queryFn: async () => {
+            const response = await api.get('/promote-orgs');
+            return Array.isArray(response?.data) ? response.data : [];
+        },
+    });
 
-    useEffect(() => {
-        fetchOrgs();
-    }, [fetchOrgs]);
+    // Delete mutation
+    const deleteMutation = useMutation({
+        mutationFn: async (id) => {
+            await api.delete(`/promote-org/delete/${id}`, {
+                is_deleted: 1
+            });
+        },
+        onSuccess: () => {
+            message.success('Organization removed from sponsors successfully');
+            queryClient.invalidateQueries({ queryKey: ['promote-orgs'] });
+        },
+        onError: () => {
+            message.error('Failed to remove organization');
+        },
+    });
+
+    // Reorder mutation
+    const reorderMutation = useMutation({
+        mutationFn: async (newOrder) => {
+            // Send array with {id, sr_no} format
+            await api.post('/promote-org/reorder', {
+                data: newOrder.map((item, index) => ({
+                    id: item.id,
+                    sr_no: index + 1  // sr_no starts from 1
+                }))
+            });
+        },
+        onSuccess: () => {
+            message.success('Order updated successfully');
+            queryClient.invalidateQueries({ queryKey: ['promote-orgs'] });
+        },
+        onError: () => {
+            message.error('Failed to update order');
+        },
+    });
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -93,9 +137,33 @@ export default function PromoteOrgs() {
             const oldIndex = items.findIndex(i => i.id === active.id);
             const newIndex = items.findIndex(i => i.id === over.id);
             const newItems = arrayMove(items, oldIndex, newIndex);
-            setItems(newItems);
-            // Optionally: Send new order to backend here
+
+            // Optimistically update UI
+            queryClient.setQueryData(['promote-orgs'], newItems);
+
+            // Save new order to backend
+            reorderMutation.mutate(newItems);
         }
+    };
+
+    const handleEdit = (id) => {
+        const org = items.find(item => item.id === id);
+        setEditingOrg(org);
+        setModalOpen(true);
+    };
+
+    const handleDelete = (id) => {
+        deleteMutation.mutate(id);
+    };
+
+    const handleModalClose = () => {
+        setModalOpen(false);
+        setEditingOrg(null);
+    };
+
+    const handleModalSuccess = () => {
+        queryClient.invalidateQueries({ queryKey: ['promote-orgs'] });
+        handleModalClose();
     };
 
     return (
@@ -103,36 +171,39 @@ export default function PromoteOrgs() {
             <Card
                 title="Promoted Organizations (drag card handle to reorder)"
                 extra={<Button type="primary" onClick={() => setModalOpen(true)}>Create New</Button>}
-                style={{ marginBottom: 24 }}
+                className="mb-4"
             >
-                {loading ? (
-                    <div style={{ textAlign: 'center', minHeight: 150 }}><Spin /></div>
+                {isLoading ? (
+                    <div className="text-center">
+                        <Spin />
+                    </div>
                 ) : (
                     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={items.map(i => i.id)} strategy={rectSortingStrategy}>
-                            <div
-                                style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: 'repeat(4, 1fr)',
-                                    gap: 16,
-                                    width: '100%',
-                                }}
-                            >
+                            <Row gutter={[16, 16]}>
                                 {items.map((item, idx) => (
-                                    <SortableOrg key={item.id} id={item.id} name={item.name} thumbnail={item.image} index={idx} />
+                                    <Col xs={24} sm={12} md={8} lg={6} key={item.id}>
+                                        <SortableOrg
+                                            id={item.id}
+                                            name={item?.org?.organisation}
+                                            thumbnail={item.image}
+                                            index={idx}
+                                            onEdit={handleEdit}
+                                            onDelete={handleDelete}
+                                        />
+                                    </Col>
                                 ))}
-                            </div>
+                            </Row>
                         </SortableContext>
                     </DndContext>
                 )}
             </Card>
             <CreatePromoteOrgModal
                 visible={modalOpen}
-                onClose={() => setModalOpen(false)}
-                onSuccess={fetchOrgs}
+                onClose={handleModalClose}
+                onSuccess={handleModalSuccess}
+                editingOrg={editingOrg}
             />
         </>
     );
 }
-
-

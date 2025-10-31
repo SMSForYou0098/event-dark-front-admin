@@ -64,11 +64,11 @@ const POSPrintModal = ({
 
     // ✅ Fix: Extract ticket data from array
     const ticketData = useMemo(() => {
-        return bookingData.map((booking, index) => ({
+        return bookingData?.map((booking, index) => ({
             key: index,
             quantity: booking.quantity || 0,
             ticketName: booking?.ticket?.name || 'N/A',
-            price: `₹${Number(booking.amount)?.toFixed(2) || '0.00'}`,
+            price: `₹${Number(booking.total_amount)?.toFixed(2) || '0.00'}`,
         }));
     }, [bookingData]);
 
@@ -104,8 +104,8 @@ const POSPrintModal = ({
         },
         {
             key: '4',
-            label: <strong>TOTAL</strong>,
-            value: <strong>₹{Number(grandTotal)?.toFixed(2) || '0.00'}</strong>,
+            label: <h4 className='m-0 p-0'><strong>TOTAL</strong></h4>,
+            value: <h4 className='m-0 p-0'><strong>₹{Number(grandTotal)?.toFixed(2) || '0.00'}</strong></h4>,
         },
     ], [subtotal, totalTax, discount, grandTotal]);
 
@@ -115,23 +115,23 @@ const POSPrintModal = ({
             open={showPrintModel}
             onCancel={closePrintModel}
             width={400}
-            centered
             footer={[
                 <Button key="close" onClick={closePrintModel} icon={<CloseOutlined />}>Close</Button>,
                 <Button key="print" className='border-0' type="primary" onClick={handlePrint} icon={<PrinterOutlined />}>Print Invoice</Button>,
             ]}
         >
-            <div ref={printRef} className="pos-print-body" style={{ padding: '20px 10px' }}>
+            {/* <div ref={printRef} className="pos-print-body" style={{ padding: '20px 10px' }}> */}
+            <div ref={printRef} className="pos-print-body">
                 <div style={{ textAlign: 'center' }}>
                     {event?.name && (
-                        <Title level={4} style={{ marginBottom: '20px', fontWeight: 'bold' }}>
+                        <Title level={4} className='fw-bold m-0'>
                             {event.name}
                         </Title>
                     )}
 
                     {/* ✅ Fix: Use token from first ticket */}
                     {bookingData?.[0]?.token && (
-                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '15px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', margin: '1px 0' }}>
                             <QRCodeSVG
                                 size={150}
                                 value={bookingData[0].token}
@@ -151,7 +151,7 @@ const POSPrintModal = ({
                         pagination={false}
                         size="small"
                         bordered
-                        style={{ marginBottom: '15px' }}
+                        style={{ marginBottom: '13px' }}
                     />
 
                     <Table
@@ -161,9 +161,10 @@ const POSPrintModal = ({
                         size="small"
                         showHeader={false}
                         bordered={false}
+                        style={{ marginBottom: '13px' }}
                     />
 
-                    <Text style={{ display: 'block', fontSize: '14px', marginTop: '5px' }}>
+                    <Text style={{ display: 'block', fontSize: '14px', marginTop: '0'  , marginBottom : '0'}}>
                         Thank You for Payment
                     </Text>
 

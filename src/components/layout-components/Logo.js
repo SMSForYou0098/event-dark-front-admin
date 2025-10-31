@@ -25,10 +25,6 @@ export const Logo = ({ mobileLogo }) => {
 	const navCollapsed = useSelector(state => state.theme.navCollapsed);
 	const navType = useSelector(state => state.theme.navType);
 
-	useEffect(() => {
-		console.log(navCollapsed)
-	}, [navCollapsed])
-
 	const getLogoWidthGutter = () => {
 		const isNavTop = navType === NAV_TYPE_TOP ? true : false
 		if(isMobile && !mobileLogo) {
