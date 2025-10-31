@@ -436,7 +436,8 @@ const mediaSubmenu = [
     title: 'Banners',
     icon: PlayCircleFilled,
     breadcrumb: false,
-    submenu: []
+    submenu: [],
+    roles:["sdfsdfs"]
   },
   {
     key: 'media-blogs',
@@ -444,7 +445,8 @@ const mediaSubmenu = [
     title: 'Blogs',
     icon: BookOutlined,
     breadcrumb: false,
-    submenu: []
+    submenu: [],
+    roles:['Admin']
   },
   {
     key: 'media-gallery',
@@ -452,7 +454,9 @@ const mediaSubmenu = [
     title: 'Gallery',
     icon: CameraOutlined,
     breadcrumb: false,
-    submenu: []
+    submenu: [],
+    // roles:['Admin'],
+    permissions:["View Event"]
   }
 ]
 const mediaNav = {
@@ -461,7 +465,8 @@ const mediaNav = {
   title: 'Media',
   icon: PlayCircleOutlined,
   breadcrumb: false,
-  submenu: mediaSubmenu
+  submenu: mediaSubmenu,
+  roles: ['zxfzx']
 };
 
 
