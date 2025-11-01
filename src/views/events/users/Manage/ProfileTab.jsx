@@ -667,20 +667,17 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                     {/* Status & Security */}
                     {!showRoleGate && (
                         <PermissionChecker role={['Admin', 'Organizer']}>
-                            <Card title="Status & Security">
+                            <Card title="Status & Security" extra={
+                                <Flex justifyContent="end">
+                                    <Button className="mr-2" onClick={() => navigate(-1)}>
+                                        Discard
+                                    </Button>
+                                    <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                        {mode === "create" ? "Create" : "Update"}
+                                    </Button>
+                                </Flex>
+                            }>
                                 <Row gutter={[16, 16]}>
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="User Status"
-                                            name="status"
-                                            valuePropName="checked"
-                                            getValueFromEvent={(checked) => (checked ? 1 : 0)}
-                                        >
-                                            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-                                        </Form.Item>
-                                    </Col>
-
-
                                     {/* Password Fields */}
                                     <Col xs={24} md={12}>
                                         <Form.Item
@@ -719,10 +716,20 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                             </Form.Item>
                                         </Col>
                                     )}
-                                    <Col xs={24} md={24}>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="User Status"
+                                            name="status"
+                                            valuePropName="checked"
+                                            getValueFromEvent={(checked) => (checked ? 1 : 0)}
+                                        >
+                                            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12}>
                                         <Space size="large">
                                             <Form.Item
-                                                label="Authentication Method"
+                                                label="Authentication"
                                                 name="authentication"
                                                 valuePropName="checked"
                                             >
@@ -741,8 +748,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                                                             type="info"
                                                             message={
                                                                 isPasswordAuth
-                                                                    ? "Password authentication is currently active"
-                                                                    : "OTP (One-Time Password) authentication is currently active"
+                                                                    ? "Password login is currently active"
+                                                                    : "OTP (One-Time Password) login is currently active"
                                                             }
                                                             showIcon
                                                         />

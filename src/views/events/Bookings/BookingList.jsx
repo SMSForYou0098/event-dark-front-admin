@@ -140,7 +140,6 @@ const BookingList = memo(({ type = 'agent' }) => {
 
     const getUserName = (record) =>
         record?.bookings?.[0]?.user?.name ||
-        record?.bookings?.[0]?.name ||
         record?.user?.name ||
         "N/A";
 

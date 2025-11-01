@@ -7,7 +7,6 @@ import ChartWidget from 'components/ChartWidget';
 import DataCard from './DataCard';
 import { useMyContext } from 'Context/MyContextProvider';
 import DashSkeleton from './DashSkeleton';
-import BasicArea from './GradientChart';
 
 const { Title, Text } = Typography;
 
