@@ -35,9 +35,10 @@ const Artist = () => {
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnMount: "ifStale",
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
+    queryKey: ['artists', UserData?.id],
+    // refetchOnMount: "ifStale",
+    // refetchOnWindowFocus: true,
+    // refetchOnReconnect: true,
     onError: (err) => {
       setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
       message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");

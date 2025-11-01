@@ -195,7 +195,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
 
         // Set sale enabled state BEFORE setting form values
-        // This prevents the useEffect from triggering unnecessarily
         const hasSaleData = ticket.sale === 1 || ticket.sale === true;
         setSaleEnabled(hasSaleData);
 
@@ -210,7 +209,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             ticket_description: ticket.ticket_description || ticket?.description,
             taxes: ticket.taxes,
             access_area: ticket.access_area_ids || [],
-            // promocode_codes: ticket.promocode_ids || [],
             promocode_codes: ticket.promocode_ids
                 ? JSON.parse(ticket.promocode_ids)
                 : [],
@@ -224,14 +222,15 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             sale_price: ticket.sale_price || null,
         });
 
-        // Handle image preview
-        if (ticket.ticket_image) {
-            setImagePreviewUrl(ticket.ticket_image);
+        // Handle image preview - FIXED: Use background_image from API
+        const imageUrl = ticket.background_image || ticket.ticket_image;
+        if (imageUrl) {
+            setImagePreviewUrl(imageUrl);
             setImageFileList([{
                 uid: '-1',
                 name: 'ticket-image.jpg',
                 status: 'done',
-                url: ticket.ticket_image,
+                url: imageUrl,
             }]);
         } else {
             setImagePreviewUrl('');

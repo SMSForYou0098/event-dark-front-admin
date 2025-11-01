@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
-import Swal from 'sweetalert2';
+import { Modal, message, notification } from 'antd';
+import { ExclamationCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import loader from '../assets/event/stock/loader111.gif';
 import currencyData from '../JSON/currency.json';
@@ -210,9 +211,11 @@ export const MyContextProvider = ({ children }) => {
         DownloadExcelFile(data, fName);
       })
       .catch(error => {
+        console.error('Export error:', error);
       });
   }
-  const handleMakeReport = async (number, message_id,) => {
+
+  const handleMakeReport = async (number, message_id) => {
     try {
       await axios.post(`${api}make-reports`, {
         message_id: message_id,
@@ -225,6 +228,7 @@ export const MyContextProvider = ({ children }) => {
           }
         });
     } catch (error) {
+      console.error('Report error:', error);
     }
   };
 
@@ -263,66 +267,76 @@ export const MyContextProvider = ({ children }) => {
     }
   };
 
+  // ✅ Replaced SweetAlert with Ant Design notification
   const successAlert = useCallback((title, subtitle) => {
-    Swal.fire({
-      icon: "success",
-      title: title,
-      text: subtitle,
+    notification.success({
+      message: title,
+      description: subtitle,
+      icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
+      placement: 'topRight',
+      duration: 3,
     });
   }, []);
 
+  // ✅ Replaced SweetAlert with Ant Design notification
   const ErrorAlert = useCallback((error) => {
-    Swal.fire({
-      icon: "error",
-      title: "Oops...",
-      text: error,
-      backdrop: `rgba(60,60,60,0.8)`,
+    notification.error({
+      message: 'Error',
+      description: error,
+      icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
+      placement: 'topRight',
+      duration: 4,
     });
   }, []);
 
+  // ✅ Replaced SweetAlert with Ant Design notification
   const WarningAlert = useCallback((warning) => {
-    Swal.fire({
-      icon: "warning",
-      title: "Warning",
-      text: warning,
-      backdrop: `rgba(60,60,60,0.8)`,
+    notification.warning({
+      message: 'Warning',
+      description: warning,
+      icon: <WarningOutlined style={{ color: '#faad14' }} />,
+      placement: 'topRight',
+      duration: 4,
     });
   }, []);
 
-
+  // ✅ Replaced SweetAlert with Ant Design Modal.confirm
   const AskAlert = (title, buttonText, SuccessMessage) => {
-    Swal.fire({
-      title: "Are you sure?",
-      text: title,
-      icon: "warning",
-      showCancelButton: true,
-      backdrop: `rgba(60,60,60,0.8)`,
-      confirmButtonText: buttonText,
-    }).then((result) => {
-      if (result.isConfirmed && SuccessMessage) {
-        Swal.fire(SuccessMessage);
-      }
-    });
-  }
-  const showLoading = (processName) => {
-    return Swal.fire({
-      title: `${processName} in Progress`,
-      html: `
-            <div style="text-align: center;">
-                <img src=${loader} style="width: 10rem; display: block; margin: 0 auto;"/>
-                </div>
-                `,
-      // <div class="spinner-border text-primary mt-4" role="status">
-      //     <span class="visually-hidden">Loading...</span>
-      // </div>
-      allowEscapeKey: false,
-      allowOutsideClick: false,
-      showConfirmButton: false,
-      customClass: {
-        htmlContainer: 'swal2-html-container-custom'
+    Modal.confirm({
+      title: 'Are you sure?',
+      content: title,
+      icon: <ExclamationCircleOutlined />,
+      okText: buttonText,
+      cancelText: 'Cancel',
+      onOk: () => {
+        if (SuccessMessage) {
+          message.success(SuccessMessage);
+        }
       },
     });
+  }
+
+  // ✅ Replaced SweetAlert loading with Ant Design Modal
+  const showLoading = (processName) => {
+    const modal = Modal.info({
+      title: `${processName} in Progress`,
+      content: (
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <img src={loader} style={{ width: '10rem', display: 'block', margin: '0 auto' }} alt="Loading" />
+        </div>
+      ),
+      icon: null,
+      okButtonProps: { style: { display: 'none' } },
+      closable: false,
+      maskClosable: false,
+      keyboard: false,
+    });
+
+    return {
+      close: () => modal.destroy(),
+    };
   };
+
   function modifyNumber(number) {
     let mob_number = String(number);
     if (mob_number.length === 10) {
@@ -442,6 +456,7 @@ export const MyContextProvider = ({ children }) => {
         return Promise.reject(error);
       }
     };
+
     const executeTicketSend = async () => {
       let loadingInstance;
       if (showLoader) {
@@ -458,18 +473,18 @@ export const MyContextProvider = ({ children }) => {
         ErrorAlert("There was a problem sending the ticket. Please try again.");
       }
     };
+
+    // ✅ Replaced SweetAlert with Ant Design Modal.confirm
     if (type === 'old') {
-      Swal.fire({
+      Modal.confirm({
         title: "Are you sure?",
-        text: "Do you want to send the ticket again?",
-        icon: "warning",
-        showCancelButton: true,
-        backdrop: `rgba(60,60,60,0.8)`,
-        confirmButtonText: 'Send Ticket',
-      }).then((result) => {
-        if (result.isConfirmed) {
+        content: "Do you want to send the ticket again?",
+        icon: <ExclamationCircleOutlined />,
+        okText: 'Send Ticket',
+        cancelText: 'Cancel',
+        onOk: () => {
           executeTicketSend();
-        }
+        },
       });
     } else {
       executeTicketSend();
@@ -491,7 +506,7 @@ export const MyContextProvider = ({ children }) => {
       console.log(err);
     }
   };
-  //external
+
   const handleWhatsappAlert = async (number, values, templateName, mediaurl, Organizer) => {
     const configData = await GetBookingWhatsAppApi(Organizer, templateName)
     const apiData = configData?.WhatsappApi
@@ -512,7 +527,6 @@ export const MyContextProvider = ({ children }) => {
       ":Event_Date": values?.eventDate,
       ":Booking_Date": values?.booking_date,
       ":Payment_Date": values?.payment_Date,
-
       ":Credits": values?.credits,
       ":CT_Credits": values?.ctCredits,
       ":Shop_Name": values?.shopName,
@@ -549,6 +563,7 @@ export const MyContextProvider = ({ children }) => {
     const { protocol, host } = window.location;
     return `${protocol}//${host}`;
   };
+
   const HandleSendSMS = async (number, token, message, api_key, sender_id, config_status, name, qty, ticketName, eventName, whts_note, insta_whts_url, template) => {
     let modifiedNumber = modifyNumber(number);
     const currentUrl = getCurrentHostUrl()
@@ -576,7 +591,7 @@ export const MyContextProvider = ({ children }) => {
         }
       );
     } catch (error) {
-      // console.error('Error sending SMS:', error);
+      console.error('Error sending SMS:', error);
     }
   }
 
@@ -592,13 +607,14 @@ export const MyContextProvider = ({ children }) => {
       return dateRange;
     }
   };
+
   const convertTo12HourFormat = (time24) => {
     if (!time24) return '';
 
     const [hours, minutes] = time24.split(':').map(Number);
     const period = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12; // Convert hour to 12-hour format, with 12 instead of 0
-    const minutesFormatted = minutes?.toString()?.padStart(2, '0'); // Format minutes with leading zero
+    const hours12 = hours % 12 || 12;
+    const minutesFormatted = minutes?.toString()?.padStart(2, '0');
 
     return `${hours12}:${minutesFormatted} ${period}`;
   };
@@ -619,6 +635,7 @@ export const MyContextProvider = ({ children }) => {
     }
     return '';
   };
+
   const convertSlugToTitle = (slug) => {
     if (slug) {
       return slug
@@ -651,7 +668,6 @@ export const MyContextProvider = ({ children }) => {
       return response.data
     } catch (err) {
       return err.message;
-    } finally {
     }
   };
 
@@ -663,7 +679,7 @@ export const MyContextProvider = ({ children }) => {
         }
       });
       if (res.data?.status) {
-        // setMailSend(true)
+        // Mail sent successfully
       }
     } catch (err) {
       console.log(err);
@@ -672,7 +688,6 @@ export const MyContextProvider = ({ children }) => {
 
   const getCurrencySymbol = (currency) => {
     if (currencyMaster && currency) {
-
       if (currencyMaster.hasOwnProperty(currency)) {
         let symbol = currencyMaster[currency]?.symbol;
         return symbol;
@@ -683,10 +698,11 @@ export const MyContextProvider = ({ children }) => {
   const HandleBack = () => {
     window.history.back();
   }
+
   const [isScrolled, setIsScrolled] = useState(false);
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) { // Change 10 to your desired scroll threshold
+      if (window.scrollY > 10) {
         setIsScrolled(true);
       } else {
         setIsScrolled(false);
@@ -716,8 +732,6 @@ export const MyContextProvider = ({ children }) => {
     }
   }
 
-
-  // Helper function to format amount with commas
   const formatAmountWithCommas = (amount) => {
     if (!amount) return '0.00';
 
@@ -727,7 +741,6 @@ export const MyContextProvider = ({ children }) => {
 
     return `${integerPart}.${decimalPart}`;
   };
-
 
   const contextValue = {
     getCitiesByState,
@@ -785,4 +798,5 @@ export const MyContextProvider = ({ children }) => {
 
   return <MyContext.Provider value={contextValue}>{children}</MyContext.Provider>;
 };
+
 export const useMyContext = () => useContext(MyContext);

@@ -230,6 +230,7 @@ export const authSlice = createSlice({
       state.loading = false;
       state.token = null;
       state.redirect = '/';
+      state.isImpersonating = false;
     },
 
     /* =========================
@@ -341,6 +342,7 @@ export const authSlice = createSlice({
         state.loading = false;
         state.token = null;
         state.redirect = '/';
+        state.isImpersonating = false;
 
         // Optional: mirror current theme deep clean on signOut
         try {
@@ -354,6 +356,7 @@ export const authSlice = createSlice({
         state.loading = false;
         state.token = null;
         state.redirect = '/';
+        state.isImpersonating = false;
       })
 
       /* =========================
