@@ -58,7 +58,7 @@ const partnersClientsSubmenu = [
   {
   key: 'corporates',
   path: 'bookings/corporate',
-  title: 'Corporate Bookings',
+  title: 'Corporate',
   icon: CrownOutlined,
   breadcrumb: false,
   submenu: [
@@ -81,7 +81,7 @@ const partnersClientsSubmenu = [
   {
   key: 'sponsors',
   path: 'bookings/sponsor',
-  title: 'Sponsors Bookings',
+  title: 'Sponsor',
   icon: TrophyOutlined,
   breadcrumb: false,
   submenu: [
@@ -185,7 +185,7 @@ const bookingsSubmenu = [
   {
     key: 'complimentary-booking',
     path: 'bookings/complimentary',
-    title: 'Complimentary Bookings',
+    title: 'Complimentary',
     icon: TrophyOutlined,
     breadcrumb: false,
     submenu: [

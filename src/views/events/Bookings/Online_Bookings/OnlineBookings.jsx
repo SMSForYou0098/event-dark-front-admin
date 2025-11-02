@@ -305,19 +305,19 @@ const OnlineBookings = memo(() => {
         return `₹${discount}`;
       },
     },
-    {
-      title: "B Amt",
-      dataIndex: "base_amount",
-      key: "base_amount",
-      align: "center",
-      render: (_, record) => {
-        const baseAmount =
-          (record?.bookings && record?.bookings[0]?.base_amount) ||
-          record?.base_amount ||
-          0;
-        return `₹${baseAmount}`;
-      },
-    },
+    // {
+    //   title: "B Amt",
+    //   dataIndex: "base_amount",
+    //   key: "base_amount",
+    //   align: "center",
+    //   render: (_, record) => {
+    //     const baseAmount =
+    //       (record?.bookings && record?.bookings[0]?.base_amount) ||
+    //       record?.base_amount ||
+    //       0;
+    //     return `₹${baseAmount}`;
+    //   },
+    // },
     {
       title: "Total",
       dataIndex: "amount",

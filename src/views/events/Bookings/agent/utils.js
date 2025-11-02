@@ -52,7 +52,6 @@ export const BookingStats = ({type , id }) => {
       try {
         // const url = `${api}booking-stats/pos/${UserData?.id}`;
         const url = `booking-stats/${type}/${id}`;
-        console.log(url);
         const res = await api.get(url);
         if (res.status) {
           setBookings(res);
@@ -73,8 +72,7 @@ export const BookingStats = ({type , id }) => {
     amount: (parseInt(bookings?.amount) ?? 0).toFixed(2),
     discount: (parseInt(bookings?.discount) ?? 0).toFixed(2)
   }), [bookings]);
-
-  console.log(bookingStats);
+  
   const stats = [
     {
       title: "Bookings",

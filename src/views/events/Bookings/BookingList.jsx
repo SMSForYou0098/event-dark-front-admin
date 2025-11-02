@@ -654,6 +654,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 loading={isLoading || toggleBookingMutation.isPending}
                 error={error}
                 enableExport={true}
+                type={type}
             />
 
         </Fragment>

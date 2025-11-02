@@ -21,7 +21,7 @@ import {
   useAgentBooking,
 } from './useAgentBookingHooks';
 import BookingSummary from './components/BookingSummary';
-import { calcTicketTotals, getSubtotal } from 'utils/ticketCalculations';
+import { calcTicketTotals, distributeDiscount, getSubtotal } from 'utils/ticketCalculations';
 
 const NewAgentBooking = memo(({ type }) => {
   const {
@@ -104,8 +104,6 @@ const NewAgentBooking = memo(({ type }) => {
     },
   });
 
-
-
   const corporateBookingMutation = useCorporateBooking({
     onSuccess: (response) => {
       if (response.status && response.bookings) {
@@ -147,8 +145,25 @@ const NewAgentBooking = memo(({ type }) => {
 
   const agentBookingMutation = useAgentBooking();
 
+  const [isBookingInProgress, setIsBookingInProgress] = useState(false);
+  const lastBookingAttemptRef = useRef(0);
+  const COOLDOWN_PERIOD = 2000; // 2 seconds cooldown
 
   const handleBookingAfterUser = useCallback(async (user, attendeeIdsByTicket = {}) => {
+    // ✅ Check if booking is already in progress
+    if (isBookingInProgress) {
+      message.warning('Booking is already in progress, please wait...');
+      return;
+    }
+
+    // ✅ Check cooldown period
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastBookingAttemptRef.current;
+    if (timeSinceLastAttempt < COOLDOWN_PERIOD) {
+      const remainingSeconds = Math.ceil((COOLDOWN_PERIOD - timeSinceLastAttempt) / 1000);
+      message.warning(`Please wait ${remainingSeconds} second(s) before trying again`);
+      return;
+    }
 
     // ✅ Validate user exists
     if (!user || !user.id) {
@@ -164,11 +179,14 @@ const NewAgentBooking = memo(({ type }) => {
       return;
     }
 
+    // ✅ Set booking in progress and update last attempt time
+    setIsBookingInProgress(true);
+    lastBookingAttemptRef.current = now;
+
     // ✅ Build tickets array with attendee IDs
     const ticketsPayload = selectedTickets.map(ticket => {
       const ticketId = ticket.id.toString();
       const attendeeIds = attendeeIdsByTicket[ticketId] || attendeeIdsByTicket[ticket.id] || [];
-
 
       return {
         id: ticket.id,
@@ -181,7 +199,9 @@ const NewAgentBooking = memo(({ type }) => {
         totalTax: ticket.totalTax,
         convenienceFee: ticket.convenienceFee,
         finalAmount: ticket.finalAmount,
-        attendee_ids: attendeeIds, // ✅ Should contain [14, 15] based on your console
+        discount: ticket.discount,
+        discountPerUnit: ticket.discountPerUnit,
+        attendee_ids: attendeeIds,
         totalFinalAmount: ticket.totalFinalAmount,
         totalBaseAmount: ticket.totalBaseAmount,
         totalCentralGST: ticket.totalCentralGST,
@@ -215,21 +235,48 @@ const NewAgentBooking = memo(({ type }) => {
           setBookingResponse(response.bookings || null);
           setSavedAttendeeIds({});
           setSelectedTickets([]);
-          setTicketAttendees({})
+          setTicketAttendees({});
           setCurrentStep(currentStep + 1);
           setIsConfirmed(true);
         }
-        // setCurrentStep(currentStep + 1);
+
+        // ✅ Reset booking state after a short delay
+        setTimeout(() => {
+          setIsBookingInProgress(false);
+        }, 1000);
       },
       onError: (error) => {
         console.error('❌ Booking error:', error);
         message.error(error.message || 'Booking failed');
-        // setCurrentStep(currentStep + 1);
+
+        // ✅ Reset booking state on error
+        setTimeout(() => {
+          setIsBookingInProgress(false);
+        }, 1000);
       }
     });
-  }, [type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep]);
+  }, [isBookingInProgress, type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep]);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const lastSubmitAttemptRef = useRef(0);
+  const SUBMIT_COOLDOWN = 2000; // 2 seconds cooldown
 
   const handleUserSubmit = useCallback(async () => {
+    // ✅ Check if submission is already in progress
+    if (isSubmitting) {
+      message.warning('Submission is already in progress, please wait...');
+      return;
+    }
+
+    // ✅ Check cooldown period
+    const now = Date.now();
+    const timeSinceLastAttempt = now - lastSubmitAttemptRef.current;
+    if (timeSinceLastAttempt < SUBMIT_COOLDOWN) {
+      const remainingSeconds = Math.ceil((SUBMIT_COOLDOWN - timeSinceLastAttempt) / 1000);
+      message.warning(`Please wait ${remainingSeconds} second(s) before trying again`);
+      return;
+    }
+
     if (!name) {
       message.error("Name is required");
       return;
@@ -249,6 +296,10 @@ const NewAgentBooking = memo(({ type }) => {
       }
     }
 
+    // ✅ Set submission in progress and update last attempt time
+    setIsSubmitting(true);
+    lastSubmitAttemptRef.current = now;
+
     try {
       const checkResult = await checkEmailMutation.mutateAsync({
         email,
@@ -260,6 +311,7 @@ const NewAgentBooking = memo(({ type }) => {
       if (checkResult?.exists) {
         if (checkResult.is_email_and_mobile_different_users) {
           message.error('This number & email is already registered');
+          setIsSubmitting(false);
           return;
         } else {
           if (checkResult?.mobile_exists) {
@@ -285,6 +337,7 @@ const NewAgentBooking = memo(({ type }) => {
             setCreatedUser(user);
           } else if (checkResult?.email_exists) {
             message.error('This email is already registered');
+            setIsSubmitting(false);
             return;
           }
         }
@@ -318,16 +371,15 @@ const NewAgentBooking = memo(({ type }) => {
       // ✅ Only proceed if user exists
       if (!user) {
         message.error('Failed to create or retrieve user');
+        setIsSubmitting(false);
         return;
       }
-
 
       const ticketAttendeesData = attendeeStepRef.current?.getAttendeeIdsByTicket?.();
       const attendeeIdsByTicket = {};
 
       if (ticketAttendeesData) {
         Object.entries(ticketAttendeesData).forEach(([ticketId, attendees]) => {
-
           if (Array.isArray(attendees)) {
             // ✅ If it's already an array of IDs (numbers)
             const ids = attendees.filter(id => {
@@ -345,7 +397,6 @@ const NewAgentBooking = memo(({ type }) => {
         console.warn('No attendee data returned from getAttendeeIdsByTicket');
       }
 
-
       // ✅ Validate that we have attendee IDs if required
       if (isAttendeeRequire) {
         const hasAttendeesForAllTickets = selectedTickets.every(ticket => {
@@ -360,6 +411,7 @@ const NewAgentBooking = memo(({ type }) => {
             attendeeIdsByTicket,
             selectedTickets: selectedTickets.map(t => ({ id: t.id, category: t.category }))
           });
+          setIsSubmitting(false);
           return;
         }
       }
@@ -367,26 +419,21 @@ const NewAgentBooking = memo(({ type }) => {
       // ✅ SINGLE CALL - Create booking with attendee IDs
       await handleBookingAfterUser(user, attendeeIdsByTicket);
 
+      // ✅ Reset submission state after successful booking
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 1000);
+
     } catch (err) {
       console.error('Error in handleUserSubmit:', err);
       message.error(err.message || "An error occurred, please try again.");
+
+      // ✅ Reset submission state on error
+      setTimeout(() => {
+        setIsSubmitting(false);
+      }, 1000);
     }
-  }, [
-    name,
-    number,
-    email,
-    companyName,
-    designation,
-    photo,
-    doc,
-    UserData,
-    isAttendeeRequire,
-    selectedTickets,
-    checkEmailMutation,
-    createUserMutation,
-    updateUserMutation,
-    handleBookingAfterUser
-  ]);
+  }, [ isSubmitting, name, number, email, companyName, designation, photo, doc, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, updateUserMutation, handleBookingAfterUser]);
 
   const isLoading =
     corporateBookingMutation.isPending ||
@@ -421,18 +468,18 @@ const NewAgentBooking = memo(({ type }) => {
   }, [fetchCategoryData]);
 
   const handleDiscount = useCallback(() => {
-    // If discount is blank or 0, revert to original amounts
+    const { subtotal } = calcTicketTotals(selectedTickets);
+
     if (!discountValue || discountValue <= 0) {
       setDiscount(0);
-      setDisableChoice(false); // Re-enable the button when discount is removed
+      setDisableChoice(false);
       message.info('Discount removed');
       return;
     }
 
-    const { subtotal } = calcTicketTotals(selectedTickets);
     const subtotalValue = parseFloat(subtotal);
-
     let calculatedDiscount = 0;
+
     if (discountType === 'percentage') {
       if (discountValue > 100) {
         message.error('Percentage cannot be more than 100%');
@@ -448,8 +495,12 @@ const NewAgentBooking = memo(({ type }) => {
     }
 
     const finalDiscount = +calculatedDiscount.toFixed(2);
+    // ✅ Apply the discount to tickets before updating totals
+    const updatedTickets = distributeDiscount(selectedTickets, finalDiscount);
+
+    setSelectedTickets(updatedTickets); // important step
     setDiscount(finalDiscount);
-    setDisableChoice(true); // Disable after first apply
+    setDisableChoice(true);
 
     message.success('Discount applied successfully');
   }, [discountValue, discountType, selectedTickets]);

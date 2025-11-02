@@ -229,7 +229,7 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
                           </div>
                           <div style={{ textAlign: 'center' }}>
                             <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>DISCOUNT</Text>
-                            <Text strong style={{ fontSize: 18, color: '#00d9ff' }}>{formatINR(group.totalDiscount)}</Text>
+                            <Text strong style={{ fontSize: 18, color: '#00d9ff' }}>{formatINR(group.discount)}</Text>
                           </div>
                         </Space>
                       }

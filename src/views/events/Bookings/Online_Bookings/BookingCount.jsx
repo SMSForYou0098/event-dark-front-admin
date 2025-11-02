@@ -6,6 +6,7 @@ import DataCard from 'views/events/Dashboard/Admin/DataCard'
 
 const BookingCount = ({ type, date, showGatewayAmount }) => {
     const { api, authToken, isMobile } = useMyContext()
+    console.log(date)
     const [counts, setCounts] = useState({
         totalDiscount: 0,
         totalAmount: 0,
@@ -43,18 +44,26 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
     }
 
     const calculateTotals = useCallback(async () => {
-        if (!type) return // Prevent execution if type is not provided
-
+        if (!type) return
+    
         try {
             const typeParam = getTypeParam(type)
-            const url = `${api}getDashboardSummary/${typeParam}${date ? `?date=${date}` : ''}`;
+            const url = `${api}getDashboardSummary/${typeParam}`;
+            
+            // Build params with comma-separated date range
+            const params = {};
+            if (date?.startDate && date?.endDate) {
+                params.date = `${date.startDate},${date.endDate}`;
+            }
+            
             const response = await axios.get(url, {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
                 },
+                params: params
             })
             const data = response.data
-
+    
             if (data) {
                 setCounts({
                     totalDiscount: data.totalDiscount,
@@ -81,7 +90,10 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
         const gatewayData = showGatewayAmount ? [
             { title: "InstaMojo", amount: Number(counts.instamojoTotalAmount), hideCurrency: false },
             { title: "Easebuzz", amount: Number(counts.easebuzzTotalAmount), hideCurrency: false },
-        ] : []
+            { title: "Cashfree", amount: Number(counts.cashfreeTotalAmount), hideCurrency: false },
+            { title: "Razorpay", amount: Number(counts.razorpayTotalAmount), hideCurrency: false },
+            { title: "Phonepe", amount: Number(counts.phonepeTotalAmount), hideCurrency: false },
+        ].filter(gateway => gateway.amount > 0) : []
 
         return [...gatewayData, ...baseData]
     }, [counts, showGatewayAmount])

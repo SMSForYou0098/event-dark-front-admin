@@ -1,10 +1,11 @@
-import { Table, Input, Button, Space, Spin, Grid, Card, Tooltip, Alert, DatePicker } from "antd";
+import { Table, Input, Button, Space, Spin, Grid, Card, Tooltip, Alert, DatePicker, Switch } from "antd";
 import { SearchOutlined, ReloadOutlined, CloudUploadOutlined, FilterOutlined } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import dayjs from "dayjs";
 import { useState, useCallback, useEffect, useRef } from "react";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
+import BookingCount from "../Bookings/Online_Bookings/BookingCount";
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
@@ -29,6 +30,7 @@ export const ExpandDataTable = ({
   extraHeaderContent,
   emptyText = "No data",
   tableProps = {},
+  type
 }) => {
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -37,6 +39,7 @@ export const ExpandDataTable = ({
   const [lastRefreshTime, setLastRefreshTime] = useState(null);
   const [countdown, setCountdown] = useState(null);
   const [exportLoading, setExportLoading] = useState(false);
+  const [showGatewayReport, setShowGatewayReport] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
 
   const searchInput = useRef(null);
@@ -157,11 +160,11 @@ export const ExpandDataTable = ({
     },
     render: (text) =>
       searchedColumn === dataIndex ? (
-        <Highlighter 
-          highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }} 
-          searchWords={[searchText]} 
-          autoEscape 
-          textToHighlight={text ? String(text) : ""} 
+        <Highlighter
+          highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+          searchWords={[searchText]}
+          autoEscape
+          textToHighlight={text ? String(text) : ""}
         />
       ) : (
         text
@@ -289,6 +292,12 @@ export const ExpandDataTable = ({
         </Tooltip>
       )}
       {extraHeaderContent}
+      <Switch
+        checked={showGatewayReport}
+        onChange={(checked) => setShowGatewayReport(checked)}
+        checkedChildren="Hide"
+        unCheckedChildren="Show Report"
+      />
     </Space>
   );
 
@@ -328,71 +337,76 @@ export const ExpandDataTable = ({
   );
 
   return (
-    <Card
-      bordered={false}
-      title={
-        <Flex flexDirection="column" gap={filteredData.length > 0 ? 16 : 0} flexWrap="nowrap">
-          <Flex justifyContent="space-between" alignItems="center" width="100%">
-            <span className="font-weight-bold">{title}</span>
-            <div className="action">
-              <span className="d-block d-sm-none">
-                <Button
-                  icon={<FilterOutlined />}
-                  type="text"
-                  onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
-                />
-              </span>
-              {!loading && (
-                <span className="d-none d-sm-block">
-                  {renderDesktopHeaderControls()}
+    <>
+      {showGatewayReport && (
+        <BookingCount date={dateRange} type={type} />
+      )}
+      <Card
+        bordered={false}
+        title={
+          <Flex flexDirection="column" gap={filteredData.length > 0 ? 16 : 0} flexWrap="nowrap">
+            <Flex justifyContent="space-between" alignItems="center" width="100%">
+              <span className="font-weight-bold">{title}</span>
+              <div className="action">
+                <span className="d-block d-sm-none">
+                  <Button
+                    icon={<FilterOutlined />}
+                    type="text"
+                    onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
+                  />
                 </span>
-              )}
-            </div>
+                {!loading && (
+                  <span className="d-none d-sm-block">
+                    {renderDesktopHeaderControls()}
+                  </span>
+                )}
+              </div>
+            </Flex>
+            <span className="d-block d-sm-none">
+              {filterDrawerVisible && renderDesktopHeaderControls()}
+            </span>
           </Flex>
-          <span className="d-block d-sm-none">
-            {filterDrawerVisible && renderDesktopHeaderControls()}
-          </span>
-        </Flex>
-      }
-    >
-      <div className="table-responsive">
-        {renderError()}
+        }
+      >
+        <div className="table-responsive">
+          {renderError()}
 
-        {/* Table Section */}
-        <div>
-          <Table
-            columns={enhancedColumns}
-            dataSource={filteredData}
-            rowKey="id"
-            loading={loading && { indicator: customLoadingIndicator }}
-            size={isSmallMobile ? "small" : isMobile ? "middle" : "middle"}
-            scroll={{
-              x: isMobile ? "max-content" : 1200,
-              y: isMobile ? undefined : undefined,
-            }}
-            sticky={!isMobile}
-            expandable={{
-              expandedRowRender,
-              rowExpandable: (record) => record.is_set === true,
-              expandedRowKeys,
-              onExpand: handleExpand,
-            }}
-            pagination={{
-              pageSize: isMobile ? 5 : 10,
-              showTotal: (total, range) =>
-                isMobile
-                  ? `${range[0]}-${range[1]}/${total}`
-                  : `Showing ${range[0]}-${range[1]} of ${total} items`,
-              size: isMobile ? "small" : "default",
-              simple: isSmallMobile,
-              responsive: true,
-              position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-            }}
-            locale={{ emptyText }}
-            {...tableProps}
-          />
+          {/* Table Section */}
+          <div>
+            <Table
+              columns={enhancedColumns}
+              dataSource={filteredData}
+              rowKey="id"
+              loading={loading && { indicator: customLoadingIndicator }}
+              size={isSmallMobile ? "small" : isMobile ? "middle" : "middle"}
+              scroll={{
+                x: isMobile ? "max-content" : 1200,
+                y: isMobile ? undefined : undefined,
+              }}
+              sticky={!isMobile}
+              expandable={{
+                expandedRowRender,
+                rowExpandable: (record) => record.is_set === true,
+                expandedRowKeys,
+                onExpand: handleExpand,
+              }}
+              pagination={{
+                pageSize: isMobile ? 5 : 10,
+                showTotal: (total, range) =>
+                  isMobile
+                    ? `${range[0]}-${range[1]}/${total}`
+                    : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                size: isMobile ? "small" : "default",
+                simple: isSmallMobile,
+                responsive: true,
+                position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+              }}
+              locale={{ emptyText }}
+              {...tableProps}
+            />
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+    </>
   );
 };
