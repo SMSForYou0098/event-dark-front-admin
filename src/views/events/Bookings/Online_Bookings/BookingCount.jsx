@@ -6,7 +6,6 @@ import DataCard from 'views/events/Dashboard/Admin/DataCard'
 
 const BookingCount = ({ type, date, showGatewayAmount }) => {
     const { api, authToken, isMobile } = useMyContext()
-    console.log(date)
     const [counts, setCounts] = useState({
         totalDiscount: 0,
         totalAmount: 0,
@@ -63,7 +62,7 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
                 params: params
             })
             const data = response.data
-    
+
             if (data) {
                 setCounts({
                     totalDiscount: data.totalDiscount,
@@ -72,6 +71,12 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
                     totalTickets: data.totalTickets,
                     instamojoTotalAmount: data.instamojoTotalAmount,
                     easebuzzTotalAmount: data.easebuzzTotalAmount,
+                    cashfreeTotalAmount: data.cashfreeTotalAmount,
+                    razorpayTotalAmount: data.razorpayTotalAmount,
+                    phonepeTotalAmount: data.phonepeTotalAmount,
+                    upi: data.upi,
+                    cash: data.cash,
+                    nb: data.nb,
                 })
             }
         } catch (error) {
@@ -98,23 +103,25 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
         return [...gatewayData, ...baseData]
     }, [counts, showGatewayAmount])
 
-    const agentCardData = useMemo(() => {
+    const offlineCardData = useMemo(() => {
         const baseData = [
-            { title: "Amount", amount: Number(counts.totalAmount) },
-            { title: "Discount", amount: Number(counts.totalDiscount) },
-            { title: "Bookings", amount: Number(counts.totalBookings), hideCurrency: true },
-            { title: "Tickets", amount: Number(counts.totalTickets), hideCurrency: true },
-
-            { title: "UPI", amount: Number(counts.upi), hideCurrency: false },
-            { title: "Cash", amount: Number(counts.cash), hideCurrency: false },
-            { title: "NB", amount: Number(counts.nb), hideCurrency: false },
+            { title: "Amount", amount: Number(counts.totalAmount || 0) },
+            { title: "Discount", amount: Number(counts.totalDiscount || 0) },
+            { title: "Bookings", amount: Number(counts.totalBookings || 0), hideCurrency: true },
+            { title: "Tickets", amount: Number(counts.totalTickets || 0), hideCurrency: true },
         ]
+        console.log(counts)
+        // Payment methods - filter out those with 0 amount
+        const paymentMethods = [
+            { title: "UPI", amount: Number(counts.upi || 0), hideCurrency: false },
+            { title: "Cash", amount: Number(counts.cash || 0), hideCurrency: false },
+            { title: "Net Banking", amount: Number(counts.nb || 0), hideCurrency: false },
+        ].filter(method => method.amount > 0)
+    
+        return [...baseData, ...paymentMethods]
+    }, [counts])
 
-        return [...baseData]
-    }, [counts, showGatewayAmount])
-
-
-    const dataToShow = type === 'online' ? onlineCardData : agentCardData
+    const dataToShow = type === 'online' ? onlineCardData : offlineCardData
 
     const renderContent = () => {
         if (isMobile) {

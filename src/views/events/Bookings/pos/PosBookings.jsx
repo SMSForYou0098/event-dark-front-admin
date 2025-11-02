@@ -556,6 +556,7 @@ const PosBooking = memo(() => {
         loading={isLoading}
         error={error}
         enableExport={true}
+        type={'pos'}
       />
     </>
   );
