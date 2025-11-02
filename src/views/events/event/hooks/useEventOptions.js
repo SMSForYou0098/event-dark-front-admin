@@ -161,6 +161,7 @@ export function buildEventFormData(values) {
     appendIfDefined('show_on_home', values.show_on_home ?? 0);
     appendIfDefined('insta_whts_url', values.insta_whts_url);
     appendIfDefined('whts_note', values.whts_note);
+    appendIfDefined('booking_notice', values.booking_notice);
   }
 
   // ---------- TIMING ----------
@@ -236,9 +237,11 @@ export const useEventDetail = (id, step = null, options = {}) =>
     enabled: !!id, // Only run when ID is present
     queryFn: async () => {
       const url = step 
-        ? `event-detail/${id}?step=${step}` 
-        : `event-detail/${id}`;
-      
+        ? `edit-event/${id}/${step}` 
+        : `edit-detail/${id}`;
+        //     const url = step 
+        // ? `event-detail/${id}?step${step}` 
+        // : `edit-detail/${id}`;
       const res = await api.get(url);
 
       if (!res?.status) {

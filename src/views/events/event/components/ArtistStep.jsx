@@ -20,10 +20,11 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
   const [searchText, setSearchText] = useState('');
   const [selectedArtists, setSelectedArtists] = useState([]);
   const [shouldFetch, setShouldFetch] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Only fetch when modal is opened
+  // Fetch artists data - fetch immediately in edit mode, or when modal opens
   const { data: artistsData = [], isLoading, refetch } = useArtistsByOrganizer(
-    shouldFetch ? UserData?.id : null
+    (isEdit || shouldFetch) ? UserData?.id : null
   );
 
   // Transform artist data helper
@@ -43,7 +44,7 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
   // Handle modal open - trigger fetch when opening
   const handleOpenModal = () => {
     setIsModalVisible(true);
-    setShouldFetch(true); // Enable fetching when modal opens
+    setShouldFetch(true);
   };
 
   // 🔹 Sync selected artists to form as numeric IDs
@@ -52,31 +53,36 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
     form.setFieldsValue({ artist_id: ids });
   }, [selectedArtists, form]);
 
-  // 🔹 Initialize selected artists from artistList prop (existing artists)
+  // 🔹 Initialize selected artists from artistList prop (for edit mode with full data)
   useEffect(() => {
-    if (artistList && artistList.length > 0) {
+    if (artistList && artistList.length > 0 && !isInitialized) {
       const transformedArtists = artistList.map(transformArtist);
       setSelectedArtists(transformedArtists);
+      setIsInitialized(true);
     }
-  }, [artistList]);
+  }, [artistList, isInitialized]);
 
-  // 🔹 Preload selected artists in edit mode from form values
+  // 🔹 Load artists from form IDs when artistsData is available (for edit mode)
   useEffect(() => {
-    const existingIds = form.getFieldValue('artist_id');
-    if (Array.isArray(existingIds) && existingIds.length > 0 && artistList.length === 0) {
-      // If we have IDs but no artistList, create placeholder artists
-      const preselected = existingIds.map((idNum) => ({
-        id: Number(idNum),
-        name: `Artist #${idNum}`,
-        role: 'Loading...',
-        image: undefined,
-        genre: '',
-        type: '',
-        originalData: { id: Number(idNum) },
-      }));
-      setSelectedArtists(preselected);
+    if (isEdit && !isInitialized && artistsData.length > 0) {
+      const existingIds = form.getFieldValue('artist_id');
+      
+      if (Array.isArray(existingIds) && existingIds.length > 0) {
+        // Match IDs with fetched artists data
+        const matchedArtists = existingIds
+          .map((id) => {
+            const found = artistsData.find((artist) => Number(artist.id) === Number(id));
+            return found ? transformArtist(found) : null;
+          })
+          .filter(Boolean); // Remove null values
+
+        if (matchedArtists.length > 0) {
+          setSelectedArtists(matchedArtists);
+          setIsInitialized(true);
+        }
+      }
     }
-  }, [form, artistList]);
+  }, [isEdit, artistsData, form, isInitialized]);
 
   const handleToggleArtist = (artist) => {
     setSelectedArtists((prev) => {
@@ -141,15 +147,24 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
       </div>
 
       {/* Main content - Display selected artists */}
-      {selectedArtists.length > 0 ? (
+      {isEdit && isLoading && selectedArtists.length === 0 ? (
+        <div className="text-center py-5">
+          <Spin />
+          <p className="text-muted mt-3">Loading selected artists...</p>
+        </div>
+      ) : selectedArtists.length > 0 ? (
         <Row gutter={[24, 24]}>
           {selectedArtists.map((artist) => (
             <Col xs={24} sm={12} md={8} lg={6} key={artist.id}>
               <Card className="text-center bg-dark border-secondary" hoverable>
-                <div className="position-absolute float-right">
-                  <Link to="#" onClick={() => handleRemoveArtist(artist.id)}>
-                    <X />
-                  </Link>
+                <div className="position-absolute" style={{ top: 8, right: 8 }}>
+                  <Button
+                    type="text"
+                    icon={<X size={16} />}
+                    size="small"
+                    onClick={() => handleRemoveArtist(artist.id)}
+                    danger
+                  />
                 </div>
                 <div className="d-flex flex-column align-items-center">
                   <Avatar src={artist.image} size={120} className="mb-3" />

@@ -14,11 +14,12 @@ import Transactions from "../wallet/Transaction";
 import PermissionsTab from "./PermissionsTab";
 
 const ManageUser = ({ mode = "edit" }) => {
-  const { HandleBack } = useMyContext();
+  const { HandleBack, userRole } = useMyContext();
   const [activeTab, setActiveTab] = useState("1");
   const [form] = Form.useForm();
   const { id } = useParams()
   const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState(null);
 
   if (loading) {
     return (
@@ -28,7 +29,7 @@ const ManageUser = ({ mode = "edit" }) => {
     );
   }
 
-  const tabItems = [
+  const allTabItems = [
     {
       key: "1",
       label: (
@@ -36,7 +37,7 @@ const ManageUser = ({ mode = "edit" }) => {
           <UserOutlined /> Profile
         </span>
       ),
-      children: <ProfileTab mode={mode} id={id} />,
+      children: <ProfileTab setSelectedRole={setSelectedRole} mode={mode} id={id} />,
     },
     {
       key: "2",
@@ -55,6 +56,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <AssignCredit id={id} />,
+      condition: selectedRole === "wallet_agent"
     },
     {
       key: "4",
@@ -64,6 +66,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <Transactions userId={id} />,
+      condition: selectedRole === "wallet_agent" || selectedRole === "agent"
     },
     {
       key: "5",
@@ -73,8 +76,12 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <PermissionsTab userId={id} />,
+      condition: mode !== "create" || userRole === "admin"
     },
   ];
+
+  // Filter tabs based on conditions
+  const tabItems = allTabItems.filter(tab => tab.condition === undefined || tab.condition);
 
   return (
     <Fragment>
@@ -85,7 +92,6 @@ const ManageUser = ({ mode = "edit" }) => {
           <Flex className="pb-4" justifyContent="space-between" alignItems="center">
             <Flex alignItems="center" gap="1rem">
               <Button type="text" icon={<ArrowLeftOutlined />} onClick={HandleBack} style={{ width: 'inherit' }} />
-              {/* <ArrowLeftOutlined /> */}
               <h2 className="mb-0">{mode === "create" ? "Create User" : "Manage User"}</h2>
             </Flex>
           </Flex>
@@ -98,7 +104,6 @@ const ManageUser = ({ mode = "edit" }) => {
        :
        <ProfileTab mode={mode}/>
       }
-
     </Fragment>
   );
 };

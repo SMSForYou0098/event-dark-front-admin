@@ -1,33 +1,18 @@
 // PermissionChecker.jsx
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useMyContext } from 'Context/MyContextProvider';
 
 /**
  * PermissionChecker
  *
- * Renders children only if the current user satisfies the provided
- * permission/role requirements.
+ * ✅ Shows children only if user has required permission/role.
+ * ✅ If logged-in user's role === "admin", all checks are skipped (full access).
  *
- * Features:
- * - Accepts single or multiple required permissions: string | string[]
- * - Accepts single or multiple required roles: string | string[]
- * - Supports users with single role or multiple roles in state (string | string[])
- * - Combine role + permission checks with 'AND' (default) or 'OR'
- * - Optional `fallback` UI when access is denied
- *
- * Examples:
- *   <PermissionChecker permission="users.edit"><EditBtn /></PermissionChecker>
- *   <PermissionChecker role={['admin','manager']}><AdminStuff /></PermissionChecker>
- *   <PermissionChecker permission={['posts.create','posts.publish']} role="editor" matchType="OR">
- *     <PublishBtn />
- *   </PermissionChecker>
- *
- * @param {object} props
- * @param {string|string[]=} props.permission      - Required permission(s)
- * @param {string|string[]=} props.role            - Required role(s)
- * @param {'AND'|'OR'=}      props.matchType       - How to combine permission + role checks (default 'AND')
- * @param {React.ReactNode=} props.fallback        - What to render if not authorized (default: null)
- * @param {React.ReactNode}  props.children        - Content to render if authorized
+ * Props:
+ * - permission: string | string[]
+ * - role: string | string[]
+ * - matchType: 'AND' | 'OR' (default 'AND')
+ * - fallback: ReactNode (rendered when unauthorized)
  */
 const PermissionChecker = ({
   permission,
@@ -36,62 +21,56 @@ const PermissionChecker = ({
   fallback = null,
   children,
 }) => {
-  // ---- 1) Get user from store ----
-  const user = useSelector((state) => state?.auth?.user);
+  // --- 1️⃣ Get user info from context ---
+  const { UserPermissions, userRole } = useMyContext();
 
-  // Normalize user permissions to an array
-  const userPermissions = Array.isArray(user?.permissions)
-    ? user.permissions
-    : Array.isArray(user?.scopes) // if your app sometimes calls them 'scopes'
-      ? user.scopes
-      : (user?.permissions ? [user.permissions] : []);
+  // --- 2️⃣ Normalize helper ---
+  const toArray = (val) =>
+    Array.isArray(val) ? val : val != null ? [val] : [];
 
-  // Normalize user role(s) to an array (supports both string or string[])
-  const userRoles = Array.isArray(user?.role)
-    ? user.role
-    : (user?.role ? [user.role] : []);
+  const norm = (v) => String(v ?? '').trim().toLowerCase();
 
-  // ---- 2) Helper: normalize inputs to arrays for uniform checks ----
-  const toArray = (val) => (Array.isArray(val) ? val : (val != null ? [val] : []));
+  // --- 3️⃣ Normalize user data ---
+  const userPermissions = toArray(UserPermissions).map(norm);
+  const userRoles = toArray(userRole).map(norm);
 
-  const requiredPermissions = toArray(permission);
-  const requiredRoles = toArray(role);
+  // --- 4️⃣ ✅ ADMIN BYPASS ---
+  // If logged-in user has role "admin", give full access immediately
+  if (userRoles.includes('admin')) {
+    return <>{children}</>;
+  }
 
-  // If neither permission nor role is provided, treat as "no restriction" => deny by default (explicit is better)
+  // --- 5️⃣ Normalize required permissions/roles ---
+  const requiredPermissions = toArray(permission).map(norm);
+  const requiredRoles = toArray(role).map(norm);
+
+  // If nothing is required, deny by default (explicit > implicit)
   if (requiredPermissions.length === 0 && requiredRoles.length === 0) {
     return fallback;
   }
 
-  // ---- 3) Permission check ----
-  // Policy: if multiple required permissions are given, we consider it as "any-of" (OR across the list).
-  // If you need "all-of", you can switch to `.every(...)`.
+  // --- 6️⃣ Check permissions and roles ---
   const hasPermission =
     requiredPermissions.length === 0
-      ? null // not part of this check
+      ? null
       : requiredPermissions.some((p) => userPermissions.includes(p));
 
-  // ---- 4) Role check ----
-  // Works for: required role(s) array vs user roles array => check any overlap
   const hasRole =
     requiredRoles.length === 0
-      ? null // not part of this check
+      ? null
       : requiredRoles.some((r) => userRoles.includes(r));
 
-  // ---- 5) Combine according to matchType ----
+  // --- 7️⃣ Combine logic based on matchType ---
   let isAuthorized = false;
 
-  // Both provided: combine with AND/OR
   if (requiredPermissions.length > 0 && requiredRoles.length > 0) {
-    isAuthorized = matchType === 'OR'
-      ? Boolean(hasPermission) || Boolean(hasRole)
-      : Boolean(hasPermission) && Boolean(hasRole);
-  }
-  // Only permission provided
-  else if (requiredPermissions.length > 0) {
+    isAuthorized =
+      matchType === 'OR'
+        ? Boolean(hasPermission) || Boolean(hasRole)
+        : Boolean(hasPermission) && Boolean(hasRole);
+  } else if (requiredPermissions.length > 0) {
     isAuthorized = Boolean(hasPermission);
-  }
-  // Only role provided
-  else if (requiredRoles.length > 0) {
+  } else if (requiredRoles.length > 0) {
     isAuthorized = Boolean(hasRole);
   }
 

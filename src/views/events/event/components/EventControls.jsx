@@ -82,6 +82,18 @@ const EventControlsStep = ({ form, isEdit }) => {
           maxLength={200}
         />
       </Form.Item>
+      <Form.Item
+        name="booking_notice"
+        label="Booking Note"
+        tooltip=""
+      >
+        <TextArea
+          rows={3}
+          placeholder="Enter Booking notification message..."
+          showCount
+          maxLength={200}
+        />
+      </Form.Item>
     </Space>
   );
 };

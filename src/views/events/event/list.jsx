@@ -17,6 +17,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useMyContext } from 'Context/MyContextProvider';
 import { Ticket } from 'lucide-react';
 import api from 'auth/FetchInterceptor';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const EventList = () => {
   const navigate = useNavigate();
@@ -126,10 +127,8 @@ const EventList = () => {
     }
   }, []);
 
-  const PermissionHandler = useCallback((permission) => {
-    // return usePermission(permission);
-    return true;
-  }, []);
+const hasEditPermission = usePermission('Edit Event');
+const hasDeletePermission = usePermission('Delete Event');
 
   const columns = useMemo(
     () => [
@@ -216,7 +215,7 @@ const EventList = () => {
               to: `update/${row?.event_key}`,
               type: 'default',
               icon: <EditOutlined />,
-              permission: 'Edit Event',
+              permission: hasEditPermission,
             },
             {
               tooltip: 'Manage Tickets',
@@ -232,7 +231,7 @@ const EventList = () => {
               danger: true,
               icon: <DeleteOutlined />,
               isButton: true,
-              permission: 'Edit Event',
+              permission: hasDeletePermission,
             },
             {
               tooltip: 'Manage Gates',
@@ -253,8 +252,8 @@ const EventList = () => {
           ];
 
           const filteredActions = actions.filter(
-            (action) => !action.permission || PermissionHandler(action.permission)
-          );
+  (action) => action.permission === null || action.permission === true
+);
 
           const renderAction = (action, index) => {
             const content = action.isButton ? (
@@ -373,7 +372,6 @@ const EventList = () => {
       isMobile,
       HandleDelete,
       HandleGateModal,
-      PermissionHandler,
       createSlug,
       deleteMutation.isPending,
     ]
@@ -394,6 +392,7 @@ const EventList = () => {
       exportRoute="export-events"
       ExportPermission={usePermission('Export Events')}
       extraHeaderContent={
+        <PermissionChecker permission="Create Event">
         <Tooltip title="New Event">
           <Button
             type="primary"
@@ -401,6 +400,7 @@ const EventList = () => {
             onClick={() => navigate('create')}
           />
         </Tooltip>
+        </PermissionChecker>
       }
       loading={isLoading || deleteMutation.isPending}
       error={isError ? error : null}

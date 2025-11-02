@@ -10,6 +10,7 @@ import api from 'auth/FetchInterceptor';
 import TicketModal from "../Tickets/modals/TicketModal";
 import { downloadTickets } from "../Tickets/ticketUtils";
 import { ExpandDataTable } from "../common/ExpandDataTable";
+import PermissionChecker from "layouts/PermissionChecker";
 
 const BookingList = memo(({ type = 'agent' }) => {
     const { UserData, formatDateTime, sendTickets, truncateString, isMobile, UserPermissions } = useMyContext();
@@ -368,7 +369,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             sorter: (a, b) => getUserName(a).localeCompare(getUserName(b)),
         },
         {
-            title: 'Organizer',
+            title: 'Organization',
             dataIndex: 'organizer',
             key: 'organizer',
             align: 'center',
@@ -494,6 +495,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         icon: <Ticket size={14} />,
                         onClick: () => GenerateTicket(record.id),
                         disabled: isDisabled,
+                        permissions:'Generate Tickets'
                     },
                     {
                         key: 'resend',
@@ -502,6 +504,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         icon: <Send size={14} />,
                         onClick: () => sendTickets(record, "old", true, "Online Booking"),
                         disabled: isDisabled,
+                        permissions:"Resend Tickets"
                     },
                 ];
     
@@ -529,6 +532,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                     <Space size="small">
                         {actions.map((action) => (
                             <Tooltip key={action.key} title={action.label}>
+                                <PermissionChecker permission={action.permissions}>
                                 <Button
                                     type={action.type}
                                     icon={action.icon}
@@ -536,6 +540,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                                     disabled={action.disabled}
                                     size="small"
                                 />
+                                </PermissionChecker>
                             </Tooltip>
                         ))}
                     </Space>

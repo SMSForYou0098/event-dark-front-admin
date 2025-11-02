@@ -56,23 +56,52 @@ const userManagementSubmenu = [
 // Partners & Clients Submenu
 const partnersClientsSubmenu = [
   {
-    key: 'corporates',
-    path: 'corporate',
-    title: 'Corporate Bookings',
-    icon: CrownOutlined,
-    breadcrumb: false,
-    submenu: [],
-    permissions: ["View Corporate Bookings"]
-  },
+  key: 'corporates',
+  path: 'bookings/corporate',
+  title: 'Corporate Bookings',
+  icon: CrownOutlined,
+  breadcrumb: false,
+  submenu: [
+    {
+      key: 'corporate-manage',
+      path: 'bookings/corporate',
+      title: 'Manage',
+      breadcrumb: false,
+      permissions: ["View Corporate Bookings"]
+    },
+    {
+      key: 'corporate-new',
+      path: 'bookings/corporate/new',
+      title: 'New',
+      breadcrumb: false,
+      permissions: ["Create Corporate Bookings"]
+    }
+  ]
+},
   {
-    key: 'sponsors',
-    path: 'bookings/sponsor',
-    title: 'Sponsors Bookings',
-    icon: TrophyOutlined,
-    breadcrumb: false,
-    submenu: [],
-    permissions: ["View Sponsor Bookings"]
-  }
+  key: 'sponsors',
+  path: 'bookings/sponsor',
+  title: 'Sponsors Bookings',
+  icon: TrophyOutlined,
+  breadcrumb: false,
+  submenu: [
+    {
+      key: 'sponsor-manage',
+      path: 'bookings/sponsor',
+      title: 'Manage',
+      breadcrumb: false,
+      permissions: ["View Sponsor Bookings"]
+    },
+    {
+      key: 'sponsor-new',
+      path: 'bookings/sponsor/new',
+      title: 'New',
+      breadcrumb: false,
+      permissions: ["Create Sponsor Bookings"]
+    }
+  ]
+}
+
 ];
 
 const partnersClientsNav = {
@@ -96,33 +125,62 @@ const userManagementNav = {
 };
 
 // Bookings Submenu
+
+
 const bookingsSubmenu = [
   {
-    key: 'online-booking',
-    path: 'bookings/online',
-    title: 'Online Bookings',
-    icon: ShoppingOutlined,
-    breadcrumb: false,
-    submenu: [],
-    permissions: ["View Online Bookings"]
-  },
+        key: 'online-manage',
+        path: 'bookings/online',
+        title: 'Online Bookings',
+        breadcrumb: false,
+        icon: ShoppingOutlined,
+        permissions: ["View Online Bookings"]
+      },
   {
     key: 'agent-booking',
     path: 'bookings/agent',
-    title: 'Agent Bookings',
+    title: 'Agent',
     icon: IdcardOutlined,
     breadcrumb: false,
-    submenu: [],
-    permissions: ["View Agent Bookings"]
+    submenu: [
+      {
+        key: 'agent-manage',
+        path: 'bookings/agent',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: ["View Agent Bookings"]
+      },
+      {
+        key: 'agent-new',
+        path: 'bookings/agent/new',
+        title: 'New',
+        breadcrumb: false,
+        permissions: ["Create Agent Bookings"]
+      }
+    ]
   },
   {
-    key: 'pos',
+    key: 'pos-booking',
     path: 'bookings/pos',
-    title: 'POS Bookings',
+    title: 'POS',
     icon: ShoppingOutlined,
     breadcrumb: false,
-    submenu: [],
-    permissions: ["View POS Bookings"]
+    submenu: [
+      {
+        key: 'pos-manage',
+        path: 'bookings/pos',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: ["View POS Bookings"]
+      },
+      {
+        key: 'pos-new',
+        path: 'bookings/pos/new',
+        title: 'New',
+        breadcrumb: false,
+        permissions: ["Create POS Bookings"]
+      }
+    ]
   },
   {
     key: 'complimentary-booking',
@@ -130,8 +188,22 @@ const bookingsSubmenu = [
     title: 'Complimentary Bookings',
     icon: TrophyOutlined,
     breadcrumb: false,
-    submenu: [],
-    permissions: ["View Complimentary Bookings"]
+    submenu: [
+      {
+        key: 'complimentary-manage',
+        path: 'bookings/complimentary',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: ["View Complimentary Bookings"]
+      },
+      {
+        key: 'complimentary-new',
+        path: 'bookings/complimentary/new',
+        title: 'New',
+        breadcrumb: false,
+        permissions: ["Create Complimentary Bookings"]
+      }
+    ]
   },
   {
     key: 'pending-booking',
@@ -361,7 +433,8 @@ const financialManagementSubmenu = [
     icon: WalletOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"]
+    roles: ["Admin","Wallet Agent"],
+    permissions: ["View Wallet Agent"]
   },
   {
     key: 'payment-logs',

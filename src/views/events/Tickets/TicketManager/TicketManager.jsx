@@ -14,6 +14,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
 import axios from 'axios';
 import dayjs from 'dayjs';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -462,6 +463,8 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                             size="small"
                         />
                     </Tooltip>
+                    <PermissionChecker permissions="Delete Ticket">
+
                     <Tooltip title="Delete">
                         <Button
                             danger
@@ -470,6 +473,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                             size="small"
                         />
                     </Tooltip>
+                    </PermissionChecker>
                 </Space>
             ),
         },

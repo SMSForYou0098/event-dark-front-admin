@@ -7,6 +7,7 @@ import PosBooking from 'views/events/Bookings/pos/PosBookings'
 import POS from 'views/events/Bookings/pos/NewPosBooking'
 import TicketVerification from 'views/events/Scan/TicketVerification'
 import NewBooking from 'views/events/Bookings/agent/NewAgentBooking'
+import { roles } from 'views/events/users/constants'
 
 // ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
@@ -58,6 +59,10 @@ export const protectedRoutes = [
         key: 'dashboard',
         path: `/dashboard`,
         component: React.lazy(() => import('views/events/Dashboard/index')),
+        meta:{
+            // roles: ['admin', 'organizer', 'agent', 'sponsor'],
+            permissions: ['View Dashboard'],
+        }
     },
 
     // ==================== USER MANAGEMENT ====================
@@ -65,6 +70,10 @@ export const protectedRoutes = [
         key: 'users',
         path: `/users`,
         component: React.lazy(() => import('views/events/users/Users')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['View User'],
+        }
     },
     {
         key: 'new-user',
@@ -74,6 +83,10 @@ export const protectedRoutes = [
                 <ManageUser mode="create" />
             </React.Suspense>
         ),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['Add User'],
+        }
     },
     {
         key: 'edit-user',
@@ -83,16 +96,26 @@ export const protectedRoutes = [
                 <ManageUser mode="edit" />
             </React.Suspense>
         ),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['Edit User'],
+        }
     },
     {
         key: 'organizers',
         path: `/organizers`,
         component: React.lazy(() => import('views/events/users/Organizers')),
+        meta:{
+            roles: ['admin'],
+        }
     },
     {
         key: 'login-history',
         path: `/login-history`,
         component: React.lazy(() => import('views/events/users/LoginHistory')),
+        meta:{
+            excludeRoles: ['user'],
+        }
     },
 
     // ==================== ROLE & PERMISSIONS ====================
@@ -100,11 +123,17 @@ export const protectedRoutes = [
         key: 'role',
         path: `/role`,
         component: React.lazy(() => import('views/events/RolePermission/Role/index')),
+        meta:{
+            roles: ['admin'],
+        }
     },
     {
         key: 'role-permission',
         path: `/role/:id/:name/permission`,
         component: React.lazy(() => import('views/events/RolePermission/Permisson')),
+        meta:{
+            roles: ['admin'],
+        }
     },
 
     // ==================== EVENTS MANAGEMENT ====================
@@ -112,11 +141,19 @@ export const protectedRoutes = [
         key: 'events',
         path: `/events`,
         component: React.lazy(() => import('views/events/event/list')),
+        meta:{
+            permissions: ['View Event'],
+            roles: ['admin', 'organizer'],
+        }
     },
     {
         key: 'events-create',
         path: `/events/create`,
         component: React.lazy(() => import('views/events/event/EventStepperForm')),
+        meta:{
+            permissions: ['Create Event'],
+            roles: ['admin', 'organizer'],
+        }
     },
     {
         key: 'events-update',
@@ -126,16 +163,28 @@ export const protectedRoutes = [
                 <EventStepperForm />
             </React.Suspense>
         ),
+        meta:{
+            permissions: ['Update Event'],
+            roles: ['admin', 'organizer'],
+        }
     },
     {
         key: 'events-ticket',
         path: `/events/ticket/:id/:name`,
         component: React.lazy(() => import('views/events/Tickets/TicketManager/TicketComponent')),
+        meta:{
+            roles: ['admin', 'organizer'],
+
+        }
     },
     {
         key: 'attendees',
         path: `/attendees`,
         component: React.lazy(() => import('views/events/event/Attendees')),
+        meta:{
+            permissions: ['View Attendees'],
+            roles: ['admin', 'organizer'],
+        }
     },
 
     // ==================== BOOKINGS MANAGEMENT ====================
@@ -144,12 +193,19 @@ export const protectedRoutes = [
         key: 'online-bookings',
         path: `/bookings/online`,
         component: React.lazy(() => import('views/events/Bookings/Online_Bookings/OnlineBookings')),
+        meta:{
+            permissions: ['View Online Bookings'],
+            roles: ['admin', 'organizer'],
+        }
     },
     // Pending Bookings
     {
         key: 'pending-bookings',
         path: `/bookings/pending`,
         component: React.lazy(() => import('views/events/Bookings/Pending_Bookings/index')),
+        meta:{
+            roles: ['admin'],
+        }
     },
     // Agent Bookings
     {
@@ -160,6 +216,10 @@ export const protectedRoutes = [
                 <BookingList {...props} type="agent" />
             </React.Suspense>
         ),
+        meta:{
+            permissions: ['View Agent Bookings'],
+            roles: ['admin', 'organizer', 'agent'],
+        }
     },
     // Sponsor Bookings
     {
@@ -170,17 +230,29 @@ export const protectedRoutes = [
                 <BookingList {...props} type="sponsor" />
             </React.Suspense>
         ),
+        meta:{
+            permissions: ['View Sponsor Bookings'],
+            roles: ['admin', 'organizer', 'sponsor'],
+        }
     },
     // Complimentary Bookings
     {
         key: 'complimentary-bookings',
         path: `/bookings/complimentary`,
         component: React.lazy(() => import('views/events/Bookings/ComplimentaryBooking')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['View Complimentary Bookings'],
+        }
     },
     {
         key: 'complimentary-bookings',
         path: `/bookings/complimentary/new`,
         component: React.lazy(() => import('views/events/Bookings/ComplimentaryBooking/ComplimentaryBookings')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['Add Complimentary Booking'],
+        }
     },
 
     // blogs routes
@@ -188,16 +260,27 @@ export const protectedRoutes = [
         key: 'blogs-new',
         path: `/media/blogs/new`,
         component: React.lazy(() => import('views/events/Blogs/NewPost')),
+        meta:{
+            roles: ['admin'],
+            permissions: ['Create Blog Post'],
+        }
     },
     {
         key: 'blogs-new',
         path: `/media/blogs/update/:id`,
         component: React.lazy(() => import('views/events/Blogs/EditPost')),
+        meta:{
+            roles: ['admin'],
+            permissions: ['Edit Blog Post'],
+        }
     },
     {
         key: 'blogs',
         path: `/media/blogs`,
         component: React.lazy(() => import('views/events/Blogs/Posts')),
+        meta:{
+            roles: ['admin'],
+        }
     },
 
     // Corporate Bookings
@@ -209,6 +292,10 @@ export const protectedRoutes = [
                 <BookingList {...props} type="corporate" />
             </React.Suspense>
         ),
+        meta:{
+            roles: ['admin', 'organizer', 'corporate'],
+            permissions: ['View Corporate Bookings'],
+        }
     },
     // Accreditation Bookings
     {
@@ -230,6 +317,10 @@ export const protectedRoutes = [
                 <PosBooking {...props} isPos={true} />
             </React.Suspense>
         ),
+        meta:{
+            roles: ['admin', 'organizer', 'pos'],
+            permissions: ['View POS Bookings'],
+        }
     },
     {
         key: 'pos-new',
@@ -239,6 +330,10 @@ export const protectedRoutes = [
                 <POS {...props} isPos={true} />
             </React.Suspense>
         ),
+        meta:{
+            roles: ['admin', 'organizer', 'pos'],
+            permissions: ['Add POS Booking'],
+        }
     },
 
     // ==================== SCAN & CHECK-IN ====================
@@ -250,6 +345,10 @@ export const protectedRoutes = [
                 <TicketVerification scanMode="camera" />
             </React.Suspense>
         ),
+        meta:{
+            roles: ['admin', 'organizer', 'scanner'],
+            permissions: ['Scan By Camera'],
+        }
     },
     {
         key: 'scan-scanner',
@@ -259,11 +358,19 @@ export const protectedRoutes = [
                 <TicketVerification scanMode="manual" />
             </React.Suspense>
         ),
+        meta:{
+            roles: ['admin', 'organizer', 'scanner'],
+            permissions: ['Scan By Scanner'],
+        }
     },
     {
         key: 'scan-history',
         path: `/scan/history`,
         component: React.lazy(() => import('views/events/Scan/ScanHistory')),
+        meta:{
+            roles: ['admin', 'organizer', 'scanner'],
+            permissions: ['View Scan History'],
+        }
     },
 
     // ==================== PROMO CODES ====================
@@ -271,23 +378,39 @@ export const protectedRoutes = [
         key: 'promo-codes',
         path: `/promo-codes`,
         component: React.lazy(() => import('views/events/PromoCodes/index')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['View Promo Codes'],
+        }
     },
     // promotions
     {
         key: 'orgs-promotion',
         path: 'promotion/orgs',
         component: React.lazy(() => import('views/events/Promotion/PromoteOrgs/PromoteOrgs')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['View Promotions'],
+        }
     },
     // ==================== BOX OFFICE & WALLET ====================
     {
         key: 'box-office',
         path: `/box-office`,
         component: React.lazy(() => import('views/events/BoxOffice/index')),
+        meta:{
+            roles: ['admin', 'organizer', 'Box Office Manager'],
+            permissions: ['View Box Office'],
+        }
     },
     {
         key: 'wallet-agent',
         path: `/wallet-agent`,
         component: React.lazy(() => import('views/events/WalletAgent/index')),
+        meta:{
+            roles: ['admin', 'organizer', 'Wallet Agent'],
+            permissions: ['View Agent Wallet'],
+        }
     },
 
     // ==================== SUPPORT AND CUSTOMER INQUIERIES ====================
@@ -295,6 +418,10 @@ export const protectedRoutes = [
         key:'contact-us-applications',
         path: `/customer-inquiries`,
         component: React.lazy(() => import('views/events/Support/ContactUsApplications')),
+        meta:{
+            roles: ['admin'],
+            // permissions: ['View Customer Inquiries'],
+        }
     },
 
     // ==================== VENUES & ARTISTS ====================
@@ -302,11 +429,19 @@ export const protectedRoutes = [
         key: 'venues',
         path: `/venues`,
         component: React.lazy(() => import('views/events/Venues/index')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['View Venues'],
+        }
     },
     {
         key: 'artist',
         path: `/artist`,
         component: React.lazy(() => import('views/events/Artist/index')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['View Artists'],
+        }
     },
 
     // ==================== PAYMENT & TAX ====================
@@ -314,11 +449,18 @@ export const protectedRoutes = [
         key: 'payment-log',
         path: `/payment-log`,
         component: React.lazy(() => import('views/events/PaymentLog/index')),
+        meta:{
+            roles: ['admin'],
+            // permissions: ['View Payment Log'],
+        }
     },
     {
         key: 'tax-commission',
         path: `/tax-commision`,
         component: React.lazy(() => import('views/events/TaxComission/index')),
+        meta:{
+            roles: ['admin',],
+        }
     },
 
     // ==================== SETTINGS ====================
@@ -327,54 +469,87 @@ export const protectedRoutes = [
         key: 'admin-settings',
         path: `/settings/admin-settings`,
         component: React.lazy(() => import('views/events/Settings/Admin_Settings/AdminSetting')),
+        meta:{
+            roles: ['admin'],
+        }
     },
     // Payment Gateway Settings
     {
         key: 'payment-gateways',
         path: `/settings/payment-gateways`,
         component: React.lazy(() => import('views/events/Settings/Payment_Gateway/PaymentGateway')),
+        meta:{
+            roles: ['admin'],
+        }
     },
     // Footer Settings
     {
         key: 'footer-settings',
         path: `/settings/footer`,
         component: React.lazy(() => import('views/events/Settings/Admin_Settings/Footer_settings/FooterData')),
+        meta:{
+            roles: ['admin'],
+        }
     },
     // Mail Config
     {
         key: 'mail-config',
         path: `/settings/mail-config`,
         component: React.lazy(() => import('views/events/Settings/Admin_configs/MailSettings')),
+        meta:{
+            roles: ['admin'],
+            permissions: ['View Mail Config Setting'],
+        }
     },
     // WhatsApp Config
     {
         key: 'whatsapp-config',
         path: `/settings/whatsapp-config`,
         component: React.lazy(() => import('views/events/Settings/Admin_configs/WhatsAppConfig')),
+        meta:{
+            roles: ['admin'],
+            permissions: ['View WhatsApp Config Setting'],
+        }
     },
     // SMS Config
     {
         key: 'sms-config',
         path: `/settings/sms-config`,
         component: React.lazy(() => import('views/events/Settings/Admin_configs/SmsSetting')),
+        meta:{
+            roles: ['admin'],
+            permissions: ['View SMS Config Setting'],
+        }
     },
     // Banners
     {
         key: 'media-banners',
         path: `/media/banners`,
         component: React.lazy(() => import('views/events/Settings/Banner/BannerConfig')),
+        meta:{
+            roles: ['admin', 'organizer'],
+            permissions: ['View Banners'],
+        }
     },
     // Category Settings
     {
         key: 'category',
         path: `/category`,
         component: React.lazy(() => import('views/events/Settings/Category/Category')),
+        meta:{
+            roles: ['admin'],
+            permissions: ['View Categories'],
+        }
     },
     // Custom Fields
     {
         key: 'fields',
         path: `/fields`,
         component: React.lazy(() => import('views/events/Settings/Fields/index')),
+        meta:{
+            roles: ['admin'],
+            // permissions: ['View Custom Fields'],
+        }
     },
 
     // ==================== AUTHENTICATION (Blank Layout) ====================
@@ -446,6 +621,10 @@ export const protectedRoutes = [
                 <NewBooking {...props} type="agent" />
             </React.Suspense>
         ),
+        meta: {
+            roles: ['admin', 'organizer', 'agent'],
+            permissions: ['Add Agent Booking'],
+        }
     },
         // ==================== New Booking Page ====================
     {
@@ -456,16 +635,26 @@ export const protectedRoutes = [
                 <NewBooking {...props} type="sponsor" />
             </React.Suspense>
         ),
+        meta: {
+            roles: ['admin', 'organizer', 'sponsor'],
+            permissions: ['Add Sponsor Booking'],
+        }
     },
         // ==================== Agreement ====================
     {
         key: 'new-booking',
         path: `/agreements/partner`,
         component: React.lazy(() => import('views/events/Agreement/AgreementCreator')),
+        meta:{
+            roles: ['admin'],
+        }
     },
     {
         key: 'live-users',
         path: `/live-users`,
         component: React.lazy(() => import('views/events/other/LiveUsers')),
+        meta:{
+            roles: ['admin'],
+        }
     },
 ]

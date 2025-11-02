@@ -7,6 +7,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import { PlusOutlined } from '@ant-design/icons';
 import VenueModal from './VaneModal';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const Venues = () => {
   const { api: apiUrl, UserPermissions, authToken, UserData } = useMyContext();
@@ -102,14 +103,14 @@ const Venues = () => {
 
         const actions = [
           {
-            // permission: "Update Venue",
+            permission: "Update Venue",
             tooltip: "Update Venue",
             icon: <Pencil size={14} />,
             onClick: () => handleEdit(record),
             type: "default",
           },
           {
-            // permission: "Delete Venue",
+            permission: "Delete Venue",
             tooltip: "Delete Venue",
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(record.id),
@@ -123,7 +124,7 @@ const Venues = () => {
           <div className="action-btn">
             <Space>
               {actions.map((action, index) => (
-                // <PermissionChecker key={index} permission={action.permission}>
+                <PermissionChecker key={index} permission={action.permission}>
                 <Tooltip title={action.tooltip}>
                   <Button
                     size="small"
@@ -135,7 +136,7 @@ const Venues = () => {
                     loading={action.loading}
                   />
                 </Tooltip>
-                // </PermissionChecker>
+                 </PermissionChecker>
               ))}
             </Space>
           </div>
@@ -213,20 +214,20 @@ const Venues = () => {
         columns={columns}
         addButtonProps={null}
         enableExport={true}
-        exportRoute={'export-organizers'}
-        ExportPermission={UserPermissions?.includes("Export Organizers")}
+        exportRoute={'export-venues'}
+        ExportPermission={UserPermissions?.includes("Export Venues")}
         authToken={authToken}
         loading={loading}
         extraHeaderContent={
-          // <PermissionChecker permission="Create Venue">
-          <Tooltip title="Create Vanue">
+          <PermissionChecker permission="Create Venue">
+          <Tooltip title="Create Venue">
             <Button
               type="primary"
               icon={<PlusOutlined />}
               onClick={handleCreate}
             />
           </Tooltip>
-          // </PermissionChecker>
+           </PermissionChecker>
         }
         error={organizersError || error}
         tableProps={{

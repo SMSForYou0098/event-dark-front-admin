@@ -13,7 +13,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ORGANIZER_ALLOWED_ROLES } from '../constants';
 
-const ProfileTab = ({ mode, handleSubmit, id = null }) => {
+const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
@@ -217,8 +217,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
 
             didInit.current = true;
             isInitializing.current = false;
+            if (setSelectedRole && formData.roleName) {
+            setSelectedRole(formData.roleName);
         }
-    }, [mode, fetchedData?.user, form]);
+        }
+    }, [mode, fetchedData?.user, form, setSelectedRole]);
 
     // Sync form state with Ant Design Form
     const handleFormChange = useCallback((changedFields, allFields) => {
@@ -260,6 +263,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
         }
 
         updateMultipleFields(updates);
+        if (setSelectedRole && nextName) {
+        setSelectedRole(nextName);
+    }
     }, [filteredRoles, formState.roleName, formState.events, formState.tickets, formState.gates, updateMultipleFields]);
 
     // Handle event change with proper guards
@@ -371,7 +377,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null }) => {
                 {/* Left Column */}
                 <Col xs={24} lg={12}>
                     {/* Role Selection (Admin/Organizer only) */}
-                    <PermissionChecker role={['Admin', 'Organizer']}>
+                    <PermissionChecker role={['Admin']}>
                         <Card title="Select User Role" extra={
                             <Flex justifyContent="end">
                                 <Button className="mr-2" onClick={() => navigate(-1)}>

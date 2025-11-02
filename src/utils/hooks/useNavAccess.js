@@ -32,9 +32,10 @@ const PRIVILEGED_ROLES = ['admin']; // Add more like 'super admin' if needed
  * @param {string[]} userPermissions - Current user's permissions
  * @param {string} userRole - Current user's role
  */
+// utils/navAccess.js
 export const hasAccess = (nav, userPermissions = [], userRole = '') => {
   const userRoleNorm = norm(userRole);
-    console.log('user permissions',userPermissions)
+
   // ✅ Admin bypass
   if (PRIVILEGED_ROLES.includes(userRoleNorm)) {
     return true;
@@ -44,15 +45,22 @@ export const hasAccess = (nav, userPermissions = [], userRole = '') => {
   const requiredPerms = toList(nav?.permissions);
   if (requiredPerms.length) {
     const userPermSet = new Set(userPermissions.map(String));
-    const hasPerm = requiredPerms.some(p => userPermSet.has(p));
+    const hasPerm = requiredPerms.some((p) => userPermSet.has(p));
     if (!hasPerm) return false;
   }
 
-  // Roles (case-insensitive)
+  // Roles (case-insensitive, allow list)
   const requiredRoles = toListLower(nav?.roles);
   if (requiredRoles.length) {
     const hasRole = requiredRoles.includes(userRoleNorm);
     if (!hasRole) return false;
+  }
+
+
+  // 🚫 Exclude roles (case-insensitive, deny list)
+  const excludeRoles = toListLower(nav?.excludeRoles);
+  if (excludeRoles.includes(userRoleNorm)) {
+    return false;
   }
 
   return true;
@@ -135,4 +143,23 @@ export const getOptionList = (
   }
 
   return optionTree;
+};
+
+
+/** Normalize a "route-like" object to what hasAccess expects */
+const normalizeRouteForAccess = (route) => ({
+  // your routes store roles/permissions under route.meta.*
+  roles: route?.meta?.roles,
+  permissions: route?.meta?.permissions,
+  excludeRoles: route?.meta?.excludeRoles,
+});
+
+/** ✅ Route-level access check using your existing hasAccess */
+export const hasRouteAccess = (route, userPermissions = [], userRole = '') => {
+  return hasAccess(normalizeRouteForAccess(route), userPermissions, userRole);
+};
+
+/** ✅ Filter a routes array by access (non-destructive) */
+export const filterRoutesByAccess = (routes = [], userPermissions = [], userRole = '') => {
+  return routes.filter((r) => hasRouteAccess(r, userPermissions, userRole));
 };

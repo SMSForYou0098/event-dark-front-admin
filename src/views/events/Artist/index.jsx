@@ -7,6 +7,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import { PlusOutlined } from '@ant-design/icons';
 import ArtistModal from './artistModal';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const Artist = () => {
   const { api: apiUrl, UserPermissions, authToken, UserData } = useMyContext();
@@ -26,7 +27,7 @@ const Artist = () => {
   };
 
   const {
-    data: venues = [],
+    data: artists = [],
     isLoading: loading,
     error: organizersError,
     refetch
@@ -88,15 +89,15 @@ const Artist = () => {
 
         const actions = [
           {
-            // permission: "Update Venue",
-            tooltip: "Update Venue",
+            permission: "Update Artist",
+            tooltip: "Update Artist",
             icon: <Pencil size={14} />,
             onClick: () => handleEdit(record),
             type: "default",
           },
           {
-            // permission: "Delete Venue",
-            tooltip: "Delete Venue",
+            permission: "Delete Artist",
+            tooltip: "Delete Artist",
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(record.id),
             type: "primary",
@@ -109,7 +110,7 @@ const Artist = () => {
           <div className="action-btn">
             <Space>
               {actions.map((action, index) => (
-                // <PermissionChecker key={index} permission={action.permission}>
+                <PermissionChecker key={index} permission={action.permission}>
                 <Tooltip title={action.tooltip}>
                   <Button
                     size="small"
@@ -121,7 +122,7 @@ const Artist = () => {
                     loading={action.loading}
                   />
                 </Tooltip>
-                // </PermissionChecker>
+                 </PermissionChecker>
               ))}
             </Space>
           </div>
@@ -199,16 +200,16 @@ const handleEdit = (venue) => {
 
       <DataTable
         title="Artist"
-        data={venues}
+        data={artists}
         columns={columns}
         addButtonProps={null}
         enableExport={true}
         exportRoute={'export-organizers'}
-        ExportPermission={UserPermissions?.includes("Export Organizers")}
+        ExportPermission={UserPermissions?.includes("Export Artists")}
         authToken={authToken}
         loading={loading}
         extraHeaderContent={
-          // <PermissionChecker permission="Create Venue">
+          <PermissionChecker permission="Create Artist">
           <Tooltip title="Create Artist">
             <Button
               type="primary"
@@ -216,7 +217,7 @@ const handleEdit = (venue) => {
               onClick={handleCreate}
             />
           </Tooltip>
-          // </PermissionChecker>
+           </PermissionChecker>
         }
         error={organizersError || error}
         tableProps={{

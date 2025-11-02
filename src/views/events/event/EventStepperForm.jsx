@@ -123,6 +123,7 @@ const EventStepperForm = () => {
                 show_on_home: Number(controls?.show_on_home) || 0,
                 insta_whts_url: detail?.insta_whts_url || undefined,
                 whts_note: detail?.whts_note || undefined,
+                booking_notice: detail?.booking_notice || undefined,
             });
         }
 
@@ -293,7 +294,7 @@ const EventStepperForm = () => {
                 ),
                 icon: <TagsOutlined />,
             },
-            { title: 'Artist', content: <ArtistStep artistList={detail?.artists_list} form={form} />, icon: <EnvironmentOutlined /> },
+            { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} />, icon: <EnvironmentOutlined /> },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
             { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
@@ -325,8 +326,13 @@ const EventStepperForm = () => {
                     step: stepName,
                 });
                 await updateEvent({ id, body });
-                setCurrent((c) => c + 1);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
+                if(current ===6){
+                    message.success('Event ready to publish!');
+                }
+                else{
+                    setCurrent((c) => c + 1);
+                }
                 return;
             }
 
@@ -463,7 +469,7 @@ const EventStepperForm = () => {
                                 </Button>
                             )}
 
-                            {current < steps.length - 2 && (
+                            {current < steps.length - 1 && (
                                 <Button
                                     type="primary"
                                     onClick={next}

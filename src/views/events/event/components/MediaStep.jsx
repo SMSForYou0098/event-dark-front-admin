@@ -1,6 +1,6 @@
 // MediaStep.jsx
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Form, Input, Upload, Row, Col, Space, Image, message } from 'antd';
+import { Form, Input, Upload, Row, Col, Space, Image } from 'antd';
 import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
 import Dragger from 'antd/es/upload/Dragger';
 
@@ -45,49 +45,10 @@ const MediaStep = ({ form }) => {
   }, [thumbList]);
 
   // Keep only 1 thumb in the list on change
-  const handleThumbChange = async (info) => {
-    let fileList = info.fileList.slice(-1); // only keep last uploaded file
-  
-    // Validate each file (here we have max 1)
-    const validatedFiles = [];
-  
-    for (const fileWrapper of fileList) {
-      const file = fileWrapper.originFileObj; // get raw File object
-  
-      // 1️⃣ Check file type
-      const isValidType =
-        file.type === "image/jpeg" ||
-        file.type === "image/jpg" ||
-        file.type === "image/png";
-  
-      if (!isValidType) {
-        message.error("Only JPG, JPEG, or PNG files are allowed!");
-        continue; // skip this file
-      }
-  
-      // 2️⃣ Check image dimensions
-      const isValidDimensions = await new Promise((resolve) => {
-        const img = new Image();
-        img.src = URL.createObjectURL(file);
-        img.onload = () => {
-          const valid = img.width === 600 && img.height === 725;
-          if (!valid) {
-            message.error("Image must be exactly 600×725 pixels!");
-          }
-          URL.revokeObjectURL(img.src);
-          resolve(valid);
-        };
-      });
-  
-      if (isValidDimensions) {
-        validatedFiles.push(fileWrapper); // keep valid file
-      }
-    }
-  
-    // Update form value with validated file(s) only
-    form.setFieldsValue({ thumbnail: validatedFiles });
+  const handleThumbChange = (info) => {
+    const fileList = (info?.fileList || []).slice(-1); // ensure max 1
+    form.setFieldsValue({ thumbnail: fileList });
   };
-  
 
   const handleThumbRemove = () => true;
 
@@ -133,8 +94,36 @@ const MediaStep = ({ form }) => {
               <Dragger
                 multiple={false}
                 maxCount={1}
-                showUploadList={false}
-                beforeUpload={() => false} // prevent auto-upload
+                beforeUpload={(file) => {
+                  // ✅ Return a Promise to allow async dimension check
+                  return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    const objectUrl = URL.createObjectURL(file);
+
+                    img.onload = () => {
+                      const { width, height } = img;
+                      URL.revokeObjectURL(objectUrl);
+
+                      if (width === 600 && height === 725) {
+                        resolve(true); // ✅ Valid dimensions
+                      } else {
+                        // ❌ Show AntD validation error
+                        reject(
+                          new Error(
+                            `Invalid image size: ${width}x${height}. Thumbnail must be exactly 600px width × 725px height.`
+                          )
+                        );
+                      }
+                    };
+
+                    img.onerror = () => {
+                      URL.revokeObjectURL(objectUrl);
+                      reject(new Error('Unable to read image dimensions.'));
+                    };
+
+                    img.src = objectUrl;
+                  });
+                }}
                 accept="image/*"
                 onChange={handleThumbChange}
                 onRemove={handleThumbRemove}
@@ -150,7 +139,11 @@ const MediaStep = ({ form }) => {
                 <p className="ant-upload-text" style={{ fontSize: 13 }}>
                   Upload Thumbnail
                 </p>
+                <p style={{ fontSize: 12, color: '#888' }}>
+                  Required size: 600×725px
+                </p>
               </Dragger>
+
             </div>
           </Col>
 
