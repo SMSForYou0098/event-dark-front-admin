@@ -47,7 +47,7 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
 
         try {
             const typeParam = getTypeParam(type)
-            const url = `${api}getDashboardSummary/${typeParam}?date=${date}`
+            const url = `${api}getDashboardSummary/${typeParam}${date ? `?date=${date}` : ''}`;
             const response = await axios.get(url, {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
@@ -70,7 +70,7 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
         }
     }, [api, authToken, type, date])
 
-    const countCardData = useMemo(() => {
+    const onlineCardData = useMemo(() => {
         const baseData = [
             { title: "Amount", amount: Number(counts.totalAmount) },
             { title: "Discount", amount: Number(counts.totalDiscount) },
@@ -86,6 +86,24 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
         return [...gatewayData, ...baseData]
     }, [counts, showGatewayAmount])
 
+    const agentCardData = useMemo(() => {
+        const baseData = [
+            { title: "Amount", amount: Number(counts.totalAmount) },
+            { title: "Discount", amount: Number(counts.totalDiscount) },
+            { title: "Bookings", amount: Number(counts.totalBookings), hideCurrency: true },
+            { title: "Tickets", amount: Number(counts.totalTickets), hideCurrency: true },
+
+            { title: "UPI", amount: Number(counts.upi), hideCurrency: false },
+            { title: "Cash", amount: Number(counts.cash), hideCurrency: false },
+            { title: "NB", amount: Number(counts.nb), hideCurrency: false },
+        ]
+
+        return [...baseData]
+    }, [counts, showGatewayAmount])
+
+
+    const dataToShow = type === 'online' ? onlineCardData : agentCardData
+
     const renderContent = () => {
         if (isMobile) {
             return (
@@ -94,7 +112,7 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
                     dots={true}
                     infinite={true}
                 >
-                    {countCardData.map((data, index) => (
+                    {dataToShow?.map((data, index) => (
                         <div key={index}>
                             <div key={index} className="col-6">
                                 <DataCard
@@ -104,13 +122,14 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
                             </div>
                         </div>
                     ))}
+                    
                 </Carousel>
             )
         }
 
         return (
             <>
-                {countCardData.map((data, index) => (
+                {dataToShow.map((data, index) => (
                     <Col key={index} sm={4} className="col-sm-2">
                         <DataCard
                             data={data}

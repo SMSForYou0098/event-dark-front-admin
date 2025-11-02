@@ -5,15 +5,15 @@ import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil'
 const DataCard = (props) => {
     const { data, formatter, value } = props
 
-    // Function to convert hex/rgb color to rgba with opacity
-
     return (
         <Card bordered={false} title={data.title}>
             <Space direction="horizontal" size="large" className="w-100 d-flex justify-content-between">
                 <Statistic
-                    value={value}
+                    value={
+                        value % 1 !== 0 ? Number(value).toFixed(2) : value
+                      }
                     valueStyle={{ color: '#fff', fontWeight: 'bold' }}
-                     formatter={formatter || ''}
+                    formatter={formatter || ''}
                 />
                 {data.icon &&
                     <Avatar

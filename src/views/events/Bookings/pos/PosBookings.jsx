@@ -17,6 +17,10 @@ import {
   ExclamationCircleOutlined,
   PlusOutlined,
   ReloadOutlined,
+  ClockCircleOutlined,
+  CheckCircleOutlined,
+  ScanOutlined,
+  CheckOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -26,6 +30,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import usePermission from "utils/hooks/usePermission";
 import { useNavigate } from "react-router-dom";
 import { CloudCog } from "lucide-react";
+import { ExpandDataTable } from "views/events/common/ExpandDataTable";
 
 const { RangePicker } = DatePicker;
 const { confirm } = Modal;
@@ -38,7 +43,7 @@ const PosBooking = memo(() => {
   const [dateRange, setDateRange] = useState(null);
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+
 
   // Format date range for API
   const formattedDateRange = useMemo(() => {
@@ -90,6 +95,7 @@ const PosBooking = memo(() => {
   // }, [bookings]);
 
   // Toggle booking status mutation (delete/restore)
+
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, isDeleted }) => {
       const url = isDeleted
@@ -138,7 +144,6 @@ const PosBooking = memo(() => {
       );
     },
     onError: (error) => {
-      console.error('Error toggling booking status:', error);
       message.error(error.response?.data?.message || 'Failed to update ticket status');
       queryClient.invalidateQueries(['pos-bookings', UserData?.id, formattedDateRange]);
     },
@@ -179,40 +184,40 @@ const PosBooking = memo(() => {
   // Calculate print modal data
   const printModalData = useMemo(() => {
     if (!selectedBooking) return null;
-  
+
     // Check if there are related bookings
     const hasRelatedBookings = selectedBooking.related && selectedBooking.related.length > 0;
-  
+
     // If there are related bookings, combine main booking with related ones
     const allBookings = hasRelatedBookings
       ? [selectedBooking, ...selectedBooking.related]
       : [selectedBooking];
-  
+
     // Calculate totals for all bookings
     const subtotal = allBookings.reduce((sum, booking) => {
       const baseAmount = parseFloat(booking.booking_tax?.base_amount || booking.price || 0);
       const quantity = parseInt(booking.quantity || 0);
       return sum + (baseAmount * quantity);
     }, 0);
-  
+
     const totalDiscount = allBookings.reduce((sum, booking) => {
       return sum + parseFloat(booking.discount || 0);
     }, 0);
-  
+
     const totalTax = allBookings.reduce((sum, booking) => {
       const tax = parseFloat(booking.booking_tax?.total_tax || 0);
       return sum + tax;
     }, 0);
-  
+
     const totalConvenienceFee = allBookings.reduce((sum, booking) => {
       const fee = parseFloat(booking.booking_tax?.convenience_fee || 0);
       return sum + fee;
     }, 0);
-  
-    const grandTotal = hasRelatedBookings 
+
+    const grandTotal = hasRelatedBookings
       ? parseFloat(selectedBooking.total_amount || 0)
       : parseFloat(selectedBooking.amount || 0);
-  
+
     // Create lightweight booking data - only keep essential fields
     const lightweightBookings = allBookings?.map(booking => ({
       id: booking.id,
@@ -229,7 +234,7 @@ const PosBooking = memo(() => {
       }
     }));
 
-    
+
     return {
       event: selectedBooking.ticket?.event,
       bookingData: lightweightBookings, // Lightweight array with only essential fields
@@ -254,29 +259,29 @@ const PosBooking = memo(() => {
       key: 'quantity',
       align: 'center',
     },
-    {
-      title: 'Price',
-      dataIndex: 'price',
-      key: 'price',
-      align: 'right',
-      render: (price) => `₹${Number(price || 0).toFixed(2)}`,
-    },
-    {
-      title: 'Discount',
-      dataIndex: 'discount',
-      key: 'discount',
-      align: 'right',
-      render: (discount) => (
-        <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
-      ),
-    },
-    {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
-      align: 'right',
-      render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
-    },
+    // {
+    //   title: 'Price',
+    //   dataIndex: 'price',
+    //   key: 'price',
+    //   align: 'right',
+    //   render: (price) => `₹${Number(price || 0).toFixed(2)}`,
+    // },
+    // {
+    //   title: 'Discount',
+    //   dataIndex: 'discount',
+    //   key: 'discount',
+    //   align: 'right',
+    //   render: (discount) => (
+    //     <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
+    //   ),
+    // },
+    // {
+    //   title: 'Amount',
+    //   dataIndex: 'amount',
+    //   key: 'amount',
+    //   align: 'right',
+    //   render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
+    // },
     // {
     //   title: 'Status',
     //   dataIndex: 'status',
@@ -327,106 +332,80 @@ const PosBooking = memo(() => {
     // },
   ], []);
 
-  // Expandable row render
-  const expandedRowRender = useCallback((record) => {
-    if (!record.related || record.related.length === 0) {
-      return null;
-    }
-
-    return (
-      <Table
-        columns={expandedRowColumns}
-        dataSource={record.related}
-        pagination={false}
-        rowKey="id"
-        size="small"
-        bordered
-        style={{ marginLeft: 48, backgroundColor: '#fafafa' }}
-      />
-    );
-  }, [expandedRowColumns]);
-
-  // Handle expand row change
-  const handleExpand = useCallback((expanded, record) => {
-    setExpandedRowKeys(prevKeys => {
-      if (expanded) {
-        return [...prevKeys, record.id];
-      } else {
-        return prevKeys.filter(key => key !== record.id);
-      }
-    });
-  }, []);
 
   // Main table columns
   const columns = useMemo(() => [
-    {
-      title: '#',
-      key: 'index',
-      align: 'center',
-      width: 60,
-      render: (_, __, index) => index + 1,
-    },
-    {
-      title: 'Token',
-      dataIndex: 'token',
-      key: 'token',
-      width: 120,
-      render: (token) => <Tag color="blue">{token}</Tag>,
-    },
+
+    // {
+    //   title: 'Token',
+    //   dataIndex: 'token',
+    //   key: 'token',
+    //   width: 120,
+    //   render: (token) => <Tag color="blue">{token}</Tag>,
+    // },
     {
       title: 'Event',
       dataIndex: ['ticket', 'event', 'name'],
+      align:'center',
       key: 'event',
       sorter: (a, b) => a.ticket?.event?.name?.localeCompare(b.ticket?.event?.name),
     },
     {
-      title: 'POS User',
+      title: 'User',
       dataIndex: 'user_name',
       key: 'posUser',
+      align:'center',
       sorter: (a, b) => a.user_name?.localeCompare(b.user_name),
     },
+
     {
-      title: 'Organizer',
-      dataIndex: 'reporting_user_name',
-      key: 'organizer',
-      sorter: (a, b) => a.reporting_user_name?.localeCompare(b.reporting_user_name),
-    },
-    {
-      title: 'Ticket',
+      title: 'Tkt',
       dataIndex: ['ticket', 'name'],
       key: 'ticket',
+      align: 'center',
+      width : 90,
       sorter: (a, b) => a.ticket?.name?.localeCompare(b.ticket?.name),
+      render: (_, record) => {
+        if (record.is_set === true) {
+          return <Tag color="blue">M Tkts</Tag>;
+        }
+
+        const ticketName = record?.ticket?.name || record?.bookings?.[0]?.ticket?.name || '-';
+        return <span>{ticketName}</span>;
+      },
     },
     {
-      title: 'Quantity',
+      title: 'QTY',
       dataIndex: 'quantity',
       key: 'quantity',
+      width: 80,
       align: 'center',
       sorter: (a, b) => a.quantity - b.quantity,
     },
     {
-      title: 'Discount',
+      title: 'Disc',
       dataIndex: 'discount',
       key: 'discount',
-      align: 'right',
+      width: 100,
+      align: 'center',
       render: (discount) => (
         <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
       ),
       sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
     },
+    // {
+    //   title: 'Amount',
+    //   dataIndex: 'amount',
+    //   key: 'amount',
+    //   align: 'right',
+    //   render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
+    //   sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
+    // },
     {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
-      align: 'right',
-      render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
-      sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
-    },
-    {
-      title: 'Total Amount',
+      title: 'T Amount',
       dataIndex: 'total_amount',
       key: 'total_amount',
-      align: 'right',
+      align: 'center',
       render: (totalAmount) => (
         <Text strong style={{ color: '#52c41a' }}>
           ₹{Number(totalAmount || 0).toFixed(2)}
@@ -439,10 +418,14 @@ const PosBooking = memo(() => {
       dataIndex: 'status',
       key: 'status',
       align: 'center',
+      width:80,
       render: (status) => (
-        <Tag color={status === "0" ? "warning" : "success"}>
-          {status === "0" ? "Unchecked" : "Checked"}
-        </Tag>
+        <Tag 
+          icon={status === "0" ? <ScanOutlined style={{fontSize : '14px'}}/> : <CheckOutlined />}
+          color={status === "0" ? "warning" : "success"}
+        />
+        //   {status === "0" ? "Unchecked" : "Checked"}
+        // </Tag>
       ),
       filters: [
         { text: 'Unchecked', value: '0' },
@@ -450,21 +433,26 @@ const PosBooking = memo(() => {
       ],
       onFilter: (value, record) => record.status === value,
     },
+
     {
       title: 'Customer',
       dataIndex: 'name',
       key: 'customer',
+      align:'center',
       sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
     },
     {
       title: 'Contact',
       dataIndex: 'number',
       key: 'contact',
+      width: 120,
+      align:'center',
     },
     {
       title: 'Purchase Date',
       dataIndex: 'created_at',
       key: 'purchaseDate',
+      align:'center',
       render: (date) => formatDateTime?.(date) || date,
       sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
     },
@@ -484,6 +472,13 @@ const PosBooking = memo(() => {
           disabled={record.status === "1"}
         />
       ),
+    },
+    {
+      title: 'Organizer',
+      dataIndex: 'reporting_user_name',
+      key: 'organizer',
+      align:'center',
+      sorter: (a, b) => a.reporting_user_name?.localeCompare(b.reporting_user_name),
     },
     {
       title: 'Action',
@@ -506,6 +501,13 @@ const PosBooking = memo(() => {
         );
       },
     },
+    {
+      title: '#',
+      key: 'index',
+      align: 'center',
+      width: 20,
+      render: (_, __, index) => index + 1,
+    },
   ], [
     formatDateTime,
     handlePrintBooking,
@@ -526,56 +528,38 @@ const PosBooking = memo(() => {
           {...printModalData}
         />
       )}
-      
-      <Card title="POS Bookings" extra={
-        <Space>
-        <RangePicker
-          value={dateRange}
-          onChange={handleDateRangeChange}
-          format="YYYY-MM-DD"
-        />
-        
-        <Tooltip title="Refresh">
-          <Button
-            icon={<ReloadOutlined />}
-            onClick={() => refetch()}
-            loading={isLoading}
-          />
-        </Tooltip>
-        
-        <Tooltip title="New Event">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('new')}
-          />
-        </Tooltip>
-      </Space>
-      }>
 
-        <Table
-          columns={columns}
-          dataSource={bookings}
-          rowKey="id"
-          loading={isLoading}
-          size="middle"
-          scroll={{ x: 1800 }}
-          expandable={{
-            expandedRowRender,
-            rowExpandable: (record) => record.related && record.related.length > 0,
-            expandRowByClick: false,
-            expandedRowKeys: expandedRowKeys,
-            onExpand: handleExpand,
-          }}
-          pagination={{
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} items`,
-            pageSizeOptions: ['10', '20', '50', '100'],
-          }}
-        />
-      </Card>
+      <ExpandDataTable
+        title={"POS Bookings"}
+        emptyText={`No POS bookings found`}
+        onRefresh={refetch}
+        innerColumns={expandedRowColumns}
+        columns={columns}
+        data={bookings}
+        // exportRoute={config.exportRoute}
+        // ExportPermission={UserPermissions?.includes(config.exportPermission)}
+        extraHeaderContent={
+          <Tooltip title="Add Booking">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('new')}
+            />
+          </Tooltip>
+        }
+        showDateRange={true}
+        showRefresh={true}
+        showTotal={true}
+
+        dateRange={dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        loading={isLoading}
+        error={error}
+        enableExport={true}
+      />
     </>
   );
+
 });
 
 PosBooking.displayName = "PosBooking";

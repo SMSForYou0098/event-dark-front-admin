@@ -47,7 +47,7 @@ const DashboardContent = ({ UserData }) => {
         queryFn: fetchBookingData,
         enabled: !!UserData?.id, // Only run query if UserData.id exists
     });
-
+    console.log(bookingData);
     const { data: salesData, isLoading: salesLoading, error: salesError } = useQuery({
         queryKey: ['salesData', UserData?.id],
         queryFn: fetchSalesData,
@@ -329,7 +329,7 @@ const DashboardContent = ({ UserData }) => {
     }
 
     const StatSection = ({ title, stats, colConfig, extraHeader, containerCol = { xs: 24, md: 24 } }) => {
-        const renderCard = (stat, index) => <DataCard data={stat} key={`card-${index}`} />;
+        const renderCard = (stat, index) => <DataCard data={stat} value={stat.value} key={`card-${index}`} />;
 
         const renderContent = () => {
             if (isMobile) {

@@ -114,7 +114,7 @@ const PosEvents = ({ type, handleButtonClick }) => {
                                     <div className="px-2" onClick={() => handleEventData(item)}>
                                         <PosEventCard
                                             productName={formattedProductName(item.name)}
-                                            productImage={item?.event_galleries?.thumbnail || ''}
+                                            productImage={item?.event_media?.thumbnail || ''}
                                             id={item.event_key}
                                             productRating="3.5"
                                             statusColor="primary"

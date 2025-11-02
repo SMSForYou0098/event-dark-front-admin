@@ -233,7 +233,6 @@ const FooterSlider = () => {
             icon: <ExclamationCircleOutlined />,
             content: "You won't be able to recover this image!",
             okText: "Yes, Delete",
-            okType: "danger",
             cancelText: "Cancel",
             onOk: () => {
                 deleteMutation.mutate(imageId);
@@ -250,7 +249,7 @@ const FooterSlider = () => {
     return (
         <div className="p-4">
             {/* Header Card */}
-            <Card className="mb-4">
+            {/* <Card className="mb-4">
                 <Space direction="vertical" size="large" style={{ width: "100%" }}>
                     <div>
                         <Title level={3} style={{ marginBottom: 8 }}>
@@ -261,8 +260,6 @@ const FooterSlider = () => {
                             Manage your footer slider images with ease
                         </Text>
                     </div>
-
-                    {/* Progress and Stats */}
                     <Row gutter={16}>
                         <Col xs={24} md={12}>
                             <Card size="small" className="shadow-sm">
@@ -325,7 +322,7 @@ const FooterSlider = () => {
                         </Col>
                     </Row>
                 </Space>
-            </Card>
+            </Card> */}
 
             {/* Upload Section */}
             <Card title="Upload New Images" className="mb-4">
@@ -446,68 +443,93 @@ const FooterSlider = () => {
                             <Col xs={24} sm={12} md={8} lg={6} xl={4} key={image.id}>
                                 <Card
                                     hoverable
-                                    className={`position-relative ${selectedImages.includes(image.id) ? "border-primary" : ""
-                                        }`}
+                                    onClick={() => handleImageSelect(image.id)}
+                                    bodyStyle={{padding : '1px 0'}}
                                     style={{
-                                        borderWidth: selectedImages.includes(image.id) ? 2 : 1,
+                                        borderRadius: 8,
+                                        position: 'relative',
+                                        transition: 'all 0.3s ease',
+                                        cursor: 'pointer',
                                     }}
                                     cover={
                                         <div
-                                            style={{
-                                                height: 200,
-                                                overflow: "hidden",
-                                                position: "relative",
-                                            }}
+                                            className="image-box d-flex justify-content-center align-items-center rounded position-relative"
+                                            style={{overflow: 'hidden'}}
                                         >
-                                            <Checkbox
-                                                checked={selectedImages.includes(image.id)}
-                                                onChange={() => handleImageSelect(image.id)}
-                                                style={{
-                                                    position: "absolute",
-                                                    top: 8,
-                                                    left: 8,
-                                                    zIndex: 1,
-                                                    background: "white",
-                                                    padding: "4px",
-                                                    borderRadius: "4px",
-                                                }}
-                                            />
+                                            {/* Selection Overlay */}
+                                            {selectedImages.includes(image.id) && (
+                                                <div
+                                                    className="position-absolute top-0 start-0 w-100 h-100"
+                                                    style={{
+                                                        backgroundColor: 'rgba(24, 144, 255, 0.15)',
+                                                        zIndex: 1,
+                                                    }}
+                                                />
+                                            )}
+
+                                            {/* Checkbox */}
+                                            <div className="position-absolute top-0 start-0 m-2" style={{ zIndex: 2 }}>
+                                                <Checkbox
+                                                    checked={selectedImages.includes(image.id)}
+                                                    onChange={(e) => {
+                                                        e.stopPropagation();
+                                                        handleImageSelect(image.id);
+                                                    }}
+                                                />
+                                            </div>
+
+                                            {/* Image */}
                                             <Image
                                                 src={image.thumbnail}
                                                 alt="Footer slider"
                                                 preview={false}
                                                 style={{
-                                                    width: "100%",
-                                                    height: "100%",
-                                                    objectFit: "cover",
-                                                    cursor: "pointer",
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
                                                 }}
-                                                onClick={() => handlePreviewImage(image)}
                                             />
                                         </div>
                                     }
-                                    actions={[
-                                        <Tooltip title="Preview">
-                                            <Button
-                                                type="text"
-                                                icon={<EyeOutlined />}
-                                                onClick={() => handlePreviewImage(image)}
-                                            />
-                                        </Tooltip>,
-                                        <Tooltip title="Delete">
-                                            <Button
-                                                type="text"
-                                                danger
-                                                icon={<DeleteOutlined />}
-                                                onClick={() => deleteImage(image.id)}
-                                                loading={
-                                                    deleteMutation.isPending &&
-                                                    deleteMutation.variables === image.id
-                                                }
-                                            />
-                                        </Tooltip>,
-                                    ]}
-                                />
+                                >
+                                    <Card.Meta
+                                        title={
+                                            <div className="d-flex align-items-center justify-content-end">
+                                                {/* Actions */}
+                                                <div className="d-flex align-items-center">
+                                                    <Tooltip title="Preview">
+                                                        <Button
+                                                            type="text"
+                                                            size="small"
+                                                            icon={<EyeOutlined />}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handlePreviewImage(image);
+                                                            }}
+                                                        />
+                                                    </Tooltip>
+
+                                                    <Tooltip title="Delete">
+                                                        <Button
+                                                            type="text"
+                                                            size="small"
+                                                            danger
+                                                            icon={<DeleteOutlined />}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                deleteImage(image.id);
+                                                            }}
+                                                            loading={
+                                                                deleteMutation.isPending &&
+                                                                deleteMutation.variables === image.id
+                                                            }
+                                                        />
+                                                    </Tooltip>
+                                                </div>
+                                            </div>
+                                        }
+                                    />
+                                </Card>
                             </Col>
                         ))}
                     </Row>

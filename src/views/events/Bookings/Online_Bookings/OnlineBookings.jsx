@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback } from "react";
-import { Button, message, Space, Tag, Modal, Table, Card, Switch } from "antd";
+import { Button, message, Space, Tag, Modal, Switch } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CheckCircle, Send, Ticket, XCircle, AlertCircle } from "lucide-react";
@@ -402,85 +402,6 @@ const OnlineBookings = memo(() => {
       align: "center",
       render: (date) => formatDateTime(date),
       sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-    },
-  ];
-
-  const gtColumns = [
-    {
-      title: 'Gateway',
-      dataIndex: 'gateway',
-      key: 'gateway',
-      fixed: 'left',
-      width: 150,
-    },
-    {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
-      align: 'right',
-      render: (value) => `₹${value}`,
-    },
-    {
-      title: 'Discount',
-      dataIndex: 'discount',
-      key: 'discount',
-      align: 'right',
-      render: (value) => `₹${value}`,
-    },
-    {
-      title: 'Bookings',
-      dataIndex: 'bookings',
-      key: 'bookings',
-      align: 'right',
-    },
-    {
-      title: 'Tickets',
-      dataIndex: 'tickets',
-      key: 'tickets',
-      align: 'right',
-    },
-  ];
-
-  const data = [
-    {
-      key: '1',
-      gateway: 'InstaMojo',
-      amount: 0,
-      discount: 0,
-      bookings: 0,
-      tickets: 1,
-    },
-    {
-      key: '2',
-      gateway: 'Easebuzz',
-      amount: 0,
-      discount: 0,
-      bookings: 0,
-      tickets: 1,
-    },
-    {
-      key: '3',
-      gateway: 'Razorpay',
-      amount: 0,
-      discount: 0,
-      bookings: 0,
-      tickets: 1,
-    },
-    {
-      key: '4',
-      gateway: 'Phonepe',
-      amount: 0,
-      discount: 0,
-      bookings: 0,
-      tickets: 1,
-    },
-    {
-      key: '5',
-      gateway: 'Cashfree',
-      amount: 0,
-      discount: 0,
-      bookings: 0,
-      tickets: 1,
     },
   ];
 

@@ -1,7 +1,7 @@
 import React, { memo, Fragment, useState, useCallback, useMemo, useRef } from "react";
 import DataTable from "../common/DataTable";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
-import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal } from 'antd';
+import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal, Table } from 'antd';
 import { MoreOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import api from 'auth/FetchInterceptor';
 import TicketModal from "../Tickets/modals/TicketModal";
 import { downloadTickets } from "../Tickets/ticketUtils";
+import { ExpandDataTable } from "../common/ExpandDataTable";
 
 const BookingList = memo(({ type = 'agent' }) => {
     const { UserData, formatDateTime, sendTickets, truncateString, isMobile, UserPermissions } = useMyContext();
@@ -163,6 +164,169 @@ const BookingList = memo(({ type = 'agent' }) => {
         showTicketOptionsModal(hasMultiple);
     }, [bookings, showTicketOptionsModal]);
 
+
+    const handleDateRangeChange = useCallback((dates) => {
+        setDateRange(dates ? {
+            startDate: dates[0].format('YYYY-MM-DD'),
+            endDate: dates[1].format('YYYY-MM-DD')
+        } : null);
+    }, []);
+
+    const downloadTicket = () => {
+        downloadTickets(ticketRefs, ticketType?.type, setLoading);
+    }
+
+    function handleCloseModal() {
+        setTicketData([])
+        setTicketType()
+        setShow(false)
+    }
+
+    function handleCloseTicketOptionModal() {
+        setTicketOptionModal({ visible: false, hasMultiple: false });
+        setTicketData([]);
+    }
+
+    const innerColumns = [
+        {
+            title: "#",
+            key: "index",
+            align: "center",
+            width: 60,
+            render: (_, __, index) => index + 1,
+        },
+        {
+            title: "Ticket",
+            key: "ticket",
+            align: "center",
+            render: (_, record) => {
+                const ticketName = record?.ticket?.name || record?.bookings?.[0]?.ticket?.name || "-";
+                return (
+                    <Tooltip title={ticketName}>
+                        <span>{truncateString(ticketName)}</span>
+                    </Tooltip>
+                );
+            },
+        },
+        {
+            title: "Quantity",
+            dataIndex: "quantity",
+            key: "quantity",
+            align: "center",
+        },
+        {
+            title: "Amount",
+            dataIndex: "total_amount",
+            key: "total_amount",
+            align: "center",
+            render: (cell) => `₹${Number(cell).toFixed(2)}`,
+        },
+
+        {
+            title: "Status",
+            dataIndex: "status",
+            key: "status",
+            align: "center",
+            render: (status) => (
+                <Tag color={status === "0" ? "orange" : "green"}>
+                    {status === "0" ? "Uncheck" : "Checked"}
+                </Tag>
+            ),
+        },
+        {
+            title: 'Ticket Status',
+            dataIndex: 'is_deleted',
+            key: 'ticket_status',
+            align: 'center',
+            width: 120,
+            render: (isDeleted, record) => (
+                <Switch
+                    checked={!isDeleted}
+                    onChange={() => DeleteBooking(record.id)}
+                    checkedChildren="Active"
+                    unCheckedChildren="Disabled"
+                    loading={toggleBookingMutation.isPending}
+                    disabled={record.status === "1"}
+                />
+            ),
+        },
+        {
+            title: 'Actions',
+            key: 'actions',
+            align: 'center',
+            width: isMobile ? 70 : 120,
+            render: (_, record) => {
+                const isDisabled = record?.is_deleted === true || record?.status === "1";
+    
+                const actions = [
+                    {
+                        key: 'generate',
+                        label: 'Generate Ticket',
+                        icon: <Ticket size={14} />,
+                        onClick: () => GenerateTicket(record.id),
+                        disabled: isDisabled,
+                    },
+                    {
+                        key: 'resend',
+                        label: 'Resend Ticket',
+                        type: 'primary',
+                        icon: <Send size={14} />,
+                        onClick: () => sendTickets(record, "old", true, "Online Booking"),
+                        disabled: isDisabled,
+                    },
+                ];
+    
+                if (isMobile) {
+                    return (
+                        <Dropdown
+                            menu={{
+                                items: actions
+                                    .filter(action => !action.disabled)
+                                    .map(action => ({
+                                        key: action.key,
+                                        label: action.label,
+                                        icon: action.icon,
+                                        onClick: action.onClick,
+                                    })),
+                            }}
+                            trigger={['click']}
+                        >
+                            <Button type="text" icon={<MoreOutlined />} size="small" />
+                        </Dropdown>
+                    );
+                }
+    
+                return (
+                    <Space size="small">
+                        {actions.map((action) => (
+                            <Tooltip key={action.key} title={action.label}>
+                                <Button
+                                    type={action.type}
+                                    icon={action.icon}
+                                    onClick={action.onClick}
+                                    disabled={action.disabled}
+                                    size="small"
+                                />
+                            </Tooltip>
+                        ))}
+                    </Space>
+                );
+            },
+        },
+        // {
+        //     title: "Purchase Date",
+        //     dataIndex: "created_at",
+        //     key: "created_at",
+        //     align: "center",
+        //     render: (date) =>
+        //         new Date(date).toLocaleString("en-IN", {
+        //             dateStyle: "medium",
+        //             timeStyle: "short",
+        //         }),
+        // },
+    ];
+    
+    
     // Columns for DataTable
     const columns = useMemo(() => [
         {
@@ -222,14 +386,17 @@ const BookingList = memo(({ type = 'agent' }) => {
             key: "ticket_name",
             align: "center",
             render: (_, record) => {
-              const ticketName = record?.ticket?.name || record?.bookings[0]?.ticket?.name;
-              return (
-                <Tooltip title={ticketName}>
-                  <span>{truncateString(ticketName)}</span>
-                </Tooltip>
-              );
+                const ticketName = record?.ticket?.name || record?.bookings[0]?.ticket?.name;
+                if (record.is_set === true) {
+                    return <Tag color="blue">Multi Tickets</Tag>;
+                }
+                return (
+                    <Tooltip title={ticketName}>
+                        <span>{truncateString(ticketName)}</span>
+                    </Tooltip>
+                );
             },
-          },          
+        },
         {
             title: 'Qty',
             dataIndex: 'quantity',
@@ -279,16 +446,32 @@ const BookingList = memo(({ type = 'agent' }) => {
             key: 'ticket_status',
             align: 'center',
             width: 120,
-            render: (isDeleted, record) => (
-                <Switch
-                    checked={!isDeleted}
-                    onChange={() => DeleteBooking(record.id)}
-                    checkedChildren="Active"
-                    unCheckedChildren="Disabled"
-                    loading={toggleBookingMutation.isPending}
-                    disabled={record.status === "1"}
-                />
-            ),
+            render: (isDeleted, record) => {
+                // If it's a multi-ticket booking, don't show switch in main row
+                if (record.is_set === true) {
+                    return <span>-</span>;
+                }
+                
+                return (
+                    <Switch
+                        checked={!isDeleted}
+                        onChange={() => DeleteBooking(record.id)}
+                        checkedChildren="Active"
+                        unCheckedChildren="Disabled"
+                        loading={toggleBookingMutation.isPending}
+                        disabled={record.status === "1"}
+                    />
+                );
+            },
+        },
+        {
+            title: 'Purchase Date',
+            dataIndex: 'created_at',
+            key: 'created_at',
+            align: 'center',
+            width: 160,
+            render: (date) => formatDateTime(date),
+            sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
         },
         {
             title: 'Actions',
@@ -297,8 +480,13 @@ const BookingList = memo(({ type = 'agent' }) => {
             fixed: 'right',
             width: isMobile ? 70 : 120,
             render: (_, record) => {
+                // If it's a multi-ticket booking, don't show actions in main row
+                if (record.is_set === true) {
+                    return <span>-</span>;
+                }
+    
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
-
+    
                 const actions = [
                     {
                         key: 'generate',
@@ -316,7 +504,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         disabled: isDisabled,
                     },
                 ];
-
+    
                 if (isMobile) {
                     return (
                         <Dropdown
@@ -336,7 +524,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         </Dropdown>
                     );
                 }
-
+    
                 return (
                     <Space size="small">
                         {actions.map((action) => (
@@ -354,15 +542,6 @@ const BookingList = memo(({ type = 'agent' }) => {
                 );
             },
         },
-        {
-            title: 'Purchase Date',
-            dataIndex: 'created_at',
-            key: 'created_at',
-            align: 'center',
-            width: 160,
-            render: (date) => formatDateTime(date),
-            sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-        },
     ], [
         truncateString,
         toggleBookingMutation.isPending,
@@ -372,29 +551,6 @@ const BookingList = memo(({ type = 'agent' }) => {
         DeleteBooking,
         GenerateTicket,
     ]);
-
-    const handleDateRangeChange = useCallback((dates) => {
-        setDateRange(dates ? {
-            startDate: dates[0].format('YYYY-MM-DD'),
-            endDate: dates[1].format('YYYY-MM-DD')
-        } : null);
-    }, []);
-
-    const downloadTicket = () => {
-        downloadTickets(ticketRefs, ticketType?.type, setLoading);
-    }
-
-    function handleCloseModal() {
-        setTicketData([])
-        setTicketType()
-        setShow(false)
-    }
-
-    function handleCloseTicketOptionModal() {
-        setTicketOptionModal({ visible: false, hasMultiple: false });
-        setTicketData([]);
-    }
-
     return (
         <Fragment>
             {/* Ticket Options Modal */}
@@ -461,15 +617,20 @@ const BookingList = memo(({ type = 'agent' }) => {
                 downloadTicket={downloadTicket}
                 isMobile={isMobile}
                 formatDateRange={dateRange}
-            />
-
-            <DataTable
+            /> 
+            <ExpandDataTable
                 title={config.title}
-                data={formatBookingData(bookings)}
+                emptyText={`No ${type} bookings found`}
+                onRefresh={refetch}
+                innerColumns={innerColumns}
                 columns={columns}
-                showDateRange={true}
-                showRefresh={true}
-                showTotal={true}
+                data={formatBookingData(bookings)}
+                exportRoute={config.exportRoute}
+                ExportPermission={UserPermissions?.includes(config.exportPermission)}
+                tableProps={{
+                    scroll: { x: 1500 },
+                    size: isMobile ? "small" : "middle",
+                }}
                 extraHeaderContent={
                     <Tooltip title="Add Booking">
                         <Button
@@ -479,20 +640,17 @@ const BookingList = memo(({ type = 'agent' }) => {
                         />
                     </Tooltip>
                 }
+                showDateRange={true}
+                showRefresh={true}
+                showTotal={true}
+                
                 dateRange={dateRange}
                 onDateRangeChange={handleDateRangeChange}
                 loading={isLoading || toggleBookingMutation.isPending}
                 error={error}
                 enableExport={true}
-                exportRoute={config.exportRoute}
-                ExportPermission={UserPermissions?.includes(config.exportPermission)}
-                onRefresh={refetch}
-                emptyText={`No ${type} bookings found`}
-                tableProps={{
-                    scroll: { x: 1500 },
-                    size: isMobile ? "small" : "middle",
-                }}
             />
+
         </Fragment>
     );
 });

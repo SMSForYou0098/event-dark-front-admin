@@ -1,14 +1,14 @@
 import React from 'react';
-import { Button, Card, Space, Statistic, Typography } from 'antd';
+import { Button, Card, Space, Typography } from 'antd';
 import { ArrowRightOutlined } from '@ant-design/icons';
-import Flex from 'components/shared-components/Flex';
 import OrderCalculation from '../../components/OrderCalculation';
 import StickyLayout from 'utils/MobileStickyBottom.jsx/StickyLayout';
+import { BookingStats } from '../utils';
 
 const { Title } = Typography;
 
 const OrderSummary = (props) => {
-  const { stats, ticketCurrency, discount, grandTotal, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
+  const {  userId,ticketCurrency, discount, grandTotal, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
   // ✅ Determine which handler to use
   const handleButtonClick = () => {
     if (currentStep === 0) {
@@ -38,20 +38,9 @@ const OrderSummary = (props) => {
     }
     return 'Checkout';
   };
-
   return (
     <Card bordered={false}>
-      <Flex justify="space-around" wrap="wrap" gap={16} style={{ marginBottom: 16 }}>
-        {stats.map((item, index) => (
-          <Statistic
-            key={index}
-            title={item.title}
-            value={item.value}
-            prefix={item.prefix}
-            valueStyle={{ ...item.valueStyle, fontSize: '14px', fontWeight: 'bold' }}
-          />
-        ))}
-      </Flex>
+      <BookingStats type="agent" id={userId}/>
 
       <Space direction="vertical" size="small" style={{ width: '100%' }}>
         <OrderCalculation

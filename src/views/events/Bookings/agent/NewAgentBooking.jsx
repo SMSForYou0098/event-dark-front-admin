@@ -27,6 +27,7 @@ const NewAgentBooking = memo(({ type }) => {
   const {
     UserData,
     isMobile,
+    authToken,
     getCurrencySymbol,
     formatDateRange,
     fetchCategoryData,
@@ -45,7 +46,6 @@ const NewAgentBooking = memo(({ type }) => {
   const [disableChoice, setDisableChoice] = useState(false);
   const [discountType, setDiscountType] = useState('fixed');
   const [discountValue, setDiscountValue] = useState();
-  const [bookings, setBookings] = useState([]);
   const [isAmusment, setIsAmusment] = useState(false);
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [method, setMethod] = useState('UPI');
@@ -68,34 +68,6 @@ const NewAgentBooking = memo(({ type }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [bookingResponse, setBookingResponse] = useState(null);
   const [ticketAttendees, setTicketAttendees] = useState({});
-
-  const bookingStats = useMemo(
-    () => ({
-      total: bookings?.allbookings?.length ?? 0,
-      amount: (parseInt(bookings?.amount) ?? 0).toFixed(2),
-      discount: (parseInt(bookings?.discount) ?? 0).toFixed(2),
-    }),
-    [bookings]
-  );
-
-  const stats = [
-    {
-      title: 'Bookings',
-      value: bookingStats.total,
-    },
-    {
-      title: 'Amount',
-      value: bookingStats.amount,
-      prefix: '₹',
-      valueStyle: { color: 'var(--primary-color)' },
-    },
-    {
-      title: 'Discount',
-      value: bookingStats.discount,
-      prefix: '₹',
-      valueStyle: { color: '#1890ff' },
-    },
-  ];
 
   // Custom hooks
   const { data: existingAttendees = [], refetch: refetchAttendees } = useUserAttendees({
@@ -456,10 +428,10 @@ const NewAgentBooking = memo(({ type }) => {
       message.info('Discount removed');
       return;
     }
-  
+
     const { subtotal } = calcTicketTotals(selectedTickets);
     const subtotalValue = parseFloat(subtotal);
-    
+
     let calculatedDiscount = 0;
     if (discountType === 'percentage') {
       if (discountValue > 100) {
@@ -474,11 +446,11 @@ const NewAgentBooking = memo(({ type }) => {
       }
       calculatedDiscount = Number(discountValue);
     }
-  
+
     const finalDiscount = +calculatedDiscount.toFixed(2);
     setDiscount(finalDiscount);
     setDisableChoice(true); // Disable after first apply
-    
+
     message.success('Discount applied successfully');
   }, [discountValue, discountType, selectedTickets]);
 
@@ -528,6 +500,8 @@ const NewAgentBooking = memo(({ type }) => {
     // Show checkout modal (user details form)
     setShowPrintModel(true);
   }, [selectedTickets]);
+
+  //console.log(UserData?.id);
 
   return (
     <Fragment>
@@ -609,7 +583,8 @@ const NewAgentBooking = memo(({ type }) => {
               currentStep <= (isAttendeeRequire ? 1 : 0) ?
                 <Col xs={24} lg={8}>
                   <OrderSummary
-                    stats={stats}
+                    userId={UserData?.id}
+                    authToken={authToken}
                     ticketCurrency={ticketCurrency}
                     discountType={discountType}
                     setDiscountType={setDiscountType}

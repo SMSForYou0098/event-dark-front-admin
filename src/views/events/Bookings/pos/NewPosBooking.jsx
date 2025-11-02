@@ -12,6 +12,7 @@ import { cancelToken } from "auth/FetchInterceptor";
 import BookingTickets from "../components/BookingTickets";
 import StickyLayout from "utils/MobileStickyBottom.jsx/StickyLayout";
 import { calcTicketTotals, distributeDiscount } from "utils/ticketCalculations";
+import { BookingStats } from "../agent/utils";
 
 const { Title, Text } = Typography;
 
@@ -35,10 +36,8 @@ const POS = memo(() => {
 
   const [number, setNumber] = useState('');
   const [name, setName] = useState('');
-
-  const [ticketSummary, setTicketSummary] = useState([]);
   const [bookingData, setBookingData] = useState([]);
-  const [bookings, setBookings] = useState([]);
+
   const [isAmusment, setIsAmusment] = useState(false);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
 
@@ -57,34 +56,7 @@ const POS = memo(() => {
     grandTotal,
   } = calcTicketTotals(selectedTickets, discount);
 
-  // Memoized calculations
-  const bookingStats = useMemo(() => ({
-    total: bookings?.allbookings?.length ?? 0,
-    amount: (parseInt(bookings?.amount) ?? 0).toFixed(2),
-    discount: (parseInt(bookings?.discount) ?? 0).toFixed(2)
-  }), [bookings]);
-
-  // API calls with useCallback
-  const GetBookings = useCallback(async () => {
-    try {
-      const url = `${api}pos-bookings/${UserData?.id}`;
-      const res = await axios.get(url, {
-        headers: { 'Authorization': 'Bearer ' + authToken }
-      });
-      if (res.data.status) {
-        setBookings(res.data);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }, [api, UserData?.id, authToken]);
-
-
-
   const StorePOSBooking = useCallback(async () => {
-    // console.log(selectedTickets);
-    // console.log(calcTicketTotals(selectedTickets , discount));
-    // return
     setShowAttendeeModel(false);
     const validTickets = selectedTickets?.filter(ticket => ticket?.quantity > 0);
 
@@ -115,12 +87,11 @@ const POS = memo(() => {
       if (res.data.status) {
         setShowPrintModel(true);
         setBookingData(res.data?.bookings);
-        GetBookings();
       }
     } catch (err) {
       console.log(err);
     }
-  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, eventID, authToken, ErrorAlert, GetBookings ,grandTotal]);
+  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, eventID, authToken, ErrorAlert ,grandTotal]);
 
   // Effects
   useEffect(() => {
@@ -128,11 +99,6 @@ const POS = memo(() => {
       setIsCheckOut(true);
     }
   }, [isMobile]);
-
-  useEffect(() => {
-    GetBookings();
-  }, [GetBookings]);
-
 
   const handleDiscount = useCallback(() => {
     const { subtotal } = calcTicketTotals(selectedTickets);
@@ -200,6 +166,8 @@ const POS = memo(() => {
     setDisableChoice(false);
   };
 
+
+
   const handleClose = useCallback((skip) => {
     setShowAttendeeModel(false);
     if (skip) {
@@ -218,26 +186,6 @@ const POS = memo(() => {
     }
   }, [selectedTickets]);
 
-
-
-  const stats = [
-    {
-      title: "Bookings",
-      value: bookingStats.total,
-    },
-    {
-      title: "Amount",
-      value: bookingStats.amount,
-      prefix: "₹",
-      valueStyle: { color: "var(--primary-color)" },
-    },
-    {
-      title: "Discount",
-      value: bookingStats.discount,
-      prefix: "₹",
-      valueStyle: { color: "#1890ff" },
-    },
-  ];
 
   
 
@@ -295,18 +243,7 @@ const POS = memo(() => {
 
         <Col xs={24} lg={8}>
           <Card bordered={false}>
-            <Flex justify="space-around" wrap="wrap" gap={16} style={{ marginBottom: 16 }}>
-              {stats.map((item, index) => (
-                <Statistic
-                  key={index}
-                  title={item.title}
-                  value={item.value}
-                  prefix={item.prefix}
-                  valueStyle={{ ...item.valueStyle, fontSize: '14px' , fontWeight : 'bold' }}
-                />
-              ))}
-
-            </Flex>
+            <BookingStats type="pos" id={UserData?.id} />
 
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               <OrderCalculation
