@@ -44,13 +44,82 @@ const MediaStep = ({ form }) => {
     };
   }, [thumbList]);
 
-  // Keep only 1 thumb in the list on change
-  const handleThumbChange = (info) => {
-    const fileList = (info?.fileList || []).slice(-1); // ensure max 1
-    form.setFieldsValue({ thumbnail: fileList });
-  };
+  // Keep only 1 thumb in the list on change and validate
+  const handleThumbChange = useCallback(
+    (info) => {
+      const fileList = (info?.fileList || []).slice(-1); // ensure max 1
+      form.setFieldsValue({ thumbnail: fileList });
+      
+      // Trigger validation when a new file is selected
+      if (fileList.length > 0) {
+        setTimeout(() => {
+          form.validateFields(['thumbnail']).catch(() => {
+            // Validation errors are handled by the validator
+          });
+        }, 100);
+      }
+    },
+    [form]
+  );
 
   const handleThumbRemove = () => true;
+
+  // ---- Thumbnail dimension validation function ----
+  const validateThumbnailDimensions = useCallback(async (file) => {
+    return new Promise((resolve, reject) => {
+      const imgElement = document.createElement('img');
+      const objectUrl = URL.createObjectURL(file);
+
+      imgElement.onload = () => {
+        const { width, height } = imgElement;
+        URL.revokeObjectURL(objectUrl);
+
+        if (width === 600 && height === 725) {
+          resolve(true);
+        } else {
+          const errorMsg = `Invalid image size: ${width}×${height}px. Thumbnail must be exactly 600px width × 725px height.`;
+          reject(new Error(errorMsg));
+        }
+      };
+
+      imgElement.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        const errorMsg = 'Unable to read image dimensions. Please ensure the file is a valid image.';
+        reject(new Error(errorMsg));
+      };
+
+      imgElement.src = objectUrl;
+    });
+  }, []);
+
+  // ---- Custom Form.Item validator for thumbnail dimensions ----
+  const validateThumbnail = useCallback(
+    async (_, fileList) => {
+      if (!Array.isArray(fileList) || fileList.length === 0) {
+        throw new Error('Please upload event thumbnail');
+      }
+
+      const file = fileList[0];
+      
+      // If it's an existing server image (has URL), skip dimension validation
+      if (file?.url && !file?.originFileObj) {
+        return Promise.resolve();
+      }
+
+      // If it's a new file, validate dimensions
+      if (file?.originFileObj) {
+        try {
+          await validateThumbnailDimensions(file.originFileObj);
+          return Promise.resolve();
+        } catch (error) {
+          return Promise.reject(error);
+        }
+      }
+
+      return Promise.resolve();
+    },
+    [validateThumbnailDimensions]
+  );
 
   // ---- Gallery removal tracking (existing URLs only) ----
   const handleGalleryRemove = useCallback(
@@ -78,7 +147,10 @@ const MediaStep = ({ form }) => {
       <Form.Item
         name="thumbnail"
         label="Event Thumbnail"
-        rules={[{ required: true, message: 'Please upload event thumbnail' }]}
+        rules={[
+          { required: true, message: 'Please upload event thumbnail' },
+          { validator: validateThumbnail },
+        ]}
         valuePropName="fileList"
         getValueFromEvent={normFile}
       >
@@ -95,34 +167,8 @@ const MediaStep = ({ form }) => {
                 multiple={false}
                 maxCount={1}
                 beforeUpload={(file) => {
-                  // ✅ Return a Promise to allow async dimension check
-                  return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    const objectUrl = URL.createObjectURL(file);
-
-                    img.onload = () => {
-                      const { width, height } = img;
-                      URL.revokeObjectURL(objectUrl);
-
-                      if (width === 600 && height === 725) {
-                        resolve(true); // ✅ Valid dimensions
-                      } else {
-                        // ❌ Show AntD validation error
-                        reject(
-                          new Error(
-                            `Invalid image size: ${width}x${height}. Thumbnail must be exactly 600px width × 725px height.`
-                          )
-                        );
-                      }
-                    };
-
-                    img.onerror = () => {
-                      URL.revokeObjectURL(objectUrl);
-                      reject(new Error('Unable to read image dimensions.'));
-                    };
-
-                    img.src = objectUrl;
-                  });
+                  // Prevent auto upload, validation happens in Form.Item validator
+                  return false;
                 }}
                 accept="image/*"
                 onChange={handleThumbChange}
@@ -132,6 +178,7 @@ const MediaStep = ({ form }) => {
                   height: '100%',
                   padding: 10,
                 }}
+                showUploadList={false}
               >
                 <p className="ant-upload-drag-icon" style={{ marginBottom: 0 }}>
                   <InboxOutlined />

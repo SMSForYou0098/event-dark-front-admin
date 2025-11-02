@@ -33,9 +33,9 @@ const BookingList = memo(({ type = 'agent' }) => {
                 apiUrl: `${type}/list/${UserData?.id}`,
                 exportRoute: 'export-agentBooking',
                 exportPermission: 'Export Agent Bookings',
-                deleteEndpoint: (data) => data.is_deleted
-                    ? `agent-restore-booking/${data?.token || data?.order_id}`
-                    : `agent-delete-booking/${data?.token || data?.order_id}`,
+                deleteEndpoint: (data) => {return(data.is_deleted
+                    ? `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
+                    : `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`)},
             },
             sponsor: {
                 title: 'Sponsor Bookings',
@@ -43,8 +43,8 @@ const BookingList = memo(({ type = 'agent' }) => {
                 exportRoute: 'export-sponsorBooking',
                 exportPermission: 'Export Sponsor Bookings',
                 deleteEndpoint: (data) => data.is_deleted
-                    ? `sponsor-restore-booking/${data?.token || data?.order_id}`
-                    : `sponsor-delete-booking/${data?.token || data?.order_id}`,
+                    ? `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
+                    : `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`,
             },
             accreditation: {
                 title: 'Accreditation Bookings',
@@ -99,7 +99,7 @@ const BookingList = memo(({ type = 'agent' }) => {
 
     // Toggle booking status mutation
     const toggleBookingMutation = useMutation({
-        mutationFn: async ({ id, data }) => {
+        mutationFn: async ({ id, data }) => {            
             const endpoint = config.deleteEndpoint(data);
             const request = data.is_deleted ? api.get : api.delete;
 
@@ -125,12 +125,12 @@ const BookingList = memo(({ type = 'agent' }) => {
     });
 
     // Delete/Restore booking
-    const DeleteBooking = useCallback((id) => {
-        const data = bookings?.find((item) => item?.id === id);
+    const DeleteBooking = useCallback((data) => {
+        // const data = bookings?.find((item) => item?.id === id);
         if (!data) return;
 
-        toggleBookingMutation.mutate({ id, data });
-    }, [bookings, toggleBookingMutation]);
+        toggleBookingMutation.mutate({ id:data.id, data });
+    }, [ toggleBookingMutation]);
 
     // Format data for table
     const formatBookingData = (bookings) => {
@@ -243,7 +243,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             render: (isDeleted, record) => (
                 <Switch
                     checked={!isDeleted}
-                    onChange={() => DeleteBooking(record.id)}
+                    onChange={() => DeleteBooking(record)}
                     checkedChildren="Active"
                     unCheckedChildren="Disabled"
                     loading={toggleBookingMutation.isPending}
@@ -456,7 +456,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 return (
                     <Switch
                         checked={!isDeleted}
-                        onChange={() => DeleteBooking(record.id)}
+                        onChange={() => DeleteBooking(record)}
                         checkedChildren="Active"
                         unCheckedChildren="Disabled"
                         loading={toggleBookingMutation.isPending}

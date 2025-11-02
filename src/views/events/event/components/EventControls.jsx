@@ -3,6 +3,7 @@ import React from 'react';
 import { Form, Input, Select, Switch, Card, Row, Col, Space } from 'antd';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
+import { Eye } from 'lucide-react';
 
 const { TextArea } = Input;
 
@@ -11,6 +12,7 @@ const toChecked = (v) => v === 1 || v === '1';
 const toNumber = (checked) => (checked ? 1 : 0);
 
 const EventControlsStep = ({ form, isEdit }) => {
+  const instaUrl = Form.useWatch('insta_whts_url', form);
   return (
     <Space direction="vertical" style={{ width: '100%' }}>
       {/* Top controls */}
@@ -32,8 +34,20 @@ const EventControlsStep = ({ form, isEdit }) => {
             label="Instagram URL"
             rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
           >
-            <Input placeholder="https://instagram.com/your-event" />
+            <Input placeholder="https://www.instagram.com/p/DM2a-hmI9i4/t" />
           </Form.Item>
+           {instaUrl ? (
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <Eye size={20} className="text-primary" /> &nbsp;
+              <a
+                href={instaUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {instaUrl}
+              </a>
+            </div>
+          ) : null}
         </Col>
       </Row>
 

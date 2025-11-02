@@ -98,7 +98,7 @@ const CbList = memo(() => {
   // Handle delete/restore booking
   const DeleteBooking = useCallback(
     (id) => {
-      const data = bookings?.find((item) => item?.id === id);
+      const data = bookings?.find((item) => item?.batch_id === id);
       if (!data) return;
 
       confirm({
@@ -252,7 +252,7 @@ const columns = useMemo(
       render: (isDeleted, record) => (
         <Switch
           checked={!isDeleted}
-          onChange={() => DeleteBooking(record.id)}
+          onChange={() => DeleteBooking(record.batch_id)}
           checkedChildren="Active"
           unCheckedChildren="Disabled"
           loading={toggleBookingMutation.isPending}

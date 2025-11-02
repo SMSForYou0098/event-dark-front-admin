@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { Modal, notification } from 'antd';
 import React from 'react';
 
-const generateQRCodeZip = async ({ bookings, QRGenerator, loader }) => {
+const generateQRCodeZip = async ({ bookings, QRGenerator, loader, onModalOpen }) => {
     if (!bookings?.length) {
         notification.error({
             message: 'Error',
@@ -13,56 +13,83 @@ const generateQRCodeZip = async ({ bookings, QRGenerator, loader }) => {
         return;
     }
 
-    // Show Ant Design Modal for progress
+    // Show Ant Design Modal for progress IMMEDIATELY
     let modal;
     let progress = 0;
-    const ProgressContent = ({ progress }) => (
+    const ProgressContent = ({ progress, total }) => (
         <div style={{ textAlign: 'center' }}>
-            <img src={loader} style={{ width: '10rem', display: 'block', margin: '0 auto' }} alt="Loading" />
-            <div>Progress: <span>{progress}%</span></div>
-            <div style={{ width: '100%', border: '1px solid #dddddd', borderRadius: 10, marginTop: 16 }}>
+            {loader && (
+                <img src={loader} style={{ width: '10rem', display: 'block', margin: '0 auto' }} alt="Loading" />
+            )}
+            <div style={{ marginTop: 16, fontSize: 16, fontWeight: 500 }}>
+                Progress: <span style={{ color: '#1677ff' }}>{progress}%</span>
+            </div>
+            <div style={{ marginTop: 8, fontSize: 14, color: '#666' }}>
+                Processing {progress} of {total} QR codes
+            </div>
+            <div style={{ width: '100%', border: '1px solid #dddddd', borderRadius: 10, marginTop: 16, overflow: 'hidden' }}>
                 <div
                     style={{
                         width: `${progress}%`,
-                        height: 10,
-                        borderRadius: 4,
-                        background: '#1677ff',
-                        transition: 'width 0.3s',
+                        height: 20,
+                        background: 'linear-gradient(90deg, #1677ff 0%, #52c41a 100%)',
+                        transition: 'width 0.3s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 500,
                     }}
-                />
+                >
+                    {progress > 10 && `${progress}%`}
+                </div>
             </div>
         </div>
     );
+
+    // Create modal IMMEDIATELY before any processing
+    const total = bookings?.length;
+    modal = Modal.info({
+        title: 'Generating QR Codes',
+        content: <ProgressContent progress={0} total={total} />,
+        closable: false,
+        maskClosable: false,
+        okButtonProps: { style: { display: 'none' } },
+        width: 400,
+        centered: true,
+    });
+
+    // Call onModalOpen callback immediately after modal is created
+    // Use setTimeout to ensure modal is rendered
+    setTimeout(() => {
+        onModalOpen?.();
+    }, 0);
 
     // Create a container div for QR codes
     const container = document.createElement('div');
     container.style.position = 'absolute';
     container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.width = '1px';
+    container.style.height = '1px';
+    container.style.overflow = 'hidden';
     document.body.appendChild(container);
 
     // Helper to update modal content
     const updateModal = (newProgress) => {
         progress = newProgress;
         modal && modal.update({
-            content: <ProgressContent progress={progress} />
+            content: <ProgressContent progress={progress} total={total} />
         });
     };
 
-    modal = Modal.info({
-        title: 'Processing',
-        content: <ProgressContent progress={progress} />,
-        closable: false,
-        maskClosable: false,
-        okButtonProps: { style: { display: 'none' } },
-    });
-
     try {
         const zip = new JSZip();
-        const total = bookings?.length;
 
         // Convert SVG to PNG using canvas
         const svgToPng = async (svgElement) => {
-            return new Promise((resolve) => {
+            return new Promise((resolve, reject) => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
                 const img = new Image();
@@ -85,55 +112,83 @@ const generateQRCodeZip = async ({ bookings, QRGenerator, loader }) => {
                     }, 'image/png');
                 };
 
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    reject(new Error('Failed to load SVG image'));
+                };
+
                 img.src = url;
             });
         };
 
+        // Process in batches to avoid memory issues and update progress incrementally
+        const BATCH_SIZE = 10; // Process 10 QR codes at a time
         let processedCount = 0;
-        const batchResults = await Promise.all(
-            bookings?.map(async (booking, index) => {
-                try {
-                    const qrElement = document.createElement('div');
-                    container.appendChild(qrElement);
 
-                    const qrRoot = createRoot(qrElement);
-                    qrRoot.render(
-                        <QRGenerator
-                            value={booking?.token}
-                            documentId={booking?.id || 'unknown'}
-                        />
-                    );
+        // Helper function to process a single booking
+        const processBooking = async (booking, index) => {
+            try {
+                const qrElement = document.createElement('div');
+                container.appendChild(qrElement);
 
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                const qrRoot = createRoot(qrElement);
+                qrRoot.render(
+                    <QRGenerator
+                        value={booking?.token}
+                        documentId={booking?.id || 'unknown'}
+                    />
+                );
 
-                    const svgElement = qrElement.querySelector('svg');
-                    let pngBlob = null;
+                // Wait for React to render
+                await new Promise(resolve => setTimeout(resolve, 50));
 
-                    if (svgElement) {
-                        pngBlob = await svgToPng(svgElement);
-                    }
+                const svgElement = qrElement.querySelector('svg');
+                let pngBlob = null;
 
-                    qrRoot.unmount();
-                    container.removeChild(qrElement);
-
-                    processedCount++;
-                    updateModal(Math.round((processedCount / total) * 100));
-                    return {
-                        name: index + 1,
-                        blob: pngBlob
-                    };
-                } catch (error) {
-                    console.error(`Error generating QR code for booking:`, error);
-                    return null;
+                if (svgElement) {
+                    pngBlob = await svgToPng(svgElement);
                 }
-            })
-        );
 
-        batchResults.forEach((result, i) => {
-            if (result && result.blob) {
-                zip.file(`${i + 1}.png`, result.blob);
+                qrRoot.unmount();
+                container.removeChild(qrElement);
+
+                return {
+                    index: index,
+                    blob: pngBlob
+                };
+            } catch (error) {
+                console.error(`Error generating QR code for booking ${index}:`, error);
+                return null;
             }
-        });
+        };
+
+        // Process bookings in batches
+        for (let i = 0; i < bookings.length; i += BATCH_SIZE) {
+            const batch = bookings.slice(i, i + BATCH_SIZE);
+            
+            const batchResults = await Promise.all(
+                batch.map((booking, batchIndex) => {
+                    const globalIndex = i + batchIndex;
+                    return processBooking(booking, globalIndex);
+                })
+            );
+
+            // Update progress and add to zip
+            for (const result of batchResults) {
+                if (result && result.blob) {
+                    zip.file(`${result.index + 1}.png`, result.blob);
+                }
+                // Count both successful and failed items for progress
+                processedCount++;
+                // Update progress after each item
+                updateModal(Math.round((processedCount / total) * 100));
+            }
+
+            // Small delay between batches to keep UI responsive
+            if (i + BATCH_SIZE < bookings.length) {
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+        }
 
         // Generate and download the zip file
         const zipBlob = await zip.generateAsync({ type: 'blob' });

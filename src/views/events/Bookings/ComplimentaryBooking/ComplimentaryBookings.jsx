@@ -24,7 +24,7 @@ import {
   CheckCircleOutlined,
   LoadingOutlined,
 } from "@ant-design/icons";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
 import CountUp from "react-countup";
 import api from "auth/FetchInterceptor";
@@ -62,17 +62,8 @@ const ComplimentaryBookings = memo(() => {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [duplicateData, setDuplicateData] = useState([]);
   const fileInputRef = useRef(null);
+  const [zipLoading, setZipLoading] = useState(false);
 
-  // Fetch ticket info query
-  const { data: ticketInfo } = useQuery({
-    queryKey: ["ticketInfo", selectedTicketID],
-    queryFn: async () => {
-      if (!selectedTicketID || isNaN(selectedTicketID)) return null;
-      const response = await api.get(`ticket-info/${selectedTicketID}`);
-      return response.data;
-    },
-    enabled: !!selectedTicketID && !isNaN(selectedTicketID),
-  });
 
   // Check users mutation
   const checkUsersMutation = useMutation({
@@ -137,18 +128,29 @@ const ComplimentaryBookings = memo(() => {
     };
   };
 
-  const handleZip = async () => {
-    const loadingAlert = showLoading("Generating QR Codes...");
-    try {
-      await generateQRCodeZip({
-        bookings,
-        QRGenerator: QRGenerator,
-        loader: loader,
-      });
-    } finally {
-      loadingAlert.close();
-    }
-  };
+const handleZip = async () => {
+  // Start button spinner immediately
+  setZipLoading(true);
+
+  try {
+    await generateQRCodeZip({
+      bookings,
+      QRGenerator: QRGenerator,
+      loader: loader,
+      // Callback when modal is opened - modal is now visible
+      onModalOpen: () => {
+        // Modal is now visible, button loading state continues until completion
+      },
+    });
+  } catch (e) {
+    console.error('Error generating ZIP:', e);
+    message.error('Failed to generate QR codes. Please try again.');
+  } finally {
+    // Always stop button loading when done (success or error)
+    setZipLoading(false);
+  }
+};
+
 
   const handleChange = (value) => {
     if (value === "" || /^\d*$/.test(value)) {
@@ -609,10 +611,11 @@ const ComplimentaryBookings = memo(() => {
                         type="primary"
                         icon={<DownloadOutlined />}
                         onClick={handleZip}
-                        loading={createBookingMutation.isPending}
+                        loading={zipLoading || createBookingMutation.isPending}
+                        disabled={zipLoading || createBookingMutation.isPending}
                         block
                       >
-                        Download ZIP
+                        {zipLoading ? 'Generating...' : 'Download ZIP'}
                       </Button>
                     ) : (
                       <Button

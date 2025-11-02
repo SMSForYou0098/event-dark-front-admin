@@ -121,7 +121,11 @@ const EventStepperForm = () => {
                 online_att_sug: Number(controls?.online_att_sug) || 0,
                 offline_att_sug: Number(controls?.offline_att_sug) || 0,
                 show_on_home: Number(controls?.show_on_home) || 0,
-                insta_whts_url: detail?.insta_whts_url || undefined,
+                
+                // storing instagram post id from url
+                insta_whts_url: detail?.insta_whts_url
+                    ? `https://www.instagram.com/p/${detail.insta_whts_url}/`
+                    : undefined,
                 whts_note: detail?.whts_note || undefined,
                 booking_notice: detail?.booking_notice || undefined,
             });
@@ -366,6 +370,7 @@ const EventStepperForm = () => {
             if (id) {
                 await updateEvent({ id, body });
                 message.success('Draft saved successfully!');
+                navigate(-1)
             } else {
                 message.error('Cannot save draft: Event ID missing.');
             }

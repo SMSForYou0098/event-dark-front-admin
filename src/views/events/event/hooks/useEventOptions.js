@@ -159,7 +159,17 @@ export function buildEventFormData(values) {
     appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
     appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
     appendIfDefined('show_on_home', values.show_on_home ?? 0);
-    appendIfDefined('insta_whts_url', values.insta_whts_url);
+
+    // storing instagram post id from url
+    const extractInstagramId = (url) => {
+      if (!url) return undefined;
+      const match = url.match(/instagram\.com\/p\/([^/?]+)/i);
+      return match ? match[1] : url.trim(); // fallback if only ID is entered directly
+    };
+
+    // Example usage:
+    appendIfDefined('insta_whts_url', extractInstagramId(values.insta_whts_url));
+
     appendIfDefined('whts_note', values.whts_note);
     appendIfDefined('booking_notice', values.booking_notice);
   }
