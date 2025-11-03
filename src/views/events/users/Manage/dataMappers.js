@@ -52,6 +52,10 @@ export const mapApiToForm = (apiData) => {
         // Role-specific
         paymentMethod: user.payment_method || 'Cash',
         qrLength: user.qr_length || null,
+        
+        // Add convenience fee mappings
+        convenienceFeeType: user.convenience_fee_type || 'percentage',
+        convenienceFee: user.convenience_fee || '',
     };
 };
 
@@ -110,6 +114,10 @@ export const mapFormToApi = (formData) => {
         ...(formData.password && { password: formData.password }),
         
         // Agreement Details
-        ...(formData.aggrementDetails || {})
+        ...(formData.aggrementDetails || {}),
+        
+        // Add convenience fee mappings
+        convenience_fee_type: formData.convenienceFeeType,
+        convenience_fee: formData.convenienceFee ? Number(formData.convenienceFee) : null,
     };
 };

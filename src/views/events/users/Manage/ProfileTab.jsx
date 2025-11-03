@@ -57,11 +57,16 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         // Security
         password: '',
         repeatPassword: '',
-        authentication: false
+        authentication: false,
+
+        // Add these new fields
+        convenienceFeeType: 'percentage',
+        convenienceFee: '',
     });
 
     // UI state
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [convenienceFeeType, setConvenienceFeeType] = useState('percentage');
 
     // Track if form has been initialized
     const didInit = useRef(false);
@@ -210,16 +215,23 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         if (mode === 'edit' && fetchedData?.user && !didInit.current && !isInitializing.current) {
             isInitializing.current = true;
             const formData = mapApiToForm(fetchedData.user);
+            
             setFormState(prevState => ({ ...prevState, ...formData }));
+            
+            // Set convenience fee type state
+            if (formData.convenienceFeeType) {
+                setConvenienceFeeType(formData.convenienceFeeType);
+            }
 
             // Also set form fields for Ant Design Form
             form.setFieldsValue(formData);
 
             didInit.current = true;
             isInitializing.current = false;
+            
             if (setSelectedRole && formData.roleName) {
-            setSelectedRole(formData.roleName);
-        }
+                setSelectedRole(formData.roleName);
+            }
         }
     }, [mode, fetchedData?.user, form, setSelectedRole]);
 
@@ -316,6 +328,27 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         }
     });
 
+    // Add convenience fee validation rules
+    const convenienceFeeValidator = (type) => ({
+        validator(_, value) {
+            if (!value) return Promise.resolve();
+            
+            const numValue = Number(value);
+            
+            // Check for negative values
+            if (numValue < 0) {
+                return Promise.reject(new Error('Value cannot be negative'));
+            }
+            
+            // Check percentage max limit
+            if (type === 'percentage' && numValue > 100) {
+                return Promise.reject(new Error('Percentage cannot exceed 100'));
+            }
+            
+            return Promise.resolve();
+        }
+    });
+
     // Form submit handler
     const onFinish = async (values) => {
         setIsSubmitting(true);
@@ -371,6 +404,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 authentication: false,
                 agreementStatus: false,
                 agentDiscount: false,
+                convenienceFeeType: 'percentage',
+                convenienceFee: ''
             }}
         >
             <Row gutter={[16, 16]}>
@@ -488,6 +523,61 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             />
                                         </Form.Item>
                                     </Col>
+                                    {
+                                        userRole === 'Admin' &&  formState.roleName==='Organizer' && (
+
+                                    <Col xs={24} md={12}>
+                                        <Form.Item label="Convenience Fee" required={false}>
+                                            <Space.Compact className='w-100 mb-2'>
+                                                <Form.Item name="convenienceFeeType" noStyle>
+                                                    <Select
+                                                      style={{ width: 180 }}
+                                                      aria-label="Select fee type"
+                                                      onChange={(val) => setConvenienceFeeType(val)}
+                                                    >
+                                                      <Select.Option value="fixed">Fixed</Select.Option>
+                                                      <Select.Option value="percentage">Percentage</Select.Option>
+                                                    </Select>
+                                                </Form.Item>
+                                                <Form.Item
+                                                  name="convenienceFee"
+                                                  noStyle
+                                                  dependencies={["convenienceFeeType"]}
+                                                  rules={[
+                                                    ({ getFieldValue }) => ({
+                                                      validator(_, value) {
+                                                        if (value === undefined || value === null || value === '') {
+                                                          return Promise.resolve();
+                                                        }
+                                                        const num = Number(value);
+                                                        if (Number.isNaN(num)) {
+                                                          return Promise.reject(new Error('Enter a valid number'));
+                                                        }
+                                                        if (num < 0) {
+                                                          return Promise.reject(new Error('Value cannot be negative'));
+                                                        }
+                                                        const type = getFieldValue('convenienceFeeType') || convenienceFeeType;
+                                                        if (type === 'percentage' && num > 100) {
+                                                          return Promise.reject(new Error('Percentage cannot exceed 100'));
+                                                        }
+                                                        return Promise.resolve();
+                                                      }
+                                                    })
+                                                  ]}
+                                                >
+                                                    <Input
+                                                      type="number"
+                                                      min={0}
+                                                      step="0.01"
+                                                      placeholder={convenienceFeeType === 'percentage' ? '0 - 100' : 'Amount'}
+                                                      aria-label="Convenience fee value"
+                                                    />
+                                                </Form.Item>
+                                            </Space.Compact>
+                                        </Form.Item>
+                                    </Col>
+                                        )
+                                    }
                                 </>
                             )}
 
