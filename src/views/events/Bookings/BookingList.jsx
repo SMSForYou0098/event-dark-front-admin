@@ -2,7 +2,7 @@ import React, { memo, Fragment, useState, useCallback, useMemo, useRef } from "r
 import DataTable from "../common/DataTable";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
 import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal, Table } from 'antd';
-import { MoreOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, MoreOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
@@ -222,17 +222,32 @@ const BookingList = memo(({ type = 'agent' }) => {
             align: "center",
             render: (cell) => `₹${Number(cell).toFixed(2)}`,
         },
-
         {
             title: "Status",
             dataIndex: "status",
             key: "status",
             align: "center",
-            render: (status) => (
-                <Tag color={status === "0" ? "orange" : "green"}>
-                    {status === "0" ? "Uncheck" : "Checked"}
-                </Tag>
-            ),
+            render: (_, record) => {
+                if (record.is_deleted) {
+                    return (
+                        <Tooltip title="Disabled">
+                            <Tag icon={<CloseCircleOutlined />} color="error" />
+                        </Tooltip>
+                    );
+                }
+                const status =
+                    record.status || (record.bookings && record.bookings[0]?.status);
+
+                return status === "0" ? (
+                    <Tooltip title="Pending">
+                        <Tag icon={<ClockCircleOutlined />} color="warning" />
+                    </Tooltip>
+                ) : (
+                    <Tooltip title="Scanned">
+                        <Tag icon={<CheckCircleOutlined />} color="success" />
+                    </Tooltip>
+                );
+            },
         },
         {
             title: 'Ticket Status',
@@ -258,7 +273,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             width: isMobile ? 70 : 120,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
-    
+
                 const actions = [
                     {
                         key: 'generate',
@@ -276,7 +291,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         disabled: isDisabled,
                     },
                 ];
-    
+
                 if (isMobile) {
                     return (
                         <Dropdown
@@ -296,7 +311,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         </Dropdown>
                     );
                 }
-    
+
                 return (
                     <Space size="small">
                         {actions.map((action) => (
@@ -326,8 +341,8 @@ const BookingList = memo(({ type = 'agent' }) => {
         //         }),
         // },
     ];
-    
-    
+
+
     // Columns for DataTable
     const columns = useMemo(() => [
         {
@@ -430,16 +445,31 @@ const BookingList = memo(({ type = 'agent' }) => {
             render: (cell) => `₹${cell}`,
         },
         {
-            title: 'Status',
-            dataIndex: 'status',
-            key: 'status',
-            align: 'center',
-            width: 100,
-            render: (cell) => (
-                <Tag color={cell === "0" ? "orange" : "green"}>
-                    {cell === "0" ? "Uncheck" : "Checked"}
-                </Tag>
-            ),
+            title: "Status",
+            dataIndex: "status",
+            key: "status",
+            align: "center",
+            render: (_, record) => {
+                if (record.is_deleted) {
+                    return (
+                        <Tooltip title="Disabled">
+                            <Tag icon={<CloseCircleOutlined className='m-0'/>} color="error" />
+                        </Tooltip>
+                    );
+                }
+                const status =
+                    record.status || (record.bookings && record.bookings[0]?.status);
+
+                return status === "0" ? (
+                    <Tooltip title="Pending">
+                        <Tag icon={<ClockCircleOutlined className='m-0'/>} color="warning" />
+                    </Tooltip>
+                ) : (
+                    <Tooltip title="Scanned">
+                        <Tag icon={<CheckCircleOutlined className='m-0'/>} color="success" />
+                    </Tooltip>
+                );
+            },
         },
         {
             title: 'Ticket Status',
@@ -452,7 +482,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 if (record.is_set === true) {
                     return <span>-</span>;
                 }
-                
+
                 return (
                     <Switch
                         checked={!isDeleted}
@@ -485,9 +515,9 @@ const BookingList = memo(({ type = 'agent' }) => {
                 if (record.is_set === true) {
                     return <span>-</span>;
                 }
-    
+
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
-    
+
                 const actions = [
                     {
                         key: 'generate',
@@ -495,7 +525,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         icon: <Ticket size={14} />,
                         onClick: () => GenerateTicket(record.id),
                         disabled: isDisabled,
-                        permissions:'Generate Tickets'
+                        permissions: 'Generate Tickets'
                     },
                     {
                         key: 'resend',
@@ -504,10 +534,10 @@ const BookingList = memo(({ type = 'agent' }) => {
                         icon: <Send size={14} />,
                         onClick: () => sendTickets(record, "old", true, "Online Booking"),
                         disabled: isDisabled,
-                        permissions:"Resend Tickets"
+                        permissions: "Resend Tickets"
                     },
                 ];
-    
+
                 if (isMobile) {
                     return (
                         <Dropdown
@@ -527,19 +557,19 @@ const BookingList = memo(({ type = 'agent' }) => {
                         </Dropdown>
                     );
                 }
-    
+
                 return (
                     <Space size="small">
                         {actions.map((action) => (
                             <Tooltip key={action.key} title={action.label}>
                                 <PermissionChecker permission={action.permissions}>
-                                <Button
-                                    type={action.type}
-                                    icon={action.icon}
-                                    onClick={action.onClick}
-                                    disabled={action.disabled}
-                                    size="small"
-                                />
+                                    <Button
+                                        type={action.type}
+                                        icon={action.icon}
+                                        onClick={action.onClick}
+                                        disabled={action.disabled}
+                                        size="small"
+                                    />
                                 </PermissionChecker>
                             </Tooltip>
                         ))}
@@ -622,7 +652,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 downloadTicket={downloadTicket}
                 isMobile={isMobile}
                 formatDateRange={dateRange}
-            /> 
+            />
             <ExpandDataTable
                 title={config.title}
                 emptyText={`No ${type} bookings found`}
@@ -648,7 +678,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 showDateRange={true}
                 showRefresh={true}
                 showTotal={true}
-                
+
                 dateRange={dateRange}
                 onDateRangeChange={handleDateRangeChange}
                 loading={isLoading || toggleBookingMutation.isPending}

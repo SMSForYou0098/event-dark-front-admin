@@ -64,6 +64,33 @@ export const protectedRoutes = [
             permissions: ['View Dashboard'],
         }
     },
+    {
+        key: 'dashboard-agent',
+        path: `/dashboard/agent`,
+        component: React.lazy(() => import('views/events/Dashboard/index')),
+        meta:{
+            // roles: ['admin', 'organizer', 'agent', 'sponsor'],
+            permissions: ['View Dashboard'],
+        }
+    },
+    {
+        key: 'dashboard-pos',
+        path: `/dashboard/pos`,
+        component: React.lazy(() => import('views/events/Dashboard/index')),
+        meta:{
+            // roles: ['admin', 'organizer', 'agent', 'sponsor'],
+            permissions: ['View Dashboard'],
+        }
+    },
+    {
+        key: 'dashboard-sponsor',
+        path: `/dashboard/sponsor`,
+        component: React.lazy(() => import('views/events/Dashboard/index')),
+        meta:{
+            // roles: ['admin', 'organizer', 'agent', 'sponsor'],
+            permissions: ['View Dashboard'],
+        }
+    },
 
     // ==================== USER MANAGEMENT ====================
     {

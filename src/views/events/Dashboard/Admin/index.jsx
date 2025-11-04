@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query';
-import { Card, Row, Col, Table, Typography, Tag, Skeleton, Alert, Divider, Switch, Carousel, Space } from 'antd';
-import { UserOutlined, TeamOutlined, ShoppingOutlined, ShopOutlined, IdcardOutlined, TrophyOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, LineChartOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Card, Row, Col, Table, Typography, Tag, Alert, Divider, Switch, Carousel, Descriptions, List, Space } from 'antd';
+import { UserOutlined, TeamOutlined, ShoppingOutlined, ShopOutlined, IdcardOutlined, TrophyOutlined, ScanOutlined, CheckCircleOutlined, CloseCircleOutlined, LineChartOutlined, SyncOutlined, ClockCircleOutlined, DollarOutlined, TagOutlined } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';
 import ChartWidget from 'components/ChartWidget';
 import DataCard from './DataCard';
@@ -47,7 +47,7 @@ const DashboardContent = ({ UserData }) => {
         queryFn: fetchBookingData,
         enabled: !!UserData?.id, // Only run query if UserData.id exists
     });
-    console.log(bookingData);
+
     const { data: salesData, isLoading: salesLoading, error: salesError } = useQuery({
         queryKey: ['salesData', UserData?.id],
         queryFn: fetchSalesData,
@@ -113,19 +113,19 @@ const DashboardContent = ({ UserData }) => {
     const eventStats = [
         {
             title: 'Ongoing',
-            value: 123 || 0,
+            value: 0 || 0,
             icon: <SyncOutlined />,
             color: '#1890ff',
         },
         {
             title: 'Upcoming',
-            value: 452 || 0,
+            value: 0 || 0,
             icon: <ClockCircleOutlined />,
             color: '#52c41a',
         },
         {
             title: 'Successful',
-            value: 899 || 0,
+            value: 0 || 0,
             icon: <CheckCircleOutlined />,
             color: '#fa8c16',
         }
@@ -213,13 +213,13 @@ const DashboardContent = ({ UserData }) => {
             color: '#1890ff'
         },
         {
-            title: 'Agent Booking',
-            value: salesData.agentBooking || 0,
+            title: 'Agent Amount',
+            value: salesData.agentAmount || 0,
             color: '#fa8c16'
         },
         {
-            title: 'Sponsor Booking',
-            value: salesData.sponsorBooking || 0,
+            title: 'Sponsor Amount',
+            value: salesData.sponsorAmount || 0,
             color: '#eb2f96'
         },
         {
@@ -276,6 +276,9 @@ const DashboardContent = ({ UserData }) => {
 
     const discountData = [
         { type: 'Online Discount', amount: salesData.onlineDiscount || 0 },
+        { type: 'POS Discount', amount: salesData.posDiscount || 0 },
+        { type: 'Sponsor Discount', amount: salesData.sponsorDiscount || 0 },
+        { type: 'Agent Discount', amount: salesData.agentDiscount || 0 },
         { type: 'Offline Discount', amount: salesData.offlineDiscount || 0 }
     ];
 
@@ -457,31 +460,51 @@ const DashboardContent = ({ UserData }) => {
                     />
                 </Col>
                 <Col xs={24} lg={12}>
-                    <Card title="Discounts & Convenience Fee" bordered={false}>
-                        <div>
-                            <Text strong className="fs-6">Discounts</Text>
-                            <div className="mt-2">
-                                {discountData.map((item, index) => (
-                                    <div key={index} className="d-flex justify-content-between">
-                                        <Text>{item.type}</Text>
-                                        <Text strong>{formatCurrency(item.amount)}</Text>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        <Divider className="my-3" />
-                        <div>
-                            <Text strong className="fs-6">Convenience Charges</Text>
-                            <div className="mt-2">
-                                {cncData.map((item, index) => (
-                                    <div key={index} className="d-flex justify-content-between">
-                                        <Text>{item.type}</Text>
-                                        <Text strong>{formatCurrency(item.amount)}</Text>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </Card>
+                <Row gutter={[16, 16]}>
+                    <Col xs={24} lg={12}>
+                        <Card title="Discounts" bordered={false}>
+                            <Space direction="vertical" className='w-100' size="middle">
+                                <div>
+                                    <List
+                                        dataSource={discountData}
+                                        size="small"
+                                        bordered={false}
+                                        renderItem={(item) => (
+                                            <List.Item className="px-0">
+                                                <div className='w-100 d-flex justify-content-between align-items-center'>
+                                                    <Text>{item.type}</Text>
+                                                    <Text strong type="success">{formatCurrency(item.amount)}</Text>
+                                                </div>
+                                            </List.Item>
+                                        )}
+                                    />
+                                </div>
+                            </Space>
+                        </Card>
+                    </Col>
+                    <Col xs={24} lg={12}>
+                        <Card title="Convenience Fee" bordered={false}>
+                            <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                                <div>
+                                    <List
+                                        dataSource={cncData}
+                                        size="small"
+                                        bordered={false}
+                                        renderItem={(item) => (
+                                            <List.Item className="px-0">
+                                                <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between' }}>
+                                                    <Text>{item.type}</Text>
+                                                    <Text strong>{formatCurrency(item.amount)}</Text>
+                                                </div>
+                                            </List.Item>
+                                        )}
+                                    />
+                                </div>
+
+                            </Space>
+                        </Card>
+                    </Col>
+                </Row>
                 </Col>
             </Row>
         </div>
