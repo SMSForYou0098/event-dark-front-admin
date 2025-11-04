@@ -187,6 +187,19 @@ const POS = memo(() => {
   }, [selectedTickets]);
 
 
+      // Utility function to calculate total tax + convenience fee from booking array
+const calculateTotalTax = (bookings) => {
+  if (!Array.isArray(bookings)) return 0;
+
+  return bookings.reduce((sum, booking) => {
+    const tax = parseFloat(booking?.booking_tax?.total_tax ?? 0);
+    const convenienceFee = parseFloat(booking?.booking_tax?.convenience_fee ?? 0);
+    return sum + tax + convenienceFee;
+  }, 0);
+};
+
+const totalTax = calculateTotalTax(bookingData)
+
   
 
   return (
@@ -208,7 +221,7 @@ const POS = memo(() => {
         event={event}
         bookingData={bookingData}
         subtotal={'subtotal'}
-        totalTax={'totalTax'}
+        totalTax={totalTax}
         discount={discount}
         grandTotal={grandTotal}
       />

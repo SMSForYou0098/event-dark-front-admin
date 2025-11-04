@@ -61,6 +61,7 @@ const partnersClientsSubmenu = [
   title: 'Corporate',
   icon: CrownOutlined,
   breadcrumb: false,
+  permissions: ["View Corporate Bookings","Create Corporate Bookings"],
   submenu: [
     {
       key: 'corporate-manage',
@@ -84,6 +85,7 @@ const partnersClientsSubmenu = [
   title: 'Sponsor',
   icon: TrophyOutlined,
   breadcrumb: false,
+  permissions: ["View Sponsor Bookings","Create Sponsor Bookings"],
   submenu: [
     {
       key: 'sponsor-manage',
@@ -100,7 +102,32 @@ const partnersClientsSubmenu = [
       permissions: ["Create Sponsor Bookings"]
     }
   ]
-}
+},
+
+{
+    key: 'complimentary-booking',
+    path: 'bookings/complimentary',
+    title: 'Complimentary',
+    icon: TrophyOutlined,
+    breadcrumb: false,
+    permissions: ["View Complimentary Bookings","Create Complimentary Bookings"],
+    submenu: [
+      {
+        key: 'complimentary-manage',
+        path: 'bookings/complimentary',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: ["View Complimentary Bookings"]
+      },
+      {
+        key: 'complimentary-new',
+        path: 'bookings/complimentary/new',
+        title: 'New',
+        breadcrumb: false,
+        permissions: ["Create Complimentary Bookings"]
+      }
+    ]
+  },
 
 ];
 
@@ -111,7 +138,8 @@ const partnersClientsNav = {
   icon: CrownOutlined,
   breadcrumb: false,
   submenu: partnersClientsSubmenu,
-  roles: ["Admin", "Organizers"]
+  // roles: ["Admin", "Organizers"],
+  permissions:["View Corporate Bookings","View Sponsor Bookings","View Complimentary Bookings","Create Corporate Bookings","Create Sponsor Bookings","Create Complimentary Bookings"]
 };
 
 const userManagementNav = {
@@ -129,19 +157,39 @@ const userManagementNav = {
 
 const bookingsSubmenu = [
   {
-        key: 'online-manage',
+    key: 'online-manage',
+    // path: 'bookings/online',
+    title: 'User Bookings',
+    breadcrumb: false,
+    icon: ShoppingOutlined,
+    permissions: ["View Online Bookings"],
+    submenu: [
+      {
+        key: 'online-new',
         path: 'bookings/online',
-        title: 'Online Bookings',
+        title: 'Online',
         breadcrumb: false,
         icon: ShoppingOutlined,
-        permissions: ["View Online Bookings"]
+        permissions: ["View Online Bookings"],
       },
+      {
+        key: 'pending-booking',
+        path: 'bookings/pending',
+        title: 'Pending',
+        icon: TrophyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        permissions: ["View Pending Bookings"]
+      },
+    ]
+  },
   {
     key: 'agent-booking',
     path: 'bookings/agent',
     title: 'Agent',
     icon: IdcardOutlined,
     breadcrumb: false,
+    permissions: ["View Agent Bookings"," Create Agent Bookings"],
     submenu: [
       {
         key: 'agent-manage',
@@ -165,6 +213,7 @@ const bookingsSubmenu = [
     title: 'POS',
     icon: ShoppingOutlined,
     breadcrumb: false,
+    permissions: ["View POS Bookings"," Create POS Bookings"],
     submenu: [
       {
         key: 'pos-manage',
@@ -181,38 +230,6 @@ const bookingsSubmenu = [
         permissions: ["Create POS Bookings"]
       }
     ]
-  },
-  {
-    key: 'complimentary-booking',
-    path: 'bookings/complimentary',
-    title: 'Complimentary',
-    icon: TrophyOutlined,
-    breadcrumb: false,
-    submenu: [
-      {
-        key: 'complimentary-manage',
-        path: 'bookings/complimentary',
-        title: 'Manage',
-        breadcrumb: false,
-        permissions: ["View Complimentary Bookings"]
-      },
-      {
-        key: 'complimentary-new',
-        path: 'bookings/complimentary/new',
-        title: 'New',
-        breadcrumb: false,
-        permissions: ["Create Complimentary Bookings"]
-      }
-    ]
-  },
-  {
-    key: 'pending-booking',
-    path: 'bookings/pending',
-    title: 'Pending Bookings',
-    icon: TrophyOutlined,
-    breadcrumb: false,
-    submenu: [],
-    permissions: ["View Pending Bookings"]
   },
   partnersClientsNav
 ];
@@ -392,7 +409,6 @@ const reportingSubmenu = [
     breadcrumb: false,
     submenu: [],
     permissions: ["View Event Report"],
-    roles: ["Admin"]
   },
   {
     key: 'pos-report',
@@ -401,7 +417,7 @@ const reportingSubmenu = [
     icon: DesktopOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"]
+    permissions: ["View POS Report"],
   },
   {
     key: 'agent-report',
@@ -410,7 +426,8 @@ const reportingSubmenu = [
     icon: UserOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"]
+    roles: ["Admin"],
+    permissions: ["View Agent Report"],
   }
 ];
 
@@ -421,7 +438,7 @@ const reportingNav = {
   icon: BarChartOutlined,
   breadcrumb: false,
   submenu: reportingSubmenu,
-  roles: ["Admin"]
+  permissions: ["View Event Report","View POS Report","View Agent Report"],
 };
 
 // Financial Management Submenu
@@ -452,7 +469,8 @@ const financialManagementSubmenu = [
     icon: ShoppingOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"]
+    roles: ["Admin","Organizers"],
+    permissions: ["View Promocodes"]
   },
   {
     key: 'tax-commission',
@@ -489,32 +507,42 @@ const settingsSubmenu = [
     roles: ["Admin"]
   },
   {
-    key: 'settings-mail',
-    path: 'settings/mail-config',
-    title: 'Mail Config',
+    key: 'settings-message',
+    title: 'Message Settings',
     icon: MailOutlined,
     breadcrumb: false,
-    submenu: [],
+    submenu: [
+      {
+        key: 'settings-mail',
+        path: 'settings/mail-config',
+        title: 'Mail Config',
+        icon: MailOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'settings-sms',
+        path: 'settings/sms-config',
+        title: 'SMS Gateway',
+        icon: MessageOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'settings-whatsapp',
+        path: 'settings/whatsapp-config',
+        title: 'WhatsApp Config',
+        icon: WhatsAppOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+    ],
     roles: ["Admin"]
   },
-  {
-    key: 'settings-sms',
-    path: 'settings/sms-config',
-    title: 'SMS Gateway',
-    icon: MessageOutlined,
-    breadcrumb: false,
-    submenu: [],
-    roles: ["Admin"]
-  },
-  {
-    key: 'settings-whatsapp',
-    path: 'settings/whatsapp-config',
-    title: 'WhatsApp Config',
-    icon: WhatsAppOutlined,
-    breadcrumb: false,
-    submenu: [],
-    roles: ["Admin"]
-  },
+  
   {
     key: 'settings-admin',
     path: 'settings/admin-settings',

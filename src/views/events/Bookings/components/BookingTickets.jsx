@@ -86,11 +86,23 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
       const unitBaseAmount = +(price)?.toFixed(2);
       //tax states      
-      const unitConvenienceFee = +(unitBaseAmount * 0.10)?.toFixed(2);
+      const taxData = event?.tax_data;
+      const convenienceFeeValue = Number(taxData?.convenience_fee || 0);
+      const convenienceFeeType = taxData?.type || "flat";
+
+      // ✅ Dynamically calculate convenience fee
+      let unitConvenienceFee = 0;
+
+      if (convenienceFeeType === "percentage") {
+        unitConvenienceFee = +(unitBaseAmount * (convenienceFeeValue / 100)).toFixed(2);
+      } else {
+        unitConvenienceFee = +convenienceFeeValue.toFixed(2);
+      }
+
       const unitCentralGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
       const unitStateGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
+      
       // Per-unit calculations (adjust the formulae as per your tax policy)
-
       const unitTotalTax = +(unitCentralGST + unitStateGST)?.toFixed(2);
       const unitFinalAmount = +((price) + unitConvenienceFee + unitTotalTax).toFixed(2);
 

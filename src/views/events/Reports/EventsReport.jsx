@@ -242,7 +242,7 @@ const EventReports = memo(() => {
           checked={type === 'active'}
           onChange={handleTypeChange}
           checkedChildren="Active"
-          unCheckedChildren="Inactive"
+          unCheckedChildren="all"
         />
       </Space>
     ),

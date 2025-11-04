@@ -55,6 +55,11 @@ export const publicRoutes = [
 export const protectedRoutes = [
     
     // ==================== DASHBOARD ====================
+        {
+        key: 'forbidden',
+        path: `/forbidden`,
+        component: React.lazy(() => import('views/auth-views/errors/error-page-1')),
+    },
     {
         key: 'dashboard',
         path: `/dashboard`,

@@ -22,7 +22,7 @@ const AppRoute = ({ component: Component, routeKey, blankLayout, roles, permissi
   );
 
   if (!canAccess) {
-    return <Navigate to="/error-page-1" replace />;
+    return <Navigate to="/unauthorise" replace />;
   }
 
   return <Component {...props} />;

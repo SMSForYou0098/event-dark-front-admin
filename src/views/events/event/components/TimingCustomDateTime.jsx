@@ -1,9 +1,11 @@
 // TimingStep.jsx
+
+/// conditions added for daily event in timing and date range
 import React from 'react';
-import { Form, DatePicker, TimePicker, Row, Col, Input, Select, Checkbox } from 'antd';
+import { Form, DatePicker, TimePicker, Row, Col, Input, Select } from 'antd';
 import dayjs from 'dayjs';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
- 
+// import LocationStep from './LocationStep';
 
 const { RangePicker } = DatePicker;
 
@@ -48,16 +50,83 @@ const TimingStep = ({ form, ...props }) => {
     });
   };
 
+  // Track first picked date to constrain to consecutive days when event_type is daily
+  const [firstPickedDate, setFirstPickedDate] = React.useState(null);
+
+  const disabledDate = (current) => {
+    if (!current) return false;
+    const today = dayjs().startOf('day');
+    // Always disable past dates
+    if (current.startOf('day').isBefore(today)) return true;
+
+    const type = form.getFieldValue('event_type') || 'daily';
+    if (type === 'daily' && firstPickedDate) {
+      const anchor = dayjs(firstPickedDate).startOf('day');
+      const cur = current.startOf('day');
+      // Only allow the anchor day and the next consecutive day
+      const isAnchor = cur.isSame(anchor);
+      const isNextDay = cur.isSame(anchor.add(1, 'day'));
+      return !(isAnchor || isNextDay);
+    }
+    return false;
+  };
+
+  const onCalendarChange = (dates) => {
+    if (!dates || (!dates[0] && !dates[1])) {
+      setFirstPickedDate(null);
+      return;
+    }
+    const [start, end] = dates;
+    if (start && !end) {
+      setFirstPickedDate(start);
+    } else if (start && end) {
+      // Selection completed; reset anchor
+      setFirstPickedDate(null);
+    }
+  };
+
+  // For daily type: if end date is the second consecutive day, allow time only up to 06:00
+  const disabledTime = (date, type) => {
+    const eventType = form.getFieldValue('event_type') || 'daily';
+    if (eventType !== 'daily') return {};
+    if (type !== 'end' || !date) return {};
+
+    // Determine the anchor (start) day
+    let anchor = firstPickedDate;
+    if (!anchor) {
+      const dr = form.getFieldValue('date_range');
+      if (typeof dr === 'string' && dr.includes(',')) {
+        const [d1] = dr.split(',').map(s => s.trim());
+        const sd = dayjs(d1, FMT_DATE, true);
+        if (sd.isValid()) anchor = sd;
+      }
+    }
+
+    if (!anchor) return {};
+
+    const isSecondDay = date.startOf('day').isSame(dayjs(anchor).startOf('day').add(1, 'day'));
+    if (!isSecondDay) return {};
+
+    const allHours = Array.from({ length: 24 }, (_, h) => h);
+    const allMinutes = Array.from({ length: 60 }, (_, m) => m);
+
+    return {
+      disabledHours: () => allHours.filter(h => h > 6),
+      disabledMinutes: (hour) => (hour === 6 ? allMinutes.filter(m => m > 0) : []),
+    };
+  };
+
   return (
     <Row gutter={ROW_GUTTER}>
-      <Col xs={24} lg={24}>
+      <Col xs={24} lg={12}>
         <Row gutter={16}>
           {/* date_range -> "YYYY-MM-DD,YYYY-MM-DD" (dates only) + start/end times from RangePicker */}
-          <Col xs={24} md={6}>
+          <Col xs={24} md={12}>
             <Form.Item
               name="date_range"
               label="Event Date Range"
               rules={[{ required: true, message: 'Please select date range' }]}
+              dependencies={['event_type']}
               // Show RangePicker using stored dates + start/end_time for the time parts
               getValueProps={(value) => {
                 const startTime = form.getFieldValue('start_time');
@@ -71,12 +140,15 @@ const TimingStep = ({ form, ...props }) => {
                 placeholder={['Start Date & Time', 'End Date & Time']}
                 format={FMT_DT}
                 onChange={onRangeChange}
+                onCalendarChange={onCalendarChange}
+                disabledDate={disabledDate}
+                disabledTime={disabledTime}
               />
             </Form.Item>
           </Col>
 
           {/* entry_time -> "HH:mm" */}
-          <Col xs={12} md={3}>
+          <Col xs={12} md={6}>
             <Form.Item
               name="entry_time"
               label="Entry Time"
@@ -94,7 +166,7 @@ const TimingStep = ({ form, ...props }) => {
           </Col>
 
           {/* event_type -> "daily" / "seasonal" via Switch */}
-          <Col xs={12} md={3}>
+          <Col xs={12} md={6}>
             <Form.Item
               name="event_type"
               label="Event Type"
@@ -108,20 +180,6 @@ const TimingStep = ({ form, ...props }) => {
               </Select>
             </Form.Item>
           </Col>
-          <Col xs={12} md={12}>
-          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.event_type !== cur.event_type}>
-            {({ getFieldValue }) =>
-              getFieldValue('event_type') === 'daily' ? (
-                // <Col xs={12} md={6}>
-                  <Form.Item name="overnight_event" valuePropName="checked" label="Overnight Event" tooltip="Check if the daily event runs past midnight" initialValue={false}>
-                    <Checkbox>Overnight event — end time will be set to <strong>6 hours after start</strong></Checkbox>
-                  </Form.Item>
-                // </Col>
-              ) : null
-            }
-          </Form.Item>
-            </Col>
-          {/* Overnight event -> shown only when event_type is 'daily' */}
 
           {/* start_time -> "HH:mm" (kept in sync with RangePicker) */}
           {/* <Col xs={12} md={6}>

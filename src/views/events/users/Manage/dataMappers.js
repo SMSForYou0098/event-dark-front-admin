@@ -78,7 +78,7 @@ export const mapFormToApi = (formData) => {
         state: formData.state,
         
         // Role
-        role_id: formData.roleId,
+        role_id: formData.roleId !== undefined && formData.roleId !== null ? Number(formData.roleId) : null,
         reporting_user: formData.reportingUser,
         status: formData.status,
         role_name: formData.roleName,

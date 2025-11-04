@@ -184,60 +184,71 @@ const PosBooking = memo(() => {
   // Calculate print modal data
   const printModalData = useMemo(() => {
     if (!selectedBooking) return null;
-
-    // Check if there are related bookings
-    const hasRelatedBookings = selectedBooking.related && selectedBooking.related.length > 0;
-
-    // If there are related bookings, combine main booking with related ones
-    const allBookings = hasRelatedBookings
-      ? [selectedBooking, ...selectedBooking.related]
-      : [selectedBooking];
-
-    // Calculate totals for all bookings
-    const subtotal = allBookings.reduce((sum, booking) => {
-      const baseAmount = parseFloat(booking.booking_tax?.base_amount || booking.price || 0);
-      const quantity = parseInt(booking.quantity || 0);
-      return sum + (baseAmount * quantity);
+    const isSetWithBookings =
+      Boolean(selectedBooking.is_set) &&
+      Array.isArray(selectedBooking.bookings) &&
+      selectedBooking.bookings.length > 0;
+  
+    const hasRelatedBookings =
+      Array.isArray(selectedBooking.bookings) &&
+      selectedBooking.bookings.length > 0;
+  
+    // Build the unified list of bookings to compute from
+    const allBookings = isSetWithBookings
+      ? selectedBooking.bookings
+      : hasRelatedBookings
+        ? [selectedBooking, ...(selectedBooking.related ?? [])]
+        : [selectedBooking];
+  
+    // Totals
+    const subtotal = allBookings.reduce((sum, b) => {
+      const baseAmount = parseFloat( b?.price ?? 0);
+      const qty = parseInt(b?.quantity ?? 0, 10);
+      return sum + baseAmount * qty;
     }, 0);
-
-    const totalDiscount = allBookings.reduce((sum, booking) => {
-      return sum + parseFloat(booking.discount || 0);
+  
+    const totalDiscount = allBookings.reduce((sum, b) => {
+      return sum + parseFloat(b?.discount ?? 0);
     }, 0);
-
-    const totalTax = allBookings.reduce((sum, booking) => {
-      const tax = parseFloat(booking.booking_tax?.total_tax || 0);
-      return sum + tax;
+  
+    const totalTax = allBookings.reduce((sum, b) => {
+      return sum + parseFloat(b?.booking_tax?.total_tax ?? 0) + Number(b?.booking_tax?.convenience_fee );
     }, 0);
-
-    const totalConvenienceFee = allBookings.reduce((sum, booking) => {
-      const fee = parseFloat(booking.booking_tax?.convenience_fee || 0);
-      return sum + fee;
+  
+    const totalConvenienceFee = allBookings.reduce((sum, b) => {
+      return sum + parseFloat(b?.booking_tax?.convenience_fee ?? 0);
     }, 0);
-
-    const grandTotal = hasRelatedBookings
-      ? parseFloat(selectedBooking.total_amount || 0)
-      : parseFloat(selectedBooking.amount || 0);
-
-    // Create lightweight booking data - only keep essential fields
-    const lightweightBookings = allBookings?.map(booking => ({
-      id: booking.id,
-      token: booking.token,
-      quantity: booking.quantity,
-      discount: booking.discount,
-      price: booking.booking_tax?.base_amount || booking.price,
-      amount: booking.amount,
-      tax: booking.booking_tax?.total_tax || 0,
-      created_at: booking.created_at,
+  
+    // Grand total logic:
+    // - For sets or bookings with related items, prefer the provided total_amount on the "parent".
+    // - For a single booking, fall back to its amount.
+    const grandTotal = parseFloat(selectedBooking?.total_amount ?? 0)
+  
+    // Event to show: prefer parent, else first booking’s event
+    const event =
+      selectedBooking?.ticket?.event ??
+      allBookings?.[0]?.ticket?.event ??
+      null;
+  
+    // Lightweight array (one entry per booking)
+    const bookingData = allBookings.map((b) => ({
+      id: b.id,
+      token: b.token,
+      quantity: b.quantity,
+      discount: b.discount,
+      price: b?.booking_tax?.base_amount ?? b?.price, // keep your existing precedence
+      amount: b.amount,
+      tax: b?.booking_tax?.total_tax ?? 0,
+      created_at: b.created_at,
       ticket: {
-        id: booking.ticket?.id,
-        name: booking.ticket?.name,
-      }
+        id: b?.ticket?.id,
+        name: b?.ticket?.name,
+      },
     }));
-
-
+  
     return {
-      event: selectedBooking.ticket?.event,
-      bookingData: lightweightBookings, // Lightweight array with only essential fields
+      event,
+      bookingData, // array with 1+ items (set => multiple)
       subtotal: subtotal.toFixed(2),
       totalTax: totalTax.toFixed(2),
       convenienceFee: totalConvenienceFee.toFixed(2),
@@ -245,6 +256,7 @@ const PosBooking = memo(() => {
       grandTotal: grandTotal.toFixed(2),
     };
   }, [selectedBooking]);
+  
 
   // Define columns for nested table (related bookings)
   const expandedRowColumns = useMemo(() => [

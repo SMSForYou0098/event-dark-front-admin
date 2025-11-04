@@ -68,7 +68,7 @@ const POSPrintModal = ({
             key: index,
             quantity: booking.quantity || 0,
             ticketName: booking?.ticket?.name || 'N/A',
-            price: `₹${Number(booking.total_amount)?.toFixed(2) || '0.00'}`,
+            price: `₹${Number(booking.amount)?.toFixed(2) || '0.00'}`,
         }));
     }, [bookingData]);
 
@@ -87,15 +87,15 @@ const POSPrintModal = ({
     ], []);
 
     const summaryData = useMemo(() => [
-        {
-            key: '1',
-            label: 'SUBTOTAL',
-            value: `₹${Number(subtotal)?.toFixed(2) || '0.00'}`,
-        },
+        // {
+        //     key: '1',
+        //     label: 'SUBTOTAL',
+        //     value: `₹${Number(subtotal)?.toFixed(2) || '0.00'}`,
+        // },
         {
             key: '2',
             label: 'TOTAL TAX',
-            value: `₹${Number(totalTax)?.toFixed(2) || '0.00'}`,
+            value: `₹${Number(totalTax)?.toFixed(2) ||  '0.00'}`,
         },
         {
             key: '3',

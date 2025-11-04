@@ -85,10 +85,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         },
     });
 
+        const updateMultipleFields = useCallback((updates) => {
+        setFormState(prev => ({ ...prev, ...updates }));
+        form.setFieldsValue(updates);
+    }, [form]);
     // Calculate conditions based on current state
     const showAM = ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(formState.roleName);
     const needsEvents = ['Agent', 'Sponsor', 'Accreditation'].includes(formState.roleName);
-
+    
     // Stabilize reportingUserId
     const reportingUserId = useMemo(() => {
         if (mode === "create") {
@@ -133,16 +137,20 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     // FIXED: Handle query params in separate effect for create mode
     useEffect(() => {
         if (mode === 'create' && filteredRoles.length > 0) {
+            // ✅ Define typeParam properly
             const queryParams = new URLSearchParams(location.search);
             const typeParam = queryParams.get('type');
+
             if (typeParam) {
                 const roleName = typeParam.replace(/-/g, ' ');
-                // Find the role ID from filtered roles list
-                const matchedRole = filteredRoles.find(role =>
-                    role.name.toLowerCase() === roleName.toLowerCase()
+
+                // ✅ Find role by name
+                const matchedRole = filteredRoles.find(
+                    (role) => role.name.toLowerCase() === roleName.toLowerCase()
                 );
 
                 if (matchedRole) {
+                    // ✅ This automatically updates both formState and AntD form
                     updateMultipleFields({
                         roleName: matchedRole.name,
                         roleId: matchedRole.id,
@@ -150,7 +158,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 }
             }
         }
-    }, [mode, location.search, filteredRoles]);
+    }, [mode, location.search, filteredRoles, updateMultipleFields]);
+
 
     // Check if reporting user has changed from initial value
     const hasReportingUserChanged = useMemo(() => {
@@ -251,10 +260,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         form.setFieldsValue({ [field]: value });
     }, [form]);
 
-    const updateMultipleFields = useCallback((updates) => {
-        setFormState(prev => ({ ...prev, ...updates }));
-        form.setFieldsValue(updates);
-    }, [form]);
+
 
     // Handle role change
     const handleRoleChange = useCallback((value) => {
@@ -353,7 +359,15 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const onFinish = async (values) => {
         setIsSubmitting(true);
         try {
-            const apiData = mapFormToApi(values);
+            const mergedValues = {
+                ...values,
+                roleId: values.roleId ?? formState.roleId,
+                roleName: values.roleName ?? formState.roleName,
+                convenienceFeeType: values.convenienceFeeType ?? formState.convenienceFeeType,
+                convenienceFee: values.convenienceFee ?? formState.convenienceFee,
+                reportingUser: reportingUserId,
+            };
+            const apiData = mapFormToApi(mergedValues);
             const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
             const response = await axios.post(url, apiData, {
                 headers: {
@@ -409,6 +423,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             }}
         >
             <Row gutter={[16, 16]}>
+                {/* Ensure roleId is always registered on the form */}
+                <Form.Item name="roleId" hidden>
+                    <Input />
+                </Form.Item>
                 {/* Left Column */}
                 <Col xs={24} lg={12}>
                     {/* Role Selection (Admin/Organizer only) */}
@@ -588,7 +606,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
 
                             {/* Account Manager for specific roles */}
-                            {showAM && (
+                            {showAM && userRole==='Admin' && (
                                 <Col xs={24} md={12}>
                                     <Form.Item
                                         label="Account Manager"
@@ -680,10 +698,19 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                         rules={[
                                             { required: true, message: 'Please enter QR length' },
                                             {
-                                                type: 'number',
-                                                min: 6,
-                                                max: 20,
-                                                message: 'Must be between 6 and 20'
+                                                validator(_, value) {
+                                                    if (value === undefined || value === null || value === '') {
+                                                        return Promise.resolve();
+                                                    }
+                                                    const n = Number(value);
+                                                    if (!Number.isInteger(n)) {
+                                                        return Promise.reject(new Error('Must be an integer'));
+                                                    }
+                                                    if (n < 6 || n > 20) {
+                                                        return Promise.reject(new Error('Must be between 6 and 20'));
+                                                    }
+                                                    return Promise.resolve();
+                                                }
                                             }
                                         ]}
                                     >

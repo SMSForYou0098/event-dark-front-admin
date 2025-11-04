@@ -756,7 +756,24 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                             <Form.Item
                                                 label="Sale Price"
                                                 name="sale_price"
-                                                rules={[{ required: saleEnabled, message: 'Enter sale price' }]}
+                                                rules={[
+                                                    { required: saleEnabled, message: 'Enter sale price' },
+                                                    ({ getFieldValue }) => ({
+                                                        validator(_, value) {
+                                                            if (!saleEnabled) return Promise.resolve();
+                                                            if (value === undefined || value === null || value === '') return Promise.resolve();
+                                                            const salePrice = Number(value);
+                                                            const ticketPrice = Number(getFieldValue('price'));
+                                                            if (Number.isNaN(salePrice) || salePrice < 0) {
+                                                                return Promise.reject(new Error('Enter a valid non-negative number'));
+                                                            }
+                                                            if (!Number.isNaN(ticketPrice) && salePrice > ticketPrice) {
+                                                                return Promise.reject(new Error('Sale price cannot exceed ticket price'));
+                                                            }
+                                                            return Promise.resolve();
+                                                        }
+                                                    })
+                                                ]}
                                             >
                                                 <Input
                                                     type='number'
