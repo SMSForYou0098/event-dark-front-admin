@@ -1,15 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import Slider from 'react-slick';
-import { Card, Collapse, Input, Spin } from 'antd';
+import React, { useState, useEffect, useRef } from 'react';
+import { Card, Collapse, Input, Spin, Grid, Button } from 'antd';
 import axios from 'axios';
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
 import { useMyContext } from 'Context/MyContextProvider';
 import PosEventCard from './PosEventCard';
-import { SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 const { Panel } = Collapse;
 const PosEvents = ({ type, handleButtonClick }) => {
     const { api, authToken, UserData, truncateString } = useMyContext();
+    const screens = Grid.useBreakpoint();
+    const scrollerRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeKey, setActiveKey] = useState(['1']);
     const [events, setEvents] = useState([]);
@@ -57,28 +56,21 @@ const PosEvents = ({ type, handleButtonClick }) => {
         setActiveKey(null);
     };
 
-    const settings = {
-        dots: false,
-        infinite: false,
-        // draggable: false,
-        speed: 500,
-        slidesToShow: 6,
-        slidesToScroll: 3,
-        arrows: true,
-        responsive: [
-            {
-                breakpoint: 1200,
-                settings: { slidesToShow: 3, slidesToScroll: 3 },
-            },
-            {
-                breakpoint: 768,
-                settings: { slidesToShow: 2, slidesToScroll: 2 },
-            },
-            {
-                breakpoint: 576,
-                settings: { slidesToShow: 1, slidesToScroll: 1 },
-            },
-        ],
+    // Responsive widths for horizontally scrollable items
+    const getItemWidth = () => {
+        if (screens.xxl || screens.xl) return '16%'; // ~6 items
+        if (screens.lg) return '25%'; // ~4 items
+        if (screens.md) return '33.33%'; // ~3 items
+        if (screens.sm) return '50%'; // ~2 items
+        return '85%'; // ~1-1.2 items on very small screens
+    };
+
+    const scrollByCards = (direction = 1) => {
+        const container = scrollerRef.current;
+        if (!container) return;
+        const firstItem = container.querySelector('[data-pos-card-item="true"]');
+        const itemWidth = firstItem ? firstItem.getBoundingClientRect().width + 16 : container.clientWidth * 0.9; // 16 = gap
+        container.scrollBy({ left: direction * itemWidth, behavior: 'smooth' });
     };
 
     if (isError) {
@@ -86,7 +78,7 @@ const PosEvents = ({ type, handleButtonClick }) => {
     }
 
     return (
-        <Card bordered={false}>
+        <Card bordered={false} style={{minWidth:"120px"}}>
             {isLoading && (
                 <div className="d-flex justify-content-center align-items-center" style={{ height: '10vh' }}>
                     <Spin tip="Loading events..." size="large" />
@@ -107,22 +99,72 @@ const PosEvents = ({ type, handleButtonClick }) => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         allowClear
                     />
-                    <div className="slider-circle-btn px-4">
-                        <Slider {...settings} key={filteredEvent.length}>
-                            {filteredEvent.map(item => (
-                                <div key={item.event_key}>
-                                    <div className="px-2" onClick={() => handleEventData(item)}>
-                                        <PosEventCard
-                                            productName={formattedProductName(item.name)}
-                                            productImage={item?.event_media?.thumbnail || ''}
-                                            id={item.event_key}
-                                            productRating="3.5"
-                                            statusColor="primary"
-                                        />
-                                    </div>
+                    <div className="px-4" style={{ position: 'relative' }}>
+                        <div
+                            style={{
+                                display: 'flex',
+                                overflowX: 'auto',
+                                gap: 16,
+                                paddingBottom: 8,
+                                WebkitOverflowScrolling: 'touch',
+                                scrollSnapType: 'x mandatory'
+                            }}
+                            ref={scrollerRef}
+                        >
+                            {filteredEvent.map((item) => (
+                                <div
+                                    key={item.event_key}
+                                    onClick={() => handleEventData(item)}
+                                    style={{
+                                        flex: '0 0 auto',
+                                        width: getItemWidth(),
+                                        scrollSnapAlign: 'start'
+                                    }}
+                                    className="px-2"
+                                    data-pos-card-item="true"
+                                >
+                                    <PosEventCard
+                                        productName={formattedProductName(item.name)}
+                                        productImage={item?.event_media?.thumbnail || ''}
+                                        id={item.event_key}
+                                        productRating="3.5"
+                                        statusColor="primary"
+                                    />
                                 </div>
                             ))}
-                        </Slider>
+                        </div>
+
+                        {/* Navigation buttons */}
+                        <Button
+                            type="default"
+                            // shape="circle"
+                            icon={<LeftOutlined />}
+                            onClick={() => scrollByCards(-1)}
+                            className="border-0"
+                            style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: '50%',
+                                border: 'none',
+                                transform: 'translate(0%, -50%)',
+                                zIndex: 1
+                            }}
+                        />
+                        <Button
+                            type="default"
+                            // shape="circle"
+                            icon={<RightOutlined />}
+                            onClick={() => scrollByCards(1)}
+                            className='border-0'
+                            style={{
+                                position: 'absolute',
+                                right: 0,
+                                border:'none',
+                                top: '50%',
+                                transform: 'translate(0%, -50%)',
+                                zIndex: 1
+                            }}
+                        />
                     </div>
                 </Panel>
             </Collapse>
