@@ -322,16 +322,9 @@ const OnlineBookings = memo(() => {
     // },
     {
       title: "Total",
-      dataIndex: "amount",
-      key: "amount",
+      dataIndex: "total_amount",
+      key: "total_amount",
       align: "center",
-      render: (_, record) => {
-        const totalAmount =
-          (record?.bookings && record?.bookings[0]?.amount) ||
-          record?.amount ||
-          0;
-        return `₹${totalAmount}`;
-      },
     },
     {
       title: "Action",
