@@ -169,12 +169,12 @@ const Users = () => {
   });
 
   // Action handlers
-  const handleAssignCredit = useCallback(
-    (id) => {
-      navigate(`edit/${id}`);
-    },
-    [navigate]
-  );
+  const handleAssignCredit = useCallback((id) => {
+    const route = `edit/${id}`;
+    console.log('Navigating to route:', route);
+    console.log('Full URL will be:', window.location.origin + window.location.pathname + '/' + route);
+    navigate(route);
+  }, [navigate]);
 
   // Update handleDelete to use Ant Design Modal
   const handleDelete = useCallback((id) => {

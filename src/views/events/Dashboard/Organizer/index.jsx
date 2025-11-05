@@ -4,6 +4,7 @@ import {
     UserOutlined,
     ShopOutlined,
     TeamOutlined,
+    UsergroupAddOutlined,
 } from "@ant-design/icons";
 import SelectableCardGroup from "views/events/common/SelectableCardGroup";
 
@@ -14,17 +15,25 @@ const OrgDashboard = () => {
 
     const options = [
         {
+            value: "organizer",
+            href: "/dashboard/org", // Fixed: added leading slash
+            title: "Organizer Summary",
+            description: "Manage your organisation dashbaord.",
+            icon: <UserOutlined />,
+            navigation: true
+        },
+        {
             value: "agent",
             href: "/dashboard/agent", // Fixed: added leading slash
-            title: "Agent Dashboard",
+            title: "Agent Summary",
             description: "Manage your agents and sales.",
-            icon: <UserOutlined />,
+            icon: <UsergroupAddOutlined/>,
             navigation: true
         },
         {
             value: "pos",
             href: "/dashboard/pos", // Fixed: added leading slash
-            title: "POS",
+            title: "POS Summary",
             description: "Access your point of sale system.",
             icon: <ShopOutlined />,
             navigation: true
@@ -32,7 +41,15 @@ const OrgDashboard = () => {
         {
             value: "sponsor",
             href: "/dashboard/sponsor", // Fixed: added leading slash
-            title: "Sponsor",
+            title: "Sponsor Summary",
+            description: "Manage sponsorship and promotions.",
+            icon: <TeamOutlined />,
+            navigation: true
+        },
+        {
+            value: "event-report",
+            href: "/reprots/event", // Fixed: added leading slash
+            title: "Sponsor Summary",
             description: "Manage sponsorship and promotions.",
             icon: <TeamOutlined />,
             navigation: true
@@ -61,7 +78,7 @@ const OrgDashboard = () => {
                 options={options}
                 value={selected}
                 onChange={handleSelection}
-                columns={3}
+                // columns={3.5}
             />
         </div>
     );

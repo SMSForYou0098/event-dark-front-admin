@@ -34,7 +34,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 exportRoute: 'export-agentBooking',
                 exportPermission: 'Export Agent Bookings',
                 deleteEndpoint: (data) => {return(data.is_deleted
-                    ? `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
+                    ? `restore/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
                     : `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`)},
             },
             sponsor: {
@@ -250,7 +250,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             },
         },
         {
-            title: 'Ticket Status',
+            title: 'Status',
             dataIndex: 'is_deleted',
             key: 'ticket_status',
             align: 'center',
@@ -472,7 +472,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             },
         },
         {
-            title: 'Ticket Status',
+            title: 'Status',
             dataIndex: 'is_deleted',
             key: 'ticket_status',
             align: 'center',
@@ -487,8 +487,8 @@ const BookingList = memo(({ type = 'agent' }) => {
                     <Switch
                         checked={!isDeleted}
                         onChange={() => DeleteBooking(record)}
-                        checkedChildren="Active"
-                        unCheckedChildren="Disabled"
+                        checkedChildren=""
+                        unCheckedChildren=""
                         loading={toggleBookingMutation.isPending}
                         disabled={record.status === "1"}
                     />

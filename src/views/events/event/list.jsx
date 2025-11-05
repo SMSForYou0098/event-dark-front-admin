@@ -21,10 +21,7 @@ import PermissionChecker from 'layouts/PermissionChecker';
 
 const EventList = () => {
   const navigate = useNavigate();
-  const { UserData, formatDateTime, isMobile,createSlug } = useMyContext();
-  const [modalId, setModalId] = useState(null);
-  const [isAreaModal, setIsAreaModal] = useState(false);
-  const [show, setShow] = useState(false);
+  const { UserData, formatDateTime, isMobile, createSlug } = useMyContext();
   const [dateRange, setDateRange] = useState(null);
   const queryClient = useQueryClient();
 
@@ -91,11 +88,7 @@ const EventList = () => {
     return `${startDate} to ${endDate}`;
   }, []);
 
-  const HandleGateModal = useCallback((id, isAreaModal = false) => {
-    setIsAreaModal(isAreaModal);
-    setModalId(id);
-    setShow(true);
-  }, []);
+
 
   const HandleDelete = useCallback(
     (id, eventName) => {
@@ -127,8 +120,8 @@ const EventList = () => {
     }
   }, []);
 
-const hasEditPermission = usePermission('Edit Event');
-const hasDeletePermission = usePermission('Delete Event');
+  const hasEditPermission = usePermission('Edit Event');
+  const hasDeletePermission = usePermission('Delete Event');
 
   const columns = useMemo(
     () => [
@@ -233,27 +226,27 @@ const hasDeletePermission = usePermission('Delete Event');
               isButton: true,
               permission: hasDeletePermission,
             },
-            {
-              tooltip: 'Manage Gates',
-              onClick: () => HandleGateModal(row?.id),
-              type: 'default',
-              icon: <MergeCellsOutlined />,
-              isButton: true,
-              permission: null,
-            },
-            {
-              tooltip: 'Manage Access Areas',
-              onClick: () => HandleGateModal(row?.id, true),
-              type: 'default',
-              icon: <KeyOutlined />,
-              isButton: true,
-              permission: null,
-            },
+            // {
+            //   tooltip: 'Manage Gates',
+            //   onClick: () => HandleGateModal(row?.id),
+            //   type: 'default',
+            //   icon: <MergeCellsOutlined />,
+            //   isButton: true,
+            //   permission: null,
+            // },
+            // {
+            //   tooltip: 'Manage Access Areas',
+            //   onClick: () => HandleGateModal(row?.id, true),
+            //   type: 'default',
+            //   icon: <KeyOutlined />,
+            //   isButton: true,
+            //   permission: null,
+            // },
           ];
 
           const filteredActions = actions.filter(
-  (action) => action.permission === null || action.permission === true
-);
+            (action) => action.permission === null || action.permission === true
+          );
 
           const renderAction = (action, index) => {
             const content = action.isButton ? (
@@ -371,7 +364,9 @@ const hasDeletePermission = usePermission('Delete Event');
       formatDateTime,
       isMobile,
       HandleDelete,
-      HandleGateModal,
+      hasDeletePermission,
+      hasEditPermission,
+      // HandleGateModal,
       createSlug,
       deleteMutation.isPending,
     ]
@@ -393,13 +388,13 @@ const hasDeletePermission = usePermission('Delete Event');
       ExportPermission={usePermission('Export Events')}
       extraHeaderContent={
         <PermissionChecker permission="Create Event">
-        <Tooltip title="New Event">
-          <Button
-            type="primary"
-            icon={<PlusOutlined size={16} />}
-            onClick={() => navigate('create')}
-          />
-        </Tooltip>
+          <Tooltip title="New Event">
+            <Button
+              type="primary"
+              icon={<PlusOutlined size={16} />}
+              onClick={() => navigate('create')}
+            />
+          </Tooltip>
         </PermissionChecker>
       }
       loading={isLoading || deleteMutation.isPending}

@@ -7,7 +7,7 @@ const Dashbaord = () => {
   const {userRole , UserData} = useMyContext()
    
   if(userRole === 'Admin'){
-    return <AdminDashboard UserData={UserData}/>
+    return <AdminDashboard UserData={UserData} userRole={userRole}/>
   }else if(userRole === 'Organizer'){
     return <OrgDashboard UserData={UserData}/>
   }

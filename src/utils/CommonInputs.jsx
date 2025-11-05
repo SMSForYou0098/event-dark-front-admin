@@ -1,7 +1,7 @@
 import { Form, Select } from "antd"
 import { useMyContext } from "Context/MyContextProvider";
 
-export const OrganisationList = ({ onChange }) => {
+export const OrganisationList = ({ onChange , disabled }) => {
     const { OrganizerList } = useMyContext();
     return (
         <Form.Item
@@ -10,6 +10,7 @@ export const OrganisationList = ({ onChange }) => {
             rules={[{ required: true, message: 'Please select organization' }]}
         >
             <Select
+                disabled={disabled}
                 showSearch
                 placeholder="Select organization"
                 options={OrganizerList?.map(org => ({

@@ -63,7 +63,7 @@ const Promocode = memo(() => {
     },
   });
 
-    // Delete mutation
+  // Delete mutation
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
@@ -288,8 +288,13 @@ const Promocode = memo(() => {
                 label="Code"
                 name="code"
                 rules={[{ required: true, message: 'Please enter promo code!' }]}
+                normalize={(value) => value?.toUpperCase()}
               >
-                <Input placeholder="Enter promo code" />
+                <Input
+                  className='text-upper'
+                  placeholder="Enter promo code"
+                  style={{ textTransform: 'uppercase' }}
+                />
               </Form.Item>
             </Col>
 

@@ -103,8 +103,8 @@ const TimingStep = ({ form, ...props }) => {
               initialValue="daily"
             >
               <Select placeholder="Select event type">
-                <Select.Option value="daily">Daily</Select.Option>
-                <Select.Option value="seasonal">Seasonal</Select.Option>
+                <Select.Option value="daily">Day Event</Select.Option>
+                <Select.Option value="seasonal">Season Event</Select.Option>
               </Select>
             </Form.Item>
           </Col>

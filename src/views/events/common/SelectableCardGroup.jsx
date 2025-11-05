@@ -57,7 +57,7 @@ const SelectableCardGroup = ({
                     </Col>
                   </Row>
                 </Col>
-                <Col>
+                <Col className="d-flex">
                   <Radio value={opt.value} />
                 </Col>
               </Row>

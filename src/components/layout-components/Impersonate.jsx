@@ -8,7 +8,7 @@ import { persistor } from 'store';
 import { authenticated, logout, updateUser } from 'store/slices/authSlice';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-
+import { UserDeleteOutlined } from "@ant-design/icons";
 /**
  * Helpers
  */
@@ -107,9 +107,9 @@ const Impersonate = () => {
         <Button
           className=""
           onClick={handleRevert}
+          icon={<UserDeleteOutlined />}
           disabled={revertMutation.isPending} // ✅ Changed from isLoading to isPending
         >
-          <UserMinus size={14} />
           {revertMutation.isPending ? 'Reverting...' : 'Revert to Admin'}
         </Button>
       )}

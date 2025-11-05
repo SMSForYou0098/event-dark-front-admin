@@ -127,7 +127,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
       {/* Organizer (hidden when user is an organizer) */}
       {!isUserOrganizer && (
         <Col xs={24} md={8}>
-          <OrganisationList />
+          <OrganisationList disabled={isEdit}/>
         </Col>
       )}
 

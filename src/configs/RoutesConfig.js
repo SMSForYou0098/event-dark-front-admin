@@ -7,7 +7,7 @@ import PosBooking from 'views/events/Bookings/pos/PosBookings'
 import POS from 'views/events/Bookings/pos/NewPosBooking'
 import TicketVerification from 'views/events/Scan/TicketVerification'
 import NewBooking from 'views/events/Bookings/agent/NewAgentBooking'
-import { roles } from 'views/events/users/constants'
+import AgentPOSDashboardLayout from 'views/events/Dashboard/components/AgentPOSDashboardLayout'
 
 // ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
@@ -70,9 +70,22 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'dashboard-org',
+        path: `/dashboard/org`,
+        component: React.lazy(() => import('views/events/Dashboard/Organizer/dashabord')),
+        meta:{
+            // roles: ['admin', 'organizer', 'agent', 'sponsor'],
+            permissions: ['View Dashboard'],
+        }
+    },
+    {
         key: 'dashboard-agent',
         path: `/dashboard/agent`,
-        component: React.lazy(() => import('views/events/Dashboard/index')),
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <AgentPOSDashboardLayout type="agent"/>
+            </React.Suspense>
+        ),
         meta:{
             // roles: ['admin', 'organizer', 'agent', 'sponsor'],
             permissions: ['View Dashboard'],
@@ -81,7 +94,11 @@ export const protectedRoutes = [
     {
         key: 'dashboard-pos',
         path: `/dashboard/pos`,
-        component: React.lazy(() => import('views/events/Dashboard/index')),
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <AgentPOSDashboardLayout type="pos"/>
+            </React.Suspense>
+        ),
         meta:{
             // roles: ['admin', 'organizer', 'agent', 'sponsor'],
             permissions: ['View Dashboard'],

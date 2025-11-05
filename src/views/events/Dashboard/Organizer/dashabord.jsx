@@ -1,6 +1,7 @@
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import DashboardLayout from '../components/DashboardLayout';
+import { useMyContext } from 'Context/MyContextProvider';
 
 const queryClient = new QueryClient({
     defaultOptions: {
@@ -11,16 +12,17 @@ const queryClient = new QueryClient({
     },
 });
 
-const AdminDashboard = ({ UserData,userRole }) => {
+const OrganizerDashboard = () => {
+    const {userRole , UserData} = useMyContext()
     return (
         <QueryClientProvider client={queryClient}>
             <DashboardLayout
-                userRole={userRole}
                 userId={UserData?.id} 
-                showUserManagement={true} 
+                role={userRole}
+                showUserManagement={true} // Hide user management for organizers
             />
         </QueryClientProvider>
     );
 };
 
-export default AdminDashboard;
+export default OrganizerDashboard;
