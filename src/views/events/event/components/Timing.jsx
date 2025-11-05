@@ -108,20 +108,19 @@ const TimingStep = ({ form, ...props }) => {
               </Select>
             </Form.Item>
           </Col>
-          <Col xs={12} md={12}>
+
+          {/* Overnight event -> shown only when event_type is 'daily' */}
           <Form.Item noStyle shouldUpdate={(prev, cur) => prev.event_type !== cur.event_type}>
             {({ getFieldValue }) =>
               getFieldValue('event_type') === 'daily' ? (
-                // <Col xs={12} md={6}>
+                <Col xs={12} md={12}>
                   <Form.Item name="overnight_event" valuePropName="checked" label="Overnight Event" tooltip="Check if the daily event runs past midnight" initialValue={false}>
                     <Checkbox>Overnight event — end time will be set to <strong>6 hours after start</strong></Checkbox>
                   </Form.Item>
-                // </Col>
+                </Col>
               ) : null
             }
           </Form.Item>
-            </Col>
-          {/* Overnight event -> shown only when event_type is 'daily' */}
 
           {/* start_time -> "HH:mm" (kept in sync with RangePicker) */}
           {/* <Col xs={12} md={6}>
