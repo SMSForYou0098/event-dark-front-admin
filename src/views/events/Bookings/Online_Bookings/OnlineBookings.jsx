@@ -1,8 +1,9 @@
 import React, { memo, useState, useCallback } from "react";
-import { Button, message, Space, Tag, Modal, Switch } from "antd";
+import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CheckCircle, Send, Ticket, XCircle, AlertCircle } from "lucide-react";
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined,} from '@ant-design/icons';
 import DataTable from "../../common/DataTable";
 import TicketModal from "views/events/Tickets/modals/TicketModal";
 import api from "auth/FetchInterceptor";
@@ -10,6 +11,7 @@ import { withAccess } from "../../common/withAccess";
 import BookingCount from "./BookingCount";
 
 const OnlineBookings = memo(() => {
+  
   const {
     UserData,
     formatDateTime,
@@ -383,18 +385,27 @@ const OnlineBookings = memo(() => {
       key: "status",
       align: "center",
       render: (_, record) => {
-        if (record.is_deleted) {
-          return <Tag color="error">Disabled</Tag>;
-        }
-        const status =
-          record.status || (record.bookings && record.bookings[0]?.status);
-        return (
-          <Tag color={status === "0" ? "warning" : "success"}>
-            {status === "0" ? "Uncheck" : "Checked"}
-          </Tag>
-        );
+          if (record.is_deleted) {
+              return (
+                  <Tooltip title="Disabled">
+                      <Tag icon={<CloseCircleOutlined className='m-0'/>} color="error" />
+                  </Tooltip>
+              );
+          }
+          const status =
+              record.status || (record.bookings && record.bookings[0]?.status);
+
+          return status === "0" ? (
+              <Tooltip title="Pending">
+                  <Tag icon={<ClockCircleOutlined className='m-0'/>} color="warning" />
+              </Tooltip>
+          ) : (
+              <Tooltip title="Scanned">
+                  <Tag icon={<CheckCircleOutlined className='m-0'/>} color="success" />
+              </Tooltip>
+          );
       },
-    },
+  },
     {
       title: "Purchase Date",
       dataIndex: "created_at",
