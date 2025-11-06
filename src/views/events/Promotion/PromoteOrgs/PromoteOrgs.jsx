@@ -32,8 +32,8 @@ function SortableOrg({ id, name, thumbnail, index, onEdit, onDelete }) {
     } = useSortable({ id });
 
     const style = {
-        boxShadow: isDragging ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-        background: isDragging ? 'var(--ant-color-fill-tertiary, #fafafa)' : undefined,
+        // boxShadow: isDragging ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+        // background: isDragging ? 'var(--ant-color-fill-tertiary, #fafafa)' : undefined,
         transition,
         transform: CSS.Transform.toString(transform)
     };

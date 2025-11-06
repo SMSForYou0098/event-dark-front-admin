@@ -1,22 +1,19 @@
 import React, { Fragment, useMemo } from "react";
-import { Row, Col, Alert } from "antd";
+import { Row, Alert } from "antd";
 import { useMyContext } from "Context/MyContextProvider";
 import GraphAndCardsLayout from "./GraphAndCardsLayout";
-import PaymentStatsCard from "./PaymentStatsCard";
 // import MobBookingButton from "../CustomUtils/BookingUtils/MobBookingButton";
 import {
   getAgentPOSSalesStats,
   getBookingTicketStats,
-  getAgentPaymentStats,
-  getPOSPaymentStats,
 } from "./dashboardConfig";
 import { useAgentPOSDashboard } from "./useAgentPOSDashboard";
 import DashSkeleton from "../Admin/DashSkeleton";
 
 const AgentPOSDashboardLayout = ({type}) => {
-  const { api, UserData, authToken, userRole, isMobile } = useMyContext();
+  const { api, UserData, authToken, userRole } = useMyContext();
 
-  const { sale, weeklySales, isLoading, error } = useAgentPOSDashboard(
+  const { sale, isLoading, error } = useAgentPOSDashboard(
     api,
     UserData?.id,
     authToken,
@@ -35,11 +32,11 @@ const AgentPOSDashboardLayout = ({type}) => {
     return result;
   };
 
-  const colors = useMemo(() => ["#1677ff", "#13c2c2"], []);
+  const colors = useMemo(() => ["var(--primary-color)", "var(--secondary-color)"], []);
   
   const commonChartOptions = useMemo(() => ({
     chart: { stacked: true, toolbar: { show: false } },
-    plotOptions: { bar: { columnWidth: "28%", borderRadius: 4 } },
+    plotOptions: { bar: { columnWidth: "10%", borderRadius: 4 } },
     legend: { show: false },
     dataLabels: { enabled: false },
     stroke: { show: true, width: 3, colors: ["transparent"] },
@@ -51,13 +48,19 @@ const AgentPOSDashboardLayout = ({type}) => {
   const saleChart = useMemo(() => ({
     options: { ...commonChartOptions, colors },
     series: [
-      { name: "Online Sale", data: weeklySales?.[0]?.data || [] },
-      { name: "Offline Sale", data: weeklySales?.[1]?.data || [] },
+      { name: "Total Sale", data: sale?.salesDataNew?.data || [] },
     ],
-  }), [commonChartOptions, colors, weeklySales]);
+  }), [commonChartOptions, colors, sale?.salesDataNew]);
+
+  const convChart = useMemo(() => ({
+    options: { ...commonChartOptions, colors },
+    series: [
+      { name: "Total Conversion", data: sale?.convenience_fee?.last_7_days?.data || [] },
+    ],
+  }), [commonChartOptions, colors, sale?.convenience_fee]);
 
   const isAgent = ['Agent', 'Sponsor', 'Accreditation', 'Organizer'].includes(userRole);
-  const isPOS = ['Corporate', 'POS'].includes(userRole);
+  const isPOS = ['Corporate', 'POS', 'Organizer'].includes(userRole);
 
   if (!UserData?.id) {
     return (
@@ -93,17 +96,20 @@ const AgentPOSDashboardLayout = ({type}) => {
 
   // Dashboard layout - DataCard will be used automatically via GraphAndCardsLayout
   const dashboardLayout = {
-    graphTitle: "Total Sales",
+    graphTitle: "Last 7 Days Sales",
+    convGraphTitle: "Last 7 Days Convincence Fees",
     graphValue: graphValue,
     chartOptions: saleChart.options,
     chartSeries: saleChart.series,
+    convChartOptions: convChart.options,
+    convChartSeries: convChart.series,
     cards1: getAgentPOSSalesStats(sale, userRole), // Already has icon and color
     cards2: getBookingTicketStats(sale), // Already has icon and color
+    isAgent,
+    sale,
   };
 
-  const paymentStats = isAgent 
-    ? getAgentPaymentStats(sale) 
-    : getPOSPaymentStats(sale);
+
 
 //   const bookingRoute = userRole === "Agent" 
 //     ? "/dashboard/agent-bookings/new" 
@@ -120,13 +126,6 @@ const AgentPOSDashboardLayout = ({type}) => {
           {/* Graph and DataCards Section - Uses DataCard internally */}
           <Row gutter={[16, 16]}>
             <GraphAndCardsLayout {...dashboardLayout} />
-          </Row>
-
-          {/* Payment Statistics Section - Uses PaymentStatsCard */}
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            {paymentStats.map((card, i) => (
-              <PaymentStatsCard key={i} {...card} />
-            ))}
           </Row>
         </>
       )}

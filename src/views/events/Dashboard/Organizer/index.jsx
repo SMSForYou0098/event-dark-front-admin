@@ -48,8 +48,8 @@ const OrgDashboard = () => {
         },
         {
             value: "event-report",
-            href: "/reprots/event", // Fixed: added leading slash
-            title: "Sponsor Summary",
+            href: "/reports/event", // Fixed: added leading slash
+            title: "Events Summary",
             description: "Manage sponsorship and promotions.",
             icon: <TeamOutlined />,
             navigation: true

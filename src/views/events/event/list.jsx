@@ -8,8 +8,6 @@ import {
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
-  KeyOutlined,
-  MergeCellsOutlined,
   MoreOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
@@ -18,6 +16,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 import { Ticket } from 'lucide-react';
 import api from 'auth/FetchInterceptor';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { USERSITE_URL } from 'utils/consts';
 
 const EventList = () => {
   const navigate = useNavigate();
@@ -123,6 +122,13 @@ const EventList = () => {
   const hasEditPermission = usePermission('Edit Event');
   const hasDeletePermission = usePermission('Delete Event');
 
+const handleViewEvent = (row) => {
+  const path = `${USERSITE_URL}events/${row?.venue?.city}/${createSlug(row?.user?.organisation)}/${createSlug(row?.name)}/${row?.event_key}`;
+  //console.log('Opening event URL:', path); // 👈 Log the full URL
+   window.open(path, '_blank');
+};
+
+
   const columns = useMemo(
     () => [
       {
@@ -142,12 +148,12 @@ const EventList = () => {
           (a.category?.title || '').localeCompare(b.category?.title || ''),
       },
       {
-        title: 'Organizer',
-        dataIndex: ['user', 'name'],
-        key: 'organizer',
+        title: 'Organisation',
+        dataIndex: ['user', 'organisation'],
+        key: 'organisation',
         align: 'center',
         searchable: true,
-        sorter: (a, b) => (a.user?.name || '').localeCompare(b.user?.name || ''),
+        sorter: (a, b) => (a.user?.organisation || '').localeCompare(b.user?.organisation || ''),
       },
       {
         title: 'Event Dates',
@@ -194,10 +200,8 @@ const EventList = () => {
           const actions = [
             {
               tooltip: 'View Event',
-              to: `/events/${row?.city}/${row?.user?.name}/${row?.name?.replace(
-                /\s+/g,
-                '-'
-              )}/${row.event_key}`,
+              isButton : true,
+              onClick: () => handleViewEvent(row),
               type: 'primary',
               icon: <EyeOutlined />,
               external: true,

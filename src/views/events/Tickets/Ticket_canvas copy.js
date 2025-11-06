@@ -18,49 +18,25 @@ const TicketCanvas = (props) => {
   const [qrDataUrl, setQrDataUrl] = useState(null);
   const textColor = '#000';
 
-const fetchImage = async () => {
-  try {
-    // Create a unique cache key based on the ticket background path
-    const cacheKey = `ticket_image_${ticketBG}`;
-    
-    // Check if image is already in sessionStorage
-    const cachedImage = sessionStorage.getItem(cacheKey);
-    
-    if (cachedImage) {
-      // Use cached base64 image
-      setImageUrl(cachedImage);
-      return;
+  const fetchImage = async () => {
+    try {
+      const response = await axios.post(
+        `${api}get-image/retrive`,
+        { path: ticketBG },
+        { responseType: 'blob' }
+      );
+      const imageUrl = URL.createObjectURL(response.data);
+      setImageUrl(imageUrl);
+    } catch (error) {
+      message.error('❌ Failed to load ticket background image.');
     }
-    
-    // If not cached, fetch from API
-    const response = await axios.post(
-      `${api}get-image/retrive`,
-      { path: ticketBG },
-      { responseType: 'blob' }
-    );
-    
-    // Convert blob to base64 for storage
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64Image = reader.result;
-      
-      // Store in sessionStorage
-      sessionStorage.setItem(cacheKey, base64Image);
-      setImageUrl(base64Image);
-      console.log('✅ Fetched and cached');
-    };
-    reader.readAsDataURL(response.data);
-    
-  } catch (error) {
-    message.error('❌ Failed to load ticket background image.');
-  }
-};
+  };
 
-useEffect(() => {
-  if (ticketBG) {
-    fetchImage();
-  }
-}, [ticketBG]);
+  useEffect(() => {
+    if (ticketBG) {
+      fetchImage();
+    }
+  }, [ticketBG]);
 
   // Generate QR code data URL when OrderId is available
   useEffect(() => {
@@ -282,6 +258,7 @@ useEffect(() => {
         canvas.renderAll();
 
       } catch (error) {
+        message.error('❌ Error:');
         canvas.remove(loader);
       }
     };
@@ -395,6 +372,31 @@ useEffect(() => {
                   Print
                 </Button>
               )}
+            </div>
+            <div style={{ textAlign: "center", fontSize: "13px", padding: "8px 0 0 0" }}>
+                <strong>Physical ticket not needed!</strong><br />
+                Download your pass from the button <strong>above</strong> and enjoy unlimited events with
+                <span className='text-primary fw-bold'> getyourticket.in</span>.<br />
+                <span className='fw-bold'>
+                    Watch the video to get entry without any hassle
+                    <a
+                        href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className='text-primary fw-bold'
+                    >
+                        <YoutubeOutlined size={16} className='mx-2' />
+                    </a>
+                    &
+                    <a
+                        href="https://www.instagram.com/YOUR_INSTAGRAM_LINK"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className='text-primary fw-bold'
+                    >
+                        <InstagramOutlined size={16} className='mx-2' />
+                    </a>
+                </span>
             </div>
           </Col>
         </Row>

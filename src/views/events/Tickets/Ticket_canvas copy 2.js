@@ -3,7 +3,7 @@ import { fabric } from 'fabric-pure-browser';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Button, Col, message, Row, Spin } from 'antd';
 import axios from 'axios';
-import { CloudDownloadOutlined, InstagramOutlined, PrinterOutlined, YoutubeOutlined } from '@ant-design/icons';
+import { CloudDownloadOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 
 const TicketCanvas = (props) => {
@@ -18,49 +18,25 @@ const TicketCanvas = (props) => {
   const [qrDataUrl, setQrDataUrl] = useState(null);
   const textColor = '#000';
 
-const fetchImage = async () => {
-  try {
-    // Create a unique cache key based on the ticket background path
-    const cacheKey = `ticket_image_${ticketBG}`;
-    
-    // Check if image is already in sessionStorage
-    const cachedImage = sessionStorage.getItem(cacheKey);
-    
-    if (cachedImage) {
-      // Use cached base64 image
-      setImageUrl(cachedImage);
-      return;
+  const fetchImage = async () => {
+    try {
+      const response = await axios.post(
+        `${api}get-image/retrive`,
+        { path: ticketBG },
+        { responseType: 'blob' }
+      );
+      const imageUrl = URL.createObjectURL(response.data);
+      setImageUrl(imageUrl);
+    } catch (error) {
+      message.error('❌ Failed to load ticket background image.');
     }
-    
-    // If not cached, fetch from API
-    const response = await axios.post(
-      `${api}get-image/retrive`,
-      { path: ticketBG },
-      { responseType: 'blob' }
-    );
-    
-    // Convert blob to base64 for storage
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64Image = reader.result;
-      
-      // Store in sessionStorage
-      sessionStorage.setItem(cacheKey, base64Image);
-      setImageUrl(base64Image);
-      console.log('✅ Fetched and cached');
-    };
-    reader.readAsDataURL(response.data);
-    
-  } catch (error) {
-    message.error('❌ Failed to load ticket background image.');
-  }
-};
+  };
 
-useEffect(() => {
-  if (ticketBG) {
-    fetchImage();
-  }
-}, [ticketBG]);
+  useEffect(() => {
+    if (ticketBG) {
+      fetchImage();
+    }
+  }, [ticketBG]);
 
   // Generate QR code data URL when OrderId is available
   useEffect(() => {
@@ -116,16 +92,16 @@ useEffect(() => {
     return tempText.width;
   };
 
-  const centerText = (text, fontSize, fontFamily, canvas, top) => {
-    const textWidth = getTextWidth(text, fontSize, fontFamily);
+  const centerText = (text, fontSize, fontFamily, canvas, top, scale = 1) => {
+    const textWidth = getTextWidth(text, fontSize * scale, fontFamily);
     const canvasWidth = canvas.getWidth();
     const centerX = (canvasWidth - textWidth) / 2;
 
     const textObject = new fabric.Text(text, {
-      fontSize,
+      fontSize: fontSize * scale,
       fontFamily,
       left: centerX,
-      top: top,
+      top: top * scale,
       fill: textColor,
       selectable: false,
       evented: false,
@@ -192,19 +168,26 @@ useEffect(() => {
         const imgWidth = img.width;
         const imgHeight = img.height;
 
-        canvas.setDimensions({ width: imgWidth, height: imgHeight });
-        img.scaleToWidth(imgWidth);
-        img.scaleToHeight(imgHeight);
+        // Fixed display dimensions
+        const displayWidth = 250;
+        const displayHeight = 450;
+        const scale = Math.min(displayWidth / imgWidth, displayHeight / imgHeight);
+        const scaledWidth = displayWidth;
+        const scaledHeight = displayHeight;
+
+        canvas.setDimensions({ width: scaledWidth, height: scaledHeight });
+        img.scaleToWidth(scaledWidth);
+        img.scaleToHeight(scaledHeight);
         canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas));
 
         canvas.remove(loader);
         const qrImg = await loadFabricImage(qrDataUrl);
         
-        const qrCodeWidth = 100;
-        const qrCodeHeight = 100;
-        const padding = 5;
-        const qrPositionX = (imgWidth / 2) - (qrCodeWidth / 2);
-        const qrPositionY = 150;
+        const qrCodeWidth = 100 * scale;
+        const qrCodeHeight = 100 * scale;
+        const padding = 5 * scale;
+        const qrPositionX = (scaledWidth / 2) - (qrCodeWidth / 2);
+        const qrPositionY = 150 * scale;
 
         // Add white background for QR code
         const qrBackground = new fabric.Rect({
@@ -229,9 +212,9 @@ useEffect(() => {
 
         // Add ticket number below QR code
         const ticketNumberText = new fabric.Text(`Ticket #${ticketNumber || '1'}`, {
-          left: imgWidth / 2,
-          top: qrPositionY + qrCodeHeight + 15,
-          fontSize: 16,
+          left: scaledWidth / 2,
+          top: qrPositionY + qrCodeHeight + (15 * scale),
+          fontSize: 16 * scale,
           fontFamily: 'Arial',
           originX: 'center',
           textAlign: 'center',
@@ -247,27 +230,27 @@ useEffect(() => {
 
         // Add ticket details if showDetails is true
         if (showDetails) {
-          centerText(`${ticketName}` || 'Ticket Name', 16, 'Arial', canvas, 50);
-          centerText(`${userName}` || 'User Name', 16, 'Arial', canvas, 190);
-          centerText(`${number}` || 'User Number', 16, 'Arial', canvas, 210);
+          centerText(`${ticketName}` || 'Ticket Name', 16, 'Arial', canvas, 50, scale);
+          centerText(`${userName}` || 'User Name', 16, 'Arial', canvas, 190, scale);
+          centerText(`${number}` || 'User Number', 16, 'Arial', canvas, 210, scale);
 
           const eventVenueText = new fabric.Textbox(`Venue: ${address}`, {
-            left: 30,
-            top: 240,
-            fontSize: 16,
+            left: 26 * scale,
+            top: 240 * scale,
+            fontSize: 16 * scale,
             fontFamily: 'Arial',
             fill: textColor,
             selectable: false,
             evented: false,
-            width: 250,
+            width: 250 * scale,
             lineHeight: 1.2,
           });
 
           const eventDateText = new fabric.Textbox(`Date: ${date} : ${time}`, {
-            left: 30,
-            top: 320,
-            width: 200,
-            fontSize: 16,
+            left: 26 * scale,
+            top: 320 * scale,
+            width: 200 * scale,
+            fontSize: 16 * scale,
             fontFamily: 'Arial',
             fill: textColor,
             selectable: false,
@@ -282,6 +265,7 @@ useEffect(() => {
         canvas.renderAll();
 
       } catch (error) {
+        // message.error('❌ Error:');
         canvas.remove(loader);
       }
     };
@@ -301,15 +285,30 @@ useEffect(() => {
   const downloadCanvas = () => {
     setLoading(true);
     try {
-      const canvas = canvasRef.current;
+      const canvas = fabricCanvasRef.current;
       if (!canvas) throw new Error('Canvas not found');
 
+      // Get original dimensions from background image
+      const bgImage = canvas.backgroundImage;
+      const originalWidth = bgImage.width;
+      const originalHeight = bgImage.height;
+
+      // Create a temporary canvas at original size
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
+      tempCanvas.width = originalWidth;
+      tempCanvas.height = originalHeight;
 
-      tempCtx.drawImage(canvas, 0, 0);
+      // Calculate scale ratio
+      const scaleX = originalWidth / canvas.getWidth();
+      const scaleY = originalHeight / canvas.getHeight();
+
+      // Scale the context
+      tempCtx.scale(scaleX, scaleY);
+
+      // Draw the fabric canvas onto temp canvas
+      const fabricEl = canvas.getElement();
+      tempCtx.drawImage(fabricEl, 0, 0);
 
       const dataURL = tempCanvas.toDataURL('image/jpeg', 0.9);
       const link = document.createElement('a');
@@ -327,15 +326,30 @@ useEffect(() => {
   const printCanvas = () => {
     setLoading(true);
     try {
-      const canvas = canvasRef.current;
+      const canvas = fabricCanvasRef.current;
       if (!canvas) throw new Error('Canvas not found');
 
+      // Get original dimensions from background image
+      const bgImage = canvas.backgroundImage;
+      const originalWidth = bgImage.width;
+      const originalHeight = bgImage.height;
+
+      // Create a temporary canvas at original size
       const tempCanvas = document.createElement('canvas');
       const tempCtx = tempCanvas.getContext('2d');
-      tempCanvas.width = canvas.width;
-      tempCanvas.height = canvas.height;
+      tempCanvas.width = originalWidth;
+      tempCanvas.height = originalHeight;
 
-      tempCtx.drawImage(canvas, 0, 0);
+      // Calculate scale ratio
+      const scaleX = originalWidth / canvas.getWidth();
+      const scaleY = originalHeight / canvas.getHeight();
+
+      // Scale the context
+      tempCtx.scale(scaleX, scaleY);
+
+      // Draw the fabric canvas onto temp canvas
+      const fabricEl = canvas.getElement();
+      tempCtx.drawImage(fabricEl, 0, 0);
 
       const printWindow = window.open('', '', 'width=800,height=600');
       const printImage = new Image();
@@ -364,8 +378,8 @@ useEffect(() => {
             <Spin size="large" />
           </div>
         ) : (
-          <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-            <canvas ref={canvasRef} />
+          <div style={{ display: 'flex', justifyContent: 'center', width: '100%', height:'30rem' }}>
+            <canvas ref={canvasRef} className='cc'/>
           </div>
         )}
       </div>
@@ -401,7 +415,7 @@ useEffect(() => {
       )}
       
       {/* Hidden QR Code Generator */}
-      <div ref={qrContainerRef} style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+      <div ref={qrContainerRef} style={{ position: 'absolute', left: '-9999px', top: '-9999px'}}>
         <QRCodeCanvas 
           value={OrderId || ''} 
           size={150} 

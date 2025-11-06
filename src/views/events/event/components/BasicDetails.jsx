@@ -130,7 +130,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
           <OrganisationList disabled={isEdit}/>
         </Col>
       )}
-
+      
       {/* Category */}
       <Col xs={24} md={8}>
         <Form.Item

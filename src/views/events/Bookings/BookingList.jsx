@@ -599,7 +599,6 @@ const BookingList = memo(({ type = 'agent' }) => {
                 open={ticketOptionModal.visible}
                 onCancel={handleCloseTicketOptionModal}
                 footer={null}
-                centered
                 width={400}
             >
                 <div style={{ marginBottom: 16 }}>
@@ -615,7 +614,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                             onClick={() => handleTicketOption('combine')}
                             size="large"
                         >
-                            Combine
+                            Group
                         </Button>
                         {ticketOptionModal.hasMultiple && (
                             <>

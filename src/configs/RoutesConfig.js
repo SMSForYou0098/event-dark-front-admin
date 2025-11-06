@@ -107,7 +107,11 @@ export const protectedRoutes = [
     {
         key: 'dashboard-sponsor',
         path: `/dashboard/sponsor`,
-        component: React.lazy(() => import('views/events/Dashboard/index')),
+         component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <AgentPOSDashboardLayout type="sponsor"/>
+            </React.Suspense>
+        ),
         meta:{
             // roles: ['admin', 'organizer', 'agent', 'sponsor'],
             permissions: ['View Dashboard'],

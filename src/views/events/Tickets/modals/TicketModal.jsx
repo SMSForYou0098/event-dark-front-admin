@@ -233,9 +233,7 @@ const TicketModal = (props) => {
                 </Col>
             </Row>
             <div style={{ textAlign: "center", fontSize: "13px", padding: "8px 0 0 0" }}>
-                <strong>Physical ticket not needed!</strong><br />
-                Download your pass from the button <strong>above</strong> and enjoy unlimited events with
-                <span className='text-primary fw-bold'> getyourticket.in</span>.<br />
+                <strong>Go paperless! </strong>download your pass and enjoy easy entry with GetYourTicket.in.
                 <span className='fw-bold'>
                     Watch the video to get entry without any hassle
                     <a

@@ -19,20 +19,16 @@ import { Ticket } from 'lucide-react';
 
 // Agent/POS specific stats
 export const getAgentPOSSalesStats = (data = {}, userRole) => {
-    const isAgent = userRole === 'Agent' || userRole === 'Sponsor' || userRole === 'Accreditation';
-    const amount = isAgent ? data.agents : data.pos;
-    const todayAmount = isAgent ? data.agentsToday : data.posToday;
-
     return [
         {
             title: 'Total Sales',
-            value: amount || 0,
+            value: data?.sales?.total || 0,
             icon: <DollarOutlined />,
             color: '#1890ff'
         },
         {
             title: 'Today Total',
-            value: todayAmount || 0,
+            value: data?.sales?.today || 0,
             icon: <DollarOutlined />,
             color: '#52c41a'
         }
@@ -82,10 +78,14 @@ export const getPOSPaymentStats = (data = {}) => [
         value: data.nb?.total || 0,
         today: data.nb?.today || 0
     },
+    {
+        title: 'Total Discount',
+        value: data.discount?.total || 0,
+        today: data.discount?.today || 0
+    },
 ];
 
 //end pos/agent stats
-
 export const getAgentPaymentStats = (data = {}) => [
     {
         title: 'Total Cash',
@@ -99,6 +99,11 @@ export const getAgentPaymentStats = (data = {}) => [
     },
     {
         title: 'Total Net Banking',
+        value: data.nb?.total || 0,
+        today: data.nb?.today || 0
+    },
+    {
+        title: 'Total Dis',
         value: data.nb?.total || 0,
         today: data.nb?.today || 0
     },

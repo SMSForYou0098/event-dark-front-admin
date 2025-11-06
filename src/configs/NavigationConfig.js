@@ -1,4 +1,5 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Clock } from 'lucide-react';
 import { roles } from 'views/events/users/constants';
 
 // Dashboard
@@ -159,7 +160,7 @@ const bookingsSubmenu = [
   {
     key: 'online-manage',
     // path: 'bookings/online',
-    title: 'User Bookings',
+    title: 'Online Bookings',
     breadcrumb: false,
     icon: ShoppingOutlined,
     permissions: ["View Online Bookings"],
@@ -167,7 +168,7 @@ const bookingsSubmenu = [
       {
         key: 'online-new',
         path: 'bookings/online',
-        title: 'Online',
+        title: 'Confirmed',
         breadcrumb: false,
         icon: ShoppingOutlined,
         permissions: ["View Online Bookings"],
@@ -176,7 +177,7 @@ const bookingsSubmenu = [
         key: 'pending-booking',
         path: 'bookings/pending',
         title: 'Pending',
-        icon: TrophyOutlined,
+        icon: ClockCircleOutlined,
         breadcrumb: false,
         submenu: [],
         permissions: ["View Pending Bookings"]
@@ -408,7 +409,7 @@ const reportingSubmenu = [
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Event Report"],
+    permissions: ["View Event Reports"],
   },
   {
     key: 'pos-report',
@@ -417,7 +418,7 @@ const reportingSubmenu = [
     icon: DesktopOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View POS Report"],
+    permissions: ["View POS Reports"],
   },
   {
     key: 'agent-report',
@@ -427,7 +428,7 @@ const reportingSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles: ["Admin"],
-    permissions: ["View Agent Report"],
+    permissions: ["View Agent Reports"],
   }
 ];
 
@@ -438,7 +439,7 @@ const reportingNav = {
   icon: BarChartOutlined,
   breadcrumb: false,
   submenu: reportingSubmenu,
-  permissions: ["View Event Report","View POS Report","View Agent Report"],
+  permissions: ["View Event Reports","View POS Reports","View Agent Reports"],
 };
 
 // Financial Management Submenu

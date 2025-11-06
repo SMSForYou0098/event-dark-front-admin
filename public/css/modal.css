@@ -111,13 +111,19 @@
   border-top: none !important;
 }
 
-.ant-modal-body {
+/* For centered modals */
+.ant-modal-centered .ant-modal-body {
   max-height: 70vh;
-  /* or any fixed px value */
   overflow-y: auto;
   overflow-x: hidden;
 }
 
+/* For non-centered modals (default) */
+.ant-modal-body {
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 /* Default modal */
 .ant-modal {
   top: -1rem !important;

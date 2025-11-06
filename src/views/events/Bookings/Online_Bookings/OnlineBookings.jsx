@@ -133,9 +133,9 @@ const OnlineBookings = memo(() => {
   const showMultiAlert = useCallback(() => {
     Modal.confirm({
       title: "Select an Option",
-      content: "Would you like to combine the tickets or keep them individual?",
+      content: "Would you like to group the tickets or keep them individual?",
       icon: <AlertCircle size={24} color="#1890ff" />,
-      okText: "Combine",
+      okText: "Group",
       cancelText: "Individual",
       onOk: () => {
         setTicketType({ type: "combine" });
@@ -330,7 +330,6 @@ const OnlineBookings = memo(() => {
       title: "Action",
       key: "action",
       align: "center",
-      width: 180,
       render: (_, record) => {
         const isDisabled =
           record?.is_deleted === true ||

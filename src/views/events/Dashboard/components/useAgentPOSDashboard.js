@@ -26,29 +26,13 @@ export const useAgentPOSDashboard = (api, userId, authToken , type) => {
       setError(null);
 
       try {
-        const res = await axios.get(`${api}org/${type}/${userId}`, {
+        const res = await axios.get(`${api}dashboard/org/${type}/${userId}`, {
           headers: { Authorization: `Bearer ${authToken}` },
         });
 
         if (res.data.status) {
-          setWeeklySales(res.data?.salesDataNew || []);
-          setSale({
-            agents: res.data.agentBooking || 0,
-            agentsToday: res.data.agentToday || 0,
-            pos: res.data.posAmount || 0,
-            posToday: res.data.posTodayAmount || 0,
-            bookings: { 
-              today: res.data.todayTotalBookings || 0, 
-              total: res.data.totalBookings || 0 
-            },
-            tickets: { 
-              today: res.data.todayTotalTickets || 0, 
-              total: res.data.totalTickets || 0 
-            },
-            cash: res.data.cashSales || { today: 0, total: 0 },
-            upi: res.data.upiSales || { today: 0, total: 0 },
-            nb: res.data.netBankingSales || { today: 0, total: 0 },
-          });
+          // setWeeklySales(res.data?.salesDataNew || []);
+          setSale(res.data?.data);
         }
       } catch (err) {
         console.error("Sale Fetch Error:", err);

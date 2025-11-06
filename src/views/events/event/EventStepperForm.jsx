@@ -9,6 +9,7 @@ import {
     Divider,
     Tooltip,
     Spin,
+    Image,
 } from 'antd';
 import {
     CheckCircleOutlined,
@@ -41,6 +42,7 @@ import {
     useEventDetail,
     toUploadFileList,
 } from './hooks/useEventOptions';
+import { useMyContext } from 'Context/MyContextProvider';
 
 const { Step } = Steps;
 const { Title } = Typography;
@@ -59,6 +61,7 @@ const STEP_NAMES = {
 
 const EventStepperForm = () => {
     const navigate = useNavigate();
+    const {loader} = useMyContext()
     const location = useLocation();
     const { id } = useParams();
     const isEdit = !!id;
@@ -414,7 +417,8 @@ const EventStepperForm = () => {
     if (isEdit && loadingDetail) {
         return (
             <Card bordered={false} style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Spin size="large" tip={`Loading ${STEP_NAMES[current]} details...`} />
+                {/* <Spin size="large" tip={`Loading ${STEP_NAMES[current]} details...`} /> */}
+                 <Image src={loader} width={150} preview={false} />
             </Card>
         );
     }
