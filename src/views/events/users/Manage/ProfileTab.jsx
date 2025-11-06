@@ -99,7 +99,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             return userRole === 'Organizer' ? UserData?.id :
                 formState.reportingUser?.value || formState.reportingUser || undefined;
         }
-        return formState.reportingUser?.value || formState.reportingUser?.key || formState.reportingUser || undefined;
+        return userRole === 'Organizer' ? UserData?.id : formState.reportingUser?.value || formState.reportingUser?.key || formState.reportingUser || undefined;
     }, [mode, userRole, UserData?.id, formState.reportingUser]);
 
     // Fetch roles
@@ -130,7 +130,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     // FIXED: Set initial reporting user and handle query params separately
     useEffect(() => {
         if (mode === 'edit' && fetchedData?.user && initialReportingUser.current === null) {
-            initialReportingUser.current = fetchedData.user.reporting_user_id?.toString();
+            initialReportingUser.current = fetchedData?.user?.reporting_user_id?.toString();
         }
     }, [mode, fetchedData?.user]);
 
@@ -170,7 +170,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Get events from edit-user response (for edit mode, unchanged org)
     const eventsFromEditResponse = useMemo(() => {
+        console.log('fetcfh events',fetchedData?.user?.events);
         if (mode !== 'edit' || !fetchedData?.user?.events) return [];
+
         return fetchedData.user.events.map(event => ({
             value: event.id,
             label: event.name,
@@ -181,7 +183,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     // Fetch events only when needed (create mode or org changed in edit mode)
     const { data: fetchedEvents = [], isLoading: eventsLoading, isFetching: eventsFetching } = useQuery({
         queryKey: ["org-events", reportingUserId],
-        enabled: Boolean(needsEvents && reportingUserId && hasReportingUserChanged),
+        enabled: Boolean(needsEvents || reportingUserId || hasReportingUserChanged),
         queryFn: async () => {
             const res = await apiClient.get(`org-event/${reportingUserId}`);
             const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
@@ -195,20 +197,18 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         placeholderData: (previousData) => previousData,
     });
 
-    // Use fetched events if org changed, otherwise use events from edit response
-    const events = useMemo(() => {
-        if (mode === 'create') return fetchedEvents;
-        if (hasReportingUserChanged) return fetchedEvents;
-        return eventsFromEditResponse;
-    }, [mode, hasReportingUserChanged, fetchedEvents, eventsFromEditResponse]);
+    // Use all available events for options/ticket derivation: prefer fetchedEvents, fallback to edit response
+    const allEvents = useMemo(() => {
+        return (fetchedEvents && fetchedEvents.length) ? fetchedEvents : eventsFromEditResponse;
+    }, [fetchedEvents, eventsFromEditResponse]);
 
     // Generate ticket options - only when events are stable
     const ticketOptions = useMemo(() => {
-        if (eventsLoading || !events.length || !formState.events?.length) {
+        if (eventsLoading || !allEvents.length || !formState.events?.length) {
             return [];
         }
 
-        const selectedEventObjects = events.filter(e => formState.events.includes(e.value));
+        const selectedEventObjects = allEvents.filter(e => formState.events.includes(e.value));
         return selectedEventObjects.map(event => ({
             label: event.label,
             options: (event.tickets || []).map(ticket => ({
@@ -217,7 +217,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 eventId: event.value,
             })),
         }));
-    }, [events, formState.events, eventsLoading]);
+    }, [allEvents, formState.events, eventsLoading]);
 
     // Initialize form with fetched data
     useEffect(() => {
@@ -288,7 +288,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Handle event change with proper guards
     const handleEventChange = useCallback((selectedValues = []) => {
-        if (eventsLoading || eventsFetching || !events.length || isInitializing.current) {
+        if (eventsLoading || eventsFetching || !allEvents.length || isInitializing.current) {
             return;
         }
 
@@ -302,7 +302,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         } else {
             // Build set of valid ticket IDs from selected events
             const validIds = new Set(
-                events
+                allEvents
                     .filter(e => selectedValues.includes(e.value))
                     .flatMap(e => (e.tickets || []).map(t => String(t.id || t.value)))
             );
@@ -321,7 +321,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         }
 
         updateMultipleFields(updates);
-    }, [events, formState.tickets, eventsLoading, eventsFetching, updateMultipleFields]);
+    }, [allEvents, formState.tickets, eventsLoading, eventsFetching, updateMultipleFields]);
 
     // Custom validation rules
     const requiredIf = (condition, message) => ({
@@ -638,7 +638,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             <Select
                                                 mode="multiple"
                                                 placeholder="Select events"
-                                                options={events}
+                                                options={fetchedEvents}
                                                 onChange={handleEventChange}
                                                 optionFilterProp="label"
                                                 showSearch

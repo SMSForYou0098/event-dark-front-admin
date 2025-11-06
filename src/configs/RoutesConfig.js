@@ -150,7 +150,7 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
         meta:{
-            roles: ['admin', 'organizer'],
+            // roles: ['admin', 'organizer'],
             permissions: ['Edit User'],
         }
     },
