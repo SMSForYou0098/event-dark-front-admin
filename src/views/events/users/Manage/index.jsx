@@ -56,7 +56,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <AssignCredit id={id} />,
-      condition: selectedRole === "wallet_agent" || selectedRole === "Agent"
+      condition: selectedRole === "Wallet Agent" || selectedRole === "Agent"
     },
     {
       key: "4",
@@ -66,7 +66,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <Transactions userId={id} />,
-      condition: selectedRole === "wallet_agent" || selectedRole === "Agent"
+      condition: selectedRole === "Wallet Agent" || selectedRole === "Agent"
     },
     {
       key: "5",
