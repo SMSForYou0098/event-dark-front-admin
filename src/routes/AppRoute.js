@@ -22,7 +22,7 @@ const AppRoute = ({ component: Component, routeKey, blankLayout, roles, permissi
   );
 
   if (!canAccess) {
-    return <Navigate to="/unauthorise" replace />;
+    return <Navigate to="/forbidden" replace />;
   }
 
   return <Component {...props} />;

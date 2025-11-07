@@ -3,7 +3,7 @@ import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useStat
 import { Col, message, Row, Modal } from 'antd';
 import PosEvents from '../components/PosEvents';
 import AgentBookingModal from './AgentBookingModal';
-import { processImageFile } from './utils';
+import { handleDiscountChange, processImageFile } from './utils';
 
 // Import step components
 import StepIndicator from './components/StepIndicator';
@@ -433,7 +433,7 @@ const NewAgentBooking = memo(({ type }) => {
         setIsSubmitting(false);
       }, 1000);
     }
-  }, [ isSubmitting, name, number, email, companyName, designation, photo, doc, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, updateUserMutation, handleBookingAfterUser]);
+  }, [isSubmitting, name, number, email, companyName, designation, photo, doc, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, updateUserMutation, handleBookingAfterUser]);
 
   const isLoading =
     corporateBookingMutation.isPending ||
@@ -468,44 +468,17 @@ const NewAgentBooking = memo(({ type }) => {
   }, [fetchCategoryData]);
 
   const handleDiscount = useCallback(() => {
-    const { subtotal } = calcTicketTotals(selectedTickets);
-
-    if (!discountValue || discountValue <= 0) {
-      setDiscount(0);
-      setDisableChoice(false);
-      message.info('Discount removed');
-      return;
-    }
-
-    const subtotalValue = parseFloat(subtotal);
-    let calculatedDiscount = 0;
-
-    if (discountType === 'percentage') {
-      if (discountValue > 100) {
-        message.error('Percentage cannot be more than 100%');
-        return;
-      }
-      calculatedDiscount = (subtotalValue * discountValue) / 100;
-    } else {
-      if (discountValue > subtotalValue) {
-        message.error('Discount cannot be more than subtotal');
-        return;
-      }
-      calculatedDiscount = Number(discountValue);
-    }
-
-    const finalDiscount = +calculatedDiscount.toFixed(2);
-    // ✅ Apply the discount to tickets before updating totals
-    const updatedTickets = distributeDiscount(selectedTickets, finalDiscount);
-
-    setSelectedTickets(updatedTickets); // important step
-    setDiscount(finalDiscount);
-    setDisableChoice(true);
-
-    message.success('Discount applied successfully');
+    handleDiscountChange({
+      selectedTickets,
+      discountValue,
+      discountType,
+      setDiscount,
+      setSelectedTickets,
+      setDisableChoice,
+      message
+    });
   }, [discountValue, discountType, selectedTickets]);
 
-  // ✅ Updated goToNextStep with proper validation
   const goToNextStep = useCallback(() => {
     if (currentStep === 0) {
       const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);

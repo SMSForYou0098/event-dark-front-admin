@@ -24,8 +24,30 @@ const GraphAndCardsLayout = ({
     : getPOSPaymentStats(sale);
   return (
     <>
+    {/* Cards Section 1 */}
+      <Col xs={24} lg={16}>
+        <Row gutter={[ROW_GUTTER]}>
+          <Col xs={24} lg={24}>
+            <Row gutter={[16, 16]}>
+              {cards1?.map((card, index) => (
+                <Col xs={24} sm={12} key={`card1-${index}`}>
+                  <DataCard data={card} value={card.value} />
+                </Col>
+              ))}
+              {cards2?.map((card, index) => (
+                <Col xs={24} sm={12} md={6} key={`card2-${index}`}>
+                  <DataCard data={card} value={card.value} />
+                </Col>
+              ))}
+              {paymentStats.map((card, i) => (
+                   <PaymentStatsCard key={i} {...card} />
+              ))}
+            </Row>
+          </Col>
+        </Row>
+      </Col>
       {/* Graph Section */}
-      <Col xs={24} lg={12}>
+      <Col xs={24} lg={8}>
         <Card
           title={graphTitle}
           bordered={false}
@@ -58,29 +80,6 @@ const GraphAndCardsLayout = ({
             height={280}
           />
         </Card>
-      </Col>
-
-      {/* Cards Section 1 */}
-      <Col xs={24} lg={12}>
-        <Row gutter={[ROW_GUTTER]}>
-          <Col xs={24} lg={24}>
-            <Row gutter={[16, 16]}>
-              {cards1?.map((card, index) => (
-                <Col xs={24} sm={12} key={`card1-${index}`}>
-                  <DataCard data={card} value={card.value} />
-                </Col>
-              ))}
-              {cards2?.map((card, index) => (
-                <Col xs={24} sm={12} md={6} key={`card2-${index}`}>
-                  <DataCard data={card} value={card.value} />
-                </Col>
-              ))}
-              {paymentStats.map((card, i) => (
-                <PaymentStatsCard key={i} {...card} />
-              ))}
-            </Row>
-          </Col>
-        </Row>
       </Col>
     </>
   );

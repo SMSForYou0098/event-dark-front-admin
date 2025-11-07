@@ -79,7 +79,7 @@ const getTopNavMenuItem = (navItem) =>
 
 const SideNavContent = (props) => {
   const { routeInfo, hideGroupTitle, sideNavTheme = SIDE_NAV_LIGHT } = props;
-  const { UserPermissions = [], userRole = '' } = useMyContext();
+  const { UserPermissions = [], userRole = '' ,isMobile} = useMyContext();
 
   // 1) Filter the raw config by access
   const filteredNav = useMemo(
@@ -91,15 +91,15 @@ const SideNavContent = (props) => {
   const menuItems = useMemo(() => getSideNavMenuItem(filteredNav), [filteredNav]);
 
   return (
-    <Menu
-      mode="inline"
-      theme={sideNavTheme === SIDE_NAV_LIGHT ? "light" : "dark"}
-      style={{ height: "100%", borderInlineEnd: 0 }}
-      defaultSelectedKeys={[routeInfo?.key]}
-      defaultOpenKeys={setDefaultOpen(routeInfo?.key)}
-      className={hideGroupTitle ? "hide-group-title" : ""}
-      items={menuItems}
-    />
+      <Menu
+        mode="inline"
+        theme={sideNavTheme === SIDE_NAV_LIGHT ? "light" : "dark"}
+        style={{ height: "100%", borderInlineEnd: 0  }}
+        defaultSelectedKeys={[routeInfo?.key]}
+        defaultOpenKeys={setDefaultOpen(routeInfo?.key)}
+        className={hideGroupTitle ? "hide-group-title" : ""}
+        items={menuItems}
+      />
   );
 };
 

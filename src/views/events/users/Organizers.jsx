@@ -205,6 +205,7 @@ const Organizers = () => {
     {
       title: '#',
       dataIndex: 'id',
+      width: '50px',
       key: 'id',
       render: (_, __, index) => index + 1,
       searchable: false,
@@ -249,11 +250,12 @@ const Organizers = () => {
     title: 'Actions',
     key: 'actions',
     fixed : 'right',
+    width: '150px',
     align: 'center',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
         <PermissionChecker permission="Impersonet">
-          <Tooltip title="Impersonate User">
+          {/* <Tooltip title="Impersonate User"> */}
             <Button
               type="primary"
               icon={<LogIn size={14} />}
@@ -262,7 +264,7 @@ const Organizers = () => {
               disabled={mutationLoading || record?.status === "0" || record?.status === 0}
               size="small"
             />
-          </Tooltip>
+          {/* </Tooltip> */}
         </PermissionChecker>
 
         <PermissionChecker permission="Update User">

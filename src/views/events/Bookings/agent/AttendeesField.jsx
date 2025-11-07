@@ -127,11 +127,11 @@ const AttendeesField = ({
       setUploadingFiles({});
       setUploadedFiles({});
 
-      message.success(
-        initialData?.id
-          ? `Attendee updated successfully (ID: ${saved.id})`
-          : `Attendee saved successfully! ID: ${saved.id}`
-      );
+      // message.success(
+      //   initialData?.id
+      //     ? `Attendee updated successfully (ID: ${saved.id})`
+      //     : `Attendee saved successfully! ID: ${saved.id}`
+      // );
     } catch (error) {
       console.error('❌ Validation/Save failed:', error);
       if (error?.errorFields) {

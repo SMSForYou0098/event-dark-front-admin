@@ -8,12 +8,13 @@ import { onMobileNavToggle } from 'store/slices/themeSlice';
 import Logo from "./Logo";
 import Flex from "components/shared-components/Flex";
 import { ArrowLeftOutlined } from "@ant-design/icons";
+import { useMyContext } from "Context/MyContextProvider";
 
 export const MobileNav = ({
 	routeInfo,
 	hideGroupTitle
 }) => {
-
+	const { isMobile } = useMyContext();
 	const dispatch = useDispatch();
 	const currentTheme = useSelector(state => state.theme.currentTheme);
 	const mobileNav = useSelector(state => state.theme.mobileNav);
@@ -31,6 +32,7 @@ export const MobileNav = ({
 			onClose={onClose}
 			open={mobileNav}
 			bodyStyle={{ padding: 5 }}
+			style={{width : isMobile && 300 }}
 			width={300}
 		>
 			<Flex flexDirection="column" className="h-100">

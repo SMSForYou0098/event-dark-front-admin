@@ -1,5 +1,5 @@
 import React, { useState, memo, Fragment, useEffect, useMemo, useCallback } from "react";
-import { Button, Row, Col, Card,Space, Typography, Statistic, message } from "antd";
+import { Button, Row, Col, Card, Space, Typography, Statistic, message } from "antd";
 import { CalendarOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import axios from "axios";
 import Flex from "components/shared-components/Flex";
@@ -12,7 +12,7 @@ import { cancelToken } from "auth/FetchInterceptor";
 import BookingTickets from "../components/BookingTickets";
 import StickyLayout from "utils/MobileStickyBottom.jsx/StickyLayout";
 import { calcTicketTotals, distributeDiscount } from "utils/ticketCalculations";
-import { BookingStats } from "../agent/utils";
+import { BookingStats, handleDiscountChange } from "../agent/utils";
 
 const { Title, Text } = Typography;
 
@@ -91,7 +91,7 @@ const POS = memo(() => {
     } catch (err) {
       console.log(err);
     }
-  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, eventID, authToken, ErrorAlert ,grandTotal]);
+  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, eventID, authToken, ErrorAlert, grandTotal]);
 
   // Effects
   useEffect(() => {
@@ -101,43 +101,17 @@ const POS = memo(() => {
   }, [isMobile]);
 
   const handleDiscount = useCallback(() => {
-    const { subtotal } = calcTicketTotals(selectedTickets);
-  
-    if (!discountValue || discountValue <= 0) {
-      setDiscount(0);
-      setDisableChoice(false);
-      message.info('Discount removed');
-      return;
-    }
-  
-    const subtotalValue = parseFloat(subtotal);
-    let calculatedDiscount = 0;
-  
-    if (discountType === 'percentage') {
-      if (discountValue > 100) {
-        message.error('Percentage cannot be more than 100%');
-        return;
-      }
-      calculatedDiscount = (subtotalValue * discountValue) / 100;
-    } else {
-      if (discountValue > subtotalValue) {
-        message.error('Discount cannot be more than subtotal');
-        return;
-      }
-      calculatedDiscount = Number(discountValue);
-    }
-  
-    const finalDiscount = +calculatedDiscount.toFixed(2);
-    // ✅ Apply the discount to tickets before updating totals
-    const updatedTickets = distributeDiscount(selectedTickets, finalDiscount);
-  
-    setSelectedTickets(updatedTickets); // important step
-    setDiscount(finalDiscount);
-    setDisableChoice(true);
-  
-    message.success('Discount applied successfully');
+    handleDiscountChange({
+      selectedTickets,
+      discountValue,
+      discountType,
+      setDiscount,
+      setSelectedTickets,
+      setDisableChoice,
+      message
+    });
   }, [discountValue, discountType, selectedTickets]);
-  
+
 
   useEffect(() => {
     setDisableChoice(false);
@@ -187,20 +161,20 @@ const POS = memo(() => {
   }, [selectedTickets]);
 
 
-      // Utility function to calculate total tax + convenience fee from booking array
-const calculateTotalTax = (bookings) => {
-  if (!Array.isArray(bookings)) return 0;
+  // Utility function to calculate total tax + convenience fee from booking array
+  const calculateTotalTax = (bookings) => {
+    if (!Array.isArray(bookings)) return 0;
 
-  return bookings.reduce((sum, booking) => {
-    const tax = parseFloat(booking?.booking_tax?.total_tax ?? 0);
-    const convenienceFee = parseFloat(booking?.booking_tax?.convenience_fee ?? 0);
-    return sum + tax + convenienceFee;
-  }, 0);
-};
+    return bookings.reduce((sum, booking) => {
+      const tax = parseFloat(booking?.booking_tax?.total_tax ?? 0);
+      const convenienceFee = parseFloat(booking?.booking_tax?.convenience_fee ?? 0);
+      return sum + tax + convenienceFee;
+    }, 0);
+  };
 
-const totalTax = calculateTotalTax(bookingData)
+  const totalTax = calculateTotalTax(bookingData)
 
-  
+
 
   return (
     <Fragment>
@@ -299,7 +273,7 @@ const totalTax = calculateTotalTax(bookingData)
                       type="primary"
                       icon={<ArrowRightOutlined />}
                       size="large"
-                      style={{width:'10rem'}}
+                      style={{ width: '10rem' }}
                       block
                       onClick={handleBooking}
                     >

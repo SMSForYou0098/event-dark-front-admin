@@ -5,8 +5,8 @@ import DataCard from '../Admin/DataCard';
 
 const PaymentStatsCard = ({ title, value, today, icon, color = '#1890ff' }) => {
   // Extract payment method from title (e.g., "Total Cash" -> "Cash")
-  const paymentMethod = title.split(" ").pop();
-
+const paymentMethod = title.replace("Total ", "");
+  // console.log(title);
   // Total card data
   const totalCardData = {
     title: title,
@@ -22,7 +22,7 @@ const PaymentStatsCard = ({ title, value, today, icon, color = '#1890ff' }) => {
   };
 
   return (
-    <Col xs={24} sm={12} lg={8}>
+    <Col xs={24} sm={12} lg={6}>
       <Row gutter={[16, 16]}>
         <Col span={24}>
           <DataCard 

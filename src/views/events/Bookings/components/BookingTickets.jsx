@@ -17,6 +17,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
     {
       title: 'Ticket Details',
       dataIndex: 'name',
+      width : isMobile ? 250 : 400,
       key: 'name',
       render: (text, record) => (
         <Space direction="vertical" size={0}>
@@ -44,6 +45,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       title: 'Quantity',
       key: 'quantity',
       width: isMobile ? 200 : 250,
+      align: isMobile ? 'right' : 'center',
       render: (_, record) => {
         const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
         return (

@@ -395,6 +395,23 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
   }
 }
 
+:where(.css-dev-only-do-not-override-1u1move).ant-btn-tertiary {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  border-color: transparent !important;
+  color: var(--text-white) !important;
+  font-weight: 500 !important;
+
+  &:hover,
+  &:focus {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-color: transparent !important;
+  }
+
+  &:active {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+}
+
 .ant-upload-text:hover,
 .ant-upload-text:focus {
   color: var(--primary-color) !important;

@@ -9,7 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout, signIn } from "../../../../store/slices/authSlice";
 
-import { Form, Input, Button, Alert, Typography, message } from "antd";
+import { Form, Input, Button, Alert, Typography, message, Row, Col } from "antd";
 import {
   ArrowLeftOutlined,
   ExclamationCircleOutlined,
@@ -143,7 +143,7 @@ const VerifyPassword = memo(() => {
 
   // Memoized back handler
   const handleBack = useCallback(() => {
-    navigate(`${AUTH_PREFIX_PATH}/sign-in`);
+    navigate(`auth/sign-in`);
   }, [navigate]);
 
   // Memoized password change handler
@@ -156,35 +156,18 @@ const VerifyPassword = memo(() => {
   );
 
   const handleForgotPassword = useCallback(() => {
-    navigate(`${AUTH_PREFIX_PATH}/forgot-password`);
+    navigate(`auth/forgot-password`);
   }, [navigate]);
   return (
     <div>
-      <Flex justifyContent="space-between" alignItems="center">
-        <Button
-          type="link"
-          onClick={handleBack}
-          icon={<ArrowLeftOutlined />}
-          style={{ padding: 0 }}
-        >
-          Back to Sign In
-        </Button>
-        <Button
-          type="link"
-          onClick={handleForgotPassword}
-          icon={<QuestionCircleOutlined />}
-          style={{ padding: 0 }}
-        >
-         Forgot the password
-        </Button>
-      </Flex>
 
-      <Title level={3} style={{ marginBottom: 8 }}>
+
+      {/* <Title level={3} style={{ marginBottom: 8 }}>
         Password Verification
-      </Title>
-      <Paragraph type="secondary" style={{ marginBottom: 24 }}>
-        Enter your password to continue to your account.
-      </Paragraph>
+      </Title> */}
+      {/* <Paragraph type="secondary" style={{ marginBottom: 24 }}>
+        Enter your password to continue.
+      </Paragraph> */}
 
       {error && (
         <Alert
@@ -233,6 +216,28 @@ const VerifyPassword = memo(() => {
             {loading ? "Verifying..." : "Continue"}
           </Button>
         </Form.Item>
+       <Row justify="space-between" align="middle" gutter={[16, 16]}>
+  <Col xs={24} sm={12}>
+    <Button
+      className="ant-btn-tertiary w-100"
+      onClick={handleBack}
+      icon={<ArrowLeftOutlined />}
+    >
+      Back to Sign In
+    </Button>
+  </Col>
+  <Col xs={24} sm={12} className="text-end">
+    <Button
+      type="link"
+      className="w-100 text-center text-sm-right"
+      onClick={handleForgotPassword}
+      icon={<QuestionCircleOutlined />}
+      style={{ padding: 0 }}
+    >
+      Forgot password
+    </Button>
+  </Col>
+</Row>
       </Form>
 
       {attempts > 0 && (

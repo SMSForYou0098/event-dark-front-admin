@@ -4,11 +4,15 @@ import { ArrowRightOutlined } from '@ant-design/icons';
 import OrderCalculation from '../../components/OrderCalculation';
 import StickyLayout from 'utils/MobileStickyBottom.jsx/StickyLayout';
 import { BookingStats } from '../utils';
+import { calcTicketTotals } from 'utils/ticketCalculations';
 
 const { Title } = Typography;
 
 const OrderSummary = (props) => {
-  const {  userId,ticketCurrency, discount, grandTotal, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
+  const {  userId,ticketCurrency, discount, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
+    const {
+      grandTotal,
+    } = calcTicketTotals(selectedTickets, discount);
   // ✅ Determine which handler to use
   const handleButtonClick = () => {
     if (currentStep === 0) {

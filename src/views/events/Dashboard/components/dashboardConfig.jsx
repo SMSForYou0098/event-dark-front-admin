@@ -27,7 +27,7 @@ export const getAgentPOSSalesStats = (data = {}, userRole) => {
             color: '#1890ff'
         },
         {
-            title: 'Today Total',
+            title: 'Today Sales',
             value: data?.sales?.today || 0,
             icon: <DollarOutlined />,
             color: '#52c41a'
@@ -42,17 +42,18 @@ export const getBookingTicketStats = (data = {}) => [
       icon: <ShoppingOutlined />,
       color: '#1890ff'
     },
-    {
-      title: 'Today Booking',
-      value: data.bookings?.today || 0,
-      icon: <CalendarOutlined />,
-      color: '#52c41a'
-    },
+    
     {
       title: 'Total Tickets',
       value: data.tickets?.total || 0,
       icon: <Ticket />,
       color: '#722ed1'
+    },
+    {
+      title: 'Today Booking',
+      value: data.bookings?.today || 0,
+      icon: <CalendarOutlined />,
+      color: '#52c41a'
     },
     {
       title: 'Today Tickets',
@@ -103,9 +104,9 @@ export const getAgentPaymentStats = (data = {}) => [
         today: data.nb?.today || 0
     },
     {
-        title: 'Total Dis',
-        value: data.nb?.total || 0,
-        today: data.nb?.today || 0
+        title: 'Total Discount',
+        value: data.discount?.total || 0,
+        today: data.discount?.today || 0
     },
 ];
 

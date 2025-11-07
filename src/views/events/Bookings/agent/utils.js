@@ -2,6 +2,7 @@ import { Statistic } from "antd";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { calcTicketTotals, distributeDiscount } from "utils/ticketCalculations";
 
 
 export const sanitizeInput = (value) => {
@@ -107,3 +108,57 @@ export const BookingStats = ({type , id }) => {
   </Flex>
   )
 }
+
+export const handleDiscountChange = ({
+  selectedTickets,
+  discountValue,
+  discountType,
+  setDiscount,
+  setSelectedTickets,
+  setDisableChoice,
+  message
+}) => {
+  const { subtotal } = calcTicketTotals(selectedTickets);
+
+  if (!discountValue || discountValue <= 0) {
+    setDiscount(0);
+    setSelectedTickets(selectedTickets.map(ticket => ({
+      ...ticket,
+      discount: 0,
+      discountPerUnit: 0,
+      baseAmount: ticket.price,
+      totalBaseAmount: ticket.price * ticket.quantity,
+      finalAmount: ticket.price + ticket.centralGST + ticket.stateGST + ticket.convenienceFee,
+      totalFinalAmount: (ticket.price + ticket.centralGST + ticket.stateGST + ticket.convenienceFee) * ticket.quantity
+    })));
+    setDisableChoice(false);
+    message.info('Discount removed');
+    return;
+  }
+
+  const subtotalValue = parseFloat(subtotal);
+  let calculatedDiscount = 0;
+
+  if (discountType === 'percentage') {
+    if (discountValue > 100) {
+      message.error('Percentage cannot be more than 100%');
+      return;
+    }
+    calculatedDiscount = (subtotalValue * discountValue) / 100;
+  } else {
+    if (discountValue > subtotalValue) {
+      message.error('Discount cannot be more than subtotal');
+      return;
+    }
+    calculatedDiscount = Number(discountValue);
+  }
+
+  const finalDiscount = +calculatedDiscount.toFixed(2);
+  const updatedTickets = distributeDiscount(selectedTickets, finalDiscount);
+
+  setSelectedTickets(updatedTickets);
+  setDiscount(finalDiscount);
+  setDisableChoice(true);
+
+  message.success('Discount applied successfully');
+};

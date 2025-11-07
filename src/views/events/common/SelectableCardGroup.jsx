@@ -57,7 +57,7 @@ const SelectableCardGroup = ({
                     </Col>
                   </Row>
                 </Col>
-                <Col className="d-flex">
+                <Col className="d-flex opacity-0">
                   <Radio value={opt.value} />
                 </Col>
               </Row>
@@ -66,6 +66,8 @@ const SelectableCardGroup = ({
 
           return (
             <Col
+              md={6}
+              xs={24}
               key={opt.value}
               className="d-flex justify-content-center"
               onClick={() => handleSelect(opt.value)}

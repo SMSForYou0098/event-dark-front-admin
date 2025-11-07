@@ -1,13 +1,20 @@
 import React from 'react';
 import { Routes as RouterRoutes, Route, Navigate } from 'react-router-dom';
-import { AUTHENTICATED_ENTRY } from 'configs/AppConfig';
+// import { AUTHENTICATED_ENTRY } from 'configs/AppConfig';
 import { protectedRoutes, publicRoutes } from 'configs/RoutesConfig';
 import ProtectedRoute from './ProtectedRoute';
 import PublicRoute from './PublicRoute';
 import AppRoute from './AppRoute';
+import { useMyContext } from 'Context/MyContextProvider';
+import { lowerCase } from 'lodash';
 
 const Routes = () => {
-
+ const {userRole} = useMyContext()
+ const APP_PREFIX_PATH = '/';
+  // Define dashboard entry point based on role
+  const AUTHENTICATED_ENTRY = ['Admin', 'Organizer'].includes(userRole) 
+    ? `${APP_PREFIX_PATH}dashboard`
+    : `${APP_PREFIX_PATH}dashboard/${lowerCase(userRole)}`;
 	return (
 		<RouterRoutes>
 			<Route path="/" element={<ProtectedRoute />}>

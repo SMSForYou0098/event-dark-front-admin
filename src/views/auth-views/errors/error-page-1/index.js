@@ -1,63 +1,102 @@
-import React from 'react'
-import { Button, Row, Col } from "antd";
-import { ArrowLeftOutlined, LockOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { signOut } from 'store/slices/authSlice';
+import React from 'react';
+import { Button, Card, Col, Row } from 'antd';
+import { LockOutlined, HomeOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import './forbidden.css';
+import { Ticket } from 'lucide-react';
 
-const AccessDenied = () => {
-
-    const APP_NAME = "Application";
-	const dispatch = useDispatch();
-	const handleSignOut = () => {
-			dispatch(signOut());
-
-		}
-    return (
-        <div className={`h-100 bg-dark`}>
-            <div className="container-fluid d-flex flex-column justify-content-between h-100 px-md-4 pb-md-4 pt-md-1 dark">
-                {/* Header Logo */}
-                <div>
-                    <img className="img-fluid" src={`/img/logo-white.png`} alt="Logo" />
+export default function ForbiddenPage() {
+  return (
+    <Card className="forbidden-page">
+      <div className="animated-bg">
+        <div className="glow-orb glow-orb-1"></div>
+        <div className="glow-orb glow-orb-2"></div>
+      </div>
+        <Row>
+          {/* Left Content */}
+          <Col lg={12}>
+            <div className="content-wrapper">
+              {/* Logo */}
+              {/* <div className="logo-wrapper">
+                <div className="logo-icon bg-primary">
+                  <Ticket style={{ fontSize: '24px', color: 'white' , rotate: '-20deg' }} />
                 </div>
-                
-                {/* Error Content */}
-                <div className="container">
-                    <Row align="middle">
-                        <Col xs={24} sm={24} md={8}>
-                            {/* Changed Headline */}
-                            <h1 className="font-weight-bold mb-4 display-4">
-                                <LockOutlined className="mr-2" /> Access Denied
-                            </h1>
-                            {/* Changed Message */}
-                            <p className="font-size-md mb-4">
-                                Sorry, you do not have permission to access this page. 
-                                Please log in with the correct credentials or contact an administrator.
-                            </p>
-                            {/* Changed Link to point to login */}
-                                <Button type="primary" onClick={handleSignOut} icon={<ArrowLeftOutlined />}>Go to Login</Button>
-                        </Col>
-                        <Col xs={24} sm={24} md={{ span: 14, offset: 2 }}>
-                            {/* Updated image to a security/access theme (img-19 is often used for this) */}
-                            <img className="img-fluid mt-md-0 mt-4" src="/img/others/img-19.png" alt="Access Denied" />
-                        </Col>
-                    </Row>
+                <span className="logo-text">Get Your Ticket</span>
+              </div> */}
+
+              {/* Main Content */}
+              <div className="main-content">
+                <div className="heading-section">
+                  <h1 className="main-heading">Access Denied</h1>
+                  {/* <p className="sub-heading">This module requires elevated permissions</p> */}
                 </div>
-                
-                {/* Footer */}
-                {/* Replaced Flex component with a standard div and inline styles */}
-                <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
-                    <span>Copyright  &copy;  {`${new Date().getFullYear()}`} <span className="font-weight-semibold">{`${APP_NAME}`}</span></span>
-                    <div>
-                        <a className="text-gray" href="/#" onClick={e => e.preventDefault()}>Term & Conditions</a>
-                        <span className="mx-2 text-muted"> | </span>
-                        <a className="text-gray" href="/#" onClick={e => e.preventDefault()}>Privacy & Policy</a>
-                    </div>
-                </div> {/* <-- Corrected this line from </Flex> to </div> */}
+
+                <div className="info-cards">
+                  <div className="info-card">
+                    <p className="card-title">Permissionized Access Only</p>
+                    <p className="card-description">
+                      Only users with verified credentials can access this section.
+                    </p>
+                  </div>
+
+                  <div className="info-card">
+                    <p className="card-title">Tier Requirements</p>
+                    <p className="card-description">
+                      Your current account tier doesn't have access to access this feature. Contact your organizer to update the access.
+                    </p>
+                  </div>
+
+                  {/* <div className="info-card">
+                    <p className="card-title">Contact Support</p>
+                    <p className="card-description">
+                      Reach out to our support team to request elevated permissions or upgrade your account.
+                    </p>
+                  </div> */}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="d-flex justify-content-between">
+                  <Button 
+                    type="primary" 
+                    size="large" 
+                    onClick={() => window.location.href = '/dashboard'}
+                    icon={<HomeOutlined />}
+                  >
+                    Back to Dashboard
+                  </Button>
+                  {/* <Button 
+                    size="large"
+                  >
+                    Request Access
+                    <ArrowRightOutlined />
+                  </Button> */}
+                </div>
+              </div>
             </div>
-        </div>
-    )
+          </Col>
+
+          {/* Right Visual */}
+          <Col lg={12} className='d-none d-lg-block'>
+            <div className="visual-wrapper">
+              <div className="visual-container">
+                <div className="outer-glow"></div>
+                <div className="glass-card">
+                  <div className="lock-icon-wrapper">
+                    <div className="lock-glow"></div>
+                    <div className="lock-bg">
+                      <LockOutlined className="text-white" style={{ fontSize: '96px' }} />
+                    </div>
+                  </div>
+                  <div className="visual-text">
+                    <p className="visual-title">Restricted Area</p>
+                    <p className="visual-description">
+                      You need special permissions to access this area. Contact your organizer.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Col>
+        </Row>
+    </Card>
+  );
 }
-
-export default AccessDenied
-

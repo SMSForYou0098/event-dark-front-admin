@@ -8,6 +8,7 @@ import POS from 'views/events/Bookings/pos/NewPosBooking'
 import TicketVerification from 'views/events/Scan/TicketVerification'
 import NewBooking from 'views/events/Bookings/agent/NewAgentBooking'
 import AgentPOSDashboardLayout from 'views/events/Dashboard/components/AgentPOSDashboardLayout'
+import DashboardRoute from './DashboardRoute'
 
 // ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
@@ -58,14 +59,28 @@ export const protectedRoutes = [
         {
         key: 'forbidden',
         path: `/forbidden`,
-        component: React.lazy(() => import('views/auth-views/errors/error-page-1')),
+        component: React.lazy(() => import('views/auth-views/errors/error-page-1/index')),
     },
-    {
+    // {
+    //     key: 'dashboard',
+    //     path: `/dashboard`,
+    //     component: React.lazy(() => import('views/events/Dashboard/index')),
+    //     meta:{
+    //         // roles: ['admin', 'organizer', 'agent', 'sponsor'],
+    //         permissions: ['View Dashboard'],
+    //     }
+    // },
+        {
         key: 'dashboard',
         path: `/dashboard`,
-        component: React.lazy(() => import('views/events/Dashboard/index')),
+        component: () => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <DashboardRoute
+                    component={React.lazy(() => import('views/events/Dashboard/index'))}
+                />
+            </React.Suspense>
+        ),
         meta:{
-            // roles: ['admin', 'organizer', 'agent', 'sponsor'],
             permissions: ['View Dashboard'],
         }
     },
@@ -204,7 +219,7 @@ export const protectedRoutes = [
         path: `/events/create`,
         component: React.lazy(() => import('views/events/event/EventStepperForm')),
         meta:{
-            permissions: ['Create Event'],
+            // permissions: ['Create Event'],
             roles: ['admin', 'organizer'],
         }
     },
@@ -315,7 +330,7 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Blogs/NewPost')),
         meta:{
             roles: ['admin'],
-            permissions: ['Create Blog Post'],
+            // permissions: ['Create Blog Post'],
         }
     },
     {
@@ -385,7 +400,7 @@ export const protectedRoutes = [
         ),
         meta:{
             roles: ['admin', 'organizer', 'pos'],
-            permissions: ['Add POS Booking'],
+            // permissions: ['Add POS Booking'],
         }
     },
 

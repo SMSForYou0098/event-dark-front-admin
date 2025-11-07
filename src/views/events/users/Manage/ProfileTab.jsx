@@ -170,7 +170,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Get events from edit-user response (for edit mode, unchanged org)
     const eventsFromEditResponse = useMemo(() => {
-        console.log('fetcfh events',fetchedData?.user?.events);
         if (mode !== 'edit' || !fetchedData?.user?.events) return [];
 
         return fetchedData.user.events.map(event => ({

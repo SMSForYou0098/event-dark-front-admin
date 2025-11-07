@@ -26,15 +26,16 @@ const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) 
                                         alt="logo" 
                                         width={100}
                                     />
-                                    {bottomText && (
-                                        <p>{bottomText} <Link to={bottomLink}><strong>{bottomLinkText}</strong></Link></p>
-                                    )}
+                                  
                                 </div>
                                 <Row justify="center">
                                     <Col xs={24} sm={24} md={20} lg={20}>
                                         {children}
                                     </Col>
                                 </Row>
+                                  {bottomText && (
+                                        <p className='text-center'>{bottomText} <Link to={bottomLink}><strong>{bottomLinkText}</strong></Link></p>
+                                    )}
                             </div>
                         </Card>
                     </Col>
