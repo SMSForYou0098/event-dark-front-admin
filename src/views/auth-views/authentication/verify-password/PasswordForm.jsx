@@ -216,28 +216,28 @@ const VerifyPassword = memo(() => {
             {loading ? "Verifying..." : "Continue"}
           </Button>
         </Form.Item>
-       <Row justify="space-between" align="middle" gutter={[16, 16]}>
-  <Col xs={24} sm={12}>
-    <Button
-      className="ant-btn-tertiary w-100"
-      onClick={handleBack}
-      icon={<ArrowLeftOutlined />}
-    >
-      Back to Sign In
-    </Button>
-  </Col>
-  <Col xs={24} sm={12} className="text-end">
-    <Button
-      type="link"
-      className="w-100 text-center text-sm-right"
-      onClick={handleForgotPassword}
-      icon={<QuestionCircleOutlined />}
-      style={{ padding: 0 }}
-    >
-      Forgot password
-    </Button>
-  </Col>
-</Row>
+        <Row justify="space-between" align="middle" gutter={[16, 16]}>
+          <Col xs={24} sm={12}>
+            <Button
+              className="ant-btn-tertiary w-100"
+              onClick={handleBack}
+              icon={<ArrowLeftOutlined />}
+            >
+              Back to Sign In
+            </Button>
+          </Col>
+          <Col xs={24} sm={12} className="text-end">
+            <Button
+              type="link"
+              className="w-100 text-center text-sm-right"
+              onClick={handleForgotPassword}
+              icon={<QuestionCircleOutlined />}
+              style={{ padding: 0 }}
+            >
+              Forgot password
+            </Button>
+          </Col>
+        </Row>
       </Form>
 
       {attempts > 0 && (

@@ -1,11 +1,9 @@
 // components/VenueModal.js
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, Upload, message, Row, Col } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, Upload, message, Row, Col, Space, Button } from 'antd';
+import { LinkOutlined, PlusOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
-import PermissionChecker from 'layouts/PermissionChecker';
-import { OrganisationList } from 'utils/CommonInputs';
 
 const { TextArea } = Input;
 
@@ -42,15 +40,21 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
             // Set form values
             form.setFieldsValue({
                 name: venueData.name,
-                org_id: userRole==='Organizer' ? UserData?.id : venueData.org_id,
+                org_id: userRole === 'Organizer' ? UserData?.id : venueData.org_id,
                 address: venueData.address,
+                map_url: venueData.map_url || '',
                 city: venueData.city,
                 state: venueData.state,
                 type: venueData.type,
                 aembeded_code: venueData.aembeded_code || '',
-                map_url: venueData.map_url || '',
             });
-
+            // form.setFields([
+            //     {
+            //         name: 'map_url',
+            //         value: venueData.map_url || '',
+            //         errors: []
+            //     }
+            // ]);
             // Load cities for the selected state
             if (venueData.state) {
                 const stateCities = getCitiesByState(venueData.state);
@@ -92,7 +96,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
 
             // Append text fields
             formData.append('name', values.name);
-            formData.append('org_id', values.org_id);
+            formData.append('org_id', UserData?.id);
             formData.append('address', values.address);
             formData.append('city', values.city);
             formData.append('state', values.state);
@@ -152,6 +156,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
         setCities([]);
         onCancel();
     };
+
     const thumbnailUploadProps = {
         beforeUpload: (file) => {
             const isImage = file.type.startsWith('image/');
@@ -228,13 +233,13 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             <Input placeholder="Enter venue name" />
                         </Form.Item>
                     </Col>
-                    <PermissionChecker role="Admin">
+                    {/* <PermissionChecker role="Admin">
                         <Col xs={24} md={12}>
                             <OrganisationList />
                         </Col>
-                    </PermissionChecker>
+                    </PermissionChecker> */}
 
-                    <Col xs={24} md={8}>
+                    <Col xs={24} md={12}>
                         <Form.Item
                             label="Venue Type"
                             name="type"
@@ -248,7 +253,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                         </Form.Item>
                     </Col>
 
-                    <Col xs={24} md={8}>
+                    <Col xs={24} md={6}>
                         <Form.Item
                             label="State"
                             name="state"
@@ -264,7 +269,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                         </Form.Item>
                     </Col>
 
-                    <Col xs={24} md={8}>
+                    <Col xs={24} md={6}>
                         <Form.Item
                             label="City"
                             name="city"
@@ -279,16 +284,6 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             />
                         </Form.Item>
                     </Col>
-
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label="Address"
-                            name="address"
-                            rules={[{ required: true, message: 'Please enter address' }]}
-                        >
-                            <Input.TextArea placeholder="Enter full address" />
-                        </Form.Item>
-                    </Col>
                     <Col xs={24} md={12}>
                         <Form.Item
                             label="Map URL"
@@ -297,6 +292,16 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             <Input placeholder="Enter map URL" />
                         </Form.Item>
                     </Col>
+                    <Col xs={24} md={24}>
+                        <Form.Item
+                            label="Address"
+                            name="address"
+                            rules={[{ required: true, message: 'Please enter address' }]}
+                        >
+                            <Input.TextArea placeholder="Enter full address" />
+                        </Form.Item>
+                    </Col>
+
                     <Col xs={12} md={4}>
                         <Form.Item
                             label="Thumbnail Image"

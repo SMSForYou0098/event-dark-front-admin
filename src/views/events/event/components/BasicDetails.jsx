@@ -1,9 +1,9 @@
 // BasicDetailsStep.jsx
 import React, { useEffect, useMemo } from 'react';
-import {Form, Input, Select, Row, Col, Typography, Card, Space, Button, Alert, Empty} from 'antd';
+import { Form, Input, Select, Row, Col, Typography, Card, Space, Button, Alert, Empty } from 'antd';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { CompassOutlined, EnvironmentOutlined, HomeOutlined, PlusOutlined } from '@ant-design/icons';
-import { useVenuesByOrganizer, useEventCategories} from '../hooks/useEventOptions';
+import { useEventCategories, useVenues } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
 import { useNavigate } from 'react-router-dom';
@@ -52,7 +52,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
     isError: venueError,
     error: venueErrObj,
     refetch: refetchVenues,
-  } = useVenuesByOrganizer(organizerId);
+  } = useVenues();
 
   const renderVenueOptionLabel = (v) => (
     <div>
@@ -89,7 +89,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
   const handleAddVenue = () => {
     navigate('/venues');
   };
-  
+
   // Custom empty component with button
   const customNotFoundContent = (
     <Empty
@@ -100,13 +100,13 @@ const BasicDetailsStep = ({ form, isEdit }) => {
         </span>
       }
     >
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />}
-          onClick={handleAddVenue}
-        >
-          Add Venue
-        </Button>
+      <Button
+        type="primary"
+        icon={<PlusOutlined />}
+        onClick={handleAddVenue}
+      >
+        Add Venue
+      </Button>
     </Empty>
   );
   return (
@@ -127,10 +127,10 @@ const BasicDetailsStep = ({ form, isEdit }) => {
       {/* Organizer (hidden when user is an organizer) */}
       {!isUserOrganizer && (
         <Col xs={24} md={8}>
-          <OrganisationList disabled={isEdit}/>
+          <OrganisationList disabled={isEdit} />
         </Col>
       )}
-      
+
       {/* Category */}
       <Col xs={24} md={8}>
         <Form.Item
@@ -185,12 +185,11 @@ const BasicDetailsStep = ({ form, isEdit }) => {
         <Form.Item
           name="venue_id"
           label="Select Venue"
-          rules={[{ required: true, message: organizerId ? "Please select venue" : "Select organizer first" }]}
+          rules={[{ required: true, message: "Please select venue" }]}
         >
           <Select
-            placeholder={organizerId ? "Select Venue" : (isUserOrganizer ? "No venues found" : "Select organizer first")}
+            placeholder="Select Venue"
             loading={venueLoading}
-            disabled={!organizerId}
             options={venues.map((v) => ({
               value: String(v.id) ?? String(v.value),
               label: renderVenueOptionLabel(v),
@@ -215,7 +214,15 @@ const BasicDetailsStep = ({ form, isEdit }) => {
         <Col xs={24}>
           <Form.Item dependencies={['venue_id']} noStyle>
             {() => selectedVenue ? (
-              <Card size="small" title="Venue Details">
+              <Card size="small" title="Venue Details"
+                extra={
+                  <Button
+                    // size='small'
+                    type="link"
+                    onClick={handleAddVenue}
+                    icon={<PlusOutlined />}>New Venue</Button>
+                }
+              >
                 <Space direction="vertical">
                   <Space size="large">
                     <Space>

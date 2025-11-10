@@ -38,8 +38,9 @@ const EventControlsStep = ({ form, isEdit }) => {
           </Form.Item>
            {instaUrl ? (
             <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Eye size={20} className="text-primary" /> &nbsp;
+              <Eye size={20} className="text-success" /> &nbsp;
               <a
+               className="text-success"
                 href={instaUrl}
                 target="_blank"
                 rel="noopener noreferrer"

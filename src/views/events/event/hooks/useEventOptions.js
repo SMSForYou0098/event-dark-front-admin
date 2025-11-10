@@ -22,12 +22,11 @@ export const useOrganizers = () =>
 
 // -------venues by org id ----------
 
-export const useVenuesByOrganizer = (organizerId) =>
+export const useVenues = () =>
   useQuery({
-    queryKey: ['venues-by-organizer', organizerId],
-    enabled: !!organizerId, // only fetch when an organizer is selected
+    queryKey: ['venues'],
     queryFn: async () => {
-      const res = await api.get(`/venue-list/${organizerId}`);
+      const res = await api.get(`/venues`);
 
       if (res?.status !== true) {
         throw new Error(res?.message || 'Failed to fetch venues');
@@ -108,7 +107,6 @@ export const useCreateEvent = (options = {}) =>
 // helpers/formData.js
 // buildEventFormData.js
 export function buildEventFormData(values) {
-  console.log('valuers in form data', values);
   const fd = new FormData();
   const appendIfDefined = (k, v) => {
     if (v === undefined || v === null) return;
@@ -180,6 +178,7 @@ export function buildEventFormData(values) {
     appendIfDefined('entry_time', values.entry_time);
     appendIfDefined('start_time', values.start_time);
     appendIfDefined('end_time', values.end_time);
+    appendIfDefined('overnight_event', values.overnight_event ? 1 : 0);
     appendIfDefined('event_type', values.event_type);
   }
 
@@ -320,13 +319,11 @@ export const useUpdateEvent = (options = {}) =>
 
 // ------- artist api call --------
 
-export const useArtistsByOrganizer = (id, options = {}) =>
+export const useArtists = (options = {}) =>
   useQuery({
-    queryKey: ['artists-by-organizer', id],
+    queryKey: ['artists'],
     queryFn: async () => {
-      if (!id) throw new Error('Organizer ID is required');
-
-      const res = await api.get(`artist-list/${id}`); // backend: /artist-list/{id}
+      const res = await api.get(`artists`);
       const rawData = res?.artists || res?.data?.artists || res?.data;
 
       if (!rawData) throw new Error('Invalid response structure');
@@ -339,7 +336,6 @@ export const useArtistsByOrganizer = (id, options = {}) =>
 
       return rawData;
     },
-    enabled: !!id, // only run if id is available
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: (count, err) => {
       const status = err?.response?.status;

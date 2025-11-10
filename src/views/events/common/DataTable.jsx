@@ -140,7 +140,7 @@ const DataTable = ({
     try {
       const response = await api.post(
         exportRoute,
-        { date: dateRange },
+        { date: `${dateRange.startDate},${dateRange.endDate}` },
         { responseType: "blob" }
       );
 

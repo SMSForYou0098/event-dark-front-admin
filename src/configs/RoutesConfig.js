@@ -73,13 +73,7 @@ export const protectedRoutes = [
         {
         key: 'dashboard',
         path: `/dashboard`,
-        component: () => (
-            <React.Suspense fallback={<div>Loading...</div>}>
-                <DashboardRoute
-                    component={React.lazy(() => import('views/events/Dashboard/index'))}
-                />
-            </React.Suspense>
-        ),
+        component: React.lazy(() => import('views/events/Dashboard/index')),
         meta:{
             permissions: ['View Dashboard'],
         }

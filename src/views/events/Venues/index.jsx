@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { Button, Image, message, Modal, Space, Tooltip } from 'antd';
-import { User, Trash2, Pencil } from 'lucide-react';
+import { User, Trash2, Pencil, Eye } from 'lucide-react';
 import { useMyContext } from '../../../Context/MyContextProvider';
 import DataTable from '../common/DataTable';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -10,11 +10,13 @@ import VenueModal from './VaneModal';
 import PermissionChecker from 'layouts/PermissionChecker';
 
 const Venues = () => {
-  const { api: apiUrl, UserPermissions, authToken, UserData } = useMyContext();
+  const { api: apiUrl, UserPermissions, authToken, UserData , isMobile } = useMyContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [error, setError] = useState(null);
+const [mapModalVisible, setMapModalVisible] = useState(false);
+const [selectedMapUrl, setSelectedMapUrl] = useState('');
 
   // Fetch organizers with React Query
   const fetchVenue = async () => {
@@ -25,6 +27,20 @@ const Venues = () => {
     }
     return response.data || [];
   };
+  const handleViewMap = (record) => {
+  if (record.aembeded_code) {
+    // Extract src URL from iframe string
+    const srcMatch = record.aembeded_code.match(/src="([^"]+)"/);
+    if (srcMatch && srcMatch[1]) {
+      setSelectedMapUrl(srcMatch[1]);
+      setMapModalVisible(true);
+    } else {
+      message.error('Invalid map code');
+    }
+  } else {
+    message.warning('No map available for this location');
+  }
+};
 
   const {
     data: venues = [],
@@ -37,25 +53,23 @@ const Venues = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
     queryKey: ['venue', UserData?.id],
-    // refetchOnMount: "ifStale",
-    // refetchOnWindowFocus: true,
-    // refetchOnReconnect: true,
     onError: (err) => {
       setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
       message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");
     }
   });
-
   const columns = [
     {
       title: '#',
+      width: isMobile ? 20 : 50,
       render: (_, __, index) => index + 1,
       searchable: false,
     },
     {
-      title: 'Thumbnail',
+      title: 'Thumb',
       dataIndex: 'thumbnail',
       key: 'thumbnail',
+       width: 80,
       render: (thumbnail) => thumbnail ? <Image src={thumbnail} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       searchable: false,
     },
@@ -69,6 +83,19 @@ const Venues = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
           <User size={16} className="text-primary" />
           <span>{name}</span>
+        </div>
+      )
+    },
+    {
+      title: 'Organisation',
+      dataIndex: 'organisation',
+      key: 'organisation',
+      sorter: (a, b) => a.organisation?.localeCompare(b.organisation),
+      searchable: true,
+      render: (organisation) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          <User size={16} className="text-primary" />
+          <span>{organisation}</span>
         </div>
       )
     },
@@ -102,6 +129,13 @@ const Venues = () => {
         const isDisabled = record?.is_deleted || record?.status === "1";
 
         const actions = [
+          {
+            permission: "View Location",
+            tooltip: "View Location",
+            icon: <Eye size={14} />,
+            onClick: () => handleViewMap(record),
+            type: "default",
+          },
           {
             permission: "Update Venue",
             tooltip: "Update Venue",
@@ -201,6 +235,34 @@ const Venues = () => {
   
   return (
     <>
+     <Modal
+      title="Location Map"
+      open={mapModalVisible}
+      onCancel={() => {
+        setMapModalVisible(false);
+        setSelectedMapUrl('');
+      }}
+      footer={null}
+      width={900}
+      centered
+      destroyOnClose
+      styles={{
+        body: { padding: 0 }
+      }}
+    >
+      <div style={{ width: '100%', height: '500px' }}>
+        <iframe
+          src={selectedMapUrl}
+          width="100%"
+          height="100%"
+          style={{ border: 0 }}
+          allowFullScreen=""
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title="Google Map Location"
+        />
+      </div>
+    </Modal>
       <VenueModal
         open={isModalOpen}
         onCancel={handleModalClose}

@@ -24,7 +24,8 @@ const POS = memo(() => {
     ErrorAlert,
     authToken,
     getCurrencySymbol,
-    formatDateRange
+    formatDateRange,
+    userRole
   } = useMyContext();
 
   // State management
@@ -183,6 +184,7 @@ const POS = memo(() => {
         handleClose={handleClose}
         setName={setName}
         name={name}
+        userRole={userRole}
         setNumber={setNumber}
         number={number}
         handleSubmit={StorePOSBooking}

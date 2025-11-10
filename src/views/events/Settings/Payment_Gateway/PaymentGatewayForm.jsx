@@ -18,6 +18,7 @@ const PaymentGatewayForm = ({
   fields = [],
   hasEnvironment = false,
   apiEndpoint,
+  onStatusChange,
   onSuccess
 }) => {
   const { UserData } = useMyContext();
@@ -80,6 +81,10 @@ const PaymentGatewayForm = ({
     { value: "prod", label: "Production Environment" },
   ];
 
+    const handleStatusChange = (checked) => {
+    setStatus(checked);
+    onStatusChange?.(checked);
+  };
   return (
     <Card
       bordered={false}
@@ -163,7 +168,7 @@ const PaymentGatewayForm = ({
               <Space align="center" size="middle">
                 <Switch
                   checked={status}
-                  onChange={setStatus}
+                  onChange={handleStatusChange}
                   checkedChildren="Enabled"
                   unCheckedChildren="Disabled"
                   size="default"

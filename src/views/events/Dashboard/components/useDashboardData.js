@@ -12,22 +12,26 @@ export const useDashboardData = (userId) => {
         return response;
     };
 
-    const bookingQuery = useQuery({
+    const { data: bookingData, error: bookingError, isLoading: isBookingLoading } = useQuery({
         queryKey: ['bookingData', userId],
-        queryFn: fetchBookingData,
-        enabled: !!userId,
+        queryFn: () => fetchBookingData(userId),
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        cacheTime: 30 * 60 * 1000, // 30 minutes
+        keepPreviousData: true
     });
 
-    const salesQuery = useQuery({
+    const { data: salesData, error: salesError, isLoading: salesLoading } = useQuery({
         queryKey: ['salesData', userId],
-        queryFn: fetchSalesData,
-        enabled: !!userId,
+        queryFn: () => fetchSalesData(userId),
+        staleTime: 5 * 60 * 1000,
+        cacheTime: 30 * 60 * 1000,
+        keepPreviousData: true
     });
 
     return {
-        bookingData: bookingQuery.data,
-        salesData: salesQuery.data,
-        isLoading: bookingQuery.isLoading || salesQuery.isLoading,
-        error: bookingQuery.error || salesQuery.error,
+            bookingData: bookingData,
+            salesData: salesData,
+            isLoading: isBookingLoading || salesLoading,
+            error: bookingError || salesError,
     };
 };

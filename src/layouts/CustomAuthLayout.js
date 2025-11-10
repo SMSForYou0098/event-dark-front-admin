@@ -1,6 +1,5 @@
 import React from 'react'
 import { Card, Row, Col } from "antd";
-import { useSelector } from 'react-redux';
 import { useMyContext } from 'Context/MyContextProvider';
 import { Link } from 'react-router-dom';
 
@@ -19,7 +18,7 @@ const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) 
                     <Col xs={20} sm={20} md={20} lg={10}>
                         <Card className='glassmorphism-card' hoverable>
                             <div className="my-4">
-                                <div className="text-center">
+                                <div className="text-center mb-3">
                                     <img 
                                         className="img-fluid"
                                         src={systemSetting?.logo} 

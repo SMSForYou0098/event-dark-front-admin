@@ -137,7 +137,7 @@
   }
 
   .ant-modal-centered .ant-modal-body {
-    max-height: 45vh;
+    max-height: 55vh;
     /* or any value you want */
     overflow-y: auto;
     overflow-x: hidden;

@@ -1,5 +1,5 @@
 import React, { memo, Fragment, useState, useEffect, useCallback, useRef } from 'react';
-import { Form, Button, Alert, Typography, message } from 'antd';
+import { Form, Button, Alert, Typography, message, Row, Col } from 'antd';
 import { InputOTP } from 'antd-input-otp';
 import { ArrowLeftOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -167,17 +167,11 @@ const Twofactor = memo(() => {
   }, [error]);
 
   return (
-    <Fragment>
-      <div className="mb-3">
-        <Button type="link" onClick={handleBack} icon={<ArrowLeftOutlined />} style={{ padding: 0 }}>
-          Back to Sign In
-        </Button>
-      </div>
-
-      <Title level={3} className="mb-2">Two-Step Verification</Title>
-      <Paragraph type="secondary" className="mb-3">
+    <Fragment className="two-factor-authentication mt-2">
+      {/* <Title level={3} className="mb-2">Two-Step Verification</Title> */}
+      {/* <Paragraph type="secondary" className="mb-3">
         Enter the 6-digit OTP sent to your registered mobile number and email address.
-      </Paragraph>
+      </Paragraph> */}
 
       {error && (
         <Alert
@@ -222,23 +216,38 @@ const Twofactor = memo(() => {
         </Form.Item>
       </Form>
 
-      <div className="text-center fw-bold">
-        {timerVisible && otpSent ? (
-          <Text type="secondary">
-            Resend OTP in <Text strong>{countdown}</Text> seconds
-          </Text>
-        ) : (
+      <Row justify="space-between" align="middle" gutter={[16, 16]}>
+        <Col xs={24} sm={12}>
           <Button
-            type="link"
-            onClick={handleSendOtp}
-            size="large"
-            disabled={loading}
-            style={{ padding: 0 }}
+            className="ant-btn-tertiary w-100"
+            onClick={handleBack}
+            icon={<ArrowLeftOutlined />}
           >
-            {loading ? 'Sending...' : "Didn't receive OTP? Resend"}
+            Back to Sign In
           </Button>
-        )}
-      </div>
+        </Col>
+        <Col xs={24} sm={12} className="text-end">
+          <div className="text-center fw-bold">
+            {timerVisible && otpSent ? (
+              <Text type="secondary">
+                Resend OTP in <Text strong>{countdown}</Text> seconds
+              </Text>
+            ) : (
+              <Button
+                type="link"
+                onClick={handleSendOtp}
+                size="large"
+                disabled={loading}
+                style={{ padding: 0 }}
+              >
+                {loading ? 'Sending...' : "Didn't receive OTP? Resend"}
+              </Button>
+            )}
+          </div>
+        </Col>
+      </Row>
+
+
     </Fragment>
   );
 });

@@ -1,11 +1,11 @@
 // apiService.js
 import axios from 'axios';
-import { notification } from 'antd';
 import store from '../store'; // default export store
 // if your store exports named 'store', change accordingly
 import { signOutSuccess, logout } from 'store/slices/authSlice'; // adjust path
 import { AUTH_TOKEN } from 'constants/AuthConstant';
 import { API_BASE_URL } from 'configs/AppConfig';
+import { message } from 'antd';
 
 const DEFAULT_TIMEOUT = 60000;
 // NOTE: you included 400 earlier — keep if you intentionally treat 400 as auth-related
@@ -85,10 +85,7 @@ api.interceptors.response.use(
 
     // Defensive: if no response (network error / CORS / timeout)
     if (!error?.response) {
-      notification.error({
-        message: 'Network Error',
-        description: 'Unable to reach server. Please check your connection.',
-      });
+      message.error('Network Error: Unable to reach server. Please check your connection.');
       return Promise.reject(error);
     }
 
@@ -102,36 +99,29 @@ api.interceptors.response.use(
       // Dispatch a redux action to update auth state
       if (store?.dispatch) {
         if (typeof logout === 'function') {
-          store.dispatch(logout());
+          // store.dispatch(logout());
         } else if (typeof signOutSuccess === 'function') {
-          store.dispatch(signOutSuccess());
+          // store.dispatch(signOutSuccess());
         }
       }
-
-      notification.error({
-        message: 'Authentication failed',
-        description: 'Please login again.',
-      });
+      message.error('Your session has expired or you are not authorized. Please log in again.');
 
       return Promise.reject(error);
     }
 
     // Rate limit
     if (status === 429) {
-      notification.error({
-        message: 'Too many requests',
-        description: 'You are sending requests too quickly. Please wait a moment.',
-      });
+      message.error('Too many requests: You are sending requests too quickly. Please wait a moment.');
       return Promise.reject(error);
     }
 
     // Specific status messaging (404/500/508 etc)
     if (status === 404) {
-      notification.error({ message: 'Not Found', description: `Resource not found: ${url}` });
+      message.error(`Resource not found: ${url}`);
     } else if (status === 500) {
-      notification.error({ message: 'Server Error', description: 'Something went wrong on server.' });
+      message.error('Server Error: Something went wrong on server.');
     } else if (status === 408 || status === 508) {
-      notification.error({ message: 'Request Timeout', description: 'Request timed out.' });
+      message.error('Request Timeout: Request timed out.');
     } else {
       // Generic fallback: prefer server-supplied message if present
       const serverMsg =
@@ -139,10 +129,7 @@ api.interceptors.response.use(
         error?.response?.data?.error ||
         error?.response?.data ||
         'An error occurred';
-      notification.error({
-        message: 'Error',
-        description: typeof serverMsg === 'string' ? serverMsg : JSON.stringify(serverMsg),
-      });
+      message.error(`Error ${status}: ${serverMsg}`);
     }
 
     return Promise.reject(error);

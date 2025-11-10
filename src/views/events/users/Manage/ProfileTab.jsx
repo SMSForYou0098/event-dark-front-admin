@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Col, Form, Input, notification, Radio, Row, Select, Space, Spin, Switch } from 'antd';
+import { Alert, Button, Card, Col, Form, Input, message, Radio, Row, Select, Space, Spin, Switch } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import apiClient from "auth/FetchInterceptor";
@@ -85,14 +85,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         },
     });
 
-        const updateMultipleFields = useCallback((updates) => {
+    const updateMultipleFields = useCallback((updates) => {
         setFormState(prev => ({ ...prev, ...updates }));
         form.setFieldsValue(updates);
     }, [form]);
     // Calculate conditions based on current state
     const showAM = ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(formState.roleName);
     const needsEvents = ['Agent', 'Sponsor', 'Accreditation'].includes(formState.roleName);
-    
+
     // Stabilize reportingUserId
     const reportingUserId = useMemo(() => {
         if (mode === "create") {
@@ -179,10 +179,19 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         }));
     }, [mode, fetchedData?.user?.events]);
 
+
+    const shouldFetchEvents = useMemo(() => {
+        return mode === "edit" && // Only fetch in edit mode
+            (needsEvents && // Or if role needs events
+                Boolean(reportingUserId) && // And has reporting user
+                reportingUserId !== 'undefined' && // And reporting user is valid
+                formState.roleId); // And role is selected
+    }, [mode, needsEvents, reportingUserId, formState.roleId]);
+
     // Fetch events only when needed (create mode or org changed in edit mode)
     const { data: fetchedEvents = [], isLoading: eventsLoading, isFetching: eventsFetching } = useQuery({
         queryKey: ["org-events", reportingUserId],
-        enabled: Boolean(needsEvents || reportingUserId || hasReportingUserChanged),
+        enabled: shouldFetchEvents,
         queryFn: async () => {
             const res = await apiClient.get(`org-event/${reportingUserId}`);
             const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
@@ -223,9 +232,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         if (mode === 'edit' && fetchedData?.user && !didInit.current && !isInitializing.current) {
             isInitializing.current = true;
             const formData = mapApiToForm(fetchedData.user);
-            
+
             setFormState(prevState => ({ ...prevState, ...formData }));
-            
+
             // Set convenience fee type state
             if (formData.convenienceFeeType) {
                 setConvenienceFeeType(formData.convenienceFeeType);
@@ -236,7 +245,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
             didInit.current = true;
             isInitializing.current = false;
-            
+
             if (setSelectedRole && formData.roleName) {
                 setSelectedRole(formData.roleName);
             }
@@ -281,8 +290,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
         updateMultipleFields(updates);
         if (setSelectedRole && nextName) {
-        setSelectedRole(nextName);
-    }
+            setSelectedRole(nextName);
+        }
     }, [filteredRoles, formState.roleName, formState.events, formState.tickets, formState.gates, updateMultipleFields]);
 
     // Handle event change with proper guards
@@ -337,19 +346,19 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const convenienceFeeValidator = (type) => ({
         validator(_, value) {
             if (!value) return Promise.resolve();
-            
+
             const numValue = Number(value);
-            
+
             // Check for negative values
             if (numValue < 0) {
                 return Promise.reject(new Error('Value cannot be negative'));
             }
-            
+
             // Check percentage max limit
             if (type === 'percentage' && numValue > 100) {
                 return Promise.reject(new Error('Percentage cannot exceed 100'));
             }
-            
+
             return Promise.resolve();
         }
     });
@@ -379,20 +388,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     dispatch(updateUser(response.data.user));
                     navigate(-1);
                 }
-                notification.success({
-                    message: `User ${mode === "create" ? "created" : "updated"}`,
-                    description: response.data.message,
-                });
+                message.success(`User ${mode === "create" ? "created" : "updated"}`);
 
                 if (mode === "create") {
                     navigate(-1);
                 }
             }
         } catch (error) {
-            notification.error({
-                message: 'Error',
-                description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
-            });
+            message.error(`Error: ${error.response?.data?.error || error.response?.data?.message || 'Something went wrong!'}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -514,15 +517,25 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                 <>
 
 
-                                    <Col xs={24} md={12}>
+                                    <Col xs={24} md={8}>
                                         <Form.Item
                                             label="Organisation"
                                             name="organisation"
+                                            required={true}
                                         >
                                             <Input placeholder="Enter organisation" />
                                         </Form.Item>
                                     </Col>
-                                    <Col xs={24} md={12}>
+                                    <Col xs={24} md={8}>
+                                        <Form.Item
+                                            label="Brand Name"
+                                            name="brandName"
+                                            required={true}
+                                        >
+                                            <Input placeholder="Enter brand name" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={8}>
                                         <Form.Item label="GST Number" name="orgGstNumber">
                                             <Input placeholder="GST Number" />
                                         </Form.Item>
@@ -541,58 +554,58 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                         </Form.Item>
                                     </Col>
                                     {
-                                        userRole === 'Admin' &&  formState.roleName==='Organizer' && (
+                                        userRole === 'Admin' && formState.roleName === 'Organizer' && (
 
-                                    <Col xs={24} md={12}>
-                                        <Form.Item label="Convenience Fee" required={false}>
-                                            <Space.Compact className='w-100 mb-2'>
-                                                <Form.Item name="convenienceFeeType" noStyle>
-                                                    <Select
-                                                      style={{ width: 180 }}
-                                                      aria-label="Select fee type"
-                                                      onChange={(val) => setConvenienceFeeType(val)}
-                                                    >
-                                                      <Select.Option value="fixed">Fixed</Select.Option>
-                                                      <Select.Option value="percentage">Percentage</Select.Option>
-                                                    </Select>
+                                            <Col xs={24} md={12}>
+                                                <Form.Item label="Convenience Fee" required={false}>
+                                                    <Space.Compact className='w-100 mb-2'>
+                                                        <Form.Item name="convenienceFeeType" noStyle>
+                                                            <Select
+                                                                style={{ width: 180 }}
+                                                                aria-label="Select fee type"
+                                                                onChange={(val) => setConvenienceFeeType(val)}
+                                                            >
+                                                                <Select.Option value="fixed">Fixed</Select.Option>
+                                                                <Select.Option value="percentage">Percentage</Select.Option>
+                                                            </Select>
+                                                        </Form.Item>
+                                                        <Form.Item
+                                                            name="convenienceFee"
+                                                            noStyle
+                                                            dependencies={["convenienceFeeType"]}
+                                                            rules={[
+                                                                ({ getFieldValue }) => ({
+                                                                    validator(_, value) {
+                                                                        if (value === undefined || value === null || value === '') {
+                                                                            return Promise.resolve();
+                                                                        }
+                                                                        const num = Number(value);
+                                                                        if (Number.isNaN(num)) {
+                                                                            return Promise.reject(new Error('Enter a valid number'));
+                                                                        }
+                                                                        if (num < 0) {
+                                                                            return Promise.reject(new Error('Value cannot be negative'));
+                                                                        }
+                                                                        const type = getFieldValue('convenienceFeeType') || convenienceFeeType;
+                                                                        if (type === 'percentage' && num > 100) {
+                                                                            return Promise.reject(new Error('Percentage cannot exceed 100'));
+                                                                        }
+                                                                        return Promise.resolve();
+                                                                    }
+                                                                })
+                                                            ]}
+                                                        >
+                                                            <Input
+                                                                type="number"
+                                                                min={0}
+                                                                step="0.01"
+                                                                placeholder={convenienceFeeType === 'percentage' ? '0 - 100' : 'Amount'}
+                                                                aria-label="Convenience fee value"
+                                                            />
+                                                        </Form.Item>
+                                                    </Space.Compact>
                                                 </Form.Item>
-                                                <Form.Item
-                                                  name="convenienceFee"
-                                                  noStyle
-                                                  dependencies={["convenienceFeeType"]}
-                                                  rules={[
-                                                    ({ getFieldValue }) => ({
-                                                      validator(_, value) {
-                                                        if (value === undefined || value === null || value === '') {
-                                                          return Promise.resolve();
-                                                        }
-                                                        const num = Number(value);
-                                                        if (Number.isNaN(num)) {
-                                                          return Promise.reject(new Error('Enter a valid number'));
-                                                        }
-                                                        if (num < 0) {
-                                                          return Promise.reject(new Error('Value cannot be negative'));
-                                                        }
-                                                        const type = getFieldValue('convenienceFeeType') || convenienceFeeType;
-                                                        if (type === 'percentage' && num > 100) {
-                                                          return Promise.reject(new Error('Percentage cannot exceed 100'));
-                                                        }
-                                                        return Promise.resolve();
-                                                      }
-                                                    })
-                                                  ]}
-                                                >
-                                                    <Input
-                                                      type="number"
-                                                      min={0}
-                                                      step="0.01"
-                                                      placeholder={convenienceFeeType === 'percentage' ? '0 - 100' : 'Amount'}
-                                                      aria-label="Convenience fee value"
-                                                    />
-                                                </Form.Item>
-                                            </Space.Compact>
-                                        </Form.Item>
-                                    </Col>
+                                            </Col>
                                         )
                                     }
                                 </>
@@ -605,7 +618,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
 
                             {/* Account Manager for specific roles */}
-                            {showAM && userRole==='Admin' && (
+                            {showAM && userRole === 'Admin' && (
                                 <Col xs={24} md={12}>
                                     <Form.Item
                                         label="Account Manager"

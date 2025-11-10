@@ -3,7 +3,7 @@ import React from 'react';
 import { Form, DatePicker, TimePicker, Row, Col, Input, Select, Checkbox } from 'antd';
 import dayjs from 'dayjs';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
- 
+
 
 const { RangePicker } = DatePicker;
 
@@ -52,7 +52,6 @@ const TimingStep = ({ form, ...props }) => {
     <Row gutter={ROW_GUTTER}>
       <Col xs={24} lg={24}>
         <Row gutter={16}>
-          {/* date_range -> "YYYY-MM-DD,YYYY-MM-DD" (dates only) + start/end times from RangePicker */}
           <Col xs={24} md={6}>
             <Form.Item
               name="date_range"
@@ -114,59 +113,21 @@ const TimingStep = ({ form, ...props }) => {
             {({ getFieldValue }) =>
               getFieldValue('event_type') === 'daily' ? (
                 <Col xs={12} md={12}>
-                  <Form.Item name="overnight_event" valuePropName="checked" label="Overnight Event" tooltip="Check if the daily event runs past midnight" initialValue={false}>
-                    <Checkbox>Overnight event — end time will be set to <strong>6 hours after start</strong></Checkbox>
+                  <Form.Item
+                    name="overnight_event"
+                    valuePropName="checked"
+                    label="Overnight Event"
+                    tooltip="Check if the daily event runs past midnight"
+                    initialValue={false}
+                  >
+                    <Checkbox>
+                      Overnight event — end time will be set to <strong>6 hours after start</strong>
+                    </Checkbox>
                   </Form.Item>
                 </Col>
               ) : null
             }
           </Form.Item>
-
-          {/* start_time -> "HH:mm" (kept in sync with RangePicker) */}
-          {/* <Col xs={12} md={6}>
-            <Form.Item
-              name="start_time"
-              label="Start Time"
-              rules={[{ required: true, message: 'Please select start time' }]}
-              getValueProps={(value) => ({
-                value:
-                  typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
-                    ? dayjs(value, FMT_T)
-                    : undefined,
-              })}
-              getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
-            >
-              <TimePicker
-                style={{ width: '100%' }}
-                format={FMT_T}
-                placeholder="Start time"
-                onChange={onTimeChange('start_time')}
-              />
-            </Form.Item>
-          </Col> */}
-
-          {/* end_time -> "HH:mm" (kept in sync with RangePicker) */}
-          {/* <Col xs={12} md={6}>
-            <Form.Item
-              name="end_time"
-              label="End Time"
-              rules={[{ required: true, message: 'Please select end time' }]}
-              getValueProps={(value) => ({
-                value:
-                  typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
-                    ? dayjs(value, FMT_T)
-                    : undefined,
-              })}
-              getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
-            >
-              <TimePicker
-                style={{ width: '100%' }}
-                format={FMT_T}
-                placeholder="End time"
-                onChange={onTimeChange('end_time')}
-              />
-            </Form.Item>
-          </Col> */}
 
           {/* hidden to force rerender when only time changes */}
           <Form.Item name="start_time" hidden>

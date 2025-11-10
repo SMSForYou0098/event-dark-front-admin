@@ -1,17 +1,15 @@
-import React, { memo, Fragment, useState, useEffect } from "react";
+import React, { memo, Fragment, useState, useEffect, useMemo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 import {
     Row,
     Col,
     Form,
-    Button,
     Card,
     Input,
     Select,
     Switch,
     Radio,
-    Spin,
-    notification
+    message
 } from "antd";
 import {
     ArrowLeftOutlined,
@@ -23,10 +21,8 @@ import { useDispatch } from "react-redux";
 import { useMyContext } from "Context/MyContextProvider";
 import { updateUser } from "store/slices/authSlice";
 import { Key } from "lucide-react";
-import usePermission from "utils/hooks/usePermission";
 import PermissionChecker from "layouts/PermissionChecker";
-import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
-import Flex from "components/shared-components/Flex";
+import Loader from "utils/Loader";
 
 const { Option } = Select;
 
@@ -39,9 +35,7 @@ const UserForm = memo(({ mode = "edit" }) => {
         UserList,
         OrganizerList,
         HandleBack,
-        UserPermissions
     } = useMyContext();
-    const navigate = useNavigate()
     const dispatch = useDispatch();
     const { id } = useParams();
     const location = useLocation();
@@ -268,19 +262,34 @@ const UserForm = memo(({ mode = "edit" }) => {
         }
     }, [mode, formState.userType, roles, formState.roleId]);
 
-    // Fetch events when needed
-    const needsEvents = formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation';
     const reportingUserId = mode === "create"
         ? (userRole === 'Organizer' ? UserData?.id : formState.reportingUser?.value)
         : (formState.reportingUser?.value || formState.reportingUser?.key);
+    const needsEvents = formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation';
+   
+    const shouldFetchEvents = useMemo(() => {
+      
+        return mode === "edit" && // Only fetch in edit mode
+            (needsEvents && // Or if role needs events
+                Boolean(reportingUserId) && // And has reporting user
+                reportingUserId !== 'undefined' && // And reporting user is valid
+                formState.roleId); // And role is selected
+    }, [mode, needsEvents, reportingUserId, formState.roleId]);
+    // Fetch events when needed
 
     const { data: eventsData } = useQuery({
         queryKey: ["org-events", reportingUserId],
-        enabled: Boolean(needsEvents && reportingUserId),
+        enabled: shouldFetchEvents,
         queryFn: async () => {
+            if (!reportingUserId) throw new Error('No reporting user ID');
             const res = await apiClient.get(`org-event/${reportingUserId}`);
-            const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
-            return list.map(event => ({ value: event.id, label: event.name, tickets: event.tickets || [] }));
+            const list = Array.isArray(res?.data) ? res.data :
+                Array.isArray(res?.events) ? res.events : [];
+            return list.map(event => ({
+                value: event.id,
+                label: event.name,
+                tickets: event.tickets || []
+            }));
         },
         staleTime: 5 * 60 * 1000,
     });
@@ -339,13 +348,11 @@ const UserForm = memo(({ mode = "edit" }) => {
                 }
             }
         } catch (error) {
-            notification.error({
-                message: "Error",
-                description:
-                    error.response?.data?.error ||
-                    error.response?.data?.message ||
-                    "Something went wrong!",
-            });
+            message.error(
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                "Something went wrong!"
+            );
         }
     };
 
@@ -488,25 +495,22 @@ const UserForm = memo(({ mode = "edit" }) => {
             });
 
             if (response.data?.status) {
-                if (id == UserData?.id) {
+                if (id === UserData?.id) {
                     dispatch(updateUser(response.data.user));
                     HandleBack();
                 }
-                notification.success({
-                    message: `User ${mode === "create" ? "created" : "updated"}`,
-                    description: response.data.message,
-                });
+                message.success(`User ${mode === "create" ? "created" : "updated"}`);
 
                 if (mode === "create") {
                     HandleBack();
                 }
             }
         } catch (error) {
-            notification.error({
-                message: 'Error',
-                description: error.response?.data?.error || error.response?.data?.message || 'Something went wrong!',
-            });
-
+            message.error(
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                "Something went wrong!"
+            );
         }
     };
 
@@ -525,7 +529,7 @@ const UserForm = memo(({ mode = "edit" }) => {
     if (userLoading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
-                <Spin size="large" />
+                <Loader />
             </div>
         );
     }
@@ -540,7 +544,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                 onFinish={handleSubmit}
                 initialValues={formState}
             >
-                <div className="container"z>
+                <div className="container" z>
                     <Row gutter={[16, 16]}>
                         {/* Left Column - Basic Info */}
                         <Col xs={24} lg={12}>

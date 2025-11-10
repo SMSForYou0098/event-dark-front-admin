@@ -1,18 +1,16 @@
 // ArtistStep.jsx
 import React, { useState, useEffect } from 'react';
-import {
-  Row, Col, Card, Button, Modal, Input, Avatar, Empty, Space, Tag, Badge, Spin,
-  Form
-} from 'antd';
+import { Row, Col, Card, Button, Modal, Input, Avatar, Empty, Space, Tag, Badge,Form} from 'antd';
 import { SearchOutlined, PlusOutlined, CheckCircleOutlined, EditOutlined } from '@ant-design/icons';
-import { Link } from 'react-router-dom';
-import { X } from 'lucide-react';
 import { useMyContext } from 'Context/MyContextProvider';
 import ArtistCrewModal from 'views/events/Artist/artistModal';
-import { useArtistsByOrganizer } from '../hooks/useEventOptions';
+import Flex from 'components/shared-components/Flex';
+import Loader from 'utils/Loader';
+import { X } from 'lucide-react';
+import { useArtists } from '../hooks/useEventOptions';
 
 const ArtistStep = ({ form, isEdit, artistList = [] }) => {
-  const { UserData } = useMyContext();
+  const { UserData , isMobile } = useMyContext();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isArtistModalOpen, setIsArtistModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
@@ -23,7 +21,7 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
   const [isInitialized, setIsInitialized] = useState(false);
 
   // Fetch artists data - fetch immediately in edit mode, or when modal opens
-  const { data: artistsData = [], isLoading, refetch } = useArtistsByOrganizer(
+  const { data: artistsData = [], isLoading, refetch } = useArtists(
     (isEdit || shouldFetch) ? UserData?.id : null
   );
 
@@ -66,7 +64,7 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
   useEffect(() => {
     if (isEdit && !isInitialized && artistsData.length > 0) {
       const existingIds = form.getFieldValue('artist_id');
-      
+
       if (Array.isArray(existingIds) && existingIds.length > 0) {
         // Match IDs with fetched artists data
         const matchedArtists = existingIds
@@ -148,12 +146,9 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
 
       {/* Main content - Display selected artists */}
       {isEdit && isLoading && selectedArtists.length === 0 ? (
-        <div className="text-center py-5">
-          <Spin />
-          <p className="text-muted mt-3">Loading selected artists...</p>
-        </div>
+        <Loader />
       ) : selectedArtists.length > 0 ? (
-        <Row gutter={[24, 24]}>
+        <Row gutter={[24, 24]} >
           {selectedArtists.map((artist) => (
             <Col xs={24} sm={12} md={8} lg={6} key={artist.id}>
               <Card className="text-center bg-dark border-secondary" hoverable>
@@ -190,33 +185,31 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
       <Modal
         title={<span className="fw-semibold">Select Crew Members</span>}
         open={isModalVisible}
+        centered={isMobile}
         onCancel={() => setIsModalVisible(false)}
         onOk={() => setIsModalVisible(false)}
         okText="Done"
         width={900}
       >
-        <Space direction="vertical" className="w-100" size="large">
-          <div className="d-flex gap-2">
+        <Space direction="vertical" className="w-100">
+          <Flex justifyContent="between" gap="10px">
             <Input
               placeholder="Search by name or role..."
               prefix={<SearchOutlined />}
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              size="large"
               className="flex-grow-1"
             />
             <Button type="primary" icon={<PlusOutlined />} size="large" onClick={handleCreateArtist}>
               New
             </Button>
-          </div>
+          </Flex>
 
           {isLoading ? (
-            <div className="text-center py-4">
-              <Spin />
-              <p className="text-muted mt-3">Loading artists...</p>
-            </div>
+            <Loader />
           ) : filteredArtists.length > 0 ? (
-            <Row gutter={[16, 16]} className="mt-3">
+            // style={{maxHeight: '25rem', overflowY: 'auto'}}
+            <Row gutter={[16, 16]} className="mt-3" >
               {filteredArtists.map((artist) => (
                 <Col xs={24} sm={12} md={8} key={artist.id}>
                   <Badge.Ribbon
@@ -224,11 +217,11 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
                     className={isSelected(artist.id) ? 'd-block' : 'd-none'}
                   >
                     <Card
+                      bodyStyle={{ padding: '0.5rem' }}
                       hoverable
                       onClick={() => handleToggleArtist(artist)}
-                      className={`text-center position-relative ${
-                        isSelected(artist.id) ? 'border-primary bg-dark' : ''
-                      }`}
+                      className={`text-center position-relative ${isSelected(artist.id) ? 'border-primary bg-dark' : ''
+                        }`}
                     >
                       <Button
                         type="text"
@@ -240,9 +233,9 @@ const ArtistStep = ({ form, isEdit, artistList = [] }) => {
                       />
                       <div className="d-flex flex-column align-items-center">
                         <Avatar src={artist.image} size={100} className="mb-3" />
-                        <h6 className={`mb-1 ${isSelected(artist.id) ? 'text-white' : ''}`}>
+                        <h5 className={`mb-1 ${isSelected(artist.id) ? 'text-white' : ''}`}>
                           {artist.name}
-                        </h6>
+                        </h5>
                         <p className={`mb-2 ${isSelected(artist.id) ? 'text-muted' : 'text-secondary'}`}>
                           {artist.role}
                         </p>

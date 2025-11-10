@@ -45,13 +45,14 @@ const PosReports = memo(() => {
       setDateRange(null);
     }
   }, []);
+  
 
   const columns = useMemo(
     () => [
       {
         title: '#',
         key: 'index',
-        width: 60,
+        width: 40,
         align: 'center',
         render: (_, __, index) => index + 1,
         fixed: 'left',
@@ -62,7 +63,7 @@ const PosReports = memo(() => {
         key: 'pos_user_name',
         align: 'left',
         searchable: true,
-        width: 180,
+        width: 120,
         fixed: 'left',
         sorter: (a, b) => (a.pos_user_name || '').localeCompare(b.pos_user_name || ''),
       },
@@ -76,36 +77,36 @@ const PosReports = memo(() => {
       },
       {
         title: 'Today',
-        dataIndex: 'today_booking_count',
-        key: 'today_booking_count',
+        dataIndex: 'today_ticket_total',
+        key: 'today_ticket_total',
         align: 'center',
         width: 100,
-        sorter: (a, b) => (a.today_booking_count || 0) - (b.today_booking_count || 0),
+        sorter: (a, b) => (a.today_ticket_total || 0) - (b.today_ticket_total || 0),
       },
       {
         title: 'UPI',
-        dataIndex: 'total_UPI_bookings',
-        key: 'total_UPI_bookings',
+        dataIndex: 'total_upi_ticket',
+        key: 'total_upi_ticket',
         align: 'center',
         width: 80,
-        sorter: (a, b) => (a.total_UPI_bookings || 0) - (b.total_UPI_bookings || 0),
+        sorter: (a, b) => (a.total_upi_ticket || 0) - (b.total_upi_ticket || 0),
       },
       {
         title: 'Cash',
-        dataIndex: 'total_Cash_bookings',
-        key: 'total_Cash_bookings',
+        dataIndex: 'total_cash_ticket',
+        key: 'total_cash_ticket',
         align: 'center',
         width: 80,
-        sorter: (a, b) => (a.total_Cash_bookings || 0) - (b.total_Cash_bookings || 0),
+        sorter: (a, b) => (a.total_cash_ticket || 0) - (b.total_cash_ticket || 0),
       },
       {
         title: 'Net Banking',
-        dataIndex: 'total_Net_Banking_bookings',
-        key: 'total_Net_Banking_bookings',
+        dataIndex: 'total_netbank_ticket',
+        key: 'total_netbank_ticket',
         align: 'center',
         width: 120,
         sorter: (a, b) =>
-          (a.total_Net_Banking_bookings || 0) - (b.total_Net_Banking_bookings || 0),
+          (a.total_netbank_ticket || 0) - (b.total_netbank_ticket || 0),
       },
       {
         title: 'UPI Amount',
@@ -118,12 +119,12 @@ const PosReports = memo(() => {
       },
       {
         title: 'Cash Amount',
-        dataIndex: 'total_Cash_amount',
-        key: 'total_Cash_amount',
+        dataIndex: 'total_cash_amount',
+        key: 'total_cash_amount',
         align: 'center',
         width: 130,
         render: (val) => `₹${Number(val || 0).toFixed(2)}`,
-        sorter: (a, b) => (a.total_Cash_amount || 0) - (b.total_Cash_amount || 0),
+        sorter: (a, b) => (a.total_cash_amount || 0) - (b.total_cash_amount || 0),
       },
       {
         title: 'Net Banking Amount',
@@ -152,7 +153,7 @@ const PosReports = memo(() => {
         width: 140,
         render: (val) => `₹${Number(val || 0).toFixed(2)}`,
         sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
-        fixed: 'right',
+        //fixed: 'right',
       },
     ],
     []

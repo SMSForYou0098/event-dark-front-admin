@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import { Card, Col, Row, Tabs, Spin, Alert } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Card, Col, Row, Tabs, Spin, Alert, Badge } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useMyContext } from 'Context/MyContextProvider';
 import { PAYMENT_GATEWAY_CONFIG, PAYMENT_GATEWAY_MENU } from './paymentGatewayConfig';
 import PaymentGatewayForm from './PaymentGatewayForm';
 import apiClient from 'auth/FetchInterceptor';
+import Loader from 'utils/Loader';
 
 const PaymentGateway = () => {
   const { UserData } = useMyContext();
   const [user, setUser] = useState();
+  const [gatewayStatuses, setGatewayStatuses] = useState({});
+
 
   // Fetch payment gateways using TanStack Query
   const {
@@ -28,27 +31,47 @@ const PaymentGateway = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  useEffect(() => {
+    if (gateways) {
+      const statuses = Object.entries(gateways).reduce((acc, [key, value]) => {
+        acc[key] = value?.status;
+        return acc;
+      }, {});
+      setGatewayStatuses(statuses);
+    }
+  }, [gateways]);
   // Create tab items
-  const tabItems = PAYMENT_GATEWAY_MENU.map((item) => ({
-    key: item.eventKey,
-    label: (
-      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        {item.icon && <span>{item.icon}</span>}
-        <span>{item.title}</span>
-      </span>
-    ),
-    children: (
-      <PaymentGatewayForm
-        gateway={gateways[item.eventKey]}
-        user={user}
-        gatewayType={PAYMENT_GATEWAY_CONFIG[item.eventKey].title}
-        fields={PAYMENT_GATEWAY_CONFIG[item.eventKey].fields}
-        hasEnvironment={PAYMENT_GATEWAY_CONFIG[item.eventKey].hasEnvironment}
-        apiEndpoint={PAYMENT_GATEWAY_CONFIG[item.eventKey].apiEndpoint}
-        onSuccess={refetch}
-      />
-    ),
-  }));
+  const tabItems = useMemo(() => 
+    PAYMENT_GATEWAY_MENU.map((item) => ({
+      key: item.eventKey,
+      label: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Badge
+            status={gatewayStatuses[item.eventKey] === 1 ? 'success' : 'error'}
+            dot
+          />
+          {item.icon && <span>{item.icon}</span>}
+          <span>{item.title}</span>
+        </span>
+      ),
+      children: (
+        <PaymentGatewayForm
+          gateway={gateways[item.eventKey]}
+          user={user}
+          gatewayType={PAYMENT_GATEWAY_CONFIG[item.eventKey].title}
+          fields={PAYMENT_GATEWAY_CONFIG[item.eventKey].fields}
+          hasEnvironment={PAYMENT_GATEWAY_CONFIG[item.eventKey].hasEnvironment}
+          apiEndpoint={PAYMENT_GATEWAY_CONFIG[item.eventKey].apiEndpoint}
+          onSuccess={refetch}
+          onStatusChange={(status) => {
+            setGatewayStatuses(prev => ({
+              ...prev,
+              [item.eventKey]: status ? 1 : 0
+            }));
+          }}
+        />
+      ),
+    })), [gateways, user, gatewayStatuses]);
 
   if (isError) {
     return (
@@ -69,24 +92,11 @@ const PaymentGateway = () => {
     <Row gutter={[16, 16]}>
       <Col span={24}>
         <Card
-          title={
-            <span style={{ fontSize: '18px', fontWeight: 600 }}>
-              Payment Gateway Settings
-            </span>
-          }
+          title='Payment Gateway Settings'
           bordered={false}
         >
           {isLoading ? (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '400px',
-              }}
-            >
-              <Spin size="large" tip="Loading payment gateways..." />
-            </div>
+            <Loader />
           ) : (
             <Tabs
               defaultActiveKey="razorpay"

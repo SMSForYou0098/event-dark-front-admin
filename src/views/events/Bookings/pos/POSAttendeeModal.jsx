@@ -4,16 +4,17 @@ import { Modal, Button, Form, Input, Radio, Space, Typography } from "antd";
 const { Text } = Typography;
 
 const POSAttendeeModal = (props) => {
-  const { 
-    show, 
-    handleClose, 
-    disabled, 
-    setName, 
-    name, 
-    setNumber, 
-    handleSubmit, 
-    setMethod, 
-    number 
+  const {
+    show,
+    handleClose,
+    disabled,
+    setName,
+    name,
+    setNumber,
+    handleSubmit,
+    setMethod,
+    userRole,
+    number
   } = props;
 
   const [form] = Form.useForm();
@@ -95,9 +96,9 @@ const POSAttendeeModal = (props) => {
           label="Phone Number"
           rules={[
             { required: true, message: 'Please enter phone number' },
-            { 
-              pattern: /^\d{10}$/, 
-              message: 'Please enter a valid 10-digit phone number' 
+            {
+              pattern: /^\d{10}$/,
+              message: 'Please enter a valid 10-digit phone number'
             }
           ]}
         >
@@ -118,23 +119,24 @@ const POSAttendeeModal = (props) => {
             </Text>
           </div>
         )}
-
-        {/* <Form.Item
-          name="payment"
-          label="Payment Method"
-        >
-          <Radio.Group 
-            onChange={handleMethodChange} 
-            initialValues="Cash"
-            style={{ width: '100%' }}
+        {(userRole === 'Admin' || userRole === 'Organizer') &&
+          <Form.Item
+            name="payment"
+            label="Payment Method"
           >
-            <Space direction="horizontal" size="large" style={{ width: '100%', justifyContent: 'space-between' }}>
-              <Radio value="Cash">Cash</Radio>
-              <Radio value="UPI">UPI</Radio>
-              <Radio value="Net Banking">Net Banking</Radio>
-            </Space>
-          </Radio.Group>
-        </Form.Item> */}
+            <Radio.Group
+              onChange={handleMethodChange}
+              initialValues="Cash"
+              style={{ width: '100%' }}
+            >
+              <Space direction="horizontal" size="large" style={{ width: '100%', justifyContent: 'space-between' }}>
+                <Radio value="Cash">Cash</Radio>
+                <Radio value="UPI">UPI</Radio>
+                <Radio value="Net Banking">Net Banking</Radio>
+              </Space>
+            </Radio.Group>
+          </Form.Item>
+        }
 
         <Form.Item style={{ marginBottom: 0 }}>
           <Space style={{ width: '100%', justifyContent: 'center' }} size="middle">
@@ -149,8 +151,8 @@ const POSAttendeeModal = (props) => {
             <Button
               type="default"
               size="large"
-              style={{ 
-                background: '#52c41a', 
+              style={{
+                background: '#52c41a',
                 color: '#fff',
                 borderColor: '#52c41a'
               }}

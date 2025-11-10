@@ -30,12 +30,11 @@ const EventReports = memo(() => {
         queryParams.push(`type=${type}`);
       }
 
-      const url = `event-reports/${UserData.id}${
-        queryParams.length ? `?${queryParams.join('&')}` : ''
-      }`;
+      const url = `event-reports/${UserData.id}${queryParams.length ? `?${queryParams.join('&')}` : ''
+        }`;
 
       const response = await api.get(url);
-        return response.data;
+      return response.data;
     },
     enabled: !!UserData?.id,
     refetchOnWindowFocus: false,
@@ -200,11 +199,12 @@ const EventReports = memo(() => {
       },
       {
         title: 'Avail Tickets',
-        dataIndex: 'ticket_quantity',
+        dataIndex: 'available_tickets',
         key: 'ticket_quantity',
         align: 'center',
         width: 120,
-        sorter: (a, b) => (a.ticket_quantity || 0) - (b.ticket_quantity || 0),
+        sorter: (a, b) => (a.available_tickets || 0) - (b.available_tickets || 0),
+        // sorter: (a, b) => (a.ticket_quantity || 0) - (b.ticket_quantity || 0),
       },
       {
         title: 'Check-ins',
@@ -221,11 +221,11 @@ const EventReports = memo(() => {
         width: 120,
         render: (_, row) =>
           `₹${(
-            (row.online_convenience_fee || 0) + (row.pos_convenience_fee || 0)
+            (row.total_convenience_fee || 0) + (row.pos_convenience_fee || 0) + (row.agent_convenience_fee || 0)
           ).toFixed(2)}`,
         sorter: (a, b) => {
-          const feeA = (a.online_convenience_fee || 0) + (a.pos_convenience_fee || 0);
-          const feeB = (b.online_convenience_fee || 0) + (b.pos_convenience_fee || 0);
+          const feeA = (a.total_convenience_fee || 0) + (a.pos_convenience_fee || 0) + (a.agent_convenience_fee || 0);
+          const feeB = (b.total_convenience_fee || 0) + (b.pos_convenience_fee || 0) + (b.agent_convenience_fee || 0);
           return feeA - feeB;
         },
       },

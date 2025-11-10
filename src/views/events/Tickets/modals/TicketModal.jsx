@@ -111,7 +111,7 @@ const TicketModal = (props) => {
                                 dots
                             >
                                 {ticketData.bookings.map((item, index) => {
-                                    const event = item?.ticket?.event || item?.bookings[0]?.ticket?.event ||{};
+                                    const event = item?.ticket?.event || item?.bookings[0]?.ticket?.event || {};
                                     const ticket = item?.ticket || item?.bookings[0]?.ticket || {};
                                     console.log('ticket item:', item);
                                     return (
@@ -232,29 +232,10 @@ const TicketModal = (props) => {
                     ) : null}
                 </Col>
             </Row>
-            <div style={{ textAlign: "center", fontSize: "13px", padding: "8px 0 0 0" }}>
-                <strong>Go paperless! </strong>download your pass and enjoy easy entry with GetYourTicket.in.
-                <span className='fw-bold'>
-                    Watch the video to get entry without any hassle
-                    <a
-                        href="https://www.youtube.com/watch?v=YOUR_VIDEO_ID"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className='text-primary fw-bold'
-                    >
-                        <YoutubeOutlined size={16} className='mx-2' />
-                    </a>
-                    &
-                    <a
-                        href="https://www.instagram.com/YOUR_INSTAGRAM_LINK"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className='text-primary fw-bold'
-                    >
-                        <InstagramOutlined size={16} className='mx-2' />
-                    </a>
-                </span>
+            <div className='text-center h6'>
+                Note: Sharing This Ticket manually is the sole responsibility of the Event Organizer.
             </div>
+
         </Modal>
     );
 };

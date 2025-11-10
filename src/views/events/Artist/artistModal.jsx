@@ -89,7 +89,7 @@ const ArtistCrewModal = ({
         setLoading(true);
         try {
             const formData = new FormData();
-            formData.append('user_id', values?.org_id || UserData?.id)
+            formData.append('user_id', UserData?.id)
             formData.append('name', values.name);
             formData.append('description', values.description || '');
             formData.append('category', values.category);
@@ -206,7 +206,7 @@ const ArtistCrewModal = ({
                     <TeamOutlined style={{ color: type === 'Crew' ? 'var(--primary-color)' : 'var(--text-white)' }} />
                 </Space>
                 <Row gutter={12}>
-                    <Col xs={24} md={12}>
+                    <Col xs={24} md={type === 'Crew' ? 8 : 12}>
                         <Form.Item
                             label="Name"
                             name="name"
@@ -215,21 +215,21 @@ const ArtistCrewModal = ({
                             <Input placeholder={`Enter ${type.toLowerCase()} name`} />
                         </Form.Item>
                     </Col>
-                    <PermissionChecker role="Admin">
+                    {/* <PermissionChecker role="Admin">
                         <Col xs={24} md={12}>
                           <OrganisationList />
                         </Col>
-                    </PermissionChecker>
-                    <Col xs={24} md={12}>
+                    </PermissionChecker> */}
+                    <Col xs={24} md={type === 'Crew' ? 8 : 12}>
                         <Form.Item
                             label="Category"
                             name="category"
-                            rules={[{ required: true, message: 'Please select or enter category' }]}
+                            rules={[{ required: true, message: 'Please select category' }]}
                         >
                             <Select
                                 showSearch
                                 value={selectedCategory}
-                                placeholder="Select or type custom category"
+                                placeholder="Select category"
                                 options={PREDEFINED_CATEGORIES.map(cat => ({ value: cat, label: cat }))}
                                 mode="tags"
                                 maxTagCount={1}
@@ -251,7 +251,7 @@ const ArtistCrewModal = ({
 
                     {/* Show contact number only for Crew */}
                     {type === 'Crew' && (
-                        <Col xs={24} md={12}>
+                        <Col xs={24} md={type === 'Crew' ? 8 : 12}>
                             <Form.Item
                                 label="Contact Number"
                                 name="contact_number"
