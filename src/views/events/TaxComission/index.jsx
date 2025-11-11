@@ -24,7 +24,7 @@ const Tax = () => {
     const { data: taxData, isLoading } = useQuery({
         queryKey: ['tax', 1],
         queryFn: async () => {
-            const response = await axios.get(`${api}taxes/${1}`, {
+            const response = await axios.get(`${api}taxes/${UserData?.id}`, {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
                 },

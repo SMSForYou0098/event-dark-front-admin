@@ -18,7 +18,7 @@ const Commission = () => {
     const { data: commissionData, isLoading } = useQuery({
         queryKey: ['commission', 1],
         queryFn: async () => {
-            const response = await axios.get(`${api}commissions/${1}`, {
+            const response = await axios.get(`${api}commissions/${UserData.id}`, {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
                 },

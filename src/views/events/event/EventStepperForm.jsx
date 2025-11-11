@@ -142,6 +142,7 @@ const EventStepperForm = () => {
                 start_time: detail?.start_time,
                 end_time: detail?.end_time,
                 event_type: detail?.event_type,
+                overnight_event: Number(controls?.overnight_event) || 0,
                 // map_code: detail?.map_code || undefined,
                 // address: detail?.address || undefined,
             });

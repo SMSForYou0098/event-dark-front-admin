@@ -19,7 +19,12 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
     const [form] = Form.useForm();
     const location = useLocation();
+    const editOtherUser =
+  ['Admin', 'Organizer'].includes(userRole) || id == UserData.id;
 
+//   if(editOtherUser ===false){
+//     navigate('/forbidden')
+//   }
     // Main form state
     const [formState, setFormState] = useState({
         // Basic info
@@ -95,12 +100,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Stabilize reportingUserId
     const reportingUserId = useMemo(() => {
-        if (mode === "create") {
-            return userRole === 'Organizer' ? UserData?.id :
-                formState.reportingUser?.value || formState.reportingUser || undefined;
+        // ✅ For Organizer, always use their own ID
+        if (userRole === 'Organizer') {
+            return UserData?.id;
         }
-        return userRole === 'Organizer' ? UserData?.id : formState.reportingUser?.value || formState.reportingUser?.key || formState.reportingUser || undefined;
-    }, [mode, userRole, UserData?.id, formState.reportingUser]);
+        
+        // ✅ For Admin/others, use the selected reporting user
+        return formState.reportingUser || undefined;
+    }, [userRole, UserData?.id, formState.reportingUser]);
 
     // Fetch roles
     const { data: roles = [] } = useQuery({
@@ -180,19 +187,27 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     }, [mode, fetchedData?.user?.events]);
 
 
+    // ✅ SIMPLIFIED: Fetch events only when we have a valid reporting user
     const shouldFetchEvents = useMemo(() => {
-        return mode === "edit" && // Only fetch in edit mode
-            (needsEvents && // Or if role needs events
-                Boolean(reportingUserId) && // And has reporting user
-                reportingUserId !== 'undefined' && // And reporting user is valid
-                formState.roleId); // And role is selected
-    }, [mode, needsEvents, reportingUserId, formState.roleId]);
+        // Don't fetch if role doesn't need events
+        if (!needsEvents) return false;
+        
+        // ✅ Fetch if reporting user exists (works for both create and edit)
+        return Boolean(reportingUserId) && 
+               reportingUserId !== 'undefined' && 
+               reportingUserId !== null;
+    }, [needsEvents, reportingUserId]);
 
-    // Fetch events only when needed (create mode or org changed in edit mode)
+    // Fetch events
     const { data: fetchedEvents = [], isLoading: eventsLoading, isFetching: eventsFetching } = useQuery({
         queryKey: ["org-events", reportingUserId],
         enabled: shouldFetchEvents,
         queryFn: async () => {
+            // ✅ Double-check before making API call
+            if (!reportingUserId || reportingUserId === 'undefined') {
+                throw new Error('Invalid reporting user ID');
+            }
+            
             const res = await apiClient.get(`org-event/${reportingUserId}`);
             const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
             return list.map(event => ({
@@ -476,6 +491,21 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
                     {/* Basic Information */}
                     <Card title="Basic Information">
+                        {
+                            editOtherUser && 
+                    <PermissionChecker permission={["Edit User", "Edit Profile"]}>
+                    <Flex justifyContent="end">
+
+
+                    <Button className="mr-2" onClick={() => navigate(-1)}>
+                                    Discard
+                                </Button>
+                                <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                    {mode === "create" ? "Create" : "Update"}
+                                </Button>
+                    </Flex>
+                    </PermissionChecker>
+                        }
                         <Row gutter={[16, 16]}>
                             <Col xs={24} md={8}>
                                 <Form.Item
@@ -803,14 +833,18 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     {!showRoleGate && (
                         <PermissionChecker role={['Admin', 'Organizer']}>
                             <Card title="Status & Security" extra={
+                                editOtherUser &&
+                                <PermissionChecker permission={["Edit User", "Edit Profile"]}>
                                 <Flex justifyContent="end">
                                     <Button className="mr-2" onClick={() => navigate(-1)}>
                                         Discard
                                     </Button>
+                                    
                                     <Button type="primary" htmlType="submit" loading={isSubmitting}>
                                         {mode === "create" ? "Create" : "Update"}
                                     </Button>
                                 </Flex>
+                                </PermissionChecker>
                             }>
                                 <Row gutter={[16, 16]}>
                                     {/* Password Fields */}

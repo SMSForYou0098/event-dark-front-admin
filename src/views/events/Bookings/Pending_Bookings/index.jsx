@@ -24,7 +24,7 @@ const PendingBookings = memo(() => {
       const queryParams = dateRange
         ? `?date=${dateRange.startDate},${dateRange.endDate}`
         : "";
-      const url = `pendding-booking/list/${UserData?.id}${queryParams}`;
+      const url = `booking/pending/${UserData?.id}${queryParams}`;
 
       const response = await api.get(url);
 
