@@ -1,4 +1,4 @@
-import { Statistic } from "antd";
+import { message, Statistic } from "antd";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -161,4 +161,38 @@ export const handleDiscountChange = ({
   setDisableChoice(true);
 
   message.success('Discount applied successfully');
+};
+
+export const resendTickets = async (record, type, setLoading = null) => {
+    try {
+        if (setLoading) setLoading(true);
+
+        const endpoint = 'resend-ticket';
+        
+        // Prepare request payload
+        const payload = {
+            table_name: type,
+            is_master: record?.is_master || false,
+            set_id: record?.is_set ? record?.set_id : false,
+            order_id: record?.is_master
+                ? record?.bookings?.[0]?.token
+                : record?.token || record?.order_id || '',
+        };
+
+        const response = await api.post(endpoint, payload);
+
+        if (response.status) {
+            if (response.message) {
+                message.success(`${type} tickets resent successfully!`);
+            }
+            return { success: true, data: response };
+        } else {
+            throw new Error(response?.message || 'Failed to resend tickets');
+        }
+    } catch (error) {
+        message.error(error.message || 'Failed to resend tickets');
+        return { success: false, error: error.message };
+    } finally {
+        if (setLoading) setLoading(false);
+    }
 };

@@ -122,6 +122,38 @@ const EventReports = memo(() => {
         sorter: (a, b) =>
           (a.instamojo_total_amount || 0) - (b.instamojo_total_amount || 0),
       },
+      // Razorpay PhonePe CashFree
+      {
+        title: 'Razorpay',
+        dataIndex: 'razorpay_total_amount',
+        key: 'razorpay_total_amount',
+        align: 'center',
+        width: 120,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) =>
+          (a.razorpay_total_amount || 0) - (b.razorpay_total_amount || 0),
+      },
+      {
+        title: 'PhonePe',
+        dataIndex: 'phonepe_total_amount',
+        key: 'phonepe_total_amount',
+        align: 'center',
+        width: 120,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) =>
+          (a.phonepe_total_amount || 0) - (b.phonepe_total_amount || 0),
+      }, 
+      {
+        title: 'CashFree',
+        dataIndex: 'cashfree_total_amount',
+        key: 'cashfree_total_amount',
+        align: 'center',
+        width: 120,
+        render: (val) => `₹${Number(val || 0).toFixed(2)}`,
+        sorter: (a, b) =>
+          (a.cashfree_total_amount || 0) - (b.cashfree_total_amount || 0),
+      },
+      //
       {
         title: 'Agent',
         dataIndex: 'agent_bookings',

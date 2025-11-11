@@ -1,8 +1,7 @@
 import React, { memo, Fragment, useState, useCallback, useMemo, useRef } from "react";
-import DataTable from "../common/DataTable";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
-import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal, Table } from 'antd';
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, MoreOutlined, QuestionCircleOutlined } from '@ant-design/icons';
+import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal, Table, Spin } from 'antd';
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, MoreOutlined, QuestionCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
@@ -11,9 +10,10 @@ import TicketModal from "../Tickets/modals/TicketModal";
 import { downloadTickets } from "../Tickets/ticketUtils";
 import { ExpandDataTable } from "../common/ExpandDataTable";
 import PermissionChecker from "layouts/PermissionChecker";
+import { resendTickets } from "./agent/utils";
 
 const BookingList = memo(({ type = 'agent' }) => {
-    const { UserData, formatDateTime, sendTickets, truncateString, isMobile, UserPermissions } = useMyContext();
+    const { UserData, formatDateTime, truncateString, isMobile, UserPermissions } = useMyContext();
 
     const [dateRange, setDateRange] = useState(null);
     const navigate = useNavigate();
@@ -22,6 +22,8 @@ const BookingList = memo(({ type = 'agent' }) => {
     const [ticketType, setTicketType] = useState();
     const [show, setShow] = useState(false);
     const [loading, setLoading] = useState(false);
+    // id of the row currently processing resend -> shows spinner only for that row
+    const [loadingId, setLoadingId] = useState(null);
     const [ticketOptionModal, setTicketOptionModal] = useState({ visible: false, hasMultiple: false });
     const ticketRefs = useRef([]);
 
@@ -33,9 +35,11 @@ const BookingList = memo(({ type = 'agent' }) => {
                 apiUrl: `${type}/list/${UserData?.id}`,
                 exportRoute: 'export-agentBooking',
                 exportPermission: 'Export Agent Bookings',
-                deleteEndpoint: (data) => {return(data.is_deleted
-                    ? `restore/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
-                    : `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`)},
+                deleteEndpoint: (data) => {
+                    return (data.is_deleted
+                        ? `restore/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
+                        : `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`)
+                },
             },
             sponsor: {
                 title: 'Sponsor Bookings',
@@ -69,6 +73,20 @@ const BookingList = memo(({ type = 'agent' }) => {
         return configs[type] || configs.agent;
     }, [type, UserData?.id]);
 
+    const HandleSendTicket = useCallback(async (record) => {
+        // use id if present otherwise fallback to set_id
+        const rowId = record?.id ?? record?.set_id;
+        if (!rowId) return;
+        setLoadingId(rowId);
+        try {
+            await resendTickets(record, type);
+        } catch (err) {
+            // ignore / handle if needed
+        } finally {
+            setLoadingId(null);
+        }
+    }, [type]);
+
     // TanStack Query for bookings
     const {
         data: bookings = [],
@@ -99,7 +117,7 @@ const BookingList = memo(({ type = 'agent' }) => {
 
     // Toggle booking status mutation
     const toggleBookingMutation = useMutation({
-        mutationFn: async ({ id, data }) => {            
+        mutationFn: async ({ id, data }) => {
             const endpoint = config.deleteEndpoint(data);
             const request = data.is_deleted ? api.get : api.delete;
 
@@ -129,8 +147,8 @@ const BookingList = memo(({ type = 'agent' }) => {
         // const data = bookings?.find((item) => item?.id === id);
         if (!data) return;
 
-        toggleBookingMutation.mutate({ id:data.id, data });
-    }, [ toggleBookingMutation]);
+        toggleBookingMutation.mutate({ id: data.id, data });
+    }, [toggleBookingMutation]);
 
     // Format data for table
     const formatBookingData = (bookings) => {
@@ -284,10 +302,11 @@ const BookingList = memo(({ type = 'agent' }) => {
                     },
                     {
                         key: 'resend',
-                        label: 'Resend Ticket',
-                        type: 'primary',
-                        icon: <Send size={14} />,
-                        onClick: () => sendTickets(record, "old", true, "Online Booking"),
+                        label: loadingId === (record.id ?? record.set_id) ? 'Resending...' : 'Resend Ticket',
+                        type: loadingId === (record.id ?? record.set_id) ? 'default' : 'primary',
+                        // show spinner only for the row being processed (use id or set_id)
+                        icon: loadingId === (record.id ?? record.set_id) ? <LoadingOutlined style={{ fontSize: 14 }} spin /> : <Send size={14} />,
+                        onClick: () => HandleSendTicket(record),
                         disabled: isDisabled,
                     },
                 ];
@@ -453,7 +472,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 if (record.is_deleted) {
                     return (
                         <Tooltip title="Disabled">
-                            <Tag icon={<CloseCircleOutlined className='m-0'/>} color="error" />
+                            <Tag icon={<CloseCircleOutlined className='m-0' />} color="error" />
                         </Tooltip>
                     );
                 }
@@ -462,11 +481,11 @@ const BookingList = memo(({ type = 'agent' }) => {
 
                 return status === "0" ? (
                     <Tooltip title="Pending">
-                        <Tag icon={<ClockCircleOutlined className='m-0'/>} color="warning" />
+                        <Tag icon={<ClockCircleOutlined className='m-0' />} color="warning" />
                     </Tooltip>
                 ) : (
                     <Tooltip title="Scanned">
-                        <Tag icon={<CheckCircleOutlined className='m-0'/>} color="success" />
+                        <Tag icon={<CheckCircleOutlined className='m-0' />} color="success" />
                     </Tooltip>
                 );
             },
@@ -511,11 +530,6 @@ const BookingList = memo(({ type = 'agent' }) => {
             fixed: 'right',
             width: isMobile ? 70 : 120,
             render: (_, record) => {
-                // If it's a multi-ticket booking, don't show actions in main row
-                if (record.is_set === true) {
-                    return <span>-</span>;
-                }
-
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
 
                 const actions = [
@@ -524,17 +538,17 @@ const BookingList = memo(({ type = 'agent' }) => {
                         label: 'Generate Ticket',
                         icon: <Ticket size={14} />,
                         onClick: () => GenerateTicket(record.id),
-                        disabled: isDisabled,
+                        disabled: isDisabled || record.is_set === true,
                         permissions: 'Generate Tickets'
                     },
                     {
                         key: 'resend',
-                        label: 'Resend Ticket',
-                        type: 'primary',
-                        icon: <Send size={14} />,
-                        onClick: () => sendTickets(record, "old", true, "Online Booking"),
+                        label: loadingId === (record.id ?? record.set_id) ? 'Resending...' : 'Resend Ticket',
+                        type: loadingId === (record.id ?? record.set_id) ? 'default' : 'primary',
+                        // show spinner only for the row being processed (use id or set_id)
+                        icon: loadingId === (record.id ?? record.set_id) ? <Spin size="small" /> : <Send size={14} />,
+                        onClick: () => HandleSendTicket(record),
                         disabled: isDisabled,
-                        permissions: "Resend Tickets"
                     },
                 ];
 
@@ -581,10 +595,11 @@ const BookingList = memo(({ type = 'agent' }) => {
         truncateString,
         toggleBookingMutation.isPending,
         formatDateTime,
-        sendTickets,
+        HandleSendTicket,
         isMobile,
         DeleteBooking,
         GenerateTicket,
+        loadingId,
     ]);
     return (
         <Fragment>
@@ -666,13 +681,15 @@ const BookingList = memo(({ type = 'agent' }) => {
                     size: isMobile ? "small" : "middle",
                 }}
                 extraHeaderContent={
-                    <Tooltip title="Add Booking">
-                        <Button
-                            type="primary"
-                            icon={<PlusIcon size={16} />}
-                            onClick={() => navigate(`new`)}
-                        />
-                    </Tooltip>
+                    <PermissionChecker permission={["Add Agent Booking","Create POS Bookings","Add Sponsor Booking"]} matchType="OR">
+                        <Tooltip title="Add Booking">
+                            <Button
+                                type="primary"
+                                icon={<PlusIcon size={16} />}
+                                onClick={() => navigate(`new`)}
+                            />
+                        </Tooltip>
+                    </PermissionChecker>
                 }
                 showDateRange={true}
                 showRefresh={true}

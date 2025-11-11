@@ -53,26 +53,29 @@ export const ExpandDataTable = ({
   }, [data]);
 
   // Expandable row render
-  const expandedRowRender = useCallback(
-    (record) => {
-      if (!record.bookings || record.is_set === false) return null;
-      return (
-        <Table
-          columns={innerColumns}
-          dataSource={record.bookings}
-          pagination={false}
-          rowKey="id"
-          size="small"
-          bordered
-        />
-      );
-    },
-    [innerColumns]
-  );
+  const expandedRowRender = useCallback((record) => {
+
+    if (!record.bookings || !Array.isArray(record.bookings) || record.bookings.length === 0 || record.is_set === false) {
+      return null;
+    }
+
+    return (
+      <Table
+        columns={innerColumns}
+        dataSource={record.bookings}
+        pagination={false}
+        rowKey={(booking) => booking.id} // Individual bookings should have their own id
+        size="small"
+        bordered
+        showHeader={true}
+      />
+    );
+  }, [innerColumns]);
 
   const handleExpand = useCallback((expanded, record) => {
+    const key = record.is_set === true ? record.set_id : record.id;
     setExpandedRowKeys((prevKeys) =>
-      expanded ? [...prevKeys, record.id] : prevKeys.filter((key) => key !== record.id)
+      expanded ? [...prevKeys, key] : prevKeys.filter((k) => k !== key)
     );
   }, []);
 
@@ -376,7 +379,13 @@ export const ExpandDataTable = ({
             <Table
               columns={enhancedColumns}
               dataSource={filteredData}
-              rowKey="id"
+              rowKey={(record) => {
+                // For set bookings, use set_id, otherwise use id
+                if (record.is_set === true && record.set_id) {
+                  return record.set_id;
+                }
+                return record.id;
+              }}
               loading={loading && { indicator: customLoadingIndicator }}
               size={isSmallMobile ? "small" : isMobile ? "middle" : "middle"}
               scroll={{

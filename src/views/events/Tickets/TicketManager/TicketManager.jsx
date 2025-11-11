@@ -734,8 +734,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                                 showIcon
                                             />
                                         </Col>
-
-                                        <Col xs={24} md={12}>
                                             <Col xs={24} md={12}>
                                                 <Form.Item
                                                     label="Sale Period"
@@ -749,8 +747,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                                     />
                                                 </Form.Item>
                                             </Col>
-
-                                        </Col>
 
                                         <Col xs={24} md={12}>
                                             <Form.Item

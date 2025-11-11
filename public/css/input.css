@@ -342,7 +342,7 @@ input:-internal-autofill-previewed {
 }
 .ant-collapse.ant-collapse-icon-position-start.mb-4.css-dev-only-do-not-override-1u1move{
   border: 1px solid var(--bg-secondary);
-  padding: 1rem !important;
+  /* padding: 1rem !important; */
 }
 .ant-collapse>.ant-collapse-item{
     padding-top: 0.3rem;

@@ -122,11 +122,10 @@ const EventList = () => {
   const hasEditPermission = usePermission('Edit Event');
   const hasDeletePermission = usePermission('Delete Event');
 
-const handleViewEvent = (row) => {
-  const path = `${USERSITE_URL}events/${row?.venue?.city}/${createSlug(row?.user?.organisation)}/${createSlug(row?.name)}/${row?.event_key}`;
-  //console.log('Opening event URL:', path); // 👈 Log the full URL
-   window.open(path, '_blank');
-};
+const handleViewEvent = useMemo(() => (row) => {
+    const path = `${USERSITE_URL}events/${row?.venue?.city}/${createSlug(row?.user?.organisation)}/${createSlug(row?.name)}/${row?.event_key}`;
+    window.open(path, '_blank');
+  }, [createSlug]);
 
 
   const columns = useMemo(
@@ -135,6 +134,7 @@ const handleViewEvent = (row) => {
         title: 'Name',
         dataIndex: 'name',
         key: 'name',
+        align: 'center',
         searchable: true,
         sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
       },
@@ -194,7 +194,7 @@ const handleViewEvent = (row) => {
         title: 'Action',
         key: 'action',
         align: 'center',
-        ...(isMobile && { width: 70 }),
+        ...(isMobile && { width: 60 }),
         fixed: 'right',
         render: (_, row) => {
           const actions = [
@@ -368,6 +368,7 @@ const handleViewEvent = (row) => {
       formatDateTime,
       isMobile,
       HandleDelete,
+      handleViewEvent,
       hasDeletePermission,
       hasEditPermission,
       // HandleGateModal,

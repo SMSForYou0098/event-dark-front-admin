@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback } from "react";
-import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
+import { Button, message, Space, Tag, Modal, Switch, Tooltip, Spin } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CheckCircle, Send, Ticket, XCircle, AlertCircle } from "lucide-react";
@@ -9,13 +9,14 @@ import TicketModal from "views/events/Tickets/modals/TicketModal";
 import api from "auth/FetchInterceptor";
 import { withAccess } from "../../common/withAccess";
 import BookingCount from "./BookingCount";
+import { resendTickets } from "../agent/utils";
+import { LoadingOutlined } from '@ant-design/icons';
 
 const OnlineBookings = memo(() => {
   
   const {
     UserData,
     formatDateTime,
-    sendTickets,
     truncateString,
     formatDateRange,
     UserPermissions,
@@ -24,6 +25,8 @@ const OnlineBookings = memo(() => {
   const [dateRange, setDateRange] = useState(null);
   const [ticketData, setTicketData] = useState(null);
   const [ticketType, setTicketType] = useState(null);
+  // store id of row being processed so spinner shows only for that row
+  const [loadingId, setLoadingId] = useState(null);
   const [show, setShow] = useState(false);
   const [showGatewayReport, setShowGatewayReport] = useState(false);
   const queryClient = useQueryClient();
@@ -96,14 +99,18 @@ const OnlineBookings = memo(() => {
     },
   });
 
-  const HandleSendTicket = useCallback(
-    (data) => {
-      if (data) {
-        sendTickets(data, "old", true, "Online Booking");
+    const HandleSendTicket = useCallback(async (record) => {
+      if (!record?.id) return;
+      setLoadingId(record.id);
+      try {
+        // call resendTickets; remove setLoading param if it mutates boolean
+        await resendTickets(record, 'online');
+      } catch (err) {
+        // handle error if needed
+      } finally {
+        setLoadingId(null);
       }
-    },
-    [sendTickets]
-  );
+    }, []);
 
   const DeleteBooking = useCallback(
     (id) => {
@@ -203,10 +210,11 @@ const OnlineBookings = memo(() => {
       dataIndex: "event_name",
       key: "event_name",
       align: "center",
-      searchable: true,
+      // searchable: true,
       render: (_, record) => {
         const eventName =
           record?.bookings?.[0]?.event_name || record?.event_name || "";
+          
         return <span title={eventName}>{truncateString(eventName)}</span>;
       },
       sorter: (a, b) => {
@@ -220,7 +228,7 @@ const OnlineBookings = memo(() => {
       dataIndex: "organizer",
       key: "organizer",
       align: "center",
-      searchable: true,
+      // searchable: true,
       render: (_, record) =>
         record?.bookings?.[0]?.organizer || record?.organizer || "",
     },
@@ -244,7 +252,7 @@ const OnlineBookings = memo(() => {
             dataIndex: "number",
             key: "number",
             align: "center",
-            searchable: true,
+            // searchable: true,
             render: (_, record) =>
               record?.bookings?.[0]?.number || record?.number || "",
           },
@@ -255,7 +263,7 @@ const OnlineBookings = memo(() => {
       dataIndex: ["ticket", "name"],
       key: "ticketName",
       align: "center",
-      searchable: true,
+      // searchable: true,
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
     },
@@ -264,7 +272,7 @@ const OnlineBookings = memo(() => {
       dataIndex: "payment_id",
       key: "payment_id",
       align: "center",
-      searchable: true,
+      // searchable: true,
       render: (_, record) =>
         record?.payment_id || record?.bookings?.[0]?.payment_id || "",
     },
@@ -340,7 +348,14 @@ const OnlineBookings = memo(() => {
             <Button
               type="primary"
               size="small"
-              icon={<Send size={14} />}
+              // show spinner only for current record
+              icon={
+                loadingId === record.id ? (
+                  <LoadingOutlined style={{ fontSize: 14 }} spin />
+                ) : (
+                  <Send size={14} />
+                )
+              }
               onClick={() => HandleSendTicket(record)}
               disabled={isDisabled}
               title="Resend Ticket"

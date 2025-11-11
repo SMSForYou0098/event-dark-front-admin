@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from "react";
+import React, { Fragment, useState, useCallback } from "react";
 import { Button, Tabs, Form, Spin } from "antd";
 import { ArrowLeftOutlined, UserOutlined, ShoppingOutlined, WalletOutlined, TransactionOutlined, SafetyOutlined } from "@ant-design/icons";
 import { useMyContext } from "Context/MyContextProvider";
@@ -14,9 +14,8 @@ import Transactions from "../wallet/Transaction";
 import PermissionsTab from "./PermissionsTab";
 
 const ManageUser = ({ mode = "edit" }) => {
-  const { HandleBack, userRole } = useMyContext();
+  const { HandleBack, userRole, UserPermissions } = useMyContext();
   const [activeTab, setActiveTab] = useState("1");
-  const [form] = Form.useForm();
   const { id } = useParams()
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
@@ -38,6 +37,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <ProfileTab setSelectedRole={setSelectedRole} mode={mode} id={id} />,
+       permission: "Edit Profile",
     },
     {
       key: "2",
@@ -47,6 +47,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <UserBookings id={id} activeTab={activeTab} />,
+      permission: "View Bookings",
     },
     {
       key: "3",
@@ -56,7 +57,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <AssignCredit id={id} />,
-      condition: selectedRole === "Wallet Agent" || selectedRole === "Agent"
+      condition: selectedRole === "Wallet Agent" || selectedRole === "Agent",
     },
     {
       key: "4",
@@ -76,12 +77,24 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <PermissionsTab userId={id} />,
+      permission: "View Permission",
       condition: mode !== "create" || userRole === "admin"
     },
   ];
 
-  // Filter tabs based on conditions
-  const tabItems = allTabItems.filter(tab => tab.condition === undefined || tab.condition);
+  // helper to check permission (admins bypass permissions)
+  const hasPermission = (
+    (permission) => {
+      if (!permission) return true;
+      if (userRole === 'admin') return true;
+      return Array.isArray(UserPermissions) && UserPermissions.includes(permission);
+    }
+  );
+
+  // Filter tabs based on conditions and permissions
+  const tabItems = allTabItems.filter(
+    (tab) => (tab.condition === undefined || tab.condition) && hasPermission(tab.permission)
+  );
 
   return (
     <Fragment>

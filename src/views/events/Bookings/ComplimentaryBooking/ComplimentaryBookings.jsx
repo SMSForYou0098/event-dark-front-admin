@@ -23,6 +23,7 @@ import {
   FileExcelOutlined,
   CheckCircleOutlined,
   LoadingOutlined,
+  CloseCircleOutlined,
 } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -42,7 +43,7 @@ const { Option } = Select;
 
 const ComplimentaryBookings = memo(() => {
   const { UserData, systemSetting, loader } = useMyContext();
-  
+
   // Add loading modal state
   const [loadingModal, setLoadingModal] = useState({
     open: false,
@@ -122,34 +123,34 @@ const ComplimentaryBookings = memo(() => {
   // Replace showLoading function with Ant Design Modal
   const showLoading = (title = "Processing") => {
     setLoadingModal({ open: true, title });
-    
+
     return {
       close: () => setLoadingModal({ open: false, title: "" }),
     };
   };
 
-const handleZip = async () => {
-  // Start button spinner immediately
-  setZipLoading(true);
+  const handleZip = async () => {
+    // Start button spinner immediately
+    setZipLoading(true);
 
-  try {
-    await generateQRCodeZip({
-      bookings,
-      QRGenerator: QRGenerator,
-      loader: loader,
-      // Callback when modal is opened - modal is now visible
-      onModalOpen: () => {
-        // Modal is now visible, button loading state continues until completion
-      },
-    });
-  } catch (e) {
-    console.error('Error generating ZIP:', e);
-    message.error('Failed to generate QR codes. Please try again.');
-  } finally {
-    // Always stop button loading when done (success or error)
-    setZipLoading(false);
-  }
-};
+    try {
+      await generateQRCodeZip({
+        bookings,
+        QRGenerator: QRGenerator,
+        loader: loader,
+        // Callback when modal is opened - modal is now visible
+        onModalOpen: () => {
+          // Modal is now visible, button loading state continues until completion
+        },
+      });
+    } catch (e) {
+      console.error('Error generating ZIP:', e);
+      message.error('Failed to generate QR codes. Please try again.');
+    } finally {
+      // Always stop button loading when done (success or error)
+      setZipLoading(false);
+    }
+  };
 
 
   const handleChange = (value) => {
@@ -172,10 +173,32 @@ const handleZip = async () => {
   };
 
   const resetBookings = () => {
+    // clear main booking data
     setBookings([]);
     setData([]);
     setDisable(true);
   };
+
+  const fullReset = () => {
+
+    // reset inputs / selections
+    setNumber("");
+    setSelectedTicketID(null);
+    setDataType(false);
+
+    // clear modals / duplicate/exist data
+    setExistData([]);
+    setShowExistDataModal(false);
+    setShowDuplicateModal(false);
+    setDuplicateData([]);
+
+    // reset upload input and zip state
+    resetFileInput();
+    setZipLoading(false);
+
+    // close any loading modal
+    setLoadingModal({ open: false, title: "" });
+  }
 
   const HandleTicket = (id) => {
     resetBookings();
@@ -479,162 +502,169 @@ const handleZip = async () => {
         />
       </Modal>
 
-      {/* <CommonEventAccordion
-        showLoader={showLoading}
-        setTickets={setTickets}
-        setSelectedTicketID={setSelectedTicketID}
-      /> */}
       <PosEvents type={'Complimentary'} handleButtonClick={handleButtonClick} />
 
       {tickets.length > 0 ? (
-        <Card
-          title={
-            <Space>
-              <CheckCircleOutlined />
-              <span>Complimentary Bookings</span>
-            </Space>
-          }
-          style={{ marginTop: 16 }}
-        >
+        <Form layout="vertical">
           <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} md={8} lg={4}>
-              <Form.Item label="Select Category" required>
-                <Select
-                  placeholder="Select ticket"
-                  value={selectedTicketID}
-                  onChange={HandleTicket}
-                  style={{ width: "100%" }}
-                >
-                  {tickets.map((item) => (
-                    <Option key={item.id} value={item.id}>
-                      {item.name}
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-
-            {selectedTicketID && (
-              <>
-                <Col xs={24} sm={12} md={8} lg={4}>
-                  <Form.Item label="Select Option">
-                    <Switch
-                      checked={dataType}
-                      onChange={handleSwitchChange}
-                      checkedChildren="Excel Import"
-                      unCheckedChildren="Manual Entry"
-                    />
-                    {!(data.length > 0) && (
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        Enable for Excel import data
-                      </Text>
-                    )}
-                  </Form.Item>
-                </Col>
-
-                {dataType ? (
-                  <>
-                    <Col xs={24} sm={12} md={8} lg={4}>
-                      <Form.Item label="Select File">
-                        <Upload {...uploadProps}>
-                          <Button icon={<UploadOutlined />} block>
-                            Upload Excel
-                          </Button>
-                        </Upload>
-                        {!(data.length > 0) && bookings.length === 0 && (
-                          <Text type="secondary" style={{ fontSize: 12 }}>
-                            ❕ Please upload an Excel file
-                          </Text>
-                        )}
-                      </Form.Item>
-                    </Col>
-
-                    {data.length > 0 ? (
-                      <Col xs={24} sm={12} md={8} lg={4}>
-                        <Form.Item label="Imported Data Overview">
-                          <Title level={4}>
-                            <CountUp
-                              start={0}
-                              end={data.length}
-                              duration={3}
-                              separator=","
-                            />
-                            {" Attendees"}
-                          </Title>
-                        </Form.Item>
-                      </Col>
-                    ) : (
-                      <Col xs={24} sm={12} md={8} lg={4}>
-                        <Form.Item label="Download Sample">
-                          <Button
-                            icon={<FileExcelOutlined />}
-                            href="https://server.getyourticket.in/uploads/demo.xlsx"
-                            download
-                            type="link"
-                          >
-                            Sample File
-                          </Button>
-                        </Form.Item>
-                      </Col>
-                    )}
-
-                    {bookings.length > 0 && (
-                      <Col xs={24} sm={12} md={8} lg={4}>
-                        <Form.Item label="Send Tickets">
-                          {/* <SendTicketsModal bookings={bookings} /> */}
-                          <SendTickets bookings={bookings} />
-                        </Form.Item>
-                      </Col>
-                    )}
-                  </>
-                ) : (
-                  <Col xs={24} sm={12} md={8} lg={4}>
-                    <Form.Item label="Total Tickets">
-                      <Input
-                        type="number"
-                        placeholder="Enter quantity"
-                        value={number}
-                        onChange={(e) => handleChange(e.target.value)}
-                        max={1000}
-                      />
-                      <Text type="secondary" style={{ fontSize: 12 }}>
-                        ❕ Max 1000 tickets allowed
-                      </Text>
+              <Col xs={24} sm={12} md={8} lg={12}>
+            <Card
+              title='Complimentary Bookings'
+              extra={
+                <Button danger onClick={() => fullReset()} icon={<CloseCircleOutlined />}>
+                  Reset Bookings
+                </Button>
+              }
+            >
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} md={8} lg={12}>
+                    <Form.Item label="Select Category" required>
+                      <Select
+                        placeholder="Select ticket"
+                        value={selectedTicketID}
+                        onChange={HandleTicket}
+                      >
+                        {tickets.map((item) => (
+                          <Option key={item.id} value={item.id}>
+                            {item.name}
+                          </Option>
+                        ))}
+                      </Select>
                     </Form.Item>
                   </Col>
-                )}
 
-                <Col xs={24} sm={12} md={8} lg={4}>
-                  <Form.Item label="&nbsp;">
-                    {bookings.length > 0 ? (
-                      <Button
-                        type="primary"
-                        icon={<DownloadOutlined />}
-                        onClick={handleZip}
-                        loading={zipLoading || createBookingMutation.isPending}
-                        disabled={zipLoading || createBookingMutation.isPending}
-                        block
-                      >
-                        {zipLoading ? 'Generating...' : 'Download ZIP'}
-                      </Button>
-                    ) : (
-                      <Button
-                        type="primary"
-                        disabled={disable}
-                        onClick={handleSubmit}
-                        loading={createBookingMutation.isPending}
-                        block
-                      >
-                        Submit Booking
-                      </Button>
-                    )}
-                  </Form.Item>
-                </Col>
-              </>
-            )}
+                  {selectedTicketID && (
+                    <>
+                      <Col xs={24} sm={12} md={8} lg={12}>
+                        <Form.Item label="Select Option">
+                          <Switch
+                            checked={dataType}
+                            onChange={handleSwitchChange}
+                            checkedChildren="Excel Import"
+                            unCheckedChildren="Manual Entry"
+                          />
+                          {!(data.length > 0) && (
+                            <div style={{ marginTop: 8 }}>
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                Enable for Excel import data
+                              </Text>
+                            </div>
+                          )}
+                        </Form.Item>
+                      </Col>
+
+                      {dataType ? (
+                        <>
+                          <Col xs={24} sm={12} md={8} lg={12}>
+                            <Form.Item label="Select File">
+                              <Upload {...uploadProps}>
+                                <Button icon={<UploadOutlined />} block>
+                                  Upload Excel
+                                </Button>
+                              </Upload>
+                              {!(data.length > 0) && bookings.length === 0 && (
+                                <div style={{ marginTop: 8 }}>
+                                  <Text type="secondary" style={{ fontSize: 12 }}>
+                                    ❕ Please upload an Excel file
+                                  </Text>
+                                </div>
+                              )}
+                            </Form.Item>
+                          </Col>
+
+                          {data.length > 0 ? (
+                            <Col xs={24} sm={12} md={8} lg={12}>
+                              <Form.Item label="Imported Data Overview">
+                                <Title level={4} style={{ margin: 0 }}>
+                                  <CountUp
+                                    start={0}
+                                    end={data.length}
+                                    duration={3}
+                                    separator=","
+                                  />
+                                  {" Attendees"}
+                                </Title>
+                              </Form.Item>
+                            </Col>
+                          ) : (
+                            <Col xs={24} sm={12} md={8} lg={12}>
+                              <Form.Item label="Download Sample">
+                                <Button
+                                  icon={<FileExcelOutlined />}
+                                  href={`/uploads/sample.xlsx`}
+                                  download
+                                  className="d-flex justify-content-center align-items-center"
+                                  block
+                                >
+                                  Sample File
+                                </Button>
+                              </Form.Item>
+                            </Col>
+                          )}
+
+                          {bookings.length > 0 && (
+                            <Col xs={24} sm={12} md={8} lg={12}>
+                              <Form.Item label="Send Tickets">
+                                <SendTickets bookings={bookings} />
+                              </Form.Item>
+                            </Col>
+                          )}
+                        </>
+                      ) : (
+                        <Col xs={24} sm={12} md={8} lg={12}>
+                          <Form.Item
+                            label="Total Tickets"
+                            extra={
+                              <Text type="secondary" style={{ fontSize: 12 }}>
+                                ❕ Max 1000 tickets allowed
+                              </Text>
+                            }
+                          >
+                            <Input
+                              type="number"
+                              placeholder="Enter quantity"
+                              value={number}
+                              onChange={(e) => handleChange(e.target.value)}
+                              max={1000}
+                            />
+                          </Form.Item>
+                        </Col>
+                      )}
+
+                      <Col xs={24} sm={12} md={8} lg={24}>
+                        <Form.Item label="Action">
+                          {bookings.length > 0 ? (
+                            <Button
+                              type="primary"
+                              icon={<DownloadOutlined />}
+                              onClick={handleZip}
+                              loading={zipLoading || createBookingMutation.isPending}
+                              disabled={zipLoading || createBookingMutation.isPending}
+                              block
+                            >
+                              {zipLoading ? 'Generating...' : 'Download ZIP'}
+                            </Button>
+                          ) : (
+                            <Button
+                              type="primary"
+                              disabled={disable}
+                              onClick={handleSubmit}
+                              loading={createBookingMutation.isPending}
+                              block
+                            >
+                              Submit Booking
+                            </Button>
+                          )}
+                        </Form.Item>
+                      </Col>
+                    </>
+                  )}
+                </Row>
+            </Card>
+              </Col>
           </Row>
-        </Card>
-      ) : "This event has no tickets available for complimentary booking."} 
+        </Form>
+      ) : "This event has no tickets available for complimentary booking."}
     </>
   );
 });

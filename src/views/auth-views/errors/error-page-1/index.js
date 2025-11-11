@@ -58,7 +58,7 @@ export default function ForbiddenPage() {
                   <Button 
                     type="primary" 
                     size="large" 
-                    onClick={() => window.location.href = '/dashboard'}
+                    onClick={() => window.location.href = '/'}
                     icon={<HomeOutlined />}
                   >
                     Back to Dashboard

@@ -54,6 +54,7 @@ export const mapApiToForm = (apiData) => {
         qrLength: user.qr_length || null,
         
         // Add convenience fee mappings
+        brandName: user.brandName || '',
         convenienceFeeType: user.convenience_fee_type || 'percentage',
         convenienceFee: user.convenience_fee || '',
     };
@@ -117,6 +118,7 @@ export const mapFormToApi = (formData) => {
         ...(formData.aggrementDetails || {}),
         
         // Add convenience fee mappings
+        brandName: formData.brandName,
         convenience_fee_type: formData.convenienceFeeType,
         convenience_fee: formData.convenienceFee ? Number(formData.convenienceFee) : null,
     };

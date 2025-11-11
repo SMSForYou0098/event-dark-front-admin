@@ -63,7 +63,7 @@ const AgreementCreator = () => {
     const [uploadedSignature, setUploadedSignature] = useState(null);
     const canvasRef = useRef(null);
     const [isDrawing, setIsDrawing] = useState(false);
-    
+
     const { id } = useParams();
     const navigate = useNavigate();
     const isEditMode = Boolean(id);
@@ -209,10 +209,10 @@ const AgreementCreator = () => {
 
     const showPreview = () => {
         const values = formInstance.getFieldsValue();
-        
+
         let signatureData = null;
         let signatureFont = null;
-        
+
         if (signatureType === 'draw' && canvasRef.current) {
             signatureData = canvasRef.current.toDataURL();
         } else if (signatureType === 'type' && typedSignature) {
@@ -228,7 +228,7 @@ const AgreementCreator = () => {
             signatureType: signatureType,
             signatureFont: signatureFont
         };
-        
+
         setFormData(previewData);
         setPreviewVisible(true);
     };
@@ -305,9 +305,9 @@ const AgreementCreator = () => {
 
     return (
         <>
-            <Card>
-                <div className="d-flex justify-content-between align-items-center flex-wrap mb-4">
-                    <div className="mb-3 mb-md-0">
+            <Card
+                title={
+                    <div>
                         <Title level={2} className="mb-1">
                             <FileTextOutlined /> {isEditMode ? 'Edit' : 'Create'} Partner Agreement
                         </Title>
@@ -315,30 +315,31 @@ const AgreementCreator = () => {
                             {isEditMode ? 'Update partnership terms and conditions' : 'Configure partnership terms and conditions'}
                         </Text>
                     </div>
-                    <Button type="primary" size="large" icon={<EyeOutlined />} onClick={showPreview}>
+                }
+                extra={
+                    <Button type="primary" icon={<EyeOutlined />} onClick={showPreview}>
                         Preview Agreement
                     </Button>
-                </div>
+                }
+            >
 
-                <Divider />
-
-                <Form
-                    form={formInstance}
-                    layout="vertical"
-                    onFinish={handleSubmit}
-                    initialValues={{
-                        agreementStatus: 'active',
-                        autoApproveEvents: false,
-                        commissionType: 'percentage',
-                        commissionValue: 15,
-                        settlementCycle: 'weekly',
-                        minimumPayout: 1000,
-                        eventCancellationNoticeDays: 7,
-                        terminationNoticeDays: 30,
-                        currency: 'INR'
-                    }}
-                >
-                    <div style={{maxHeight : '60vh', overflow : 'auto'}}>
+            <Form
+                form={formInstance}
+                layout="vertical"
+                onFinish={handleSubmit}
+                initialValues={{
+                    agreementStatus: 'active',
+                    autoApproveEvents: false,
+                    commissionType: 'percentage',
+                    commissionValue: 15,
+                    settlementCycle: 'weekly',
+                    minimumPayout: 1000,
+                    eventCancellationNoticeDays: 7,
+                    terminationNoticeDays: 30,
+                    currency: 'INR'
+                }}
+            >
+                <div style={{ maxHeight: '60vh', overflow: 'auto' }}>
                     <Collapse defaultActiveKey={['1']} className="mb-4">
 
                         <Panel header={<><FileTextOutlined /> Basic Information</>} key="1">
@@ -567,7 +568,7 @@ const AgreementCreator = () => {
                                             showUploadList={false}
                                             maxCount={1}
                                         >
-                                            <Button icon={<UploadOutlined />} size="large" type="dashed">
+                                            <Button icon={<UploadOutlined />} type="dashed">
                                                 Click to Upload Signature
                                             </Button>
                                         </Upload>
@@ -598,20 +599,20 @@ const AgreementCreator = () => {
                             </Tabs>
                         </Panel>
                     </Collapse>
-                    </div>
-                    <div className="d-flex justify-content-end flex-wrap">
-                        <Button size="large" className='gap-1' onClick={() => formInstance.resetFields()}>
-                            Reset Form
-                        </Button>
-                        <Button size="large" className='gap-1' type="default">
-                            Save as Draft
-                        </Button>
-                        <Button type="primary" htmlType="submit" size="large" className='gap-1' loading={isPending}>
-                            {isEditMode ? 'Update Agreement' : 'Create Agreement'}
-                        </Button>
-                    </div>
-                </Form>
-            </Card>
+                </div>
+                <div className="d-flex justify-content-end flex-wrap">
+                    <Button className='gap-1' onClick={() => formInstance.resetFields()}>
+                        Reset Form
+                    </Button>
+                    <Button className='gap-1' type="default">
+                        Save as Draft
+                    </Button>
+                    <Button type="primary" htmlType="submit" className='gap-1' loading={isPending}>
+                        {isEditMode ? 'Update Agreement' : 'Create Agreement'}
+                    </Button>
+                </div>
+            </Form>
+        </Card >
             <AgreementPreview
                 visible={previewVisible}
                 onClose={() => setPreviewVisible(false)}

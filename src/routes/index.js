@@ -9,12 +9,18 @@ import { useMyContext } from 'Context/MyContextProvider';
 import { lowerCase } from 'lodash';
 
 const Routes = () => {
- const {userRole} = useMyContext()
+ const {userRole , UserData} = useMyContext()
  const APP_PREFIX_PATH = '/';
+
   // Define dashboard entry point based on role
-  const AUTHENTICATED_ENTRY = ['Admin', 'Organizer'].includes(userRole) 
+  let AUTHENTICATED_ENTRY = ['Admin', 'Organizer'].includes(userRole) 
     ? `${APP_PREFIX_PATH}dashboard`
     : `${APP_PREFIX_PATH}dashboard/${lowerCase(userRole)}`;
+
+	   // If a user is logged in AND role is "User", redirect to their profile edit page
+  if (UserData?.id && userRole === 'User') {
+    AUTHENTICATED_ENTRY = `${APP_PREFIX_PATH}users/edit/${UserData.id}`;
+  }
 	return (
 		<RouterRoutes>
 			<Route path="/" element={<ProtectedRoute />}>
