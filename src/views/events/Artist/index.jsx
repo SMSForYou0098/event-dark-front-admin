@@ -49,6 +49,7 @@ const Artist = () => {
   const columns = [
     {
       title: '#',
+      width : 50,
       render: (_, __, index) => index + 1,
       searchable: false,
     },
@@ -56,6 +57,7 @@ const Artist = () => {
       title: 'Photo',
       dataIndex: 'photo',
       key: 'photo',
+      width : 100,
       render: (photo) => photo ? <Image src={photo} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       searchable: false,
     },
@@ -83,7 +85,7 @@ const Artist = () => {
       title: "Actions",
       key: "actions",
       fixed: "right",
-      width: 150,
+      width: 100,
       render: (_, record) => {
         const isDisabled = record?.is_deleted || record?.status === "1";
 

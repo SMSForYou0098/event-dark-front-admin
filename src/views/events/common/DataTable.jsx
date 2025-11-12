@@ -260,60 +260,60 @@ const DataTable = ({
 
   // Desktop header controls
   const renderDesktopHeaderControls = () => (
-  <Space wrap size="middle">
-    {showSearch && (
-      <Input
-        placeholder="Search across..."
-        prefix={<SearchOutlined />}
-        value={searchText}
-        onChange={(e) => handleGlobalSearch(e.target.value)}
-        allowClear
-        style={{ width: isTablet ? 200 : 250 }}
-      />
-    )}
-    {showDateRange && (
-      <RangePicker
-        value={
-          dateRange
-            ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
-            : null
-        }
-        onChange={handleDateRangeChange}
-        format="YYYY-MM-DD"
-        placeholder={["Start Date", "End Date"]}
-        style={{ width: isTablet ? 240 : 280 }}
-        size={isTablet ? "small" : "middle"}
-      />
-    )}
-    {showRefresh && (
-      <Tooltip
-        title={countdown ? `Wait ${countdown}s to refresh` : "Refresh Data"}
-      >
-        <Button
-          type="primary"
-          onClick={handleRefreshWithCooldown}
-          disabled={loading || countdown !== null}
-          size={isTablet ? "small" : "middle"}
-        >
-          {loading ? <Spin size="small" /> : countdown || <ReloadOutlined />}
-        </Button>
-      </Tooltip>
-    )}
-    {enableExport && ExportPermission && exportRoute && (
-      <Tooltip title="Export Data">
-        <Button
-          type="primary"
-          icon={<CloudUploadOutlined />}
-          onClick={handleExport}
-          loading={exportLoading}
-          disabled={exportLoading}
+    <Space wrap size="middle">
+      {showSearch && (
+        <Input
+          placeholder="Search across..."
+          prefix={<SearchOutlined />}
+          value={searchText}
+          onChange={(e) => handleGlobalSearch(e.target.value)}
+          allowClear
+          style={{ width: isTablet ? 200 : 250 }}
+        />
+      )}
+      {showDateRange && (
+        <RangePicker
+          value={
+            dateRange
+              ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
+              : null
+          }
+          onChange={handleDateRangeChange}
+          format="YYYY-MM-DD"
+          placeholder={["Start Date", "End Date"]}
+          style={{ width: isTablet ? 240 : 280 }}
           size={isTablet ? "small" : "middle"}
         />
-      </Tooltip>
-    )}
-    {extraHeaderContent}
-  </Space>
-);
+      )}
+      {showRefresh && (
+        <Tooltip
+          title={countdown ? `Wait ${countdown}s to refresh` : "Refresh Data"}
+        >
+          <Button
+            type="primary"
+            onClick={handleRefreshWithCooldown}
+            disabled={loading || countdown !== null}
+            size={isTablet ? "small" : "middle"}
+          >
+            {loading ? <Spin size="small" /> : countdown || <ReloadOutlined />}
+          </Button>
+        </Tooltip>
+      )}
+      {enableExport && ExportPermission && exportRoute && (
+        <Tooltip title="Export Data">
+          <Button
+            type="primary"
+            icon={<CloudUploadOutlined />}
+            onClick={handleExport}
+            loading={exportLoading}
+            disabled={exportLoading}
+            size={isTablet ? "small" : "middle"}
+          />
+        </Tooltip>
+      )}
+      {!filterDrawerVisible && extraHeaderContent}
+    </Space>
+  );
 
   // Error display
   const renderError = () =>
@@ -358,11 +358,14 @@ const DataTable = ({
             <span className="font-weight-bold">{title}</span>
             <div className="action">
               <span className="d-block d-sm-none">
-                <Button
-                  icon={<FilterOutlined />}
-                  type="text"
-                  onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
-                />
+                <Space size="small">
+                  {extraHeaderContent}
+                  <Button
+                    icon={<FilterOutlined />}
+                    type="text"
+                    onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
+                  />
+                </Space>
               </span>
               {(!loading) && (
                 <span className="d-none d-sm-block">

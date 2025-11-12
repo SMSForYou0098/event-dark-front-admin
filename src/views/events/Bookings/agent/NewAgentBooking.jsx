@@ -230,6 +230,25 @@ const NewAgentBooking = memo(({ type }) => {
       payload: bookingPayload
     }, {
       onSuccess: (response) => {
+        // Handle warnings from backend
+        if (response.warningCode) {
+          switch (response.warningCode) {
+            case "TICKET_LIMIT_REACHED":
+              message.warning(response.message || "Ticket limit reached. Please reduce quantity.");
+              break;
+
+            case "TICKETS_SOLD_OUT":
+              message.error(response.message || "Tickets are sold out.");
+              break;
+
+            default:
+              message.warning(response.message || "Something went wrong. Please try again.");
+          }
+
+          // Stop further success flow if it’s a warning/error
+          setIsBookingInProgress(false);
+          return;
+        }
         if (response.status) {
           message.success(response.message || 'Booking created successfully!');
           setBookingResponse(response.bookings || null);

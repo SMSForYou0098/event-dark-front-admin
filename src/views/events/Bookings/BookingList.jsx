@@ -421,7 +421,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             key: "ticket_name",
             align: "center",
             render: (_, record) => {
-                const ticketName = record?.ticket?.name || record?.bookings[0]?.ticket?.name;
+                const ticketName = record?.ticket?.name || (record?.bookings && record?.bookings[0]?.ticket?.name);
                 if (record.is_set === true) {
                     return <Tag color="blue">Multi Tickets</Tag>;
                 }

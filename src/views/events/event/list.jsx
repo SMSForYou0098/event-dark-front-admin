@@ -8,17 +8,19 @@ import {
   EditOutlined,
   ExclamationCircleOutlined,
   EyeOutlined,
+  LeftOutlined,
   MoreOutlined,
   PlusOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMyContext } from 'Context/MyContextProvider';
-import { Ticket } from 'lucide-react';
+import { ArchiveRestore, Ticket } from 'lucide-react';
 import api from 'auth/FetchInterceptor';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { USERSITE_URL } from 'utils/consts';
 
-const EventList = () => {
+const EventList = ({ isJunk = false }) => {
   const navigate = useNavigate();
   const { UserData, formatDateTime, isMobile, createSlug } = useMyContext();
   const [dateRange, setDateRange] = useState(null);
@@ -32,9 +34,10 @@ const EventList = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['eventList', UserData?.id],
+    queryKey: ['eventList', UserData?.id , isJunk],
     queryFn: async () => {
-      const response = await api.get(`event-list/${UserData?.id}`);
+      const url = isJunk ? `event/junk/${UserData?.id}` : `event-list/${UserData?.id}`
+      const response = await api.get(url);
 
       if (response.status && response.events) {
         return response.events;
@@ -50,11 +53,12 @@ const EventList = () => {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (id) => {
-      return api.delete(`delete-event/${id}`);
+      return api.delete(`event/delete/${id}`);
     },
     onSuccess: (res) => {
       if (res.status) {
         queryClient.invalidateQueries(['eventList']);
+        refetch()
         message.success('Event deleted successfully');
       } else {
         message.error(res?.message || 'Failed to delete event');
@@ -97,7 +101,6 @@ const EventList = () => {
           icon: <ExclamationCircleOutlined />,
           content: `Are you sure you want to delete "${eventName}"? This action cannot be undone!`,
           okText: 'Yes, delete it!',
-          okType: 'danger',
           cancelText: 'Cancel',
           onOk: () => {
             deleteMutation.mutate(id);
@@ -122,10 +125,88 @@ const EventList = () => {
   const hasEditPermission = usePermission('Edit Event');
   const hasDeletePermission = usePermission('Delete Event');
 
-const handleViewEvent = useMemo(() => (row) => {
+  const handleViewEvent = useMemo(() => (row) => {
     const path = `${USERSITE_URL}events/${row?.venue?.city}/${createSlug(row?.user?.organisation)}/${createSlug(row?.name)}/${row?.event_key}`;
     window.open(path, '_blank');
   }, [createSlug]);
+
+
+  // API function to restore event
+  const restoreEvent = async (eventId) => {
+    const response = await api.post(`/event/restore/${eventId}`);
+    return response.data;
+  };
+  // API function to permanently delete event
+  const permanentDeleteEvent = async (eventId) => {
+    const response = await api.delete(`/event/destroy/${eventId}`);
+    return response.data;
+  };
+
+  const permanentDeleteMutation = useMutation({
+    mutationFn: permanentDeleteEvent,
+    onSuccess: (data, variables) => {
+      message.success('Event permanently deleted');
+      refetch()
+      // Invalidate and refetch junk events list
+      queryClient.invalidateQueries({ queryKey: ['junkEvents'] });
+    },
+    onError: (error) => {
+      message.error(error?.response?.data?.message || 'Failed to delete event permanently');
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: restoreEvent,
+    onSuccess: (data, variables) => {
+      // message.success('Event restored successfully');
+      // Invalidate and refetch events list
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['junkEvents'] });
+    },
+    onError: (error) => {
+      message.error(error?.response?.data?.message || 'Failed to restore event');
+    },
+  });
+
+
+  const handlePermanentDelete = useCallback((row) => {
+    Modal.confirm({
+      title: 'Permanent Delete',
+      content: (
+        <div>
+          <p>Are you sure you want to <strong>permanently delete</strong> "{row?.name}"?</p>
+          <p className='text-warning'>
+            ⚠️ This action cannot be undone!
+          </p>
+        </div>
+      ),
+      okText: 'Delete Permanently',
+      cancelText: 'Cancel',
+      onOk: () => {
+        permanentDeleteMutation.mutate(row?.id);
+      },
+    });
+  }, [permanentDeleteMutation]);
+
+  const handleRestoreEvent = useCallback((row) => {
+    Modal.confirm({
+      title: 'Restore Event',
+      content: `Are you sure you want to restore "${row?.name}"?`,
+      okText: 'Restore',
+      cancelText: 'Cancel',
+      onOk: () => {
+        restoreMutation.mutate(row?.id, {
+          onSuccess: () => {
+            message.success(`Event "${row?.name}" restored successfully`);
+            refetch();
+          },
+          onError: (error) => {
+            message.error(`Failed to restore event: ${error.message}`);
+          },
+        });
+      },
+    });
+  }, [restoreMutation, refetch]);
 
 
   const columns = useMemo(
@@ -174,33 +255,72 @@ const handleViewEvent = useMemo(() => (row) => {
         align: 'center',
         sorter: (a, b) => (a.event_type || '').localeCompare(b.event_type || ''),
       },
-      {
+      ...(!isJunk ? [{
         title: 'Status',
         dataIndex: 'event_status',
         key: 'event_status',
         align: 'center',
         render: (text) => getStatusBadge(text),
         sorter: (a, b) => (a.event_status || 0) - (b.event_status || 0),
-      },
+      }] : []),
       {
-        title: 'Created At',
-        dataIndex: 'created_at',
-        key: 'created_at',
+        title: isJunk ? 'Deleted At' : 'Created At',
+        dataIndex: isJunk ? 'deleted_at' : 'created_at',
+        key: isJunk ? 'deleted_at' : 'created_at',
         align: 'center',
         render: (text) => formatDateTime(text),
-        sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+        sorter: isJunk
+          ? (a, b) => new Date(a.deleted_at) - new Date(b.deleted_at)
+          : (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
       {
         title: 'Action',
         key: 'action',
         align: 'center',
-        ...(isMobile && { width: 60 }),
+        ...(isMobile && { width: isJunk ? 100 : 60 }),
         fixed: 'right',
         render: (_, row) => {
+          if (isJunk) {
+            const junkActions = [
+              {
+                tooltip: 'Restore Event',
+                isButton: true,
+                onClick: () => handleRestoreEvent(row),
+                type: 'default',
+                loadig : restoreMutation.isPending,
+                icon: <UndoOutlined />,
+              },
+              {
+                tooltip: 'Delete Permanently',
+                isButton: true,
+                onClick: () => handlePermanentDelete(row),
+                type: 'primary',
+                loading : permanentDeleteMutation.isPending,
+                danger: true,
+                icon: <DeleteOutlined />,
+              },
+            ];
+
+            return (
+              <Space size="small">
+                {junkActions.map((action, index) => (
+                  <Tooltip key={index} title={action.tooltip}>
+                    <Button
+                      type={action.type}
+                      danger={action.danger}
+                      icon={action.icon}
+                      onClick={action.onClick}
+                      loading={action.loading}
+                    />
+                  </Tooltip>
+                ))}
+              </Space>
+            );
+          }
           const actions = [
             {
               tooltip: 'View Event',
-              isButton : true,
+              isButton: true,
               onClick: () => handleViewEvent(row),
               type: 'primary',
               icon: <EyeOutlined />,
@@ -365,6 +485,11 @@ const handleViewEvent = useMemo(() => (row) => {
     [
       formatDateRange,
       getStatusBadge,
+      handleRestoreEvent,
+      handlePermanentDelete,
+      restoreMutation,
+      permanentDeleteMutation,
+      isJunk,
       formatDateTime,
       isMobile,
       HandleDelete,
@@ -379,7 +504,7 @@ const handleViewEvent = useMemo(() => (row) => {
 
   return (
     <DataTable
-      title="Events"
+      title={isJunk ? 'Junk Events' : "Events"}
       data={events}
       columns={columns}
       showDateRange={true}
@@ -392,15 +517,35 @@ const handleViewEvent = useMemo(() => (row) => {
       exportRoute="export-events"
       ExportPermission={usePermission('Export Events')}
       extraHeaderContent={
-        <PermissionChecker permission="Create Event">
-          <Tooltip title="New Event">
+        isJunk ?
+          <Tooltip title="Back To Events">
             <Button
               type="primary"
-              icon={<PlusOutlined size={16} />}
-              onClick={() => navigate('create')}
+              icon={<LeftOutlined />}
+              onClick={() => navigate(-1)}
             />
           </Tooltip>
-        </PermissionChecker>
+          :
+          <>
+            <PermissionChecker permission="Create Event">
+              <Tooltip title="New Event">
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined size={16} />}
+                  onClick={() => navigate('create')}
+                />
+              </Tooltip>
+            </PermissionChecker>
+            <PermissionChecker permission="View Junk Events">
+              <Tooltip title="View Deleted Event">
+                <Button
+                  type="primary"
+                  icon={<ArchiveRestore size={16} />}
+                  onClick={() => navigate('junk')}
+                />
+              </Tooltip>
+            </PermissionChecker>
+          </>
       }
       loading={isLoading || deleteMutation.isPending}
       error={isError ? error : null}

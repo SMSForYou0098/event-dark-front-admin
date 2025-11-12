@@ -9,6 +9,7 @@ import TicketVerification from 'views/events/Scan/TicketVerification'
 import NewBooking from 'views/events/Bookings/agent/NewAgentBooking'
 import AgentPOSDashboardLayout from 'views/events/Dashboard/components/AgentPOSDashboardLayout'
 import UserEditGuard from 'routes/UserEditGuard'
+import EventList from 'views/events/event/list'
 
 // ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
@@ -215,7 +216,18 @@ export const protectedRoutes = [
         path: `/events/create`,
         component: React.lazy(() => import('views/events/event/EventStepperForm')),
         meta: {
-            // permissions: ['Create Event'],
+            permissions: ['Create Event'],
+            //roles: ['admin', 'organizer'],
+        }
+    },
+    {
+        key: 'events-junk',
+        path: `/events/junk`,
+        component: (props) => (
+                <EventList isJunk={true}/>
+        ),
+        meta: {
+            permissions: ['View Junk Events'],
             //roles: ['admin', 'organizer'],
         }
     },
