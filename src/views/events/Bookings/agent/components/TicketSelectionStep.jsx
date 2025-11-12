@@ -32,6 +32,7 @@ const TicketSelectionStep = ({
         selectedTickets={selectedTickets}
         setSelectedTickets={setSelectedTickets}y
         getCurrencySymbol={getCurrencySymbol}
+        type={'agent'}
       />
     </Card>
   );

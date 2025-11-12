@@ -1,100 +1,55 @@
 import { Empty, Space, Table, Typography } from 'antd';
-import React, { useCallback, useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import CommonPricingComp from './CommonPricingComp';
 import Counter from 'utils/QuantityCounter';
 import { useMyContext } from 'Context/MyContextProvider';
-import { CloudCog } from 'lucide-react';
+
 const { Text } = Typography;
 
-const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selectedTickets }) => {
+const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selectedTickets, type }) => {
+  const { isMobile } = useMyContext();
+
   // Reset selected tickets when event changes
-  const { isMobile } = useMyContext()
   useEffect(() => {
     setSelectedTickets([]);
-  }, [event?.id]); // Reset when event ID changes
+  }, [event?.id, setSelectedTickets]);
 
-  const columns = [
-    {
-      title: 'Ticket Details',
-      dataIndex: 'name',
-      width : isMobile ? 250 : 400,
-      key: 'name',
-      render: (text, record) => (
-        <Space direction="vertical" size={0}>
-          <Text strong>
-            {text}
-            {(record.sold_out === 'true' || record.donation === 'true') && (
-              <Text type="danger" style={{ marginLeft: 8 }}>
-                {record.sold_out === 'true' ? 'Booking Closed' : 'Booking Not Started Yet'}
-              </Text>
-            )}
-          </Text>
-          <Space>
-            <Text>Price:</Text>
-            <CommonPricingComp
-              currency={record?.currency}
-              price={record?.price}
-              isSale={record?.sale}
-              salePrice={record?.sale_price}
-            />
-          </Space>
-        </Space>
-      ),
-    },
-    {
-      title: 'Quantity',
-      key: 'quantity',
-      width: isMobile ? 200 : 250,
-      align: isMobile ? 'right' : 'center',
-      render: (_, record) => {
-        const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
-        return (
-          <Counter
-            key={`${event?.id}-${record.id}`} // Add key to force remount on event change
-            getTicketCount={getTicketCount}
-            category={record.name}
-            price={record?.sale === 1 ? Number(record?.sale_price) : Number(record?.price)}
-            limit={10}
-            ticketID={record.id}
-            initialValue={selectedTicket?.quantity || 0}
-          />
-        );
-      },
-    },
-    // 👉 Conditionally include "Total" column
-    ...(!isMobile ? [{
-      title: 'Total',
-      key: 'total',
-      align: 'right',
-      width: 150,
-      render: (_, record) => {
-        const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
-        const quantity = selectedTicket?.quantity || 0;
+  // Normalizer for mixed-type boolean-ish fields
+  const toBool = (val) => val === 1 || val === '1' || val === true || val === 'true';
 
-        if (quantity === 0) {
-          return '-';
-        }
+  // Helper: isInactive when status is 0 or '0'
+  const isInactive = (rec) => rec?.status === 0 || rec?.status === '0';
 
-        const price = record?.sale === 1 ? record?.sale_price : record?.price;
-        const total = price * quantity;
-        return `${getCurrencySymbol(record?.currency)}${total}`;
-      },
-    }] : [])
-  ];
+  // Filter tickets:
+  // - If status === 0 (inactive) => hide unless current `type` is 'agent'/'pos' AND the ticket allows that actor
+  // - Otherwise include
+  const filteredTickets = useMemo(() => {
+    if (!event?.tickets) return [];
+    return event.tickets.filter((rec) => {
+      // if not inactive, show it
+      if (!isInactive(rec)) return true;
 
+      // if inactive, only allow display when type allowed:
+      if (type === 'agent' && toBool(rec?.allow_agent)) return true;
+      if (type === 'pos' && toBool(rec?.allow_pos)) return true;
+
+      // otherwise filter out (don't show)
+      return false;
+    });
+  }, [event?.tickets, type]);
 
   const getTicketCount = useCallback((quantity, category, price, id) => {
     setSelectedTickets(prevTickets => {
       const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
       const unitBaseAmount = +(price)?.toFixed(2);
-      //tax states      
+
+      // tax states
       const taxData = event?.tax_data;
       const convenienceFeeValue = Number(taxData?.convenience_fee || 0);
       const convenienceFeeType = taxData?.type || "flat";
 
-      // ✅ Dynamically calculate convenience fee
+      // Dynamically calculate convenience fee
       let unitConvenienceFee = 0;
-
       if (convenienceFeeType === "percentage") {
         unitConvenienceFee = +(unitBaseAmount * (convenienceFeeValue / 100)).toFixed(2);
       } else {
@@ -103,11 +58,10 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
 
       const unitCentralGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
       const unitStateGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
-      
-      // Per-unit calculations (adjust the formulae as per your tax policy)
+
+      // Per-unit calculations
       const unitTotalTax = +(unitCentralGST + unitStateGST)?.toFixed(2);
       const unitFinalAmount = +((price) + unitConvenienceFee + unitTotalTax).toFixed(2);
-
 
       // Totals for the selected quantity
       const totalBaseAmount = +(unitBaseAmount * quantity).toFixed(2);
@@ -157,8 +111,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       // Add new ticket
       return [...prevTickets, ticketData];
     });
-  }, [setSelectedTickets]);
-
+  }, [setSelectedTickets, event?.tax_data]);
 
   if (!event || event?.length === 0) {
     return (
@@ -166,20 +119,116 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
     );
   }
 
+  // per-row helper used for styling / pointer-events (keeps existing sold_out logic)
+  const rowIsDisabled = (record) => {
+    const soldOut = toBool(record?.sold_out);
+    return soldOut;
+  };
+
+  const columns = [
+    {
+      title: 'Ticket Details',
+      dataIndex: 'name',
+      width: isMobile ? 250 : 400,
+      key: 'name',
+      render: (text, record) => {
+        const soldOut = toBool(record?.sold_out);
+
+        const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
+        const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
+        const isBookingBlocked = isAgentNotAllowed || isPosNotAllowed;
+
+        let bookingLabel = null;
+        if (soldOut) {
+          if (isAgentNotAllowed) bookingLabel = 'Agent Full';
+          else if (isPosNotAllowed) bookingLabel = 'POS Full';
+          // else bookingLabel = 'Booking Closed';
+        } 
+        return (
+          <Space direction="vertical" size={0}>
+            <Text strong>
+              {text}
+              {bookingLabel && (
+                <Text className='text-primary' style={{ marginLeft: 8 }}>
+                  {bookingLabel}
+                </Text>
+              )}
+            </Text>
+
+            <Space>
+              <Text>Price:</Text>
+              <CommonPricingComp
+                currency={record?.currency}
+                price={record?.price}
+                isSale={record?.sale}
+                salePrice={record?.sale_price}
+                bookingBlocked={isBookingBlocked}
+              />
+            </Space>
+          </Space>
+        );
+      },
+    },
+    {
+      title: 'Quantity',
+      key: 'quantity',
+      width: isMobile ? 200 : 250,
+      align: isMobile ? 'right' : 'center',
+      render: (_, record) => {
+        const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
+
+        const soldOut = toBool(record?.sold_out);
+        const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
+        const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
+        const isBookingBlocked = isAgentNotAllowed || isPosNotAllowed;
+
+        return (
+          <Counter
+            key={`${event?.id}-${record.id}`} // Add key to force remount on event change
+            getTicketCount={getTicketCount}
+            category={record.name}
+            price={record?.sale === 1 ? Number(record?.sale_price) : Number(record?.price)}
+            limit={10}
+            ticketID={record.id}
+            initialValue={selectedTicket?.quantity || 0}
+            isDisable={isBookingBlocked}
+          />
+        );
+      },
+    },
+    // Conditionally include "Total" column (desktop only)
+    ...(!isMobile ? [{
+      title: 'Total',
+      key: 'total',
+      align: 'right',
+      width: 150,
+      render: (_, record) => {
+        const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
+        const quantity = selectedTicket?.quantity || 0;
+
+        if (quantity === 0) {
+          return '-';
+        }
+
+        const price = record?.sale === 1 ? record?.sale_price : record?.price;
+        const total = price * quantity;
+        return `${getCurrencySymbol(record?.currency)}${total}`;
+      },
+    }] : [])
+  ];
+
   return (
     <div>
       <Table
-        dataSource={event?.tickets}
+        dataSource={filteredTickets}
         columns={columns}
         pagination={false}
         rowKey="id"
         locale={{ emptyText: 'No Tickets Available' }}
-        rowClassName={(record) =>
-          (record.sold_out === 'true' || record.donation === 'true') ? 'opacity-50' : ''
-        }
+        rowClassName={(record) => (rowIsDisabled(record) ? 'opacity-50' : '')}
         onRow={(record) => ({
           style: {
-            pointerEvents: (record.sold_out === 'true' || record.donation === 'true') ? 'none' : 'auto'
+            pointerEvents: rowIsDisabled(record) ? 'none' : 'auto'
           }
         })}
       />
@@ -187,4 +236,4 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
   )
 }
 
-export default BookingTickets
+export default BookingTickets;

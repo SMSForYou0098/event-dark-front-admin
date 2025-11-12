@@ -225,6 +225,7 @@ const POS = memo(() => {
               selectedTickets={selectedTickets}
               setSelectedTickets={setSelectedTickets}
               getCurrencySymbol={getCurrencySymbol}
+              type={'pos'}
             />
           </Card>
         </Col>

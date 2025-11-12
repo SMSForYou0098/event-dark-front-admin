@@ -3,7 +3,17 @@ import { Input as AntdInput, message } from "antd";
 import { MinusOutlined, PlusOutlined } from "@ant-design/icons";
 
 const CounterInput = (props) => {
-  const { getTicketCount, category, price, limit, ticketID, className, initialValue = 0 } = props;
+  const {
+    getTicketCount,
+    category,
+    price,
+    limit,
+    ticketID,
+    className,
+    initialValue = 0,
+    isDisable,
+  } = props;
+
   const [counter, setCount] = useState(initialValue);
 
   useEffect(() => {
@@ -14,6 +24,7 @@ const CounterInput = (props) => {
   const max = limit;
 
   const increase = () => {
+    if (isDisable) return; // prevent click when disabled
     if (counter >= max) {
       message.error(`You can select max ${limit} tickets`);
       return;
@@ -24,6 +35,7 @@ const CounterInput = (props) => {
   };
 
   const decrease = () => {
+    if (isDisable) return; // prevent click when disabled
     const newCount = counter > min ? counter - 1 : 0;
     setCount(newCount);
     getTicketCount(newCount, category, price, ticketID);
@@ -34,6 +46,7 @@ const CounterInput = (props) => {
       type="number"
       className={className}
       value={counter}
+      disabled={isDisable}
       min={min}
       max={max}
       readOnly
@@ -41,11 +54,12 @@ const CounterInput = (props) => {
         <div className="text-center">
           <MinusOutlined
             className="text-white"
-            onClick={counter > min ? decrease : undefined}
+            onClick={!isDisable && counter > min ? decrease : undefined}
             style={{
-              // width : '2rem',
-              cursor: counter > min ? "pointer" : "not-allowed",
-              opacity: counter > min ? 1 : 0.3
+              cursor:
+                isDisable || counter <= min ? "not-allowed" : "pointer",
+              opacity: isDisable ? 0.3 : counter > min ? 1 : 0.3,
+              pointerEvents: isDisable ? "none" : "auto",
             }}
           />
         </div>
@@ -53,11 +67,12 @@ const CounterInput = (props) => {
       suffix={
         <PlusOutlined
           className="text-white"
-          onClick={counter < max ? increase : undefined}
+          onClick={!isDisable && counter < max ? increase : undefined}
           style={{
-            cursor: counter < max ? "pointer" : "not-allowed",
-            //  width : '2rem',
-            opacity: counter < max ? 1 : 0.3
+            cursor:
+              isDisable || counter >= max ? "not-allowed" : "pointer",
+            opacity: isDisable ? 0.3 : counter < max ? 1 : 0.3,
+            pointerEvents: isDisable ? "none" : "auto",
           }}
         />
       }
@@ -69,16 +84,10 @@ const Counter = (props) => {
   return (
     <Fragment>
       <div className="d-block d-sm-none mobile">
-        <CounterInput
-          className="counter w-100"
-          {...props}
-        />
+        <CounterInput className="counter w-100" {...props} />
       </div>
       <div className="d-none d-sm-block pc">
-        <CounterInput
-          className="counter w-75"
-          {...props}
-        />
+        <CounterInput className="counter w-75" {...props} />
       </div>
     </Fragment>
   );

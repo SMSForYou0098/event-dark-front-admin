@@ -82,7 +82,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         if (!UserData?.id) return;
         try {
             const response = await apiClient.get(`promo-list/${UserData?.id}`);
-            const promoOptions = (response.promoCodes || []).map(promo => ({
+            const promoOptions = (response?.promoCodes || []).map(promo => ({
                 value: promo.id,
                 label: promo.code
             }));
@@ -215,6 +215,8 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 : [],
             sale: hasSaleData,
             sold_out: ticket.sold_out === 1,
+            allow_pos: ticket.allow_pos === 1,
+            allow_agent: ticket.allow_agent === 1,
             booking_not_open: ticket.booking_not_open === 1,
             fast_filling: ticket.fast_filling === 1,
             modify_access_area: ticket.modify_access_area === 1,
@@ -287,6 +289,8 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
             // Booleans
             formData.append('sold_out', values.sold_out);
+            formData.append('allow_pos', values.allow_pos);
+            formData.append('allow_agent', values.allow_agent);
             formData.append('booking_not_open', values.booking_not_open);
             formData.append('fast_filling', values.fast_filling);
             formData.append('modify_access_area', values.modify_access_area);
@@ -505,6 +509,8 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         { label: 'Fast Filling', name: 'fast_filling' },
         { label: 'Modify Area', name: 'modify_access_area' },
         { label: 'Active', name: 'status' },
+        { label: 'Allow Agent', name: 'allow_agent' },
+        { label: 'Allow POS', name: 'allow_pos' },
     ];
 
     return (
