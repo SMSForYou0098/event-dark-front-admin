@@ -93,8 +93,8 @@ input.ant-input:not(.ant-input-affix-wrapper > input) {
 /* Disabled states */
 .ant-input-affix-wrapper-disabled,
 .ant-input[disabled] {
-    border-color: var(--border-disabled) !important;
-    background-color: rgba(77, 91, 117, 0.2) !important;
+    /* border-color: var(--border-disabled) !important; */
+    background-color: rgba(77, 91, 117, 0.1) !important;
     color: var(--text-disabled) !important;
 }
 

@@ -3,7 +3,7 @@ import { fabric } from 'fabric-pure-browser';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Button, Col, message, Row, Spin } from 'antd';
 import axios from 'axios';
-import { CloudDownloadOutlined, InstagramOutlined, PrinterOutlined, YoutubeOutlined } from '@ant-design/icons';
+import { CloudDownloadOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 
 const TicketCanvas = (props) => {
@@ -189,8 +189,8 @@ useEffect(() => {
       try {
         // Load background image
         const img = await loadFabricImage(imageUrl);
-        const imgWidth = img.width;
-        const imgHeight = img.height;
+        const imgWidth = img.width * 0.9;
+        const imgHeight = img.height * 0.9;
 
         canvas.setDimensions({ width: imgWidth, height: imgHeight });
         img.scaleToWidth(imgWidth);
@@ -200,11 +200,11 @@ useEffect(() => {
         canvas.remove(loader);
         const qrImg = await loadFabricImage(qrDataUrl);
         
-        const qrCodeWidth = 100;
-        const qrCodeHeight = 100;
-        const padding = 5;
+        const qrCodeWidth = 95;
+        const qrCodeHeight = 95;
+        const padding = 1;
         const qrPositionX = (imgWidth / 2) - (qrCodeWidth / 2);
-        const qrPositionY = 150;
+        const qrPositionY = 88;
 
         // Add white background for QR code
         const qrBackground = new fabric.Rect({
@@ -228,7 +228,7 @@ useEffect(() => {
         });
 
         // Add ticket number below QR code
-        const ticketNumberText = new fabric.Text(`Ticket #${ticketNumber || '1'}`, {
+        const ticketNumberText = new fabric.Text(`${ticketNumber || '1'}`, {
           left: imgWidth / 2,
           top: qrPositionY + qrCodeHeight + 15,
           fontSize: 16,

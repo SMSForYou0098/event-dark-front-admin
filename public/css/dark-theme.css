@@ -38,6 +38,13 @@
   --select-active-bg: rgba(181, 21, 21, 0.15);
   --select-selected-bg: var(--primary-color);
 }
+
+.disabled-row td {
+  background-color: #181818 !important;
+  cursor: not-allowed; /* Show "not-allowed" cursor */
+  pointer-events: none; /* Disable pointer events */
+}
+
 .border-secondary {
     border:1px solid var(--border-secondary) !important;
 }

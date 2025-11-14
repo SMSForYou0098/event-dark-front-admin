@@ -176,12 +176,11 @@ const BookingList = memo(({ type = 'agent' }) => {
         setTicketOptionModal({ visible: true, hasMultiple });
     }, []);
 
-    const GenerateTicket = useCallback((id) => {
-        let data = bookings?.find((item) => item?.id === id);
+    const GenerateTicket = useCallback((data) => {
         setTicketData(data);
         const hasMultiple = data?.bookings?.length > 0;
         showTicketOptionsModal(hasMultiple);
-    }, [bookings, showTicketOptionsModal]);
+    }, [showTicketOptionsModal]);
 
 
     const handleDateRangeChange = useCallback((dates) => {
@@ -297,7 +296,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         key: 'generate',
                         label: 'Generate Ticket',
                         icon: <Ticket size={14} />,
-                        onClick: () => GenerateTicket(record.id),
+                        onClick: () => GenerateTicket(record),
                         disabled: isDisabled,
                     },
                     {
@@ -537,7 +536,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                         key: 'generate',
                         label: 'Generate Ticket',
                         icon: <Ticket size={14} />,
-                        onClick: () => GenerateTicket(record.id),
+                        onClick: () => GenerateTicket(record),
                         disabled: isDisabled || record.is_set === true,
                         permissions: 'Generate Tickets'
                     },

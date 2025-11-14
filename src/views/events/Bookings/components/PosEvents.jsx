@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 import PosEventCard from './PosEventCard';
 import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
+import Loader from 'utils/Loader';
 const { Panel } = Collapse;
 const PosEvents = ({ type, handleButtonClick }) => {
     const { api, authToken, UserData, truncateString } = useMyContext();
@@ -76,15 +77,11 @@ const PosEvents = ({ type, handleButtonClick }) => {
     if (isError) {
         return <div className="text-danger text-center">Failed to load events.</div>;
     }
-
+    if (isLoading) {
+        return <Loader />
+    }
     return (
-        <Card bordered={false} style={{minWidth:"120px"}}>
-            {isLoading && (
-                <div className="d-flex justify-content-center align-items-center" style={{ height: '10vh' }}>
-                    <Spin tip="Loading events..." size="large" />
-                </div>
-            )}
-
+        <Card bordered={false} style={{ minWidth: "120px" }}>
             <Collapse
                 activeKey={activeKey}
                 onChange={setActiveKey}
@@ -159,7 +156,7 @@ const PosEvents = ({ type, handleButtonClick }) => {
                             style={{
                                 position: 'absolute',
                                 right: 0,
-                                border:'none',
+                                border: 'none',
                                 top: '50%',
                                 transform: 'translate(0%, -50%)',
                                 zIndex: 1

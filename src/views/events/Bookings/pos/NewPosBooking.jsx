@@ -85,6 +85,24 @@ const POS = memo(() => {
         cancelToken
       });
 
+       if (res.data.warningCode) {
+                switch (res.data.warningCode) {
+                  case "TICKET_LIMIT_REACHED":
+                    message.warning(res.data.message || "Ticket limit reached. Please reduce quantity.");
+                    break;
+      
+                  case "TICKETS_SOLD_OUT":
+                    message.error(res.data.message || "Tickets are sold out.");
+                    break;
+      
+                  default:
+                    message.warning(res.data.message || "Something went wrong. Please try again.");
+                }
+      
+                // Stop further success flow if it’s a warning/error
+                //setIsBookingInProgress(false);
+                return;
+              }
       if (res.data.status) {
         setShowPrintModel(true);
         setBookingData(res.data?.bookings);

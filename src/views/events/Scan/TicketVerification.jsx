@@ -1,6 +1,6 @@
 import React, { memo, useState, useEffect, useCallback } from 'react';
-import { Row, Col, message, Modal } from 'antd';
-import { ExclamationCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Row, Col, message, Modal, Button } from 'antd';
+import { ExclamationCircleOutlined, CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import useSound from 'use-sound';
 
@@ -8,12 +8,12 @@ import beepSound from '../../../assets/event/stock/tik.mp3';
 import errorSound from '../../../assets/event/stock/error.mp3';
 import { useMyContext } from 'Context/MyContextProvider';
 import { capitilize } from '../users/wallet/Transaction';
-import MobileScan from './components/MobileScan';
 import ScanedUserData from './components/ScanedUserData';
 import TransactionReceiptModal from './components/TransactionReceiptModal';
 import TickeScanFeilds from './components/TickeScanFeilds';
 import AdminActionModal from './components/AdminActionModal';
 import ShopKeeperModal from './components/ShopKeeperModal';
+import StickyBottom from 'utils/MobileStickyBottom.jsx/StickyBottom';
 
 const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const {
@@ -38,7 +38,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [showAdminModal, setShowAdminModal] = useState(false);
     const [pendingQRData, setPendingQRData] = useState(null);
     const [resData, setResData] = useState(null);
-    const [scanType, setScanType] = useState('');
+    const [scanType, setScanType] = useState('verify');
     const [tokenLength, setTokenLength] = useState(8);
     const [isProcessing, setIsProcessing] = useState(false);
     const [autoCheck, setAutoCheck] = useState(false);
@@ -58,7 +58,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Error Modal ─────────────────────────
     const showErrorModal = (errorMsg, checkInTime = null) => {
         playError();
-        
+
         Modal.error({
             maskClosable: true,
             title: (
@@ -86,7 +86,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             okText: 'Close',
             okButtonProps: {
                 size: 'large',
-                style: { fontSize: '1.1rem', height: '45px' , background : 'transprent' , border : 'none' }
+                style: { fontSize: '1.1rem', height: '45px', background: 'transprent', border: 'none' }
             },
             onOk: () => {
                 setQRData('');
@@ -97,7 +97,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Success Modal ───────────────────────
     const showSuccessModal = (msg) => {
         playBeep();
-        
+
         Modal.success({
             maskClosable: true,
             title: (
@@ -167,7 +167,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
 
             if (res.data.status) {
                 showSuccess('Ticket Found');
-                const mainBookings = res.data.bookings;
+                const mainBookings = res.data;
                 setTicketData(mainBookings);
                 setEvent(res.data.event);
                 setType(res.data.type);
@@ -363,7 +363,16 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             <>
                 <Row gutter={[16, 16]}>
                     <div className='d-block d-sm-none'>
-                        <MobileScan />
+                        <StickyBottom>
+                            <Button
+                                type="primary"
+                                block
+                                icon={<ReloadOutlined />}
+                                onClick={() => window.location.reload()}
+                            >
+                                Refresh
+                            </Button>
+                        </StickyBottom>
                     </div>
                     <Col span={24}>
                         <TickeScanFeilds

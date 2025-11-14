@@ -122,8 +122,11 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
   // per-row helper used for styling / pointer-events (keeps existing sold_out logic)
   const rowIsDisabled = (record) => {
     const soldOut = toBool(record?.sold_out);
-    return soldOut;
+    const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
+    const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
+    return soldOut || isAgentNotAllowed || isPosNotAllowed;
   };
+
 
   const columns = [
     {
@@ -139,18 +142,18 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
         const isBookingBlocked = isAgentNotAllowed || isPosNotAllowed;
 
         let bookingLabel = null;
-        if (soldOut) {
-          if (isAgentNotAllowed) bookingLabel = 'Agent Full';
-          else if (isPosNotAllowed) bookingLabel = 'POS Full';
+        if (rowIsDisabled(record)) {
+          if (type === 'agent') bookingLabel = 'Sold Out';
+          else if (type === 'pos') bookingLabel = 'Sold Out';
           // else bookingLabel = 'Booking Closed';
-        } 
+        }
         return (
           <Space direction="vertical" size={0}>
             <Text strong>
               {text}
               {bookingLabel && (
                 <Text className='text-primary' style={{ marginLeft: 8 }}>
-                  {bookingLabel}
+                   - {bookingLabel}
                 </Text>
               )}
             </Text>
@@ -176,12 +179,6 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       align: isMobile ? 'right' : 'center',
       render: (_, record) => {
         const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
-
-        const soldOut = toBool(record?.sold_out);
-        const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
-        const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
-        const isBookingBlocked = isAgentNotAllowed || isPosNotAllowed;
-
         return (
           <Counter
             key={`${event?.id}-${record.id}`} // Add key to force remount on event change
@@ -191,7 +188,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
             limit={10}
             ticketID={record.id}
             initialValue={selectedTicket?.quantity || 0}
-            isDisable={isBookingBlocked}
+            isDisable={rowIsDisabled(record)}
           />
         );
       },
@@ -225,12 +222,12 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
         pagination={false}
         rowKey="id"
         locale={{ emptyText: 'No Tickets Available' }}
-        rowClassName={(record) => (rowIsDisabled(record) ? 'opacity-50' : '')}
+        rowClassName={(record) => (rowIsDisabled(record) ? 'disabled-row' : '')}
         onRow={(record) => ({
-          style: {
-            pointerEvents: rowIsDisabled(record) ? 'none' : 'auto'
-          }
-        })}
+        style: {
+          pointerEvents: rowIsDisabled(record) ? 'none' : 'auto',
+        },
+      })}
       />
     </div>
   )

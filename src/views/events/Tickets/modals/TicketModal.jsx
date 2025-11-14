@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Row, Col, Carousel } from 'antd'; // Added Carousel
-import { YoutubeOutlined, InstagramOutlined } from '@ant-design/icons';
+import { Modal, Row, Col, Carousel } from 'antd';
 // Removed Swiper import
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
@@ -9,10 +8,11 @@ import AmusementTicket from '../tickets_type/AmusementTicket';
 import AccreditationTicket from '../tickets_type/AccreditationTicket';
 import TicketCanvas from '../Ticket_canvas';
 import TicketCanvasBatch from '../TicketCanvasBatch';
+import { LeftOutlined, RightOutlined } from '@ant-design/icons';
 
 const TicketModal = (props) => {
-    const { convertTo12HourFormat, isMobile, api, authToken } = useMyContext();
-    const { showPrintButton, showTicketDetails, show, handleCloseModal, ticketType, ticketData, formatDateRange, isAccreditation, isIdCard, card_url, bgRequired, eventId } = props;
+    const { convertTo12HourFormat, isMobile, api, authToken, formatDateRange } = useMyContext();
+    const { showPrintButton, showTicketDetails, show, handleCloseModal, ticketType, ticketData, isAccreditation, isIdCard, card_url, bgRequired, eventId } = props;
     const [savedLayout, setSavedLayout] = useState({});
     const [userPhoto, setUserPhoto] = useState();
     const [idCardBg, setIdCardBg] = useState();
@@ -94,6 +94,7 @@ const TicketModal = (props) => {
         }
     }, [show, ticketData, card_url, bgRequired, isIdCard]);
 
+    console.log(ticketData)
     return (
         <Modal
             open={show}
@@ -108,12 +109,16 @@ const TicketModal = (props) => {
                         ticketData?.bookings?.length > 0 && (
                             <Carousel
                                 autoplay
-                                dots
+                                draggable
+                                dots={false}
+                                arrows
+                                className='cursor-grab'
+                                prevArrow={<LeftOutlined className='text-primary' />}
+                                nextArrow={<RightOutlined className='text-primary' />}
                             >
                                 {ticketData.bookings.map((item, index) => {
                                     const event = item?.ticket?.event || item?.bookings[0]?.ticket?.event || {};
                                     const ticket = item?.ticket || item?.bookings[0]?.ticket || {};
-                                    console.log('ticket item:', item);
                                     return (
                                         <div key={index} style={{ display: "flex", flexDirection: "column", gap: 8, justifyContent: "center" }}>
                                             <Col span={24}>
@@ -138,7 +143,7 @@ const TicketModal = (props) => {
                                                         ticketNumber={index + 1}
                                                     />
                                                 </div>
-                                                <p style={{ textAlign: "center", color: "#888" }}>{index + 1}</p>
+                                                <p className='p-0 m-0 text-center'>{index + 1}</p>
                                             </Col>
                                         </div>
                                     );
@@ -183,8 +188,8 @@ const TicketModal = (props) => {
                                         }
                                         date={
                                             formatDateRange?.(
-                                                (ticketData?.booking_date ||
-                                                    ticketData?.bookings?.[0]?.booking_date) ||
+                                                (ticketData?.created_at ||
+                                                    (ticketData?.bookings && ticketData?.bookings?.[0]?.created_at)) ||
                                                 (ticketData?.ticket?.event?.date_range ||
                                                     ticketData?.bookings?.[0]?.ticket?.event?.date_range)
                                             ) || 'Date Not Available'
