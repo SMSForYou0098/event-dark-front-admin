@@ -124,7 +124,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
     const soldOut = toBool(record?.sold_out);
     const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
     const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
-    return soldOut || isAgentNotAllowed || isPosNotAllowed;
+    return soldOut || isAgentNotAllowed || isPosNotAllowed || record?.booking_not_open === 1;
   };
 
 
@@ -143,9 +143,10 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
 
         let bookingLabel = null;
         if (rowIsDisabled(record)) {
-          if (type === 'agent') bookingLabel = 'Sold Out';
-          else if (type === 'pos') bookingLabel = 'Sold Out';
-          // else bookingLabel = 'Booking Closed';
+          if(record?.booking_not_open === 1) {
+            bookingLabel = 'Booking Not Open';
+          }
+          else bookingLabel = 'Booking Closed';
         }
         return (
           <Space direction="vertical" size={0}>
