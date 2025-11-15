@@ -124,7 +124,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
     const soldOut = toBool(record?.sold_out);
     const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
     const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
-    return soldOut || isAgentNotAllowed || isPosNotAllowed || record?.booking_not_open === 1;
+    return isAgentNotAllowed || isPosNotAllowed || record?.booking_not_open === 1;
   };
 
 
