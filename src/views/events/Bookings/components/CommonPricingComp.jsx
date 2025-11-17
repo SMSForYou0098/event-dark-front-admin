@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag, Typography } from 'antd';
+import { Typography } from 'antd';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 
 const { Text } = Typography;
@@ -23,36 +23,28 @@ const CommonPricingComp = ({ currency, isSale, price, salePrice }) => {
                             Free
                         </Text>
                     ) : (
-                        <Text type="secondary" delete>
+                        <Text type="secondary" delete >
                             {currencySymbol}{normalPrice}
                         </Text>
                     )}
                     {' '}
-                    
+
                     {/* Show sale price */}
                     {discountPrice === 0 ? (
-                        <Tag color="green">
-                             <strong>Free</strong>
-                        </Tag>
+                        <strong>Free</strong>
                     ) : (
-                        <Tag color="blue-inverse">
-                            <Text strong>
-                                {currencySymbol}{discountPrice}
-                            </Text>
-                        </Tag>
+                        <Text strong style={{fontSize:'1rem'}}>
+                            {currencySymbol}{discountPrice}
+                        </Text>
                     )}
                 </>
             ) : (
                 <>
                     {/* Show normal price */}
                     {normalPrice === 0 ? (
-                        <Tag color="green">
-                            <strong>Free</strong>
-                        </Tag>
+                        <strong>Free</strong>
                     ) : (
-                        <Tag color="blue-inverse">
-                            <strong>{currencySymbol}{normalPrice}</strong>
-                        </Tag>
+                        <strong style={{fontSize:'1rem'}}>{currencySymbol}{normalPrice}</strong>
                     )}
                 </>
             )}

@@ -502,16 +502,49 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
     }, [saleValue]);
 
-    const switchesConfig = [
-        { label: 'Sale', name: 'sale' },  // No onChange!                                       
-        { label: 'Sold Out', name: 'sold_out' },
-        { label: 'Not Open', name: 'booking_not_open' },
-        { label: 'Fast Filling', name: 'fast_filling' },
-        { label: 'Modify Area', name: 'modify_access_area' },
-        { label: 'Active', name: 'status' },
-        { label: 'Allow Agent', name: 'allow_agent' },
-        { label: 'Allow POS', name: 'allow_pos' },
-    ];
+const switchesConfig = [
+    { label: 'Sale', name: 'sale' },
+    { 
+        label: 'Sold Out', 
+        name: 'sold_out',
+        onChange: (checked) => {
+            if (checked) {
+                form.setFieldsValue({
+                    booking_not_open: false,
+                    fast_filling: false
+                });
+            }
+        }
+    },
+    { 
+        label: 'Not Open', 
+        name: 'booking_not_open',
+        onChange: (checked) => {
+            if (checked) {
+                form.setFieldsValue({
+                    sold_out: false,
+                    fast_filling: false
+                });
+            }
+        }
+    },
+    { 
+        label: 'Fast Filling', 
+        name: 'fast_filling',
+        onChange: (checked) => {
+            if (checked) {
+                form.setFieldsValue({
+                    sold_out: false,
+                    booking_not_open: false
+                });
+            }
+        }
+    },
+    { label: 'Modify Area', name: 'modify_access_area' },
+    { label: 'Active', name: 'status' },
+    { label: 'Allow Agent', name: 'allow_agent' },
+    { label: 'Allow POS', name: 'allow_pos' },
+];
 
     return (
         <>

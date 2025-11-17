@@ -1,6 +1,6 @@
 import React, { memo, useState, useEffect, useCallback } from 'react';
-import { Row, Col, message, Modal, Button } from 'antd';
-import { ExclamationCircleOutlined, CheckCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Row, Col, message, Modal, Button, Card, Space, Typography, Divider } from 'antd';
+import { ExclamationCircleOutlined, CheckCircleOutlined, ReloadOutlined, ClockCircleOutlined, EnvironmentOutlined, TeamOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import useSound from 'use-sound';
 
@@ -14,6 +14,7 @@ import TickeScanFeilds from './components/TickeScanFeilds';
 import AdminActionModal from './components/AdminActionModal';
 import ShopKeeperModal from './components/ShopKeeperModal';
 import StickyBottom from 'utils/MobileStickyBottom.jsx/StickyBottom';
+import PosEvents from '../Bookings/components/PosEvents';
 
 const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const {
@@ -24,6 +25,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         UserData,
         fetchCategoryData,
         handleWhatsappAlert,
+        formatDateRange
     } = useMyContext();
 
     // ─── State ───────────────────────────────
@@ -40,10 +42,15 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [resData, setResData] = useState(null);
     const [scanType, setScanType] = useState('verify');
     const [tokenLength, setTokenLength] = useState(8);
+    const [loading, setLoading] = useState({
+        fetching: false,
+        verifying: false
+    });
+
     const [isProcessing, setIsProcessing] = useState(false);
     const [autoCheck, setAutoCheck] = useState(false);
+    const [selectedFields, setSelectedFields] = useState([])
     const [selectedAction, setSelectedAction] = useState(null);
-
     // ─── Sounds ──────────────────────────────
     const [playBeep] = useSound(beepSound);
     const [playError] = useSound(errorSound);
@@ -143,7 +150,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Load Category Data ──────────────────
     const loadCategoryData = async (event) => {
         if (!event) return;
-        const data = await fetchCategoryData(event?.category?.id);
+        setEvent(event)
+        const data = await fetchCategoryData(event?.category);
         setCategoryData(data);
     };
 
@@ -160,6 +168,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
 
     // ─── Get Ticket Detail ───────────────────
     const getTicketDetail = async (data) => {
+        setLoading(prev => ({ ...prev, fetching: true }));
+        setShow(true);
         try {
             const res = await axiosAuth().post(`${api}verify-ticket/${data}`, {
                 user_id: UserData?.reporting_user,
@@ -169,20 +179,24 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 showSuccess('Ticket Found');
                 const mainBookings = res.data;
                 setTicketData(mainBookings);
-                setEvent(res.data.event);
+                // setEvent(res.data.event);
                 setType(res.data.type);
-                await loadCategoryData(res.data.event);
+                //await loadCategoryData(res.data.event);
                 handleAttendees(res.data);
-                setShow(true);
             }
         } catch (err) {
+            setShow(false)
             const { message: msg, time } = err.response?.data ?? {};
             showErrorModal(msg, time);
+        } finally {
+            //setShow(false)
+            setLoading(prev => ({ ...prev, fetching: false }));
         }
     };
 
     // ─── ShopKeeper Verification ─────────────
     const handleShopKeeperVerification = async (data) => {
+        setLoading(prev => ({ ...prev, verifying: true }));
         try {
             const res = await axiosAuth().post(`${api}wallet-user/${data}`);
             if (res.data.status) {
@@ -192,6 +206,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             }
         } catch (err) {
             showErrorModal(err?.response?.data?.message ?? 'Verification failed');
+        } finally {
+            setLoading(prev => ({ ...prev, verifying: false }));
         }
     };
 
@@ -244,6 +260,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Verify Ticket ───────────────────────
     const handleVerify = async () => {
         if (!QRdata || isProcessing) return;
+        setLoading(prev => ({ ...prev, verifying: true }));
         setIsProcessing(true);
         try {
             const res = await axiosAuth().get(`${api}chek-in/${QRdata}`);
@@ -253,8 +270,11 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 setShow(false);
             }
         } catch (err) {
+
             showErrorModal(err?.response?.data?.message);
         } finally {
+
+            setLoading(prev => ({ ...prev, verifying: true }));
             setIsProcessing(false);
         }
     };
@@ -316,7 +336,9 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         if (credits) await handleWhatsappAlert(user_number, values, 'Transaction Dedit');
     };
 
-    // ─── JSX ─────────────────────────────────
+    // const handleEventChange = (data) => {
+    //     loadCategoryData(data)
+    // }
     return (
         <>
             <AdminActionModal
@@ -355,6 +377,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                     type={type}
                     setShow={setShow}
                     attendees={attendees}
+                    loading={loading}
                     categoryData={categoryData}
                     handleVerify={handleVerify}
                 />
@@ -375,17 +398,50 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                         </StickyBottom>
                     </div>
                     <Col span={24}>
+                        <PosEvents handleButtonClick={loadCategoryData} />
+                    </Col>
+                    <Col xs={24} sm={24} lg={12}>
                         <TickeScanFeilds
                             scanMode={scanMode}
+                            categoryData={categoryData}
                             QRdata={QRdata}
                             setQRData={setQRData}
                             autoCheck={autoCheck}
+                            setSelectedFields={setSelectedFields}
                             setAutoCheck={setAutoCheck}
                             scanType={scanType}
+                            eventId={event?.id}
                             setScanType={setScanType}
                             userRole={userRole}
                         />
                     </Col>
+                    {event && 
+                    <Col xs={24} sm={24} lg={12}>
+                        <Card>
+                            <Space direction="vertical" size={12} className='w-100'>
+                                <div>
+                                    <Typography.Text strong>
+                                        {event?.name || 'Event Name'}
+                                    </Typography.Text>
+                                </div>
+
+                                <Divider className='my-0' />
+
+                                <Space direction="vertical" size={8}>
+                                    <div>
+                                        <Space>
+                                            <ClockCircleOutlined />
+                                            <Typography.Text>Date Range:</Typography.Text>
+                                        </Space>
+                                        <Typography.Text strong>
+                                            {formatDateRange(event?.date_range)}
+                                        </Typography.Text>
+                                    </div>
+                                </Space>
+                            </Space>
+                        </Card>
+                    </Col>
+                    }
                 </Row>
             </>
         </>

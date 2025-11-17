@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Descriptions, List, Tag, Button, Divider, Space, Typography, Drawer, Card, Image, Row, Col, Carousel, Badge, Modal } from 'antd';
+import { Descriptions, List, Tag, Button, Divider, Space, Typography, Drawer, Card, Image, Row, Col, Carousel, Badge } from 'antd';
 import {
   CheckCircleOutlined,
   UserOutlined,
@@ -11,14 +11,11 @@ import {
   LoadingOutlined,
   CloseOutlined,
   MailOutlined,
-  FileImageOutlined,
-  ExclamationCircleOutlined,
-  PrinterOutlined
+  FileImageOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useMyContext } from 'Context/MyContextProvider';
 import Loader from 'utils/Loader';
-import AttendeesPrint from './AttendeesPrint';
 
 const { Text, Title } = Typography;
 
@@ -33,8 +30,9 @@ const ScanedUserData = ({
   handleVerify,
   loading
 }) => {
-  const { isMobile } = useMyContext();
-  useEffect(() => {
+  const { formateTemplateTime, isMobile } = useMyContext();
+    useEffect(() => {
+      console.log(show , isMobile)
     if (show && isMobile) {
       const dotsElement = document.querySelector('ul.slick-dots.slick-dots-bottom.custom-dots');
       if (dotsElement) {
@@ -104,14 +102,22 @@ const ScanedUserData = ({
     },
     {
       label: <>
-        <PhoneOutlined className='text-primary mr-2' style={{transform : 'rotate(100deg)'}}/> Number
+        <PhoneOutlined className='text-primary mr-2' /> Contact
       </>,
       value: <Text copyable>{customerInfo.phone}</Text>,
     },
+    // {
+    //   label: 'Order ID',
+    //   value: <Text strong copyable>{bookings?.order_id || 'N/A'}</Text>,
+    // },
     {
       label: 'Quantity',
       value: <Text strong>{bookings?.quantity || 0} Ticket(s)</Text>,
     },
+    // ...(isMasterBooking ? [{
+    //   label: 'Set ID',
+    //   value: <Text copyable>{bookings?.set_id || 'N/A'}</Text>,
+    // }] : []),
     {
       label: <>
         <CalendarOutlined className='text-primary mr-2' /> Booking Date
@@ -149,6 +155,49 @@ const ScanedUserData = ({
 
   ];
 
+  // Ticket & Payment Information
+  const ticketInfo = [
+
+
+    // {
+    //   label: 'Total Amount',
+    //   value: <Text strong>₹{bookings?.total_amount || '0'}</Text>,
+    // },
+    // ...(bookings?.payment_method ? [{
+    //   label: 'Payment Method',
+    //   value: <Tag color="blue">{bookings.payment_method}</Tag>,
+    // }] : []),
+    // {
+    //   label: 'Scan Status',
+    //   value: bookings?.is_scaned ? (
+    //     <Tag color="success" icon={<CheckCircleOutlined />}>Already Scanned</Tag>
+    //   ) : (
+    //     <Tag color="default">Not Scanned</Tag>
+    //   ),
+    // },
+  ];
+
+  // Event Information
+  const eventInfo = [
+    // {
+    //   label: 'Event Key',
+    //   value: <Text code>{eventData?.event_key || 'N/A'}</Text>,
+    // },
+    ...(eventData?.date_range ? [{
+      label: <>
+        <CalendarOutlined className='text-primary mr-2' /> Date Range
+      </>,
+      value: formateTemplateTime(eventData.date_range) || 'N/A',
+    }] : []),
+    ...(eventData?.event_type ? [{
+      label: 'Event Type',
+      value: <Tag color="geekblue">{eventData.event_type}</Tag>,
+    }] : []),
+    // ...(eventData?.category ? [{
+    //   label: 'Category',
+    //   value: <Tag color="cyan">{eventData.category.title}</Tag>,
+    // }] : []),
+  ];
 
   // Render attendee card for master bookings
   const renderAttendeeCard = (attendee, idx) => (
@@ -262,26 +311,6 @@ const ScanedUserData = ({
       );
     }
   };
-  const { handlePrintAttendee, handlePrintAllAttendees } = AttendeesPrint({
-    attendeesList,
-    eventData,
-    ticket,
-    bookings
-  });
-
-  const showPrintConfirm = () => {
-    Modal.confirm({
-      title: 'Print All Attendees?',
-      icon: <ExclamationCircleOutlined />,
-      content: `Are you sure you want to print all ${attendeesList.length} attendee passes? They will be printed one by one.`,
-      okText: 'Yes, Print All',
-      okType: 'primary',
-      cancelText: 'Cancel',
-      onOk() {
-        handlePrintAllAttendees();
-      },
-    });
-  };
   return (
     <Drawer
       open={show}
@@ -293,37 +322,24 @@ const ScanedUserData = ({
         <Space size="small">
           <CheckCircleOutlined style={{ color: '#52c41a' }} />
           <span>Scanned Ticket Details</span>
+          {isMasterBooking && <Tag color="gold">Master Booking</Tag>}
         </Space>
       }
       extra={
         <CloseOutlined onClick={handleClose} />
       }
       footer={
-        <Space className='w-100' size="middle">
-           {isMasterBooking && attendeesList.length > 0 && (
-            <Button
-              type="default"
-              className='btn-tertiary'
-              onClick={showPrintConfirm}
-              icon={<PrinterOutlined />}
-              size="large"
-              block={isMobile}
-            >
-              Print Attendees ({attendeesList.length})
-            </Button>
-          )}
+        <div className='text-center'>
           <Button
             type="primary"
             onClick={handleVerify}
             icon={loading?.verifying ? <LoadingOutlined spin /> : <CheckCircleOutlined />}
-            // disabled={bookings?.is_scaned || loading?.verifying}
-            disabled={true}
+            disabled={bookings?.is_scaned || loading?.verifying}
             size="large"
-            block={isMobile}
           >
             {bookings?.is_scaned ? 'Already Verified' : 'Verify Ticket'}
           </Button>
-        </Space>
+        </div>
       }
       footerStyle={{ textAlign: 'center', padding: '16px' }}
       styles={{

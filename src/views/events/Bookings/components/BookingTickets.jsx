@@ -1,7 +1,8 @@
-import { Empty, Space, Table, Typography } from 'antd';
+import { Empty, Space, Table, Tag, Typography } from 'antd';
 import React, { useCallback, useEffect, useMemo } from 'react'
 import CommonPricingComp from './CommonPricingComp';
 import Counter from 'utils/QuantityCounter';
+import { ClockCircleOutlined, RiseOutlined, StopOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 
 const { Text } = Typography;
@@ -20,8 +21,6 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
   // Helper: isInactive when status is 0 or '0'
   const isInactive = (rec) => rec?.status === 0 || rec?.status === '0';
 
-  // Filter tickets:
-  // - If status === 0 (inactive) => hide unless current `type` is 'agent'/'pos' AND the ticket allows that actor
   // - Otherwise include
   const filteredTickets = useMemo(() => {
     if (!event?.tickets) return [];
@@ -135,29 +134,31 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       width: isMobile ? 250 : 400,
       key: 'name',
       render: (text, record) => {
-        const soldOut = toBool(record?.sold_out);
+        const isBookingBlocked = rowIsDisabled(record);
 
-        const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
-        const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
-        const isBookingBlocked = isAgentNotAllowed || isPosNotAllowed;
-
-        let bookingLabel = null;
+        let bookingStatus = null;
         if (rowIsDisabled(record)) {
-          if(record?.booking_not_open === 1) {
-            bookingLabel = 'Booking Not Open';
+          if (record?.booking_not_open === 1) {
+            bookingStatus = {
+              label: 'Booking Not Open',
+              icon: <ClockCircleOutlined />,
+              color: 'orange'
+            };
           }
-          else bookingLabel = 'Booking Closed';
+          else {
+            bookingStatus = {
+              label: 'Booking Closed',
+              icon: <StopOutlined />,
+              color: 'red'
+            };
+          }
         }
+
         return (
           <Space direction="vertical" size={0}>
-            <Text strong>
-              {text}
-              {bookingLabel && (
-                <Text className='text-primary' style={{ marginLeft: 8 }}>
-                   - {bookingLabel}
-                </Text>
-              )}
-            </Text>
+            <Space>
+              <Text strong>{text}</Text>
+            </Space>
 
             <Space>
               <Text>Price:</Text>
@@ -169,6 +170,16 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
                 bookingBlocked={isBookingBlocked}
               />
             </Space>
+             {record?.fast_filling === 1 && (
+                <Tag icon={<RiseOutlined />} color="green" className='mt-1 p-0 px-2' style={{lineHeight: 2}}>
+                  Fast Filling
+                </Tag>
+              )}
+               {bookingStatus && (
+                <Tag icon={bookingStatus.icon} color={bookingStatus.color} className='mt-1 p-0 px-2' style={{lineHeight: 2}}>
+                  {bookingStatus.label}
+                </Tag>
+              )}
           </Space>
         );
       },
@@ -225,10 +236,10 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
         locale={{ emptyText: 'No Tickets Available' }}
         rowClassName={(record) => (rowIsDisabled(record) ? 'disabled-row' : '')}
         onRow={(record) => ({
-        style: {
-          pointerEvents: rowIsDisabled(record) ? 'none' : 'auto',
-        },
-      })}
+          style: {
+            pointerEvents: rowIsDisabled(record) ? 'none' : 'auto',
+          },
+        })}
       />
     </div>
   )

@@ -1,7 +1,7 @@
 import React, { memo, Fragment, useState, useCallback, useMemo, useRef } from "react";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
-import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal, Table, Spin } from 'antd';
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, MoreOutlined, QuestionCircleOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal, Spin } from 'antd';
+import { MoreOutlined, QuestionCircleOutlined, LoadingOutlined, CloseOutlined, CheckOutlined, BlockOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
@@ -205,41 +205,160 @@ const BookingList = memo(({ type = 'agent' }) => {
         setTicketData([]);
     }
 
-    const innerColumns = [
-        {
-            title: "#",
-            key: "index",
-            align: "center",
-            width: 60,
-            render: (_, __, index) => index + 1,
-        },
-        {
+    const createCommonColumns = (options = {}) => {
+        const {
+            showIndex = true,
+            showEvent = false,
+            showUser = false,
+            showOrganizer = false,
+            showAgent = false,
+            showDiscount = false,
+            showPaymentMethod = false,
+            showPurchaseDate = false,
+            isNested = false,
+            isMobile = false,
+            handlers = {},
+            loading = {},
+        } = options;
+
+        const columns = [];
+
+        // Index column
+        if (showIndex) {
+            columns.push({
+                title: "#",
+                key: "index",
+                align: "center",
+                width: isNested ? 20 : 60,
+                render: (_, __, index) => index + 1,
+            });
+        }
+
+        // Event column
+        if (showEvent) {
+            columns.push({
+                title: 'Event',
+                dataIndex: 'event_name',
+                key: 'event_name',
+                align: 'center',
+                searchable: true,
+                render: (_, record) => {
+                    const eventName = record?.bookings?.[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
+                    return (
+                        <Tooltip title={eventName}>
+                            <span>{truncateString(eventName)}</span>
+                        </Tooltip>
+                    );
+                },
+            });
+        }
+
+        // User column
+        if (showUser) {
+            columns.push({
+                title: "User",
+                key: "user_name",
+                align: "center",
+                dataIndex: ["bookings", 0, "user", "name"],
+                render: (_, record) => {
+                    const name = getUserName(record);
+                    return (
+                        <Tooltip title={name}>
+                            <span>{truncateString(name)}</span>
+                        </Tooltip>
+                    );
+                },
+                sorter: (a, b) => getUserName(a).localeCompare(getUserName(b)),
+            });
+        }
+
+        // Organizer column
+        if (showOrganizer) {
+            columns.push({
+                title: 'Organization',
+                dataIndex: 'organizer',
+                key: 'organizer',
+                align: 'center',
+                searchable: true,
+            });
+        }
+
+        // Agent column
+        if (showAgent) {
+            columns.push({
+                title: 'Booked By',
+                dataIndex: 'agent_name',
+                key: 'agent_name',
+                align: 'center',
+                searchable: true,
+            });
+        }
+
+        // Ticket column (common for both)
+        columns.push({
             title: "Ticket",
-            key: "ticket",
+            key: isNested ? "ticket" : "ticket_name",
             align: "center",
             render: (_, record) => {
                 const ticketName = record?.ticket?.name || record?.bookings?.[0]?.ticket?.name || "-";
+
+                if (!isNested && record.is_set === true) {
+                    return <Tag color="blue">Multi Tickets</Tag>;
+                }
+
                 return (
                     <Tooltip title={ticketName}>
                         <span>{truncateString(ticketName)}</span>
                     </Tooltip>
                 );
             },
-        },
-        {
-            title: "Quantity",
+        });
+
+        // Quantity column (common for both)
+        columns.push({
+            title: isNested ? "Quantity" : "Qty",
             dataIndex: "quantity",
             key: "quantity",
             align: "center",
-        },
-        {
-            title: "Amount",
+            width: isNested ? undefined : 80,
+        });
+
+        // Discount column
+        if (showDiscount) {
+            columns.push({
+                title: 'Disc',
+                dataIndex: 'discount',
+                key: 'discount',
+                align: 'center',
+                width: 100,
+                render: (cell) => <span className="text-danger">₹{cell}</span>,
+            });
+        }
+
+        // Payment Method column
+        if (showPaymentMethod) {
+            columns.push({
+                title: 'Mode',
+                dataIndex: 'payment_method',
+                key: 'payment_method',
+                align: 'center',
+                searchable: true,
+                width: 120,
+            });
+        }
+
+        // Amount column (common for both)
+        columns.push({
+            title: isNested ? "Amount" : "Amt",
             dataIndex: "total_amount",
             key: "total_amount",
             align: "center",
+            width: isNested ? undefined : 120,
             render: (cell) => `₹${Number(cell).toFixed(2)}`,
-        },
-        {
+        });
+
+        // Status column (common for both)
+        columns.push({
             title: "Status",
             dataIndex: "status",
             key: "status",
@@ -248,45 +367,75 @@ const BookingList = memo(({ type = 'agent' }) => {
                 if (record.is_deleted) {
                     return (
                         <Tooltip title="Disabled">
-                            <Tag icon={<CloseCircleOutlined />} color="error" />
+                            <Tag color="error">
+                                <BlockOutlined className='m-0' />
+                            </Tag>
                         </Tooltip>
                     );
                 }
-                const status =
-                    record.status || (record.bookings && record.bookings[0]?.status);
+                const status = record.status || record.bookings?.[0]?.status;
 
                 return status === "0" ? (
                     <Tooltip title="Pending">
-                        <Tag icon={<ClockCircleOutlined />} color="warning" />
+                        <Tag color="warning">
+                            <CloseOutlined className='m-0' />
+                        </Tag>
                     </Tooltip>
                 ) : (
                     <Tooltip title="Scanned">
-                        <Tag icon={<CheckCircleOutlined />} color="success" />
+                        <Tag color="success">
+                            <CheckOutlined className='m-0' />
+                        </Tag>
                     </Tooltip>
                 );
             },
-        },
-        {
+        });
+
+        // Switch Status column (common for both)
+        columns.push({
             title: 'Status',
             dataIndex: 'is_deleted',
             key: 'ticket_status',
             align: 'center',
             width: 120,
-            render: (isDeleted, record) => (
-                <Switch
-                    checked={!isDeleted}
-                    onChange={() => DeleteBooking(record)}
-                    checkedChildren="Active"
-                    unCheckedChildren="Disabled"
-                    loading={toggleBookingMutation.isPending}
-                    disabled={record.status === "1"}
-                />
-            ),
-        },
-        {
+            render: (isDeleted, record) => {
+                // For main table, hide switch for multi-ticket bookings
+                if (!isNested && record.is_set === true) {
+                    return <span>-</span>;
+                }
+
+                return (
+                    <Switch
+                        checked={!isDeleted}
+                        onChange={() => handlers.onDelete?.(record)}
+                        checkedChildren={isNested ? "Active" : ""}
+                        unCheckedChildren={isNested ? "Disabled" : ""}
+                        loading={loading.togglePending}
+                        disabled={record.status === "1"}
+                    />
+                );
+            },
+        });
+
+        // Purchase Date column
+        if (showPurchaseDate) {
+            columns.push({
+                title: 'Purchase Date',
+                dataIndex: 'created_at',
+                key: 'created_at',
+                align: 'center',
+                width: 160,
+                render: (date) => formatDateTime(date),
+                sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+            });
+        }
+
+        // Actions column (common for both)
+        columns.push({
             title: 'Actions',
             key: 'actions',
             align: 'center',
+            fixed: isNested ? undefined : 'right',
             width: isMobile ? 70 : 120,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === "1";
@@ -296,16 +445,18 @@ const BookingList = memo(({ type = 'agent' }) => {
                         key: 'generate',
                         label: 'Generate Ticket',
                         icon: <Ticket size={14} />,
-                        onClick: () => GenerateTicket(record),
-                        disabled: isDisabled,
+                        onClick: () => handlers.onGenerate?.(record),
+                        disabled: isDisabled || (!isNested && record.is_set === true),
+                        permissions: 'Generate Tickets'
                     },
                     {
                         key: 'resend',
-                        label: loadingId === (record.id ?? record.set_id) ? 'Resending...' : 'Resend Ticket',
-                        type: loadingId === (record.id ?? record.set_id) ? 'default' : 'primary',
-                        // show spinner only for the row being processed (use id or set_id)
-                        icon: loadingId === (record.id ?? record.set_id) ? <LoadingOutlined style={{ fontSize: 14 }} spin /> : <Send size={14} />,
-                        onClick: () => HandleSendTicket(record),
+                        label: loading.currentId === (record.id ?? record.set_id) ? 'Resending...' : 'Resend Ticket',
+                        type: loading.currentId === (record.id ?? record.set_id) ? 'default' : 'primary',
+                        icon: loading.currentId === (record.id ?? record.set_id) ?
+                            <LoadingOutlined style={{ fontSize: 14 }} spin /> :
+                            <Send size={14} />,
+                        onClick: () => handlers.onResend?.(record),
                         disabled: isDisabled,
                     },
                 ];
@@ -332,8 +483,8 @@ const BookingList = memo(({ type = 'agent' }) => {
 
                 return (
                     <Space size="small">
-                        {actions.map((action) => (
-                            <Tooltip key={action.key} title={action.label}>
+                        {actions.map((action) => {
+                            const ButtonComponent = (
                                 <Button
                                     type={action.type}
                                     icon={action.icon}
@@ -341,265 +492,68 @@ const BookingList = memo(({ type = 'agent' }) => {
                                     disabled={action.disabled}
                                     size="small"
                                 />
-                            </Tooltip>
-                        ))}
+                            );
+
+                            return (
+                                <Tooltip key={action.key} title={action.label}>
+                                    {!isNested && action.permissions ? (
+                                        <PermissionChecker permission={action.permissions}>
+                                            {ButtonComponent}
+                                        </PermissionChecker>
+                                    ) : (
+                                        ButtonComponent
+                                    )}
+                                </Tooltip>
+                            );
+                        })}
                     </Space>
                 );
             },
-        },
-        // {
-        //     title: "Purchase Date",
-        //     dataIndex: "created_at",
-        //     key: "created_at",
-        //     align: "center",
-        //     render: (date) =>
-        //         new Date(date).toLocaleString("en-IN", {
-        //             dateStyle: "medium",
-        //             timeStyle: "short",
-        //         }),
-        // },
-    ];
+        });
 
+        return columns;
+    };
 
-    // Columns for DataTable
-    const columns = useMemo(() => [
-        {
-            title: '#',
-            dataIndex: 'id',
-            key: 'id',
-            align: 'center',
-            width: 60,
-            render: (_, __, index) => index + 1,
-        },
-        {
-            title: 'Event',
-            dataIndex: 'event_name',
-            key: 'event_name',
-            align: 'center',
-            searchable: true,
-            render: (_, record) => {
-                const eventName = record?.bookings[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
-                return (
-                    <Tooltip title={eventName}>
-                        <span>{truncateString(eventName)}</span>
-                    </Tooltip>
-                );
+    const innerColumns = useMemo(() =>
+        createCommonColumns({
+            showIndex: true,
+            isNested: true,
+            isMobile,
+            handlers: {
+                onDelete: DeleteBooking,
+                onGenerate: GenerateTicket,
+                onResend: HandleSendTicket,
             },
-        },
-        {
-            title: "User",
-            key: "user_name",
-            align: "center",
-            dataIndex: ["bookings", 0, "user", "name"],
-            render: (_, record) => {
-                const name = getUserName(record);
-                return (
-                    <Tooltip title={name}>
-                        <span>{truncateString(name)}</span>
-                    </Tooltip>
-                );
+            loading: {
+                togglePending: toggleBookingMutation.isPending,
+                currentId: loadingId,
             },
-            sorter: (a, b) => getUserName(a).localeCompare(getUserName(b)),
-        },
-        {
-            title: 'Organization',
-            dataIndex: 'organizer',
-            key: 'organizer',
-            align: 'center',
-            searchable: true,
-        },
-        {
-            title: 'Booked By',
-            dataIndex: 'agent_name',
-            key: 'organizer',
-            align: 'center',
-            searchable: true,
-        },
-        {
-            title: "Ticket",
-            key: "ticket_name",
-            align: "center",
-            render: (_, record) => {
-                const ticketName = record?.ticket?.name || (record?.bookings && record?.bookings[0]?.ticket?.name);
-                if (record.is_set === true) {
-                    return <Tag color="blue">Multi Tickets</Tag>;
-                }
-                return (
-                    <Tooltip title={ticketName}>
-                        <span>{truncateString(ticketName)}</span>
-                    </Tooltip>
-                );
+        }),[isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
+    
+        // Columns for DataTable
+    const columns = useMemo(() =>
+        createCommonColumns({
+            showIndex: true,
+            showEvent: true,
+            showUser: true,
+            showOrganizer: true,
+            showAgent: true,
+            showDiscount: true,
+            showPaymentMethod: true,
+            showPurchaseDate: true,
+            isNested: false,
+            isMobile,
+            handlers: {
+                onDelete: DeleteBooking,
+                onGenerate: GenerateTicket,
+                onResend: HandleSendTicket,
             },
-        },
-        {
-            title: 'Qty',
-            dataIndex: 'quantity',
-            key: 'quantity',
-            align: 'center',
-            width: 80,
-        },
-        {
-            title: 'Disc',
-            dataIndex: 'discount',
-            key: 'discount',
-            align: 'center',
-            width: 100,
-            render: (cell) => <span className="text-danger">₹{cell}</span>,
-        },
-        {
-            title: 'Mode',
-            dataIndex: 'payment_method',
-            key: 'payment_method',
-            align: 'center',
-            searchable: true,
-            width: 120,
-        },
-        {
-            title: 'Amt',
-            dataIndex: 'total_amount',
-            key: 'total_amount',
-            align: 'center',
-            width: 120,
-            render: (cell) => `₹${cell}`,
-        },
-        {
-            title: "Status",
-            dataIndex: "status",
-            key: "status",
-            align: "center",
-            render: (_, record) => {
-                if (record.is_deleted) {
-                    return (
-                        <Tooltip title="Disabled">
-                            <Tag icon={<CloseCircleOutlined className='m-0' />} color="error" />
-                        </Tooltip>
-                    );
-                }
-                const status =
-                    record.status || (record.bookings && record.bookings[0]?.status);
-
-                return status === "0" ? (
-                    <Tooltip title="Pending">
-                        <Tag icon={<ClockCircleOutlined className='m-0' />} color="warning" />
-                    </Tooltip>
-                ) : (
-                    <Tooltip title="Scanned">
-                        <Tag icon={<CheckCircleOutlined className='m-0' />} color="success" />
-                    </Tooltip>
-                );
+            loading: {
+                togglePending: toggleBookingMutation.isPending,
+                currentId: loadingId,
             },
-        },
-        {
-            title: 'Status',
-            dataIndex: 'is_deleted',
-            key: 'ticket_status',
-            align: 'center',
-            width: 120,
-            render: (isDeleted, record) => {
-                // If it's a multi-ticket booking, don't show switch in main row
-                if (record.is_set === true) {
-                    return <span>-</span>;
-                }
+        }), [isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
 
-                return (
-                    <Switch
-                        checked={!isDeleted}
-                        onChange={() => DeleteBooking(record)}
-                        checkedChildren=""
-                        unCheckedChildren=""
-                        loading={toggleBookingMutation.isPending}
-                        disabled={record.status === "1"}
-                    />
-                );
-            },
-        },
-        {
-            title: 'Purchase Date',
-            dataIndex: 'created_at',
-            key: 'created_at',
-            align: 'center',
-            width: 160,
-            render: (date) => formatDateTime(date),
-            sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-        },
-        {
-            title: 'Actions',
-            key: 'actions',
-            align: 'center',
-            fixed: 'right',
-            width: isMobile ? 70 : 120,
-            render: (_, record) => {
-                const isDisabled = record?.is_deleted === true || record?.status === "1";
-
-                const actions = [
-                    {
-                        key: 'generate',
-                        label: 'Generate Ticket',
-                        icon: <Ticket size={14} />,
-                        onClick: () => GenerateTicket(record),
-                        disabled: isDisabled || record.is_set === true,
-                        permissions: 'Generate Tickets'
-                    },
-                    {
-                        key: 'resend',
-                        label: loadingId === (record.id ?? record.set_id) ? 'Resending...' : 'Resend Ticket',
-                        type: loadingId === (record.id ?? record.set_id) ? 'default' : 'primary',
-                        // show spinner only for the row being processed (use id or set_id)
-                        icon: loadingId === (record.id ?? record.set_id) ? <Spin size="small" /> : <Send size={14} />,
-                        onClick: () => HandleSendTicket(record),
-                        disabled: isDisabled,
-                    },
-                ];
-
-                if (isMobile) {
-                    return (
-                        <Dropdown
-                            menu={{
-                                items: actions
-                                    .filter(action => !action.disabled)
-                                    .map(action => ({
-                                        key: action.key,
-                                        label: action.label,
-                                        icon: action.icon,
-                                        onClick: action.onClick,
-                                    })),
-                            }}
-                            trigger={['click']}
-                        >
-                            <Button type="text" icon={<MoreOutlined />} size="small" />
-                        </Dropdown>
-                    );
-                }
-
-                return (
-                    <Space size="small">
-                        {actions.map((action) => (
-                            <Tooltip key={action.key} title={action.label}>
-                                <PermissionChecker permission={action.permissions}>
-                                    <Button
-                                        type={action.type}
-                                        icon={action.icon}
-                                        onClick={action.onClick}
-                                        disabled={action.disabled}
-                                        size="small"
-                                    />
-                                </PermissionChecker>
-                            </Tooltip>
-                        ))}
-                    </Space>
-                );
-            },
-        },
-    ], [
-        truncateString,
-        toggleBookingMutation.isPending,
-        formatDateTime,
-        HandleSendTicket,
-        isMobile,
-        DeleteBooking,
-        GenerateTicket,
-        loadingId,
-    ]);
     return (
         <Fragment>
             {/* Ticket Options Modal */}
@@ -680,7 +634,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                     size: isMobile ? "small" : "middle",
                 }}
                 extraHeaderContent={
-                    <PermissionChecker permission={["Add Agent Booking","Create POS Bookings","Add Sponsor Booking"]} matchType="OR">
+                    <PermissionChecker permission={["Add Agent Booking", "Create POS Bookings", "Add Sponsor Booking"]} matchType="OR">
                         <Tooltip title="Add Booking">
                             <Button
                                 type="primary"

@@ -12,6 +12,7 @@ import Flex from 'components/shared-components/Flex';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ORGANIZER_ALLOWED_ROLES } from '../constants';
+import { RoleSelect } from 'utils/CommonInputs';
 
 const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const navigate = useNavigate();
@@ -20,11 +21,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const [form] = Form.useForm();
     const location = useLocation();
     const editOtherUser =
-  ['Admin', 'Organizer'].includes(userRole) || id == UserData.id;
+        ['Admin', 'Organizer'].includes(userRole) || id == UserData.id;
 
-//   if(editOtherUser ===false){
-//     navigate('/forbidden')
-//   }
+    //   if(editOtherUser ===false){
+    //     navigate('/forbidden')
+    //   }
     // Main form state
     const [formState, setFormState] = useState({
         // Basic info
@@ -104,7 +105,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         if (userRole === 'Organizer') {
             return UserData?.id;
         }
-        
+
         // ✅ For Admin/others, use the selected reporting user
         return formState.reportingUser || undefined;
     }, [userRole, UserData?.id, formState.reportingUser]);
@@ -191,11 +192,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const shouldFetchEvents = useMemo(() => {
         // Don't fetch if role doesn't need events
         if (!needsEvents) return false;
-        
+
         // ✅ Fetch if reporting user exists (works for both create and edit)
-        return Boolean(reportingUserId) && 
-               reportingUserId !== 'undefined' && 
-               reportingUserId !== null;
+        return Boolean(reportingUserId) &&
+            reportingUserId !== 'undefined' &&
+            reportingUserId !== null;
     }, [needsEvents, reportingUserId]);
 
     // Fetch events
@@ -207,7 +208,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             if (!reportingUserId || reportingUserId === 'undefined') {
                 throw new Error('Invalid reporting user ID');
             }
-            
+
             const res = await apiClient.get(`org-event/${reportingUserId}`);
             const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
             return list.map(event => ({
@@ -357,26 +358,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         }
     });
 
-    // Add convenience fee validation rules
-    const convenienceFeeValidator = (type) => ({
-        validator(_, value) {
-            if (!value) return Promise.resolve();
-
-            const numValue = Number(value);
-
-            // Check for negative values
-            if (numValue < 0) {
-                return Promise.reject(new Error('Value cannot be negative'));
-            }
-
-            // Check percentage max limit
-            if (type === 'percentage' && numValue > 100) {
-                return Promise.reject(new Error('Percentage cannot exceed 100'));
-            }
-
-            return Promise.resolve();
-        }
-    });
 
     // Form submit handler
     const onFinish = async (values) => {
@@ -458,23 +439,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                 </Button>
                             </Flex>
                         } style={{ marginBottom: 16 }}>
-                            <Form.Item
-                                label="User Role"
-                                name="roleId"
-                                rules={[{ required: true, message: 'Please select role' }]}
-                            >
-                                <Select
-                                    placeholder="Select role"
-                                    onChange={handleRoleChange}
-                                    options={filteredRoles.map(item => ({
-                                        value: item.id,
-                                        label: item.name
-                                    }))}
-                                />
-                            </Form.Item>
-                            <Form.Item name="roleName" hidden>
-                                <Input />
-                            </Form.Item>
+                          <RoleSelect
+                                onChange={handleRoleChange}
+                                required={true}
+                                showAlert={true}
+                            />
 
                             {/* Show info message for Organizers */}
                             {userRole === 'Organizer' && (
@@ -490,22 +459,20 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     </PermissionChecker>
 
                     {/* Basic Information */}
-                    <Card title="Basic Information">
-                        {
-                            editOtherUser && 
-                    <PermissionChecker permission={["Edit User", "Edit Profile"]}>
-                    <Flex justifyContent="end">
-
-
-                    <Button className="mr-2" onClick={() => navigate(-1)}>
-                                    Discard
-                                </Button>
-                                <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                                    {mode === "create" ? "Create" : "Update"}
-                                </Button>
-                    </Flex>
-                    </PermissionChecker>
-                        }
+                    <Card title="Basic Information" extra={
+                            editOtherUser &&
+                            <PermissionChecker permission={["Edit User", "Edit Profile"]}>
+                                <Flex justifyContent="end">
+                                    <Button className="mr-2" onClick={() => navigate(-1)}>
+                                        Discard
+                                    </Button>
+                                    <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                        {mode === "create" ? "Create" : "Update"}
+                                    </Button>
+                                </Flex>
+                            </PermissionChecker>
+                        }>
+                        
                         <Row gutter={[16, 16]}>
                             <Col xs={24} md={8}>
                                 <Form.Item
@@ -835,15 +802,15 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                             <Card title="Status & Security" extra={
                                 editOtherUser &&
                                 <PermissionChecker permission={["Edit User", "Edit Profile"]}>
-                                <Flex justifyContent="end">
-                                    <Button className="mr-2" onClick={() => navigate(-1)}>
-                                        Discard
-                                    </Button>
-                                    
-                                    <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                                        {mode === "create" ? "Create" : "Update"}
-                                    </Button>
-                                </Flex>
+                                    <Flex justifyContent="end">
+                                        <Button className="mr-2" onClick={() => navigate(-1)}>
+                                            Discard
+                                        </Button>
+
+                                        <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                            {mode === "create" ? "Create" : "Update"}
+                                        </Button>
+                                    </Flex>
                                 </PermissionChecker>
                             }>
                                 <Row gutter={[16, 16]}>

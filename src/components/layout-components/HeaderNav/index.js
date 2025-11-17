@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { TEMPLATE } from 'constants/ThemeConstant';
-import { MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined } from '@ant-design/icons';
+import { GlobalOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined } from '@ant-design/icons';
 import Logo from '../Logo';
 import NavProfile from '../NavProfile';
 import NavSearch  from '../NavSearch';
@@ -16,6 +16,7 @@ import { toggleCollapsedNav, onMobileNavToggle } from 'store/slices/themeSlice';
 import { NAV_TYPE_TOP, SIDE_NAV_COLLAPSED_WIDTH, SIDE_NAV_WIDTH } from 'constants/ThemeConstant';
 import utils from 'utils'
 import Impersonate from '../Impersonate';
+import { Tag } from 'antd';
 
 export const HeaderNav = props => {
 
@@ -30,7 +31,6 @@ export const HeaderNav = props => {
 	const navType = useSelector(state => state.theme.navType)
 	const headerNavColor = useSelector(state => state.theme.headerNavColor)
 	const currentTheme = useSelector(state => state.theme.currentTheme)
-	const direction = useSelector(state => state.theme.direction)
 
 	const onSearchActive = () => {
 		setSearchActive(true)
@@ -103,6 +103,9 @@ export const HeaderNav = props => {
                         }
 					</NavEdge>
 					<NavEdge right>
+						 <a href="https://t.getyourticket.in" target='__blank'>
+						 	<Tag color='blue'><GlobalOutlined style={{fontSize:'14px'}}/>Visit Website</Tag>
+						 </a>
 						<Impersonate />
 						<NavProfile mode={navMode} />
 					</NavEdge>

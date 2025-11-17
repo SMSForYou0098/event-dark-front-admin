@@ -1,8 +1,7 @@
-import React, { useState, memo, Fragment, useEffect, useMemo, useCallback } from "react";
-import { Button, Row, Col, Card, Space, Typography, Statistic, message } from "antd";
+import React, { useState, memo, Fragment, useEffect, useCallback } from "react";
+import { Button, Row, Col, Card, Space, Typography, message } from "antd";
 import { CalendarOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import axios from "axios";
-import Flex from "components/shared-components/Flex";
 import POSAttendeeModal from "./POSAttendeeModal";
 import POSPrintModal from "./POSPrintModal";
 import PosEvents from "../components/PosEvents";
@@ -11,7 +10,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import { cancelToken } from "auth/FetchInterceptor";
 import BookingTickets from "../components/BookingTickets";
 import StickyLayout from "utils/MobileStickyBottom.jsx/StickyLayout";
-import { calcTicketTotals, distributeDiscount } from "utils/ticketCalculations";
+import { calcTicketTotals } from "utils/ticketCalculations";
 import { BookingStats, handleDiscountChange } from "../agent/utils";
 
 const { Title, Text } = Typography;

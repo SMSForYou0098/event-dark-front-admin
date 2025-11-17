@@ -26,46 +26,175 @@
   color: black !important;
 }
 
-@media print {
-  .print-wrapper {
-    width: 100%;
-    padding: 20px;
-  }
-
-  .print-wrapper h5 {
-    font-size: 20px !important;
-    margin-bottom: 15px;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-  }
-
-  .print-wrapper .qr {
-    margin: 20px auto;
-    max-width: 200px;
-  }
-
-  .print-wrapper .ant-table {
-    width: 100% !important;
-    margin: 15px 0;
-  }
-
-  .print-wrapper .ant-table-thead>tr>th,
-  .print-wrapper .ant-table-tbody>tr>td {
-    font-size: 14px !important;
-    padding: 6px !important;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-  }
-
-  .print-wrapper p {
-    font-size: 14px !important;
-    margin: 10px 0;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-  }
-
-  .print-wrapper .footer-text {
-    font-size: 16px !important;
-    margin-top: 20px;
-  }
+.ticket-table .ant-table-thead > tr > th {
+    font-size: 15px !important;  /* Was 14px */
+    /* padding: 8px 6px !important;   */
 }
+
+.ticket-table .ant-table-tbody > tr > td {
+    font-size: 15px !important;  /* Was 14px */
+    /* padding: 8px 6px !important;   */
+}
+
+.summary-table .ant-table-tbody > tr > td {
+    font-size: 15px !important;  /* Was 14px */
+    /* padding: 4px 0 !important;  */
+}
+
+
+
+@media print {
+    @page {
+        size: 80mm auto;
+        margin: 0;
+    }
+    
+    body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    /* Hide everything except print content */
+    body * {
+        visibility: hidden;
+    }
+    
+    .pos-print-body,
+    .pos-print-body * {
+        visibility: visible !important;
+        margin-bottom: 20px;
+    }
+    
+    .pos-print-body {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 80mm;
+    }
+    
+    /* Typography */
+    .pos-print-body h4 {
+        font-size: 18px !important;
+        margin: 0 0 8px 0 !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body p {
+        margin: 4px 0 !important;
+        font-size: 15px !important;
+        visibility: visible !important;
+        display: block !important;
+    }
+    
+    /* Footer specific - CRITICAL for visibility */
+    .pos-print-body .mb-1 {
+        font-size: 15px !important;
+        margin: 8px 0 4px 0 !important;
+        visibility: visible !important;
+        display: block !important;
+    }
+    
+    .pos-print-body .text-muted {
+        font-size: 13px !important;
+        margin: 0 !important;
+        visibility: visible !important;
+        display: block !important;
+        color: #666 !important;
+    }
+    
+    .pos-print-body .mb-0 {
+        visibility: visible !important;
+        display: block !important;
+        margin-bottom: 15px !important;
+    }
+    
+    /* Ant Design Table Print Styles */
+    .pos-print-body .ant-table-wrapper {
+        margin: 0 !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body .ant-table {
+        font-size: 18px !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body .ticket-table {
+        margin-bottom: 10px !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body .ticket-table .ant-table-thead > tr > th {
+        background-color: #f5f5f5 !important;
+        padding: 8px 6px !important;
+        font-size: 18px !important;
+        font-weight: bold !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body .ticket-table .ant-table-tbody > tr > td {
+        padding: 8px 6px !important;
+        font-size: 18px !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body .summary-table {
+        margin-bottom: 10px !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body .summary-table .ant-table-tbody > tr > td {
+        padding: 4px 0 !important;
+        font-size: 18px !important;
+        border: none !important;
+        visibility: visible !important;
+    }
+    
+    /* QR Code */
+    .pos-print-body svg {
+        width: 150px !important;
+        height: 150px !important;
+        visibility: visible !important;
+    }
+    
+    .pos-print-body .d-flex {
+        visibility: visible !important;
+        display: flex !important;
+    }
+    
+    /* Text center alignment */
+    .pos-print-body .text-center {
+        text-align: center !important;
+        visibility: visible !important;
+    }
+
+    /* Footer specific - CRITICAL for visibility */
+.pos-print-body .footer-section {
+    visibility: visible !important;
+    display: block !important;
+}
+
+.pos-print-body .footer-section p {
+    visibility: visible !important;
+    display: block !important;
+}
+
+.pos-print-body .mb-1 {
+    font-size: 15px !important;
+    visibility: visible !important;
+    display: block !important;
+}
+
+.pos-print-body .text-muted {
+    font-size: 13px !important;
+    visibility: visible !important;
+    display: block !important;
+    color: #666 !important;
+}
+    
+    /* Ensure all divs are visible */
+    .pos-print-body div {
+        visibility: visible !important;
+    }
+}
+

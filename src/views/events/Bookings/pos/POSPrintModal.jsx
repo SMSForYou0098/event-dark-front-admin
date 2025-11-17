@@ -1,18 +1,16 @@
 import { QRCodeSVG } from 'qrcode.react';
 import React, { useRef, useMemo } from 'react';
-import { Modal, Button, Table, Typography } from 'antd';
+import { Modal, Button, Table } from 'antd';
 import { PrinterOutlined, CloseOutlined } from '@ant-design/icons';
 import { useReactToPrint } from 'react-to-print';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import './POSPrintModal.css';
 
-const { Title, Text } = Typography;
-
 const POSPrintModal = ({
     showPrintModel,
     closePrintModel,
     event,
-    bookingData = [], // default to empty array
+    bookingData = [],
     subtotal,
     totalTax,
     discount,
@@ -27,7 +25,7 @@ const POSPrintModal = ({
         pageStyle: `
             @page {
                 size: 80mm auto;
-                margin: 10mm;
+                margin: 0;
             }
             @media print {
                 body {
@@ -38,13 +36,14 @@ const POSPrintModal = ({
         `
     });
 
+    // Ticket columns configuration
     const ticketColumns = useMemo(() => [
         {
             title: 'Qty',
             dataIndex: 'quantity',
             key: 'quantity',
-            width: '20%',
-            align: 'left',
+            width: '15%',
+            align: 'center',
         },
         {
             title: 'Ticket Name',
@@ -57,21 +56,22 @@ const POSPrintModal = ({
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            width: '30%',
+            width: '35%',
             align: 'right',
         },
     ], []);
 
-    // ✅ Fix: Extract ticket data from array
+    // Process ticket data with multi-ticket logic
     const ticketData = useMemo(() => {
         return bookingData?.map((booking, index) => ({
             key: index,
             quantity: booking.quantity || 0,
             ticketName: booking?.ticket?.name || 'N/A',
-            price: `₹${Number(booking.amount)?.toFixed(2) || '0.00'}`,
+            price: `₹${(Number(booking.amount) * Number(booking.quantity)).toFixed(2) || '0.00'}`,
         }));
     }, [bookingData]);
 
+    // Summary columns configuration
     const summaryColumns = useMemo(() => [
         {
             dataIndex: 'label',
@@ -86,28 +86,24 @@ const POSPrintModal = ({
         },
     ], []);
 
+    // Summary data
     const summaryData = useMemo(() => [
-        // {
-        //     key: '1',
-        //     label: 'SUBTOTAL',
-        //     value: `₹${Number(subtotal)?.toFixed(2) || '0.00'}`,
-        // },
         {
-            key: '2',
+            key: '1',
             label: 'TOTAL TAX',
-            value: `₹${Number(totalTax)?.toFixed(2) ||  '0.00'}`,
+            value: `₹${Number(totalTax)?.toFixed(2) || '0.00'}`,
         },
         {
-            key: '3',
+            key: '2',
             label: 'DISCOUNT',
             value: `₹${Number(discount)?.toFixed(2) || '0.00'}`,
         },
         {
-            key: '4',
-            label: <h4 className='m-0 p-0'><strong>TOTAL</strong></h4>,
-            value: <h4 className='m-0 p-0'><strong>₹{Number(grandTotal)?.toFixed(2) || '0.00'}</strong></h4>,
+            key: '3',
+            label: <strong>TOTAL</strong>,
+            value: <strong>₹{Number(grandTotal)?.toFixed(2) || '0.00'}</strong>,
         },
-    ], [subtotal, totalTax, discount, grandTotal]);
+    ], [totalTax, discount, grandTotal]);
 
     return (
         <Modal
@@ -116,22 +112,30 @@ const POSPrintModal = ({
             onCancel={closePrintModel}
             width={400}
             footer={[
-                <Button key="close" onClick={closePrintModel} icon={<CloseOutlined />}>Close</Button>,
-                <Button key="print" className='border-0' type="primary" onClick={handlePrint} icon={<PrinterOutlined />}>Print Invoice</Button>,
+                <Button key="close" onClick={closePrintModel} icon={<CloseOutlined />}>
+                    Close
+                </Button>,
+                <Button
+                    key="print"
+                    className='border-0'
+                    type="primary"
+                    onClick={handlePrint}
+                    icon={<PrinterOutlined />}
+                >
+                    Print Invoice
+                </Button>,
             ]}
         >
-            {/* <div ref={printRef} className="pos-print-body" style={{ padding: '20px 10px' }}> */}
             <div ref={printRef} className="pos-print-body">
-                <div style={{ textAlign: 'center' }}>
+                <div className="text-center">
+                    {/* Event Name */}
                     {event?.name && (
-                        <Title level={4} className='fw-bold m-0'>
-                            {event.name}
-                        </Title>
+                        <h4 className="fw-bold mb-2">{event.name}</h4>
                     )}
 
-                    {/* ✅ Fix: Use token from first ticket */}
+                    {/* QR Code */}
                     {bookingData?.[0]?.token && (
-                        <div style={{ display: 'flex', justifyContent: 'center', margin: '1px 0' }}>
+                        <div className="d-flex justify-content-center my-2">
                             <QRCodeSVG
                                 size={150}
                                 value={bookingData[0].token}
@@ -140,20 +144,22 @@ const POSPrintModal = ({
                         </div>
                     )}
 
-                    {/* ✅ Fix: Use created_at from first ticket */}
-                    <Text strong style={{ fontSize: '14px' }}>
+                    {/* Date/Time */}
+                    <p className="fw-bold mb-2" style={{ fontSize: '14px' }}>
                         {formatDateTime?.(bookingData?.[0]?.created_at) || bookingData?.[0]?.created_at}
-                    </Text>
+                    </p>
 
+                    {/* Tickets Table - Ant Design */}
                     <Table
                         columns={ticketColumns}
                         dataSource={ticketData}
                         pagination={false}
                         size="small"
                         bordered
-                        style={{ marginBottom: '13px' }}
+                        className="ticket-table mb-2"
                     />
 
+                    {/* Summary Table - Ant Design */}
                     <Table
                         columns={summaryColumns}
                         dataSource={summaryData}
@@ -161,21 +167,22 @@ const POSPrintModal = ({
                         size="small"
                         showHeader={false}
                         bordered={false}
-                        style={{ marginBottom: '13px' }}
+                        className="summary-table mb-2"
                     />
 
-                    <Text style={{ display: 'block', fontSize: '14px', marginTop: '0'  , marginBottom : '0'}}>
-                        Thank You for Payment
-                    </Text>
-
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                        www.getyourticket.in
-                    </Text>
+                    {/* Footer */}
+                    <div className="footer-section">
+                        <p className="mb-1" style={{ fontSize: '14px' }}>
+                            Thank You for Payment
+                        </p>
+                        <p className="text-muted mb-5" style={{ fontSize: '12px' }}>
+                            www.getyourticket.in
+                        </p>
+                    </div>
                 </div>
             </div>
         </Modal>
     );
 };
-
 
 export default POSPrintModal;

@@ -1,7 +1,7 @@
 import React, { useRef, useEffect } from "react";
-import { Col, Card, Form, Input, Select, Switch, Space } from "antd";
+import { Card, Form, Input, Select, Switch, Space } from "antd";
 import QrScanner from "qr-scanner";
-
+import CustomFieldsSettings from "./CustomFieldsSettings";
 const { Option } = Select;
 
 const TickeScanFeilds = ({
@@ -12,7 +12,10 @@ const TickeScanFeilds = ({
   setAutoCheck,
   scanType,
   setScanType,
+  categoryData,
   userRole,
+  eventId,
+  setSelectedFields
 }) => {
   const videoElementRef = useRef(null);
 
@@ -37,21 +40,22 @@ const TickeScanFeilds = ({
       };
     }
   }, [scanMode, setQRData]);
-
   return (
-    <Col sm={12} lg={8}>
-      <Card>
-        <div className="d-flex flex-column">
-          <div className="d-flex mb-3 justify-content-between align-items-center">
-            <Space>
-              <Switch
-                checked={autoCheck}
-                onChange={setAutoCheck}
-                className="me-2"
-              />
-              <span>Auto Check</span>
-            </Space>
-
+    <Card>
+      <div className="d-flex flex-column">
+        <div className="d-flex mb-3 justify-content-between align-items-center">
+          <Space>
+            <Switch
+              checked={autoCheck}
+              onChange={setAutoCheck}
+              className="me-2"
+            />
+            <span>Auto Check</span>
+          </Space>
+          <Space>
+            {categoryData?.categoryData?.attendy_required === 1 &&
+              <CustomFieldsSettings customFieldsData={categoryData?.customFieldsData} setSelectedFields={setSelectedFields} eventId={eventId} />
+            }
             {userRole === "Admin" && (
               <Select
                 value={scanType}
@@ -64,27 +68,27 @@ const TickeScanFeilds = ({
                 <Option value="shopkeeper">Shopkeeper Mode</Option>
               </Select>
             )}
-          </div>
-
-          {scanMode === "manual" ? (
-            <Form.Item>
-              <Input
-                placeholder="QR Data"
-                value={QRdata}
-                onChange={(e) => setQRData(e.target.value)}
-                maxLength={9}
-                autoFocus
-              />
-            </Form.Item>
-          ) : (
-            <video
-              ref={videoElementRef}
-              style={{ objectFit: "cover", height: "70vh", borderRadius: 10 }}
-            />
-          )}
+          </Space>
         </div>
-      </Card>
-    </Col>
+
+        {scanMode === "manual" ? (
+          <Form.Item>
+            <Input
+              placeholder="QR Data"
+              value={QRdata}
+              onChange={(e) => setQRData(e.target.value)}
+              maxLength={9}
+              autoFocus
+            />
+          </Form.Item>
+        ) : (
+          <video
+            ref={videoElementRef}
+            style={{ objectFit: "cover", height: "70vh", borderRadius: 10 }}
+          />
+        )}
+      </div>
+    </Card>
   );
 };
 

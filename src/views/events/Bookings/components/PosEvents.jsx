@@ -59,11 +59,11 @@ const PosEvents = ({ type, handleButtonClick }) => {
 
     // Responsive widths for horizontally scrollable items
     const getItemWidth = () => {
-        if (screens.xxl || screens.xl) return '16%'; // ~6 items
+        if (screens.xxl || screens.xl) return '12.5%'; // ~6 items
         if (screens.lg) return '25%'; // ~4 items
         if (screens.md) return '33.33%'; // ~3 items
         if (screens.sm) return '50%'; // ~2 items
-        return '85%'; // ~1-1.2 items on very small screens
+        return '50%'; // ~1-1.2 items on very small screens
     };
 
     const scrollByCards = (direction = 1) => {
@@ -81,7 +81,7 @@ const PosEvents = ({ type, handleButtonClick }) => {
         return <Loader />
     }
     return (
-        <Card bordered={false} style={{ minWidth: "120px" }}>
+        <Card bordered={false} style={{ minWidth: "120px" }} bodyStyle={{paddingTop : 0}}>
             <Collapse
                 activeKey={activeKey}
                 onChange={setActiveKey}
@@ -89,7 +89,7 @@ const PosEvents = ({ type, handleButtonClick }) => {
             >
                 <Panel header="Events" key="1">
                     <Input
-                        className="my-3"
+                        className="mb-3"
                         placeholder="Search Your Event..."
                         prefix={<SearchOutlined />}
                         value={searchTerm}

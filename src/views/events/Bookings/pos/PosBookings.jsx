@@ -271,90 +271,11 @@ const PosBooking = memo(() => {
       key: 'quantity',
       align: 'center',
     },
-    // {
-    //   title: 'Price',
-    //   dataIndex: 'price',
-    //   key: 'price',
-    //   align: 'right',
-    //   render: (price) => `₹${Number(price || 0).toFixed(2)}`,
-    // },
-    // {
-    //   title: 'Discount',
-    //   dataIndex: 'discount',
-    //   key: 'discount',
-    //   align: 'right',
-    //   render: (discount) => (
-    //     <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
-    //   ),
-    // },
-    // {
-    //   title: 'Amount',
-    //   dataIndex: 'amount',
-    //   key: 'amount',
-    //   align: 'right',
-    //   render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
-    // },
-    // {
-    //   title: 'Status',
-    //   dataIndex: 'status',
-    //   key: 'status',
-    //   align: 'center',
-    //   render: (status) => (
-    //     <Tag color={status === "0" ? "warning" : "success"}>
-    //       {status === "0" ? "Unchecked" : "Checked"}
-    //     </Tag>
-    //   ),
-    // },
-    // {
-    //   title: 'Ticket Status',
-    //   dataIndex: 'is_deleted',
-    //   key: 'ticketStatus',
-    //   align: 'center',
-    //   width: 120,
-    //   render: (isDeleted, record) => (
-    //     <Switch
-    //       checked={!isDeleted}
-    //       onChange={() => handleToggleStatus(record)}
-    //       checkedChildren="Active"
-    //       unCheckedChildren="Disabled"
-    //       loading={toggleStatusMutation.isPending}
-    //       disabled={record.status === "1"}
-    //     />
-    //   ),
-    // },
-    // {
-    //   title: 'Action',
-    //   key: 'action',
-    //   align: 'center',
-    //   width: 80,
-    //   render: (_, record) => {
-    //     const isDisabled = record.is_deleted === true || record.status === "1";
-
-    //     return (
-    //       <Tooltip title="Print Ticket">
-    //         <Button
-    //           size="small"
-    //           icon={<PrinterOutlined />}
-    //           onClick={() => handlePrintBooking(record)}
-    //           disabled={isDisabled}
-    //         />
-    //       </Tooltip>
-    //     );
-    //   },
-    // },
   ], []);
 
 
   // Main table columns
   const columns = useMemo(() => [
-
-    // {
-    //   title: 'Token',
-    //   dataIndex: 'token',
-    //   key: 'token',
-    //   width: 120,
-    //   render: (token) => <Tag color="blue">{token}</Tag>,
-    // },
     {
       title: 'Event',
       dataIndex: ['ticket', 'event', 'name'],
@@ -405,14 +326,6 @@ const PosBooking = memo(() => {
       ),
       sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
     },
-    // {
-    //   title: 'Amount',
-    //   dataIndex: 'amount',
-    //   key: 'amount',
-    //   align: 'right',
-    //   render: (amount) => `₹${Number(amount || 0).toFixed(2)}`,
-    //   sorter: (a, b) => (a.amount || 0) - (b.amount || 0),
-    // },
     {
       title: 'T Amount',
       dataIndex: 'total_amount',
@@ -432,10 +345,9 @@ const PosBooking = memo(() => {
       align: 'center',
       width:80,
       render: (status) => (
-        <Tag 
-          icon={status === "0" ? <ScanOutlined style={{fontSize : '14px'}}/> : <CheckOutlined />}
-          color={status === "0" ? "warning" : "success"}
-        />
+        <Tag color={status === "0" ? "warning" : "success"}>
+          {status === "0" ? <ClockCircleOutlined className="m-0"/> : <CheckOutlined className="m-0"/>}
+        </Tag>
         //   {status === "0" ? "Unchecked" : "Checked"}
         // </Tag>
       ),
