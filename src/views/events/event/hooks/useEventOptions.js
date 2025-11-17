@@ -106,7 +106,7 @@ export const useCreateEvent = (options = {}) =>
 
 // helpers/formData.js
 // buildEventFormData.js
-export function buildEventFormData(values) {
+export function buildEventFormData(values, isDraft = false) {
   const fd = new FormData();
   const appendIfDefined = (k, v) => {
     if (v === undefined || v === null) return;
@@ -235,6 +235,7 @@ export function buildEventFormData(values) {
 
   // Always append the step identifier
   appendIfDefined('step', values.step || '');
+  if (isDraft) appendIfDefined('status', 0);
 
   return fd;
 }

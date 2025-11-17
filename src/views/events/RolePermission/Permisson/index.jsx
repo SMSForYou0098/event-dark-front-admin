@@ -23,7 +23,7 @@ const { Panel } = Collapse;
 const { Search } = Input;
 
 const RolePermission = ({ isUser = false }) => {
-    const { api, authToken } = useMyContext();
+    const { api, authToken, UserPermissions, userRole } = useMyContext();
     const [form] = Form.useForm();
     const [permission, setPermission] = useState([]);
     const [initialPermission, setInitialPermission] = useState([]);
@@ -83,25 +83,34 @@ const RolePermission = ({ isUser = false }) => {
 
     const PermissionData = useCallback(async () => {
         try {
-            // setLoading(true);
             const response = await axios.get(`${api}${permissionType}-permission/${id}`, {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
                 },
             });
-            setPermission(response.data.AllPermission);
+
+            // Filter permissions based on user role
+            let availablePermissions = response.data.AllPermission;
+            
+            if (userRole === 'Organizer') {
+                // Only show permissions that the organizer has
+                availablePermissions = response.data.AllPermission.filter(permission => 
+                    UserPermissions?.includes(permission.name)
+                );
+            }
+            // If Admin, show all permissions (no filtering needed)
+
+            setPermission(availablePermissions);
             setRoleName(response.data.roleName);
-            setInitialPermission(response.data.AllPermission);
-            setFilteredPermissions(response.data.AllPermission);
-            setExistPermission(response.data.exist);
-            setInitialExistPermission(response.data.exist);
+            setInitialPermission(availablePermissions);
+            setFilteredPermissions(availablePermissions);
+            setExistPermission(Array.isArray(response.data.exist) ? response.data.exist : []);
+            setInitialExistPermission(Array.isArray(response.data.exist) ? response.data.exist : []);
         } catch (error) {
             console.error('Error fetching permissions:', error);
             message.error('Failed to fetch permissions');
-        } finally {
-            // setLoading(false);
         }
-    }, [api, id, authToken]);
+    }, [api, id, authToken, permissionType, userRole, UserPermissions]);
 
     useEffect(() => {
         PermissionData();

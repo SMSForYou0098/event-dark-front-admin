@@ -14,7 +14,8 @@ import Transactions from "../wallet/Transaction";
 import PermissionsTab from "./PermissionsTab";
 
 const ManageUser = ({ mode = "edit" }) => {
-  const { HandleBack, userRole, UserPermissions } = useMyContext();
+  const { HandleBack, userRole, UserPermissions, UserData } = useMyContext();
+  console.log('ppp',UserPermissions)
   const [activeTab, setActiveTab] = useState("1");
   const { id } = useParams()
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <ProfileTab setSelectedRole={setSelectedRole} mode={mode} id={id} />,
-       permission: "Edit Profile",
+       permission: "Update User",
     },
     {
       key: "2",
@@ -47,7 +48,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <UserBookings id={id} activeTab={activeTab} />,
-      permission: "View Bookings",
+      permission: "My Bookings",
     },
     {
       key: "3",
@@ -77,8 +78,8 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <PermissionsTab userId={id} />,
-      permission: "View Permission",
-      condition: mode !== "create" || userRole === "admin"
+      permission: "Assign Role",
+      condition: mode !== "create" && UserData?.id !== parseInt(id)
     },
   ];
 
@@ -86,7 +87,7 @@ const ManageUser = ({ mode = "edit" }) => {
   const hasPermission = (
     (permission) => {
       if (!permission) return true;
-      if (userRole === 'admin') return true;
+      if (userRole === 'Admin') return true;
       return Array.isArray(UserPermissions) && UserPermissions.includes(permission);
     }
   );

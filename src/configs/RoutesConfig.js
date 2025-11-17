@@ -147,7 +147,6 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
         meta: {
-            // roles: ['admin', 'organizer'],
             permissions: ['Add User'],
         }
     },
@@ -162,7 +161,6 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
         meta: {
-            // roles: ['admin', 'organizer'],
             permissions: ['Edit User', 'Edit Profile'],
         }
     },
@@ -216,19 +214,17 @@ export const protectedRoutes = [
         path: `/events/create`,
         component: React.lazy(() => import('views/events/event/EventStepperForm')),
         meta: {
-            permissions: ['Create Event'],
-            //roles: ['admin', 'organizer'],
+            permissions: ['View Event'],
         }
     },
     {
         key: 'events-junk',
         path: `/events/junk`,
         component: (props) => (
-                <EventList isJunk={true}/>
+            <EventList isJunk={true}/>
         ),
         meta: {
             permissions: ['View Junk Events'],
-            //roles: ['admin', 'organizer'],
         }
     },
     {
@@ -240,8 +236,7 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
         meta: {
-            permissions: ['Update Event'],
-           // roles: ['admin', 'organizer'],
+            permissions: ['Edit Event'],
         }
     },
     {
@@ -322,11 +317,10 @@ export const protectedRoutes = [
         }
     },
     {
-        key: 'complimentary-bookings',
+        key: 'complimentary-bookings-new',
         path: `/bookings/complimentary/new`,
         component: React.lazy(() => import('views/events/Bookings/ComplimentaryBooking/ComplimentaryBookings')),
         meta: {
-            //roles: ['admin', 'organizer'],
             permissions: ['Add Complimentary Booking'],
         }
     },
@@ -465,8 +459,7 @@ export const protectedRoutes = [
         path: 'promotion/orgs',
         component: React.lazy(() => import('views/events/Promotion/PromoteOrgs/PromoteOrgs')),
         meta: {
-            //roles: ['admin', 'organizer'],
-            permissions: ['View Promotions'],
+            roles: ['admin'],
         }
     },
     // ==================== BOX OFFICE & WALLET ====================
@@ -496,7 +489,7 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Support/ContactUsApplications')),
         meta: {
             roles: ['admin'],
-            // permissions: ['View Customer Inquiries'],
+            permissions: ['View User Inquiries'],
         }
     },
 
@@ -506,7 +499,6 @@ export const protectedRoutes = [
         path: `/venues`,
         component: React.lazy(() => import('views/events/Venues/index')),
         meta: {
-            //roles: ['admin', 'organizer'],
             permissions: ['View Venues'],
         }
     },
@@ -603,7 +595,6 @@ export const protectedRoutes = [
         path: `/media/banners`,
         component: React.lazy(() => import('views/events/Settings/Banner/BannerConfig')),
         meta: {
-            //roles: ['admin', 'organizer'],
             permissions: ['View Banners'],
         }
     },
@@ -614,7 +605,6 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Settings/Category/Category')),
         meta: {
             roles: ['admin'],
-            permissions: ['View Categories'],
         }
     },
     // Custom Fields
@@ -704,7 +694,7 @@ export const protectedRoutes = [
     },
     // ==================== New Booking Page ====================
     {
-        key: 'new-booking',
+        key: 'new-booking-sponsor',
         path: `/bookings/sponsor/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
@@ -712,7 +702,6 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
         meta: {
-            //roles: ['admin', 'organizer', 'sponsor'],
             permissions: ['Add Sponsor Booking'],
         }
     },
@@ -731,6 +720,7 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/other/LiveUsers')),
         meta: {
             roles: ['admin'],
+            permissions: ['View Live Users'],
         }
     },
 ]

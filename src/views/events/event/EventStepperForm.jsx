@@ -367,9 +367,8 @@ const EventStepperForm = () => {
             // Force status to 0 for drafts
             const body = buildEventFormData({
                 ...draftValues,
-                status: 0,
                 step: stepName,
-            });
+            },true);
 
             if (id) {
                 await updateEvent({ id, body });

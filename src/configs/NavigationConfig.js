@@ -32,6 +32,7 @@ const userManagementSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles:['Admin'],
+    permissions: ["View Organizers"]
   },
 
   {
@@ -41,77 +42,69 @@ const userManagementSubmenu = [
     icon: UsergroupAddOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Attendees"],
-    roles:['Admin']
+    permissions: ["View Attendees"]
   },
   {
     key: 'login-history',
     path: 'login-history',
     title: 'Login History',
-    icon: FileSearchOutlined, // Or choose a more suitable icon if needed
+    icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
     permissions: ["View Login History"]
   }
 ];
+
 // Partners & Clients Submenu
 const partnersClientsSubmenu = [
   {
-  key: 'corporates',
-  path: 'bookings/corporate',
-  title: 'Corporate',
-  icon: CrownOutlined,
-  breadcrumb: false,
-  permissions: ["View Corporate Bookings","Create Corporate Bookings"],
-  submenu: [
-    {
-      key: 'corporate-manage',
-      path: 'bookings/corporate',
-      title: 'Manage',
-      breadcrumb: false,
-      permissions: ["View Corporate Bookings"]
-    },
-    {
-      key: 'corporate-new',
-      path: 'bookings/corporate/new',
-      title: 'New',
-      breadcrumb: false,
-      permissions: ["Create Corporate Bookings"]
-    }
-  ]
-},
+    key: 'corporates',
+    path: 'bookings/corporate',
+    title: 'Corporate',
+    icon: CrownOutlined,
+    breadcrumb: false,
+    permissions: ["View Corporate Bookings"],
+    submenu: [
+      {
+        key: 'corporate-manage',
+        path: 'bookings/corporate',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: ["View Corporate Bookings"]
+      }
+    ]
+  },
   {
-  key: 'sponsors',
-  path: 'bookings/sponsor',
-  title: 'Sponsor',
-  icon: TrophyOutlined,
-  breadcrumb: false,
-  permissions: ["View Sponsor Bookings","Create Sponsor Bookings"],
-  submenu: [
-    {
-      key: 'sponsor-manage',
-      path: 'bookings/sponsor',
-      title: 'Manage',
-      breadcrumb: false,
-      permissions: ["View Sponsor Bookings"]
-    },
-    {
-      key: 'sponsor-new',
-      path: 'bookings/sponsor/new',
-      title: 'New',
-      breadcrumb: false,
-      permissions: ["Create Sponsor Bookings"]
-    }
-  ]
-},
-
-{
+    key: 'sponsors',
+    path: 'bookings/sponsor',
+    title: 'Sponsor',
+    icon: TrophyOutlined,
+    breadcrumb: false,
+    permissions: ["View Sponsor Bookings"],
+    submenu: [
+      {
+        key: 'sponsor-manage',
+        path: 'bookings/sponsor',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: ["View Sponsor Bookings"]
+      },
+      {
+        key: 'sponsor-new',
+        path: 'bookings/sponsor/new',
+        title: 'New',
+        breadcrumb: false,
+        permissions: ["Add Sponsor Booking"]
+      }
+    ]
+  },
+  {
     key: 'complimentary-booking',
     path: 'bookings/complimentary',
     title: 'Complimentary',
     icon: TrophyOutlined,
     breadcrumb: false,
-    permissions: ["View Complimentary Bookings","Create Complimentary Bookings"],
+    permissions: ["View Complimentary Bookings"],
     submenu: [
       {
         key: 'complimentary-manage',
@@ -125,11 +118,10 @@ const partnersClientsSubmenu = [
         path: 'bookings/complimentary/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Create Complimentary Bookings"]
+        permissions: ["Add Complimentary Booking"]
       }
     ]
   },
-
 ];
 
 const partnersClientsNav = {
@@ -139,8 +131,7 @@ const partnersClientsNav = {
   icon: CrownOutlined,
   breadcrumb: false,
   submenu: partnersClientsSubmenu,
-  // roles: ["Admin", "Organizers"],
-  permissions:["View Corporate Bookings","View Sponsor Bookings","View Complimentary Bookings","Create Corporate Bookings","Create Sponsor Bookings","Create Complimentary Bookings"]
+  permissions:["View Corporate Bookings","View Sponsor Bookings","View Complimentary Bookings"]
 };
 
 const userManagementNav = {
@@ -159,7 +150,6 @@ const userManagementNav = {
 const bookingsSubmenu = [
   {
     key: 'online-manage',
-    // path: 'bookings/online',
     title: 'Online Bookings',
     breadcrumb: false,
     icon: ShoppingOutlined,
@@ -180,7 +170,7 @@ const bookingsSubmenu = [
         icon: ClockCircleOutlined,
         breadcrumb: false,
         submenu: [],
-        permissions: ["View Pending Bookings"]
+        roles: ["Admin"]
       },
     ]
   },
@@ -190,7 +180,7 @@ const bookingsSubmenu = [
     title: 'Agent',
     icon: IdcardOutlined,
     breadcrumb: false,
-    permissions: ["View Agent Bookings"," Create Agent Bookings"],
+    permissions: ["View Agent Bookings"],
     submenu: [
       {
         key: 'agent-manage',
@@ -204,7 +194,7 @@ const bookingsSubmenu = [
         path: 'bookings/agent/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Create Agent Bookings"]
+        permissions: ["Add Agent Booking"]
       }
     ]
   },
@@ -214,7 +204,7 @@ const bookingsSubmenu = [
     title: 'POS',
     icon: ShoppingOutlined,
     breadcrumb: false,
-    permissions: ["View POS Bookings"," Create POS Bookings"],
+    permissions: ["View POS Bookings"],
     submenu: [
       {
         key: 'pos-manage',
@@ -284,7 +274,7 @@ const eventManagementSubmenu = [
     icon: CustomerServiceOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin", "Organizers"],
+    // roles: ["Admin", "Organizers"],
     permissions: ["View Artists"]
   },
   {
@@ -335,7 +325,7 @@ const scanSubmenu = [
     icon: BarcodeOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["Scan History"]
+    permissions: ["View Scan History"]
   }
 ];
 const scanNav = {
@@ -360,35 +350,16 @@ const salesOperationsSubmenu = [
     permissions: ["View Box Office"]
   },
   {
-    key: 'support-tickets',
-    path: 'support-tickets',
-    title: 'Support Tickets',
-    icon: CustomerServiceOutlined, // You can change this if you prefer a different icon
-    breadcrumb: false,
-    submenu: [],
-    permissions: ["View Support Tickets"]
-  },
-  {
-    key: 'live-chat',
-    path: 'live-chat',
-    title: 'Live Chat',
-    icon: MessageOutlined, // Represents chat or support well
-    breadcrumb: false,
-    submenu: [],
-    permissions: ["Access Live Chat"],
-    roles: ["Admin"]
-  },
-  {
     key: 'customer-inquiries',
     path: 'customer-inquiries',
     title: 'Customer Inquiries',
-    icon: MailOutlined, // You can change this if you prefer a different icon
+    icon: MailOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"]
+    roles: ["Admin"],
+    permissions: ["View User Inquiries"]
   }
 ];
-
 
 const salesOperationsNav = {
   key: 'sales-operations',
@@ -592,7 +563,7 @@ const mediaSubmenu = [
     icon: PlayCircleFilled,
     breadcrumb: false,
     submenu: [],
-    permissions:["View Banners"]
+    permissions: ["View Banners"]
   },
   {
     key: 'media-blogs',
@@ -602,18 +573,9 @@ const mediaSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles:['Admin']
-  },
-  {
-    key: 'media-gallery',
-    path: 'media/gallery',
-    title: 'Gallery',
-    icon: CameraOutlined,
-    breadcrumb: false,
-    submenu: [],
-    roles:['Admin'],
-    permissions:["View Gallery"]
   }
-]
+];
+
 const mediaNav = {
   key: 'media',
   path: 'media',
