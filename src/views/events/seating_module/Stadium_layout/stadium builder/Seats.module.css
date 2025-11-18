@@ -1,0 +1,460 @@
+/* Seats.module.css */
+
+.seatsGridContainer {
+  margin-top: 1rem;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  background: var(--component-bg);
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 2px 8px rgba(181, 21, 21, 0.15);
+  border: 1px solid var(--border-secondary);
+}
+
+.seatsGridHeader {
+ text-align: center;
+ margin-bottom: 1.5rem;
+ padding: 0.5rem;
+ background: linear-gradient(90deg, var(--primary-color) 0%, var(--danger-color) 100%);
+ border-radius: 8px;
+ color: var(--text-white);
+}
+
+.sectionTitle {
+ font-size: 1.25rem;
+ font-weight: 600;
+ margin-bottom: 0.5rem;
+ color: var(--warning-color);
+}
+
+.seatStatsContainer {
+ display: flex;
+ justify-content: center;
+ gap: 0.75rem;
+ flex-wrap: wrap;
+ margin-top: 0.5rem;
+}
+
+.seatStatBadge {
+ display: flex;
+ align-items: center;
+ padding: 0.5rem 0.75rem;
+ font-size: 0.9rem;
+ border-radius: 20px;
+ background: rgba(4, 209, 130, 0.15);
+ color: var(--success-color);
+ border: 1px solid var(--success-color);
+ box-shadow: 0 1px 3px rgba(4, 209, 130, 0.2);
+}
+
+.zoomControls {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ gap: 0.75rem;
+ margin: 1rem 0;
+ background: var(--component-bg);
+ padding: 0.75rem;
+ border-radius: 8px;
+ border: 1px solid var(--border-secondary);
+ box-shadow: 0 1px 3px rgba(181, 21, 21, 0.1);
+}
+
+.zoomButton {
+ background: var(--body-bg);
+ border: 1px solid var(--primary-color);
+ border-radius: 6px;
+ padding: 0.5rem;
+ cursor: pointer;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ transition: all 0.2s ease;
+ color: var(--primary-color);
+}
+
+.zoomButton:hover {
+ background: var(--primary-color);
+ border-color: var(--danger-color);
+ color: var(--text-white);
+ transform: translateY(-1px);
+ box-shadow: 0 2px 6px rgba(181, 21, 21, 0.3);
+}
+
+.zoomLevelIndicator {
+ margin-left: 0.5rem;
+ font-size: 0.9rem;
+ font-weight: 600;
+ color: var(--text-white);
+ background: var(--primary-color);
+ padding: 0.25rem 0.75rem;
+ border-radius: 20px;
+}
+
+.seatsScrollContainer {
+ overflow: auto;
+ width: 100%;
+ height: 400px;
+ scrollbar-width: thin;
+ scrollbar-color: var(--primary-color) var(--component-bg);
+ cursor: grab;
+ user-select: none;
+ background: var(--body-bg);
+ border-radius: 8px;
+ border: 1px solid var(--border-secondary);
+ box-shadow: inset 0 0 8px rgba(181, 21, 21, 0.12);
+}
+
+.seatsScrollContainerDragging {
+ cursor: grabbing;
+}
+
+.seatsScrollContainer::-webkit-scrollbar {
+ width: 8px;
+ height: 8px;
+}
+
+.seatsScrollContainer::-webkit-scrollbar-track {
+ background: var(--component-bg);
+ border-radius: 4px;
+}
+
+.seatsScrollContainer::-webkit-scrollbar-thumb {
+ background: var(--primary-color);
+ border-radius: 4px;
+}
+
+.seatsScrollContainer::-webkit-scrollbar-thumb:hover {
+ background: var(--danger-color);
+}
+
+.seatsTransformWrapper {
+ width: fit-content;
+ min-width: 100%;
+ padding: 1rem;
+ display: flex;
+ justify-content: center;
+}
+
+.seatsGrid {
+ display: flex;
+ flex-direction: column;
+ align-items: center;
+ transform-origin: left top;
+ transition: transform 0.3s ease;
+ width: fit-content;
+ min-width: 100%;
+ padding-bottom: 1rem;
+}
+
+.seatRow {
+ display: flex;
+ justify-content: center;
+ width: 100%;
+}
+
+.seat {
+ width: clamp(24px, 4vw, 32px);
+ aspect-ratio: 1/1;
+ background-color: var(--component-bg);
+ border: 2px solid var(--border-secondary);
+ border-radius: 6px;
+ cursor: pointer;
+ display: flex;
+ align-items: center;
+ justify-content: center;
+ font-size: 0.75rem;
+ font-weight: 500;
+ transition: all 0.2s ease;
+ position: relative;
+ overflow: visible;
+ color: var(--text-white);
+}
+
+.seat:hover {
+ transform: scale(1.05);
+ box-shadow: 0 2px 8px rgba(181, 21, 21, 0.3);
+ border-color: var(--primary-color);
+ background-color: rgba(181, 21, 21, 0.1);
+}
+
+.seatSelected {
+ background-color: rgba(4, 209, 130, 0.2);
+ border-color: var(--success-color);
+ color: var(--success-color);
+ box-shadow: 0 0 8px rgba(4, 209, 130, 0.4);
+}
+
+.seatBooked {
+ background-color: rgba(227, 30, 36, 0.2);
+ border-color: var(--danger-color);
+ color: var(--danger-color);
+ cursor: not-allowed;
+ opacity: 0.7;
+}
+
+.seatDisabled {
+ opacity: 0.3;
+ cursor: not-allowed;
+ border-color: var(--text-muted);
+}
+
+.seatIcon {
+ transition: all 0.2s ease;
+}
+
+.seatTooltip {
+ position: absolute;
+ bottom: calc(100% + 5px);
+ left: 50%;
+ transform: translateX(-50%);
+ background-color: var(--component-bg);
+ color: var(--text-white);
+ padding: 6px 10px;
+ border-radius: 6px;
+ font-size: 0.75rem;
+ white-space: nowrap;
+ z-index: 100;
+ pointer-events: none;
+ border: 1px solid var(--border-secondary);
+ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.seatGap {
+ width: clamp(24px, 4vw, 32px);
+ visibility: hidden;
+}
+
+
+@media (max-width: 900px) {
+  .seatsGridContainer {
+    padding: 0.75rem;
+  }
+  .sectionTitle {
+    font-size: 1.1rem;
+  }
+}
+
+/* Mobile breakpoint */
+@media (max-width: 600px) {
+  .seatsGridContainer {
+    padding: 0.5rem;
+    border-radius: 8px;
+  }
+
+  .seatsGridHeader {
+    padding: 0.4rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+  }
+
+  .sectionTitle {
+    font-size: 1rem;
+    margin-bottom: 0.3rem;
+    text-align: center;
+  }
+
+  .seatStatsContainer {
+    gap: 0.5rem;
+    margin-top: 0.3rem;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .seatStatBadge {
+    font-size: 0.78rem;
+    padding: 0.4rem 0.55rem;
+    border-radius: 14px;
+  }
+
+  .zoomControls {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+    gap: 0.4rem;
+    border-radius: 6px;
+  }
+  
+  .zoomButton {
+    padding: 0.38rem;
+    font-size: 0.98rem;
+    border-radius: 4px;
+  }
+  
+  .zoomLevelIndicator {
+    font-size: 0.78rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 14px;
+    margin-left: 0.25rem;
+  }
+
+  .seatsTransformWrapper {
+    padding: 0.5rem 0;
+  }
+  
+  .seatsGrid {
+    padding-bottom: 0.3rem;
+    min-width: 0;
+  }
+
+  .seatRow {
+    min-width: 0;
+  }
+
+  .seat {
+    width: clamp(20px, 7vw, 26px);
+    font-size: 0.70rem;
+    border-radius: 5px;
+  }
+
+  .seatGap {
+    width: clamp(20px, 7vw, 26px);
+  }
+
+  .seatTooltip {
+    font-size: 0.7rem;
+    padding: 5px 8px;
+    border-radius: 5px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 400px) {
+  .seatsGridContainer {
+    padding: 0.3rem;
+  }
+  
+  .sectionTitle {
+    font-size: 0.9rem;
+  }
+}
+
+
+/* selected seats modal */
+
+/* SelectedSeatsDrawer Responsive */
+
+.selected-seats-drawer {
+  max-width: 100vw;
+  box-sizing: border-box;
+  background: var(--component-bg);
+  border-left: 1px solid var(--border-secondary);
+}
+
+.drawer-header, .drawer-footer {
+  min-height: 56px;
+  background: var(--component-bg);
+  border-color: var(--border-secondary);
+}
+
+.drawer-body {
+  padding-bottom: 1.5rem;
+  background: var(--body-bg);
+}
+
+/* Improve table on mobile */
+@media (max-width: 900px) {
+  .selected-seats-drawer {
+    width: 90vw !important;
+    min-width: 0;
+    margin: 0 !important;
+    border-radius: 0.25rem;
+    right: 0;
+  }
+  
+  .drawer-header, .drawer-footer {
+    padding: 0.75rem 1rem;
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 600px) {
+  .selected-seats-drawer {
+    width: 100vw !important;
+    left: 0;
+    right: 0;
+    top: 0;
+    border-radius: 0;
+    margin: 0 !important;
+  }
+  
+  .drawer-header, .drawer-footer {
+    padding: 0.6rem 0.7rem;
+    min-height: 44px;
+  }
+  
+  .drawer-body {
+    padding: 0.7rem 0.3rem;
+  }
+  
+  /* Table tweaks for mobile touch */
+  .table thead th,
+  .table tbody td {
+    padding: 0.42rem 0.35rem !important;
+    font-size: 0.93rem;
+    color: var(--text-white);
+  }
+  
+  .table thead th {
+    white-space: nowrap;
+    font-size: 1rem;
+    background: var(--component-bg);
+    border-color: var(--border-secondary);
+  }
+  
+  .table tbody td {
+    border-color: var(--border-secondary);
+  }
+  
+  .table tbody tr {
+    background: var(--component-bg);
+  }
+  
+  .table tbody tr:hover {
+    background: rgba(181, 21, 21, 0.1);
+  }
+  
+  .badge {
+    font-size: 0.97rem;
+    padding: 0.5em 0.9em;
+    background: rgba(4, 209, 130, 0.15);
+    color: var(--success-color);
+    border: 1px solid var(--success-color);
+  }
+  
+  .drawer-close {
+    font-size: 1.12rem !important;
+    line-height: 1;
+    color: var(--text-white);
+  }
+}
+
+/* Additional dark theme table styles */
+.ant-table {
+  background: var(--component-bg);
+  color: var(--text-white);
+}
+
+.ant-table-thead > tr > th {
+  background: var(--component-bg);
+  color: var(--text-white);
+  border-color: var(--border-secondary);
+}
+
+.ant-table-tbody > tr > td {
+  border-color: var(--border-secondary);
+  color: var(--text-white);
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: rgba(181, 21, 21, 0.1);
+}
+
+.ant-table-tbody > tr.ant-table-row-striped {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ant-table-tbody > tr.ant-table-row-striped:hover > td {
+  background: rgba(181, 21, 21, 0.15);
+}

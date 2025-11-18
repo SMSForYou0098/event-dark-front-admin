@@ -1,0 +1,529 @@
+import React, { useState, useRef, useEffect } from "react";
+import { useMyContext } from "../../Context/MyContextProvider";
+import {
+  ZoomIn,
+  ZoomOut,
+  RefreshCcw,
+  XCircle,
+  CheckCircle,
+  Circle,
+  Eye,
+} from "lucide-react";
+import { Badge, Button, Col, Row } from "react-bootstrap";
+import SelectedSeatsDrawer from "./SelectedSeatsModal";
+
+const SeatsZoomGrid = ({
+  selectedSection,
+  selectedSeats,
+  standName,
+  tierName,
+  setSelectedSeats,
+  isMobile,
+}) => {
+  const [zoomLevel, setZoomLevel] = useState(0.5);
+  const containerRef = useRef(null);
+  const zoomControlsRef = useRef(null);
+  const scrollContainerRef = useRef(null);
+  const [hoveredSeatId, setHoveredSeatId] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [startCoords, setStartCoords] = useState({ x: 0, y: 0 });
+  const [scrollCoords, setScrollCoords] = useState({ left: 0, top: 0 });
+  const [showSeatsModal, setSeatsShowModal] = useState(false);
+
+  // Calculate seat statistics
+  let availableSeats = 0;
+  let bookedSeats = 0;
+  let blockedRowSeats = 0;
+
+  selectedSection.rows.forEach((row) => {
+    const seatsInRow = row.seatList.length;
+    if (row.isBlocked) {
+      blockedRowSeats += seatsInRow;
+    } else {
+      row.seatList.forEach((seat) => {
+        if (seat.isBooked) bookedSeats++;
+        else availableSeats++;
+      });
+    }
+  });
+
+  const totalSeats = selectedSection.rows.reduce(
+    (total, row) => total + row.seatList.length,
+    0
+  );
+
+  // Dragging handlers
+  const handleDragStart = (e) => {
+    if (!scrollContainerRef.current) return;
+    setIsDragging(true);
+    const clientX = e.clientX || e.touches?.[0]?.clientX;
+    const clientY = e.clientY || e.touches?.[0]?.clientY;
+    setStartCoords({ x: clientX, y: clientY });
+    setScrollCoords({
+      left: scrollContainerRef.current.scrollLeft,
+      top: scrollContainerRef.current.scrollTop,
+    });
+  };
+
+  const handleDragMove = (e) => {
+    if (!isDragging || !scrollContainerRef.current) return;
+    e.preventDefault();
+    const clientX = e.clientX || e.touches?.[0]?.clientX;
+    const clientY = e.clientY || e.touches?.[0]?.clientY;
+    const dx = (clientX - startCoords.x) * 1.5;
+    const dy = (clientY - startCoords.y) * 1.5;
+    scrollContainerRef.current.scrollLeft = scrollCoords.left - dx;
+    scrollContainerRef.current.scrollTop = scrollCoords.top - dy;
+  };
+
+  const handleDragEnd = () => setIsDragging(false);
+
+  // Event listeners
+  useEffect(() => {
+    if (isMobile) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    container.addEventListener("mousedown", handleDragStart);
+    container.addEventListener("mousemove", handleDragMove);
+    container.addEventListener("mouseup", handleDragEnd);
+    container.addEventListener("mouseleave", handleDragEnd);
+    container.addEventListener("touchstart", handleDragStart, { passive: false });
+    container.addEventListener("touchmove", handleDragMove, { passive: false });
+    container.addEventListener("touchend", handleDragEnd);
+
+    return () => {
+      container.removeEventListener("mousedown", handleDragStart);
+      container.removeEventListener("mousemove", handleDragMove);
+      container.removeEventListener("mouseup", handleDragEnd);
+      container.removeEventListener("mouseleave", handleDragEnd);
+      container.removeEventListener("touchstart", handleDragStart);
+      container.removeEventListener("touchmove", handleDragMove);
+      container.removeEventListener("touchend", handleDragEnd);
+    };
+  }, [isDragging, startCoords, scrollCoords]);
+
+  // Zoom and seat selection functions
+  const zoomToSeat = (rowIndex, seatIndex) => {
+    if (!containerRef.current || !selectedSection?.rows?.[rowIndex]) return;
+    const targetZoom = 1;
+    setZoomLevel(targetZoom);
+
+    setTimeout(() => {
+      const container = containerRef.current;
+      const scrollContainer = container.parentElement?.parentElement;
+      if (!scrollContainer) return;
+
+      const maxSeats = Math.max(
+        ...selectedSection.rows.map((row) => row.seatList?.length || 0)
+      );
+      const seatsInRow = selectedSection.rows[rowIndex].seatList?.length || 0;
+      const rowGap = Math.floor((maxSeats - seatsInRow) / 2);
+
+      const seatSize = 30;
+      const gapSize = 5;
+      const seatX = (rowGap + seatIndex) * (seatSize + gapSize);
+      const seatY = rowIndex * (seatSize + gapSize);
+
+      const containerWidth = scrollContainer.clientWidth;
+      const containerHeight = scrollContainer.clientHeight;
+
+      const scrollLeft =
+        seatX * targetZoom - containerWidth / 2 + (seatSize * targetZoom) / 2;
+      const scrollTop =
+        seatY * targetZoom - containerHeight / 2 + (seatSize * targetZoom) / 2;
+
+      const maxScrollLeft = container.scrollWidth * targetZoom - containerWidth;
+      const maxScrollTop = container.scrollHeight * targetZoom - containerHeight;
+
+      scrollContainer.scrollTo({
+        left: Math.max(0, Math.min(scrollLeft, maxScrollLeft)),
+        top: Math.max(0, Math.min(scrollTop, maxScrollTop)),
+        behavior: "smooth",
+      });
+    }, 50);
+  };
+
+  const handleSeatClick = (seat, status, rowIndex, seatIndex, rowLabel) => {
+    if (status === "booked") return;
+    const seatWithLabel = {
+      ...seat,
+      rowLabel,
+      sectionName: selectedSection.name,
+      standName,
+      tierName,
+    };
+
+    setSelectedSeats((prevSelected) => {
+      const isAlreadySelected = prevSelected.some((s) => s._id === seatWithLabel._id);
+      return isAlreadySelected
+        ? prevSelected.filter((s) => s._id !== seatWithLabel._id)
+        : [...prevSelected, seatWithLabel];
+    });
+
+    if (!isMobile) zoomToSeat(rowIndex, seatIndex);
+  };
+
+  const handleZoomIn = () => setZoomLevel((prev) => Math.min(prev + 0.2, 4));
+  const handleZoomOut = () => setZoomLevel((prev) => Math.max(prev - 0.2, 0.25));
+  const handleResetZoom = () => setZoomLevel(1);
+
+  const handleWheelZoom = (event) => {
+    event.preventDefault();
+    const delta = event.deltaY > 0 ? -0.1 : 0.1;
+    setZoomLevel((prev) => Math.max(0.25, Math.min(prev + delta, 4)));
+  };
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (isMobile) setZoomLevel(1);
+    if (container) {
+      container.addEventListener("wheel", handleWheelZoom, { passive: false });
+    }
+    return () => {
+      if (container) {
+        container.removeEventListener("wheel", handleWheelZoom);
+      }
+    };
+  }, [isMobile]);
+
+  if (!selectedSection?.rows?.length) return null;
+
+  const seatSize = `clamp(24px, 4vw, 32px)`;
+  const gapSize = `clamp(4px, 1vw, 6px)`;
+  const maxSeats = Math.max(
+    ...selectedSection.rows.map((row) => row.seats || row.seatList.length)
+  );
+
+  return (
+    <div className="seats-grid-container">
+      {/* Header Section */}
+      <div className="seats-grid-header">
+        <h5 className="section-title">{selectedSection.name}</h5>
+        
+        <div className="seat-stats-container">
+          <Badge bg="success" className="seat-stat-badge">
+            <CheckCircle size={18} className="me-2" />
+            <span>Available:</span> {availableSeats}
+          </Badge>
+          
+          <Badge bg="danger" className="seat-stat-badge">
+            <XCircle size={18} className="me-2" />
+            <span>Booked:</span> {bookedSeats}
+          </Badge>
+          
+          <Badge bg="secondary" className="seat-stat-badge">
+            <span>Total:</span> {totalSeats}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Zoom Controls */}
+      <div className="zoom-controls" ref={zoomControlsRef}>
+        <button onClick={handleZoomIn} className="zoom-button" title="Zoom In">
+          <ZoomIn size={20} />
+        </button>
+        <button onClick={handleZoomOut} className="zoom-button" title="Zoom Out">
+          <ZoomOut size={20} />
+        </button>
+        <button onClick={handleResetZoom} className="zoom-button" title="Reset Zoom">
+          <RefreshCcw size={20} />
+        </button>
+        <div className="zoom-level-indicator">
+          {Math.round(zoomLevel * 100)}%
+        </div>
+      </div>
+
+      {/* Seats Grid */}
+      <div
+        ref={scrollContainerRef}
+        className={`seats-scroll-container ${isDragging ? "dragging" : ""}`}
+      >
+        <div className="seats-transform-wrapper">
+          <div
+            ref={containerRef}
+            className="seats-grid"
+            style={{
+              gap: gapSize,
+              transform: `scale(${zoomLevel})`,
+            }}
+          >
+            {selectedSection.rows.map((row, rowIndex) => {
+              const seatsInRow = row.seats || row.seatList.length;
+              const rowGap = Math.floor((maxSeats - seatsInRow) / 2);
+              
+              return (
+                <div key={`row-${row._id}`} className="seat-row">
+                  {/* Left Padding */}
+                  {Array.from({ length: rowGap }).map((_, i) => (
+                    <div key={`gap-start-${i}`} className="seat-gap" />
+                  ))}
+
+                  {/* Actual Seats */}
+                  {row.seatList.map((seat) => {
+                    const seatId = seat._id;
+                    const isSelected = selectedSeats.some((s) => s._id === seat._id);
+                    const isBooked = seat.isBooked;
+                    const isHovered = hoveredSeatId === seatId;
+                    const isDisabled = isBooked || row.isBlocked;
+
+                    return (
+                      <div
+                        key={seatId}
+                        className={`seat ${isBooked ? "booked" : ""} ${
+                          isSelected ? "selected" : ""
+                        } ${isDisabled ? "disabled" : ""}`}
+                        title={`${row.label}, Seat ${seat.number}`}
+                        onClick={() =>
+                          !isDisabled &&
+                          handleSeatClick(
+                            seat,
+                            isBooked ? "booked" : seat.status,
+                            rowIndex,
+                            row.seatList.findIndex((s) => s._id === seat._id),
+                            row.label
+                          )
+                        }
+                        onMouseEnter={() => !isDisabled && setHoveredSeatId(seatId)}
+                        onMouseLeave={() => !isDisabled && setHoveredSeatId(null)}
+                      >
+                        {isBooked ? (
+                          <XCircle size="20" className="seat-icon" />
+                        ) : isSelected ? (
+                          <CheckCircle size="20" className="seat-icon" />
+                        ) : (
+                          <Circle size="20" className="seat-icon" />
+                        )}
+
+                        {isHovered && (
+                          <div className="seat-tooltip">
+                            {row.label}, Seat {seat.number}
+                            <br />
+                            {seat?.status} - ₹{seat?.price}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  {/* Right Padding */}
+                  {Array.from({ length: rowGap }).map((_, i) => (
+                    <div key={`gap-end-${i}`} className="seat-gap" />
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Selected Seats Drawer */}
+      <SelectedSeatsDrawer
+        show={showSeatsModal}
+        onHide={() => setSeatsShowModal(false)}
+        selectedSeats={selectedSeats}
+        setSelectedSeats={setSelectedSeats}
+        isMobile={isMobile}
+      />
+
+      {/* CSS Styles */}
+      <style jsx>{`
+        .seats-grid-container {
+          margin-top: 1rem;
+          width: 100%;
+          overflow: hidden;
+          position: relative;
+          background: #f8f9fa;
+          border-radius: 12px;
+          padding: 1rem;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .seats-grid-header {
+          text-align: center;
+          margin-bottom: 1.5rem;
+          padding: 0.5rem;
+          background: #2c3e50;
+          border-radius: 8px;
+          color: white;
+        }
+
+        .section-title {
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+          color: white;
+        }
+
+        .seat-stats-container {
+          display: flex;
+          justify-content: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+          margin-top: 0.5rem;
+        }
+
+        .seat-stat-badge {
+          display: flex;
+          align-items: center;
+          padding: 0.5rem 0.75rem;
+          font-size: 0.9rem;
+          border-radius: 20px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .zoom-controls {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 0.75rem;
+          margin: 1rem 0;
+          background: #ffffff;
+          padding: 0.75rem;
+          border-radius: 8px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .zoom-button {
+          background: #ffffff;
+          border: 1px solid #dee2e6;
+          border-radius: 6px;
+          padding: 0.5rem;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
+          color: #495057;
+        }
+
+        .zoom-button:hover {
+          background: #f1f3f5;
+          border-color: #adb5bd;
+          transform: translateY(-1px);
+        }
+
+        .zoom-level-indicator {
+          margin-left: 0.5rem;
+          font-size: 0.9rem;
+          font-weight: 500;
+          color: #495057;
+          background: #f1f3f5;
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+        }
+
+        .seats-scroll-container {
+          overflow: auto;
+          width: 100%;
+          height: 400px;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          cursor: grab;
+          user-select: none;
+          background: white;
+          border-radius: 8px;
+          box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .seats-scroll-container.dragging {
+          cursor: grabbing;
+        }
+
+        .seats-scroll-container::-webkit-scrollbar {
+          display: none;
+        }
+
+        .seats-transform-wrapper {
+          width: fit-content;
+          min-width: 100%;
+          padding: 1rem;
+          display: flex;
+          justify-content: center;
+        }
+
+        .seats-grid {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transform-origin: left top;
+          transition: transform 0.3s ease;
+          width: fit-content;
+          min-width: 100%;
+          padding-bottom: 1rem;
+        }
+
+        .seat-row {
+          display: flex;
+          justify-content: center;
+          width: 100%;
+        }
+
+        .seat {
+          width: ${seatSize};
+          aspect-ratio: 1/1;
+          background-color: #f8f9fa;
+          border: 2px solid #dee2e6;
+          border-radius: 6px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.75rem;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          position: relative;
+          overflow: visible;
+        }
+
+        .seat:hover {
+          transform: scale(1.05);
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .seat.selected {
+          background-color: #d1fae5;
+          border-color: #10b981;
+        }
+
+        .seat.booked {
+          background-color: #fee2e2;
+          border-color: #ef4444;
+          cursor: not-allowed;
+        }
+
+        .seat.disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .seat-icon {
+          transition: all 0.2s ease;
+        }
+
+        .seat-tooltip {
+          position: absolute;
+          bottom: calc(100% + 5px);
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(0, 0, 0, 0.9);
+          color: white;
+          padding: 6px 10px;
+          border-radius: 6px;
+          font-size: 0.75rem;
+          white-space: nowrap;
+          z-index: 100;
+          pointer-events: none;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .seat-gap {
+          width: ${seatSize};
+          visibility: hidden;
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default SeatsZoomGrid;

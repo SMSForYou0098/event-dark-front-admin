@@ -80,6 +80,22 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'stadium',
+        path: `/stadium`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/StadiumBuilderAdmin')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
+        key: 'theatre',
+        path: `/theatre`,
+        component: React.lazy(() => import('views/events/seating_module/theatre_layout/TheatreLayout')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
         key: 'dashboard-org',
         path: `/dashboard/org`,
         component: React.lazy(() => import('views/events/Dashboard/Organizer/dashabord')),
