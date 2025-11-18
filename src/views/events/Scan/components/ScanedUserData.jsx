@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Descriptions, List, Tag, Button, Divider, Space, Typography, Drawer, Card, Image, Row, Col, Carousel, Badge, Modal } from 'antd';
 import {
   CheckCircleOutlined,
@@ -34,6 +34,7 @@ const ScanedUserData = ({
   loading
 }) => {
   const { isMobile } = useMyContext();
+    const attendeesPrintRef = useRef(null);
   useEffect(() => {
     if (show && isMobile) {
       const dotsElement = document.querySelector('ul.slick-dots.slick-dots-bottom.custom-dots');
@@ -199,33 +200,6 @@ const ScanedUserData = ({
                   <Tag color="blue">{attendee.Gender}</Tag>
                 </div>
               )}
-
-              {/* {attendee?.Company_Name && (
-              <div>
-                <Text type="secondary">Company: </Text>
-                <Text>{attendee.Company_Name}</Text>
-              </div>
-            )}
-
-            {attendee?.Designation && (
-              <div>
-                <Text type="secondary">Designation: </Text>
-                <Text>{attendee.Designation}</Text>
-              </div>
-            )}
-
-            {attendee?.token && (
-              <div>
-                <Text type="secondary">Token: </Text>
-                <Text code copyable>{attendee.token}</Text>
-              </div>
-            )}
-
-            {attendee?.status !== null && (
-              <Tag color={attendee?.status ? 'success' : 'default'}>
-                {attendee?.status ? 'Checked In' : 'Pending'}
-              </Tag>
-            )} */}
             </Space>
           </div>
         </Space>
@@ -262,27 +236,9 @@ const ScanedUserData = ({
       );
     }
   };
-  const { handlePrintAttendee, handlePrintAllAttendees } = AttendeesPrint({
-    attendeesList,
-    eventData,
-    ticket,
-    bookings
-  });
 
-  const showPrintConfirm = () => {
-    Modal.confirm({
-      title: 'Print All Attendees?',
-      icon: <ExclamationCircleOutlined />,
-      content: `Are you sure you want to print all ${attendeesList.length} attendee passes? They will be printed one by one.`,
-      okText: 'Yes, Print All',
-      okType: 'primary',
-      cancelText: 'Cancel',
-      onOk() {
-        handlePrintAllAttendees();
-      },
-    });
-  };
   return (
+    <>
     <Drawer
       open={show}
       closable={false}
@@ -304,7 +260,7 @@ const ScanedUserData = ({
             <Button
               type="default"
               className='btn-tertiary'
-              onClick={showPrintConfirm}
+               onClick={() => attendeesPrintRef.current?.handlePrintAllAttendees()}
               icon={<PrinterOutlined />}
               size="large"
               block={isMobile}
@@ -316,8 +272,7 @@ const ScanedUserData = ({
             type="primary"
             onClick={handleVerify}
             icon={loading?.verifying ? <LoadingOutlined spin /> : <CheckCircleOutlined />}
-            // disabled={bookings?.is_scaned || loading?.verifying}
-            disabled={true}
+            disabled={bookings?.is_scaned || loading?.verifying}
             size="large"
             block={isMobile}
           >
@@ -395,6 +350,18 @@ const ScanedUserData = ({
         </>
       )}
     </Drawer>
+     {isMasterBooking && attendeesList.length > 0 && (
+      <AttendeesPrint
+        ref={attendeesPrintRef}
+        attendeesList={attendeesList}
+        eventData={eventData}
+        ticket={ticket}
+        bookings={bookings}
+        primaryColor="#B51515"
+      />
+    )}
+    </>
+    
   );
 };
 

@@ -51,6 +51,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [autoCheck, setAutoCheck] = useState(false);
     const [selectedFields, setSelectedFields] = useState([])
     const [selectedAction, setSelectedAction] = useState(null);
+    const [sessionId, setSessionId] = useState(null);
     // ─── Sounds ──────────────────────────────
     const [playBeep] = useSound(beepSound);
     const [playError] = useSound(errorSound);
@@ -173,12 +174,14 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         try {
             const res = await axiosAuth().post(`${api}verify-ticket/${data}`, {
                 user_id: UserData?.reporting_user,
+                event_id: event?.id
             });
 
             if (res.data.status) {
                 showSuccess('Ticket Found');
                 const mainBookings = res.data;
                 setTicketData(mainBookings);
+                setSessionId(mainBookings?.session_id)
                 // setEvent(res.data.event);
                 setType(res.data.type);
                 //await loadCategoryData(res.data.event);
@@ -263,7 +266,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         setLoading(prev => ({ ...prev, verifying: true }));
         setIsProcessing(true);
         try {
-            const res = await axiosAuth().get(`${api}chek-in/${QRdata}`);
+            const res = await axiosAuth().get(`${api}chek-in/${sessionId}`);
             if (res.data.status) {
                 showSuccessModal('Ticket Scanned Successfully!');
                 setQRData('');
@@ -398,49 +401,51 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                         </StickyBottom>
                     </div>
                     <Col span={24}>
-                        <PosEvents handleButtonClick={loadCategoryData} />
+                        <PosEvents handleButtonClick={loadCategoryData} isScanner={userRole === 'Scanner'} />
                     </Col>
-                    <Col xs={24} sm={24} lg={12}>
-                        <TickeScanFeilds
-                            scanMode={scanMode}
-                            categoryData={categoryData}
-                            QRdata={QRdata}
-                            setQRData={setQRData}
-                            autoCheck={autoCheck}
-                            setSelectedFields={setSelectedFields}
-                            setAutoCheck={setAutoCheck}
-                            scanType={scanType}
-                            eventId={event?.id}
-                            setScanType={setScanType}
-                            userRole={userRole}
-                        />
-                    </Col>
-                    {event && 
-                    <Col xs={24} sm={24} lg={12}>
-                        <Card>
-                            <Space direction="vertical" size={12} className='w-100'>
-                                <div>
-                                    <Typography.Text strong>
-                                        {event?.name || 'Event Name'}
-                                    </Typography.Text>
-                                </div>
+                    {event &&
+                        <>
+                            <Col xs={24} sm={24} lg={12}>
+                                <TickeScanFeilds
+                                    scanMode={scanMode}
+                                    categoryData={categoryData}
+                                    QRdata={QRdata}
+                                    setQRData={setQRData}
+                                    autoCheck={autoCheck}
+                                    setSelectedFields={setSelectedFields}
+                                    setAutoCheck={setAutoCheck}
+                                    scanType={scanType}
+                                    eventId={event?.id}
+                                    setScanType={setScanType}
+                                    userRole={userRole}
+                                />
+                            </Col>
+                            <Col xs={24} sm={24} lg={12}>
+                                <Card>
+                                    <Space direction="vertical" size={12} className='w-100'>
+                                        <div>
+                                            <Typography.Text strong>
+                                                {event?.name || 'Event Name'}
+                                            </Typography.Text>
+                                        </div>
 
-                                <Divider className='my-0' />
+                                        <Divider className='my-0' />
 
-                                <Space direction="vertical" size={8}>
-                                    <div>
-                                        <Space>
-                                            <ClockCircleOutlined />
-                                            <Typography.Text>Date Range:</Typography.Text>
+                                        <Space direction="vertical" size={8}>
+                                            <div>
+                                                <Space>
+                                                    <ClockCircleOutlined />
+                                                    <Typography.Text>Date Range:</Typography.Text>
+                                                </Space>
+                                                <Typography.Text strong>
+                                                    {formatDateRange(event?.date_range)}
+                                                </Typography.Text>
+                                            </div>
                                         </Space>
-                                        <Typography.Text strong>
-                                            {formatDateRange(event?.date_range)}
-                                        </Typography.Text>
-                                    </div>
-                                </Space>
-                            </Space>
-                        </Card>
-                    </Col>
+                                    </Space>
+                                </Card>
+                            </Col>
+                        </>
                     }
                 </Row>
             </>

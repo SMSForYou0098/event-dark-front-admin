@@ -107,7 +107,7 @@ export const mapFormToApi = (formData) => {
         payment_method: formData.paymentMethod,
         
         // Events & Tickets - send as arrays of IDs
-        event_ids: formData.events || [],
+        event_ids : Array.isArray(formData.events) ? formData.events : formData.events ? [formData.events] : [],
         ticket_ids: (formData.tickets || []).map(t => Number(t)),
         gate_ids: formData.gates || [],
         

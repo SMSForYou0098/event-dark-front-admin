@@ -1,46 +1,46 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, Collapse, Input, Spin, Grid, Button } from 'antd';
+import { Card, Collapse, Input, Grid, Button } from 'antd';
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 import PosEventCard from './PosEventCard';
 import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import Loader from 'utils/Loader';
+import { useQuery } from '@tanstack/react-query';
 const { Panel } = Collapse;
-const PosEvents = ({ type, handleButtonClick }) => {
+const PosEvents = ({ type, handleButtonClick, isScanner }) => {
     const { api, authToken, UserData, truncateString } = useMyContext();
     const screens = Grid.useBreakpoint();
     const scrollerRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [activeKey, setActiveKey] = useState(['1']);
-    const [events, setEvents] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isError, setIsError] = useState(false);
+    const hasAutoSelectedRef = useRef(false);
 
+    // Fetch events using TanStack Query
+    const { data: events = [], isLoading, isError } = useQuery({
+        queryKey: ['pos-events', UserData?.id],
+        queryFn: async () => {
+            if (!UserData?.id) return [];
+            
+            const res = await axios.get(`${api}pos-events/${UserData?.id}`, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+            });
+            return res.data.events || [];
+        },
+        enabled: !!UserData?.id, // Only run query if UserData.id exists
+        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+        cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    });
+
+    // Auto-select first event for scanner users
     useEffect(() => {
-        const fetchEvents = async () => {
-            if (!UserData?.id) return;
-
-            setIsLoading(true);
-            setIsError(false);
-
-            try {
-                const res = await axios.get(`${api}pos-events/${UserData?.id}`, {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                    },
-                });
-                setEvents(res.data.events || []);
-            } catch (error) {
-                console.error('Error fetching events:', error);
-                setIsError(true);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchEvents();
-    }, [api, authToken, UserData?.id]);
-
+        if (isScanner && events.length > 0 && !hasAutoSelectedRef.current) {
+            hasAutoSelectedRef.current = true;
+            const firstEvent = events[0];
+            handleButtonClick(firstEvent, firstEvent?.tickets);
+        }
+    }, [isScanner, events, handleButtonClick]);
     const filteredEvent = searchTerm
         ? events.filter(event =>
             event.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -80,8 +80,11 @@ const PosEvents = ({ type, handleButtonClick }) => {
     if (isLoading) {
         return <Loader />
     }
+    if (isScanner) {
+        return null;
+    }
     return (
-        <Card bordered={false} style={{ minWidth: "120px" }} bodyStyle={{paddingTop : 0}}>
+        <Card bordered={false} style={{ minWidth: "120px" }} bodyStyle={{ paddingTop: 0 }}>
             <Collapse
                 activeKey={activeKey}
                 onChange={setActiveKey}

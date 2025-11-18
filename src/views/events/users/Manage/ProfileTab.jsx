@@ -97,7 +97,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     }, [form]);
     // Calculate conditions based on current state
     const showAM = ['POS', 'Agent', 'Scanner', 'Sponsor'].includes(formState.roleName);
-    const needsEvents = ['Agent', 'Sponsor', 'Accreditation'].includes(formState.roleName);
+    const needsEvents = ['Agent', 'Sponsor', 'Accreditation', 'Scanner'].includes(formState.roleName);
 
     // Stabilize reportingUserId
     const reportingUserId = useMemo(() => {
@@ -439,7 +439,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                 </Button>
                             </Flex>
                         } style={{ marginBottom: 16 }}>
-                          <RoleSelect
+                            <RoleSelect
                                 onChange={handleRoleChange}
                                 required={true}
                                 showAlert={true}
@@ -460,19 +460,19 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
                     {/* Basic Information */}
                     <Card title="Basic Information" extra={
-                            editOtherUser &&
-                            <PermissionChecker permission={["Edit User", "Edit Profile"]}>
-                                <Flex justifyContent="end">
-                                    <Button className="mr-2" onClick={() => navigate(-1)}>
-                                        Discard
-                                    </Button>
-                                    <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                                        {mode === "create" ? "Create" : "Update"}
-                                    </Button>
-                                </Flex>
-                            </PermissionChecker>
-                        }>
-                        
+                        editOtherUser &&
+                        <PermissionChecker permission={["Edit User", "Edit Profile"]}>
+                            <Flex justifyContent="end">
+                                <Button className="mr-2" onClick={() => navigate(-1)}>
+                                    Discard
+                                </Button>
+                                <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                    {mode === "create" ? "Create" : "Update"}
+                                </Button>
+                            </Flex>
+                        </PermissionChecker>
+                    }>
+
                         <Row gutter={[16, 16]}>
                             <Col xs={24} md={8}>
                                 <Form.Item
@@ -645,7 +645,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             rules={[requiredIf(needsEvents, 'Please select at least one event')]}
                                         >
                                             <Select
-                                                mode="multiple"
+                                                mode={formState.roleName !== 'Scanner' && "multiple"}
                                                 placeholder="Select events"
                                                 options={fetchedEvents}
                                                 onChange={handleEventChange}
@@ -661,27 +661,28 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             />
                                         </Form.Item>
                                     </Col>
-
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Assign Tickets"
-                                            name="tickets"
-                                            dependencies={['events']}
-                                        >
-                                            <Select
-                                                mode="multiple"
-                                                placeholder="Select tickets"
-                                                disabled={!formState.events?.length}
-                                                showSearch
-                                                options={ticketOptions}
-                                                optionFilterProp="label"
-                                                notFoundContent={
-                                                    !formState.events?.length ? 'Please select events first' :
-                                                        'No tickets available for selected events'
-                                                }
-                                            />
-                                        </Form.Item>
-                                    </Col>
+                                    {formState.roleName !== 'Scanner' &&
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                label="Assign Tickets"
+                                                name="tickets"
+                                                dependencies={['events']}
+                                            >
+                                                <Select
+                                                    mode="multiple"
+                                                    placeholder="Select tickets"
+                                                    disabled={!formState.events?.length}
+                                                    showSearch
+                                                    options={ticketOptions}
+                                                    optionFilterProp="label"
+                                                    notFoundContent={
+                                                        !formState.events?.length ? 'Please select events first' :
+                                                            'No tickets available for selected events'
+                                                    }
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    }
                                 </>
                             )}
 

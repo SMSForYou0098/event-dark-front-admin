@@ -266,9 +266,9 @@ const UserForm = memo(({ mode = "edit" }) => {
         ? (userRole === 'Organizer' ? UserData?.id : formState.reportingUser?.value)
         : (formState.reportingUser?.value || formState.reportingUser?.key);
     const needsEvents = formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation';
-   
+
     const shouldFetchEvents = useMemo(() => {
-      
+
         return mode === "edit" && // Only fetch in edit mode
             (needsEvents && // Or if role needs events
                 Boolean(reportingUserId) && // And has reporting user
@@ -701,7 +701,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                 </Col>
                                             )}
 
-                                            {(formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation') && (
+                                            {(formState.roleName === 'Agent' || formState.roleName === 'Sponsor' || formState.roleName === 'Accreditation' || formState.roleName === 'Scanner') && (
                                                 <>
                                                     <Col xs={24} md={12}>
                                                         <Form.Item
@@ -727,51 +727,52 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                             />
                                                         </Form.Item>
                                                     </Col>
-                                                    <Col xs={24} md={12}>
-                                                        <Form.Item
-                                                            label="Assign Tickets"
-                                                            name="tickets"
-                                                        >
-                                                            <Select
-                                                                mode="multiple"
-                                                                placeholder="Select tickets"
-                                                                value={selectedTickets.map(t => t.value)}
-                                                                onChange={handleTicketChange}
-                                                                filterOption={customTicketFilter}
-                                                                showSearch
-                                                                disabled={selectedEvents.length === 0}
+                                                    {formState.roleName !== 'Scanner' &&
+                                                        <Col xs={24} md={12}>
+                                                            <Form.Item
+                                                                label="Assign Tickets"
+                                                                name="tickets"
                                                             >
-                                                                {ticketGroup.map(eventGroup => (
-                                                                    <Select.OptGroup
-                                                                        key={eventGroup.value}
-                                                                        label={eventGroup.label}
-                                                                    >
-                                                                        {eventGroup.options.map(ticket => (
-                                                                            <Option
-                                                                                key={ticket.value}
-                                                                                value={ticket.value}
-                                                                                label={ticket.label}
-                                                                            >
-                                                                                {ticket.label}
-                                                                            </Option>
-                                                                        ))}
-                                                                    </Select.OptGroup>
-                                                                ))}
-                                                            </Select>
-                                                        </Form.Item>
-                                                    </Col>
-                                                    {
-                                                        formState.roleName === 'Agent' && (
+                                                                <Select
+                                                                    mode={formState.roleName !== 'Scanner' && "multiple"}
+                                                                    placeholder="Select tickets"
+                                                                    value={selectedTickets.map(t => t.value)}
+                                                                    onChange={handleTicketChange}
+                                                                    filterOption={customTicketFilter}
+                                                                    showSearch
+                                                                    disabled={selectedEvents.length === 0}
+                                                                >
+                                                                    {ticketGroup.map(eventGroup => (
+                                                                        <Select.OptGroup
+                                                                            key={eventGroup.value}
+                                                                            label={eventGroup.label}
+                                                                        >
+                                                                            {eventGroup.options.map(ticket => (
+                                                                                <Option
+                                                                                    key={ticket.value}
+                                                                                    value={ticket.value}
+                                                                                    label={ticket.label}
+                                                                                >
+                                                                                    {ticket.label}
+                                                                                </Option>
+                                                                            ))}
+                                                                        </Select.OptGroup>
+                                                                    ))}
+                                                                </Select>
+                                                            </Form.Item>
+                                                        </Col>
+                                                    }
+                                                    {formState.roleName === 'Agent' && (
 
-                                                            <Col xs={24} md={12}>
-                                                                <Form.Item label="Agent Discount">
-                                                                    <Switch
-                                                                        checked={formState.agentDiscount}
-                                                                        onChange={(checked) => handleInputChange('agentDiscount', checked)}
-                                                                    />
-                                                                </Form.Item>
-                                                            </Col>
-                                                        )
+                                                        <Col xs={24} md={12}>
+                                                            <Form.Item label="Agent Discount">
+                                                                <Switch
+                                                                    checked={formState.agentDiscount}
+                                                                    onChange={(checked) => handleInputChange('agentDiscount', checked)}
+                                                                />
+                                                            </Form.Item>
+                                                        </Col>
+                                                    )
                                                     }
                                                 </>
                                             )}

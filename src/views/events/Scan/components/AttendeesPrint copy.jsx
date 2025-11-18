@@ -1,15 +1,15 @@
 import React, { useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { Modal, Avatar, Button, Space } from 'antd';
-import { UserOutlined, PrinterOutlined, CloseOutlined, PhoneOutlined, MailOutlined } from '@ant-design/icons';
-// import './AttendeesPrint.css';
+import { UserOutlined, PrinterOutlined, CloseOutlined } from '@ant-design/icons';
+import '../../Bookings/pos/POSPrintModal.css';
 
 const AttendeesPrint = forwardRef(({
   attendeesList,
   eventData,
   ticket,
   bookings,
-  primaryColor = '#B51515'
+  primaryColor = '#B51515' 
 }, ref) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -19,14 +19,6 @@ const AttendeesPrint = forwardRef(({
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Attendees-${eventData?.name || 'Event'}`,
-    onBeforeGetContent: () => {
-      // Add class to body before printing to isolate print styles
-      document.body.classList.add('printing-attendees');
-    },
-    onAfterPrint: () => {
-      // Remove class after printing
-      document.body.classList.remove('printing-attendees');
-    },
     pageStyle: `
       @page {
         size: 3in 2in;
@@ -63,27 +55,27 @@ const AttendeesPrint = forwardRef(({
     handlePrintAllAttendees: showModal
   }));
 
-  // Render attendee card for modal display
+  // Render attendee card
   const renderAttendeeCard = (attendee, index) => (
     <div className="card h-100 bg-white">
       <div className="card-body">
         <Space size="middle" align="start">
           {attendee?.Photo ? (
-            <Avatar
+            <Avatar 
               src={attendee.Photo}
               size={64}
               shape="square"
-              style={{
+              style={{ 
                 border: `2px solid ${primaryColor}`,
                 flexShrink: 0
               }}
             />
           ) : (
-            <Avatar
+            <Avatar 
               icon={<UserOutlined />}
               size={64}
               shape="square"
-              style={{
+              style={{ 
                 border: `2px solid ${primaryColor}`,
                 backgroundColor: '#f0f0f0',
                 color: primaryColor,
@@ -91,14 +83,14 @@ const AttendeesPrint = forwardRef(({
               }}
             />
           )}
-
-          <div className="flex-grow-1 mb-2">
-            <h4 className="mb-2 fw-bold">{attendee?.Name || 'N/A'}</h4>
+          
+          <div className="flex-grow-1">
+            <h6 className="mb-2 fw-bold text-black">{attendee?.Name || 'N/A'}</h6>
             {attendee?.Mo && (
-              <p className="mb-1 small"><PhoneOutlined /> {attendee.Mo}</p>
+              <p className="mb-1 small text-black">📱 {attendee.Mo}</p>
             )}
             {attendee?.Email && (
-              <p className="mb-0 small text-break"><MailOutlined /> {attendee.Email}</p>
+              <p className="mb-0 small text-break text-black">✉️ {attendee.Email}</p>
             )}
           </div>
         </Space>
@@ -108,7 +100,6 @@ const AttendeesPrint = forwardRef(({
 
   return (
     <>
-      {/* Modal - No custom styling, uses default Ant Design styles */}
       <Modal
         title={
           <Space>
@@ -119,16 +110,20 @@ const AttendeesPrint = forwardRef(({
         open={isModalOpen}
         onCancel={handleCancel}
         width={800}
+        bodyStyle={{
+          backgroundColor: '#fff',
+          color: '#000'
+        }}
         footer={
           <Space>
-            <Button
-              icon={<CloseOutlined />}
+            <Button 
+              icon={<CloseOutlined />} 
               onClick={handleCancel}
             >
               Close
             </Button>
-            <Button
-              type="primary"
+            <Button 
+              type="primary" 
               icon={<PrinterOutlined />}
               onClick={handlePrintClick}
             >
@@ -137,14 +132,13 @@ const AttendeesPrint = forwardRef(({
           </Space>
         }
       >
-        {/* Modal body content - uses default styles */}
-        <div>
+        <div className="bg-white">
           <div className="mb-3">
             <p className="mb-1 text-muted">
-              Total Attendees: <span className="fw-bold">{attendeesList?.length || 0}</span>
+              Total Attendees: <span className="fw-bold text-black">{attendeesList?.length || 0}</span>
             </p>
             <p className="mb-0 text-muted">
-              Ticket: <span className="fw-bold">{ticket?.name || 'N/A'}</span>
+              Ticket: <span className="fw-bold text-black">{ticket?.name || 'N/A'}</span>
             </p>
           </div>
 
@@ -160,37 +154,44 @@ const AttendeesPrint = forwardRef(({
         </div>
       </Modal>
 
-      {/* Print Content - Hidden from view, only used during print */}
-      <div ref={printRef} className="attendees-print-body d-none">
+      {/* Print Content */}
+      <div ref={printRef} className="attendees-print-body">
         {attendeesList?.map((attendee, index) => (
           <div key={index} className="attendee-badge">
+            {/* Header */}
+            <div className="badge-header" style={{ borderBottomColor: primaryColor }}>
+              <h6 className="badge-title" style={{ color: primaryColor }}>
+                Attendee #{index + 1}/{attendeesList.length}
+              </h6>
+            </div>
+            
             {/* Content */}
             <div className="badge-content">
               <div className="badge-row">
-                <span className="badge-label">Name:</span>
-                <span className="badge-value">{attendee?.Name || 'N/A'}</span>
+                <p className="badge-label">Name:</p>
+                <p className="badge-value badge-name">{attendee?.Name || 'N/A'}</p>
               </div>
 
               {attendee?.Mo && (
                 <div className="badge-row">
-                  <span className="badge-label">Mobile:</span>
-                  <span className="badge-value">{attendee.Mo}</span>
+                  <p className="badge-label">Mobile:</p>
+                  <p className="badge-value">{attendee.Mo}</p>
                 </div>
               )}
 
               {attendee?.Email && (
                 <div className="badge-row">
-                  <span className="badge-label">Email:</span>
-                  <span className="badge-value badge-email">{attendee.Email}</span>
+                  <p className="badge-label">Email:</p>
+                  <p className="badge-value badge-email">{attendee.Email}</p>
                 </div>
               )}
             </div>
 
             {/* Footer */}
             <div className="badge-footer">
-              <span className="badge-footer-text">
+              <p className="badge-footer-text">
                 {eventData?.name || 'Event'} - {ticket?.name || 'Ticket'}
-              </span>
+              </p>
             </div>
           </div>
         ))}

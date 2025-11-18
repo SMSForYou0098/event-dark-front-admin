@@ -24,7 +24,7 @@ const SortableCheckboxItem = ({ field, isChecked, onChange }) => {
     transition,
     padding: '8px 12px',
     borderRadius: 4,
-    backgroundColor: isDragging ? '#f0f0f0' : 'transparent',
+    backgroundColor: isDragging ? 'var(--primary-color)' : 'transparent',
     opacity: isDragging ? 0.5 : 1,
     display: 'flex',
     alignItems: 'center',

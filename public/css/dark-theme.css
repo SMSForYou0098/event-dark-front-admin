@@ -7561,6 +7561,9 @@ a.text-dark:hover {
     color: rgba(114, 132, 154, .9) !important
 }
 
+.text-black {
+    color: #000 !important;
+}
 .text-black-50 {
     color: rgba(0, 0, 0, .5) !important
 }

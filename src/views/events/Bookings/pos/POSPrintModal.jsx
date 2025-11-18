@@ -175,7 +175,7 @@ const POSPrintModal = ({
                         <p className="mb-1" style={{ fontSize: '14px' }}>
                             Thank You for Payment
                         </p>
-                        <p className="text-muted mb-5" style={{ fontSize: '12px' }}>
+                        <p className="text-muted" style={{ fontSize: '12px' }}>
                             www.getyourticket.in
                         </p>
                     </div>

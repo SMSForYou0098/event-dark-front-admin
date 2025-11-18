@@ -10,7 +10,7 @@ const backgroundStyle = {
 }
 
 const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) => {
-    const {systemSetting} = useMyContext()
+    // const {systemSetting} = useMyContext()
     return (
         <div className="h-100" style={backgroundStyle}>
             <div className="container d-flex flex-column justify-content-center h-100">
@@ -21,7 +21,7 @@ const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) 
                                 <div className="text-center mb-3">
                                     <img 
                                         className="img-fluid"
-                                        src={systemSetting?.logo} 
+                                        src={'/img/logo.webp'} 
                                         alt="logo" 
                                         width={100}
                                     />

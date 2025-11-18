@@ -39,7 +39,7 @@ export const Logo = ({ mobileLogo }) => {
 			return `${SIDE_NAV_WIDTH}px`
 		}
 	}
-	const logoUrl = systemSetting?.logo
+	const logoUrl = '/img/logo.webp'
 
 	return (
 		<LogoWrapper className={`${isMobile && !mobileLogo ? 'd-none' : 'logo'}`} style={{width: `${getLogoWidthGutter()}` , padding : navCollapsed ? '0 5px' : '0 3rem'}}>
