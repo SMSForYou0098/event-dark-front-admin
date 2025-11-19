@@ -467,7 +467,7 @@ const StadiumConfigForm = ({
               icon={<PlusOutlined />}
               onClick={addStand}
               size="small"
-              className="bg-primary border-0 font-weight-semibold"
+              className="border-0 font-weight-semibold"
               style={{
                 borderRadius: 6,
               }}

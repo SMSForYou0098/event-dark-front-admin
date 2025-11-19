@@ -206,11 +206,7 @@ const RowsModal = ({
             icon={<PlusOutlined />}
             onClick={() => handleAddRow(standIndex, tierIndex, sectionIndex)}
             size="small"
-            className="bg-success border-0 font-weight-semibold"
-            style={{
-              backgroundColor: 'var(--success-color)',
-              borderRadius: 6,
-            }}
+            className="border-0 font-weight-semibold"
           >
             {isMobile ? "Add" : "Add Row"}
           </Button>
@@ -221,23 +217,6 @@ const RowsModal = ({
       width={isMobile ? "95%" : 900}
       centered
       maskClosable={false}
-      closeIcon={
-        <CloseOutlined 
-          className="text-white" 
-          style={{ 
-            fontSize: isMobile ? 18 : 20,
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'rotate(90deg) scale(1.2)';
-            e.currentTarget.style.color = 'var(--primary-color)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'rotate(0deg) scale(1)';
-            e.currentTarget.style.color = 'var(--text-white)';
-          }}
-        />
-      }
       footer={[
         <div key="footer" className={`d-flex ${isMobile ? 'flex-column' : 'flex-row'} justify-content-end gap-2 w-100`}>
           <Button 
