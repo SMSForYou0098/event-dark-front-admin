@@ -1,189 +1,14 @@
-// AuditoriumLayoutDesigner.jsx
-import React, { useState, useRef, useEffect } from 'react';
-import { Stage, Layer, Rect, Circle, Text, Group, Line, Transformer } from 'react-konva';
-import {
-  Plus,
-  Trash2,
-  Upload,
-} from 'lucide-react';
-import {
-  PlusOutlined,
-  DownloadOutlined,
-  UploadOutlined,
-  ZoomInOutlined,
-  ZoomOutOutlined,
-  BorderOutlined,
-  DeleteOutlined
-} from '@ant-design/icons';
-import './AuditoriumLayoutDesigner.css';
-import { Button, Card, Input, Radio, Slider, Space } from 'antd';
-import { Select, InputNumber, Form } from 'antd';
-const { Option } = Select;
-
-
-
-// Draggable Stage Component
-const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd }) => {
-  const shapeRef = useRef();
-  const trRef = useRef();
-
-  useEffect(() => {
-    if (isSelected) {
-      if (trRef.current && shapeRef.current) {
-        trRef.current.nodes([shapeRef.current]);
-        trRef.current.getLayer()?.batchDraw();
-      }
-    }
-  }, [isSelected]);
-
-  return (
-    <>
-      <Group
-        ref={shapeRef}
-        draggable
-        x={stage.x}
-        y={stage.y}
-        onClick={onSelect}
-        onTap={onSelect}
-        onDragEnd={(e) => {
-          onDragEnd({
-            x: e.target.x(),
-            y: e.target.y()
-          });
-        }}
-        onTransformEnd={(e) => {
-          const node = shapeRef.current;
-          const scaleX = node.scaleX();
-          const scaleY = node.scaleY();
-
-          node.scaleX(1);
-          node.scaleY(1);
-
-          onTransformEnd({
-            x: node.x(),
-            y: node.y(),
-            width: Math.max(5, node.width() * scaleX),
-            height: Math.max(5, node.height() * scaleY)
-          });
-        }}
-      >
-        <Rect
-          width={stage.width}
-          height={stage.height}
-          fill="#333"
-          stroke={isSelected ? '#2196F3' : '#000'}
-          strokeWidth={isSelected ? 3 : 2}
-        />
-        <Text
-          width={stage.width}
-          y={stage.height / 2 - 10}
-          text="SCREEN"
-          fontSize={18}
-          fill="#FFF"
-          align="center"
-        />
-      </Group>
-      {isSelected && (
-        <Transformer
-          ref={trRef}
-          flipEnabled={false}
-          boundBoxFunc={(oldBox, newBox) => {
-            // Limit resize
-            if (Math.abs(newBox.width) < 200 || Math.abs(newBox.height) < 30) {
-              return oldBox;
-            }
-            return newBox;
-          }}
-          enabledAnchors={['middle-left', 'middle-right']}
-          rotateEnabled={false}
-        />
-      )}
-    </>
-  );
-};
-
-// Draggable Section Component
-const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransformEnd, children }) => {
-  const shapeRef = useRef();
-  const trRef = useRef();
-
-  useEffect(() => {
-    if (isSelected) {
-      if (trRef.current && shapeRef.current) {
-        trRef.current.nodes([shapeRef.current]);
-        trRef.current.getLayer()?.batchDraw();
-      }
-    }
-  }, [isSelected]);
-
-  return (
-    <>
-      <Group
-        ref={shapeRef}
-        draggable
-        x={section.x}
-        y={section.y}
-        onClick={onSelect}
-        onTap={onSelect}
-        onDragEnd={(e) => {
-          onDragEnd({
-            x: e.target.x(),
-            y: e.target.y()
-          });
-        }}
-        onTransformEnd={(e) => {
-          const node = shapeRef.current;
-          const scaleX = node.scaleX();
-          const scaleY = node.scaleY();
-
-          node.scaleX(1);
-          node.scaleY(1);
-
-          onTransformEnd({
-            x: node.x(),
-            y: node.y(),
-            width: Math.max(5, node.width() * scaleX),
-            height: Math.max(5, node.height() * scaleY)
-          });
-        }}
-      >
-        <Rect
-          width={section.width}
-          height={section.height}
-          fill="rgba(200, 200, 200, 0.2)"
-          stroke={isSelected ? '#2196F3' : '#999'}
-          strokeWidth={isSelected ? 3 : 1}
-          dash={[5, 5]}
-        />
-        <Text
-          x={10}
-          y={10}
-          text={section.name}
-          fontSize={16}
-          fill="#333"
-          fontStyle="bold"
-        />
-        {children}
-      </Group>
-      {isSelected && (
-        <Transformer
-          ref={trRef}
-          flipEnabled={false}
-          boundBoxFunc={(oldBox, newBox) => {
-            // Limit resize
-            if (Math.abs(newBox.width) < 200 || Math.abs(newBox.height) < 150) {
-              return oldBox;
-            }
-            return newBox;
-          }}
-          rotateEnabled={false}
-        />
-      )}
-    </>
-  );
-};
+// AuditoriumLayoutDesigner.jsx - UPDATED WITH ROW ICON FEATURE
+import React, { useRef, useState } from 'react';
+import {PlusOutlined,ZoomInOutlined,ZoomOutOutlined,BorderOutlined,SaveOutlined} from '@ant-design/icons';
+import { Button, Card, Col, message, Row, Space } from 'antd';
+import api from 'auth/FetchInterceptor';
+import LeftBar from './components/creation/LeftBar';
+import CenterCanvas from './components/creation/CenterCanvas';
+import RightPanel from './components/creation/RightPanel';
 
 const AuditoriumLayoutDesigner = () => {
+
   // State Management
   const [stage, setStage] = useState({
     position: 'top',
@@ -191,7 +16,8 @@ const AuditoriumLayoutDesigner = () => {
     width: 800,
     height: 50,
     x: 100,
-    y: 50
+    y: 50,
+    name: 'SCREEN'
   });
 
   const [sections, setSections] = useState([]);
@@ -204,23 +30,41 @@ const AuditoriumLayoutDesigner = () => {
   const [selectedElement, setSelectedElement] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   const [canvasScale, setCanvasScale] = useState(1);
-  const [showGrid, setShowGrid] = useState(true);
+  const [showGrid, setShowGrid] = useState(false);
   const [nextSectionId, setNextSectionId] = useState(1);
+  const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+  const [isSaving, setIsSaving] = useState(false);
 
-  const stageRef = useRef();
-  const layerRef = useRef();
+
+
 
   // Generate unique IDs
   const generateId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const stageRef = useRef();
+  // Generate row title (A, B, C, ..., Z, AA, AB, ...)
+  const generateRowTitle = (rowNumber) => {
+    let title = '';
+    let num = rowNumber;
+    while (num > 0) {
+      const remainder = (num - 1) % 26;
+      title = String.fromCharCode(65 + remainder) + title;
+      num = Math.floor((num - 1) / 26);
+    }
+    return title;
+  };
 
-  // Add Section
+  // Add Section - FIXED: Better positioning
   const addSection = () => {
+    // Calculate Y position based on stage position
+    const baseY = stage.y + stage.height + 50;
+    const sectionY = baseY + (sections.length * 280);
+
     const newSection = {
       id: generateId('section'),
       name: `Section ${nextSectionId}`,
       type: 'Regular',
       x: 100,
-      y: 150 + (sections.length * 300),
+      y: sectionY,
       width: 600,
       height: 250,
       rows: [],
@@ -231,6 +75,17 @@ const AuditoriumLayoutDesigner = () => {
     setNextSectionId(nextSectionId + 1);
     setSelectedElement(newSection);
     setSelectedType('section');
+
+    // Auto-scroll to the new section
+    setTimeout(() => {
+      if (stageRef.current) {
+        const stageInstance = stageRef.current;
+        const newY = -sectionY * canvasScale + 200;
+        stageInstance.position({ x: stagePosition.x, y: newY });
+        setStagePosition({ x: stagePosition.x, y: newY });
+        stageInstance.batchDraw();
+      }
+    }, 100);
   };
 
   // Add Row to Section
@@ -240,12 +95,13 @@ const AuditoriumLayoutDesigner = () => {
         const rowNumber = section.rows.length + 1;
         const newRow = {
           id: generateId('row'),
-          title: String.fromCharCode(64 + rowNumber),
+          title: generateRowTitle(rowNumber),
           numberOfSeats: 10,
           ticketCategory: ticketCategories[0].id,
           shape: 'straight',
           curve: 0,
           spacing: 40,
+          defaultIcon: null, // NEW: Track row-level default icon
           seats: []
         };
 
@@ -263,15 +119,24 @@ const AuditoriumLayoutDesigner = () => {
   // Generate Seats for Row
   const generateSeatsForRow = (row, section, rowIndex) => {
     const seats = [];
-    const totalWidth = section.width - 100;
-    const seatSpacing = totalWidth / (row.numberOfSeats + 1);
+    const leftPadding = 50;
+    const rightPadding = 20;
+    const totalWidth = section.width - leftPadding - rightPadding;
+
+    const maxSeatRadius = Math.min(
+      (totalWidth / row.numberOfSeats) * 0.4,
+      12
+    );
+    const seatRadius = Math.max(4, maxSeatRadius);
+
+    const seatSpacing = totalWidth / row.numberOfSeats;
 
     for (let i = 0; i < row.numberOfSeats; i++) {
       const seatNumber = i + 1;
       let x, y;
 
       if (row.shape === 'straight') {
-        x = 50 + (seatSpacing * (i + 1));
+        x = leftPadding + (seatSpacing * i) + (seatSpacing / 2);
         y = 50 + (rowIndex * row.spacing);
       } else if (row.shape === 'curved-convex') {
         const angle = (i / (row.numberOfSeats - 1)) * Math.PI - Math.PI / 2;
@@ -293,7 +158,9 @@ const AuditoriumLayoutDesigner = () => {
         y,
         ticketCategory: row.ticketCategory,
         status: 'available',
-        radius: 12
+        radius: seatRadius,
+        icon: row.defaultIcon || null, // NEW: Inherit row's default icon
+        customIcon: false // NEW: Track if seat has custom icon
       });
     }
 
@@ -306,8 +173,9 @@ const AuditoriumLayoutDesigner = () => {
       if (section.id === sectionId) {
         const updatedSection = { ...section, ...updates };
 
-        // Regenerate seats if width or height changed
-        if (updates.width || updates.height) {
+        // Regenerate seats if width or height changed significantly
+        if ((updates.width && Math.abs(updates.width - section.width) > 10) ||
+          (updates.height && Math.abs(updates.height - section.height) > 10)) {
           updatedSection.rows = section.rows.map((row, index) => ({
             ...row,
             seats: generateSeatsForRow(row, updatedSection, index)
@@ -318,11 +186,6 @@ const AuditoriumLayoutDesigner = () => {
       }
       return section;
     }));
-
-    // Update selected element if it's the one being updated
-    if (selectedElement?.id === sectionId) {
-      setSelectedElement({ ...selectedElement, ...updates });
-    }
   };
 
   // Update Row
@@ -377,6 +240,43 @@ const AuditoriumLayoutDesigner = () => {
     setSelectedType(null);
   };
 
+  // Duplicate Section
+  const duplicateSection = (sectionId) => {
+    const sectionToDuplicate = sections.find(s => s.id === sectionId);
+    if (!sectionToDuplicate) return;
+
+    const duplicatedSection = {
+      ...sectionToDuplicate,
+      id: generateId('section'),
+      name: `${sectionToDuplicate.name} (Copy)`,
+      x: sectionToDuplicate.x + 50,
+      y: sectionToDuplicate.y + 50,
+      rows: sectionToDuplicate.rows.map(row => ({
+        ...row,
+        id: generateId('row'),
+        seats: row.seats.map(seat => ({
+          ...seat,
+          id: generateId('seat')
+        }))
+      }))
+    };
+
+    setSections([...sections, duplicatedSection]);
+    setNextSectionId(nextSectionId + 1);
+    setSelectedElement(duplicatedSection);
+    setSelectedType('section');
+
+    setTimeout(() => {
+      if (stageRef.current) {
+        const stageInstance = stageRef.current;
+        const newY = -duplicatedSection.y * canvasScale + 200;
+        stageInstance.position({ x: stagePosition.x, y: newY });
+        setStagePosition({ x: stagePosition.x, y: newY });
+        stageInstance.batchDraw();
+      }
+    }, 100);
+  };
+
   // Delete Row
   const deleteRow = (sectionId, rowId) => {
     setSections(sections.map(section => {
@@ -413,24 +313,57 @@ const AuditoriumLayoutDesigner = () => {
     link.click();
   };
 
-  // Import Layout
-  const importLayout = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const layout = JSON.parse(e.target.result);
-          setStage(layout.stage);
-          setSections(layout.sections);
-          setTicketCategories(layout.ticketCategories);
-        } catch (error) {
-          alert('Invalid layout file');
-        }
-      };
-      reader.readAsText(file);
+  // Save Layout to Backend
+  const saveLayout = async () => {
+    setIsSaving(true);
+
+    const payload = {
+      stage,
+      sections,
+      ticketCategories,
+      metadata: {
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        totalSections: sections.length,
+        totalSeats: sections.reduce((total, section) =>
+          total + section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0)
+          , 0),
+        totalRows: sections.reduce((total, section) => total + section.rows.length, 0)
+      }
+    };
+
+    try {
+      const response = await api.post('/auditorium/layout/save', payload);
+      const data = await response.json();
+
+      message.success('Layout saved successfully!');
+      console.log('Saved layout response:', data);
+
+    } catch (error) {
+      message.error(`Failed to save layout`);
+    } finally {
+      setIsSaving(false);
     }
   };
+
+  // Import Layout
+  // const importLayout = (event) => {
+  //   const file = event.target.files?.[0];
+  //   if (file) {
+  //     const reader = new FileReader();
+  //     reader.onload = (e) => {
+  //       try {
+  //         const layout = JSON.parse(e.target.result);
+  //         setStage(layout.stage || stage);
+  //         setSections(layout.sections || []);
+  //         setTicketCategories(layout.ticketCategories || ticketCategories);
+  //       } catch (error) {
+  //         alert('Invalid layout file');
+  //       }
+  //     };
+  //     reader.readAsText(file);
+  //   }
+  // };
 
   // Handle Canvas Click
   const handleCanvasClick = (e) => {
@@ -451,13 +384,13 @@ const AuditoriumLayoutDesigner = () => {
   // Handle Wheel Zoom
   const handleWheel = (e) => {
     e.evt.preventDefault();
-    const stage = e.target.getStage();
-    const oldScale = stage.scaleX();
-    const pointer = stage.getPointerPosition();
+    const stageInst = e.target.getStage();
+    const oldScale = stageInst.scaleX();
+    const pointer = stageInst.getPointerPosition();
 
     const mousePointTo = {
-      x: (pointer.x - stage.x()) / oldScale,
-      y: (pointer.y - stage.y()) / oldScale
+      x: (pointer.x - stageInst.x()) / oldScale,
+      y: (pointer.y - stageInst.y()) / oldScale
     };
 
     const newScale = e.evt.deltaY < 0 ? oldScale * 1.1 : oldScale / 1.1;
@@ -470,642 +403,131 @@ const AuditoriumLayoutDesigner = () => {
       y: pointer.y - mousePointTo.y * clampedScale
     };
 
-    stage.position(newPos);
-    stage.batchDraw();
-  };
-
-  // Get Seat Color
-  const getSeatColor = (seat) => {
-    if (seat.status === 'disabled') return '#9E9E9E';
-    if (seat.status === 'reserved') return '#FF9800';
-    if (seat.status === 'blocked') return '#F44336';
-
-    const category = ticketCategories.find(c => c.id === seat.ticketCategory);
-    return category ? category.color : '#4CAF50';
+    stageInst.position(newPos);
+    setStagePosition(newPos);
+    stageInst.batchDraw();
   };
 
   return (
-    <div className="auditorium-designer">
-      {/* Top Toolbar */}
-      <div className="toolbar">
-        <div className="toolbar-left">
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={addSection}
-          >
-            Add Section
-          </Button>
-
-          <Button
-            onClick={() => setShowGrid(!showGrid)}
-            icon={<BorderOutlined />}
-          >
-            {showGrid ? "Hide Grid" : "Show Grid"}
-          </Button>
-        </div>
-
-        <div className="toolbar-center">
-          <h2>Auditorium Layout Designer</h2>
-        </div>
-
-        <div className="toolbar-right">
-          <Button
-            icon={<ZoomInOutlined />}
-            onClick={() => handleZoom(true)}
-          />
-
-          <Button
-            icon={<ZoomOutOutlined />}
-            onClick={() => handleZoom(false)}
-          />
-
-          <Button
-            type="primary"
-            icon={<DownloadOutlined />}
-            onClick={exportLayout}
-          >
-            Export
-          </Button>
-
-          <Upload
-            accept=".json"
-            showUploadList={false}
-            customRequest={({ file, onSuccess }) => {
-              importLayout({ target: { files: [file] } });
-              setTimeout(() => onSuccess("ok"), 0);
-            }}
-          >
-            <Button icon={<UploadOutlined />}>Import</Button>
-          </Upload>
-        </div>
-      </div>
-
-
-      <div className="designer-content">
-        {/* Left Panel */}
-        <div className="left-panel">
-          <div>
-            <h5 className='mb-3'>Layout Structure</h5>
-            {/* Stage / Screen */}
-            <div
-              className={`structure-item ${selectedType === 'stage' ? 'selected' : ''}`}
-              onClick={() => {
-                setSelectedElement(stage);
-                setSelectedType('stage');
-              }}
-              style={{ cursor: 'pointer', padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}
+    <Card title="Auditorium Layout Designer"
+      extra={
+        <Space>
+          <div className="toolbar-left">
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={addSection}
             >
-              <Space>
-                <span>🎭</span>
-                <Text>Stage / Screen</Text>
-              </Space>
-            </div>
+              Add Section
+            </Button>
 
-            {/* Sections Tree */}
-            {sections.map(section => (
-              <Card
-                key={section.id}
-                size="small"
-                type="inner"
-                title={
-                  <Space style={{ justifyContent: 'space-between', width: '100%' }}>
-                    <Text>{section.name}</Text>
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteSection(section.id);
-                      }}
-                    />
-                  </Space>
-                }
-                style={{ marginBottom: 8 }}
-                onClick={() => {
-                  setSelectedElement(section);
-                  setSelectedType('section');
-                }}
-              >
-                {/* Rows */}
-                {section.rows.map(row => (
-                  <div
-                    key={row.id}
-                    className={`structure-item nested ${selectedElement?.id === row.id && selectedType === 'row' ? 'selected' : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedElement({ ...row, sectionId: section.id });
-                      setSelectedType('row');
-                    }}
-                    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '2px 4px', cursor: 'pointer', marginBottom: 2 }}
-                  >
-                    <Space>
-                      <span>↔️</span>
-                      <Text>Row {row.title} ({row.seats.length} seats)</Text>
-                    </Space>
-                    <Button
-                      size="small"
-                      type="text"
-                      icon={<DeleteOutlined />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteRow(section.id, row.id);
-                      }}
-                    />
-                  </div>
-                ))}
-
-                <Button
-                  type="dashed"
-                  size="small"
-                  className='w-100'
-                  icon={<PlusOutlined />}
-                  onClick={() => addRowToSection(section.id)}
-                >
-                  Add Row
-                </Button>
-              </Card>
-            ))}
-
+            <Button
+              onClick={() => setShowGrid(!showGrid)}
+              icon={<BorderOutlined />}
+            >
+              {showGrid ? "Hide Grid" : "Show Grid"}
+            </Button>
           </div>
-        </div>
+          <div className="toolbar-right">
+            <Button
+              icon={<ZoomInOutlined />}
+              onClick={() => handleZoom(true)}
+            />
 
-        {/* Center Canvas */}
-        <div className="canvas-container">
-          <Stage
-            ref={stageRef}
-            width={window.innerWidth - 700}
-            height={window.innerHeight - 100}
-            draggable={!selectedElement}
-            scaleX={canvasScale}
-            scaleY={canvasScale}
-            onClick={handleCanvasClick}
-            onWheel={handleWheel}
-          >
-            <Layer ref={layerRef}>
-              {/* Grid */}
-              {showGrid && (
-                <>
-                  {Array.from({ length: 50 }).map((_, i) => (
-                    <React.Fragment key={`grid-${i}`}>
-                      <Line
-                        points={[i * 50, 0, i * 50, 3000]}
-                        stroke="#E0E0E0"
-                        strokeWidth={1}
-                        listening={false}
-                      />
-                      <Line
-                        points={[0, i * 50, 3000, i * 50]}
-                        stroke="#E0E0E0"
-                        strokeWidth={1}
-                        listening={false}
-                      />
-                    </React.Fragment>
-                  ))}
-                </>
-              )}
+            <Button
+              icon={<ZoomOutOutlined />}
+              onClick={() => handleZoom(false)}
+            />
 
-              {/* Stage/Screen */}
-              <DraggableStage
-                stage={stage}
-                isSelected={selectedType === 'stage' && selectedElement?.position === stage.position}
-                onSelect={() => {
-                  setSelectedElement(stage);
-                  setSelectedType('stage');
-                }}
-                onDragEnd={(pos) => {
-                  setStage({ ...stage, ...pos });
-                }}
-                onTransformEnd={(transform) => {
-                  setStage({ ...stage, ...transform });
-                }}
-              />
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={saveLayout}
+              loading={isSaving}
+              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            >
+              Save
+            </Button>
 
-              {/* Sections */}
-              {sections.map(section => (
-                <DraggableSection
-                  key={section.id}
-                  section={section}
-                  isSelected={selectedElement?.id === section.id && selectedType === 'section'}
-                  onSelect={() => {
-                    setSelectedElement(section);
-                    setSelectedType('section');
-                  }}
-                  onDragEnd={(pos) => {
-                    updateSection(section.id, pos);
-                  }}
-                  onTransformEnd={(transform) => {
-                    updateSection(section.id, transform);
-                  }}
-                >
-                  {/* Rows and Seats */}
-                  {section.rows.map(row => (
-                    <Group key={row.id}>
-                      <Text
-                        x={10}
-                        y={row.seats[0]?.y - 5}
-                        text={row.title}
-                        fontSize={14}
-                        fill="#666"
-                        fontStyle="bold"
-                        listening={false}
-                      />
+            {/* <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={exportLayout}
+            >
+              Export
+            </Button>
 
-                      {row.seats.map(seat => (
-                        <Group key={seat.id}>
-                          <Circle
-                            x={seat.x}
-                            y={seat.y}
-                            radius={seat.radius}
-                            fill={getSeatColor(seat)}
-                            stroke={selectedElement?.id === seat.id && selectedType === 'seat' ? '#000' : '#333'}
-                            strokeWidth={selectedElement?.id === seat.id && selectedType === 'seat' ? 2 : 0.5}
-                            onClick={(e) => {
-                              e.cancelBubble = true;
-                              setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
-                              setSelectedType('seat');
-                            }}
-                          />
-                          {seat.status === 'disabled' && (
-                            <Line
-                              points={[
-                                seat.x - seat.radius * 0.7,
-                                seat.y - seat.radius * 0.7,
-                                seat.x + seat.radius * 0.7,
-                                seat.y + seat.radius * 0.7
-                              ]}
-                              stroke="#F44336"
-                              strokeWidth={2}
-                              listening={false}
-                            />
-                          )}
-                        </Group>
-                      ))}
-                    </Group>
-                  ))}
-                </DraggableSection>
-              ))}
-            </Layer>
-          </Stage>
-        </div>
+            <Upload
+              accept=".json"
+              showUploadList={false}
+              customRequest={({ file, onSuccess }) => {
+                importLayout({ target: { files: [file] } });
+                setTimeout(() => onSuccess("ok"), 0);
+              }}
+            >
+              <Button icon={<UploadOutlined />}>Import</Button>
+            </Upload> */}
+          </div>
+        </Space>
+      }
+      className="auditorium-designer"
+    >
 
+      <Row>
+        <Col lg={4}>
+         {/* Left Panel */}
+        <LeftBar
+          sections={sections}
+          selectedType={selectedType}
+          setSelectedElement={setSelectedElement}
+          stage={stage}
+          setSelectedType={setSelectedType}
+          duplicateSection={duplicateSection}
+          deleteSection={deleteSection}
+          selectedElement={selectedElement}
+          deleteRow={deleteRow}
+          addRowToSection={addRowToSection}
+        />
+
+        </Col>
+         {/* Center Canvas */}
+        <Col lg={16}>
+        <CenterCanvas
+          stageRef={stageRef}
+          canvasScale={canvasScale}
+          showGrid={showGrid}
+          stage={stage}
+          setStage={setStage}
+          sections={sections}
+          updateSection={updateSection}
+          selectedType={selectedType}
+          selectedElement={selectedElement}
+          setSelectedElement={setSelectedElement}
+          setSelectedType={setSelectedType}
+          handleCanvasClick={handleCanvasClick}
+          handleWheel={handleWheel}
+          setStagePosition={setStagePosition}
+        />
+        </Col>
         {/* Right Panel - Editor */}
-        <div className="right-panel">
-
-          <div className="panel-header">
-            <h3>
-              {selectedType === 'stage' && 'Stage Editor'}
-              {selectedType === 'section' && 'Section Editor'}
-              {selectedType === 'row' && 'Row Editor'}
-              {selectedType === 'seat' && 'Seat Editor'}
-              {!selectedType && 'Select an Element'}
-            </h3>
-          </div>
-
-          <div className="editor-content">
-
-            {!selectedType && (
-              <div className="empty-state">
-                <p>Select a stage, section, row, or seat to edit its properties</p>
-              </div>
-            )}
-
-            {/* Stage Editor */}
-            {selectedType === 'stage' && (
-              <Form
-                layout="vertical"
-                className="editor-form"
-              >
-                <Form.Item label="Position">
-                  <Select
-                    value={stage.position}
-                    onChange={(value) => setStage({ ...stage, position: value })}
-                  >
-                    <Option value="top">Top</Option>
-                    <Option value="bottom">Bottom</Option>
-                    <Option value="center">Center</Option>
-                  </Select>
-                </Form.Item>
-
-                <Form.Item label="Shape">
-                  <Select
-                    value={stage.shape}
-                    onChange={(value) => setStage({ ...stage, shape: value })}
-                  >
-                    <Option value="straight">Straight</Option>
-                    <Option value="curved">Curved</Option>
-                  </Select>
-                </Form.Item>
-
-                <Form.Item label="Width">
-                  <InputNumber
-                    min={0}
-                    value={stage.width}
-                    onChange={(value) => setStage({ ...stage, width: value })}
-                    style={{ width: '100%' }}
-                  />
-                </Form.Item>
-
-                <Form.Item label="Height">
-                  <InputNumber
-                    min={0}
-                    value={stage.height}
-                    onChange={(value) => setStage({ ...stage, height: value })}
-                    style={{ width: '100%' }}
-                  />
-                </Form.Item>
-
-                <div className="">
-                  <Text>
-                    💡 Tip: Click and drag the screen to move it. Use corner handles to resize.
-                  </Text>
-                </div>
-              </Form>
-            )}
-
-            {/* Section Editor */}
-            {selectedType === 'section' && selectedElement && (
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <div>
-                  <Text strong>Section Name</Text>
-                  <Input
-                    value={selectedElement.name}
-                    onChange={(e) => {
-                      updateSection(selectedElement.id, { name: e.target.value });
-                      setSelectedElement({ ...selectedElement, name: e.target.value });
-                    }}
-                    style={{ marginTop: 8 }}
-                  />
-                </div>
-
-                <div>
-                  <Text strong>Section Type</Text>
-                  <Select
-                    value={selectedElement.type}
-                    onChange={(value) => {
-                      updateSection(selectedElement.id, { type: value });
-                      setSelectedElement({ ...selectedElement, type: value });
-                    }}
-                    style={{ width: '100%', marginTop: 8 }}
-                    options={[
-                      { value: 'Regular', label: 'Regular' },
-                      { value: 'Balcony', label: 'Balcony' },
-                      { value: 'VIP', label: 'VIP' },
-                      { value: 'Lower', label: 'Lower' },
-                      { value: 'Upper', label: 'Upper' }
-                    ]}
-                  />
-                </div>
-
-                <div>
-                  <Text strong>Width</Text>
-                  <InputNumber
-                    value={selectedElement.width}
-                    onChange={(value) => {
-                      updateSection(selectedElement.id, { width: value });
-                      setSelectedElement({ ...selectedElement, width: value });
-                    }}
-                    style={{ width: '100%', marginTop: 8 }}
-                  />
-                </div>
-
-                <div>
-                  <Text strong>Height</Text>
-                  <InputNumber
-                    value={selectedElement.height}
-                    onChange={(value) => {
-                      updateSection(selectedElement.id, { height: value });
-                      setSelectedElement({ ...selectedElement, height: value });
-                    }}
-                    style={{ width: '100%', marginTop: 8 }}
-                  />
-                </div>
-
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  block
-                  onClick={() => addRowToSection(selectedElement.id)}
-                >
-                  Add Row
-                </Button>
-
-                <div className='border-secondary p-2 rounded-4'>
-                  <Text strong>Rows:</Text> {selectedElement.rows.length}<br />
-                  <Text strong>Total Seats:</Text> {selectedElement.rows.reduce((total, row) => total + row.seats.length, 0)}<br /><br />
-                  <Text strong>💡 Tip:</Text> Click and drag to move. Use corner handles to resize.
-                </div>
-              </Space>
-            )}
-
-            {/* Row Editor */}
-             {selectedType === 'row' && selectedElement && (
-              <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-                <div>
-                  <Text strong>Row Title</Text>
-                  <Input
-                    value={selectedElement.title}
-                    onChange={(e) => {
-                      updateRow(selectedElement.sectionId, selectedElement.id, { title: e.target.value });
-                      setSelectedElement({ ...selectedElement, title: e.target.value });
-                    }}
-                    style={{ marginTop: 8 }}
-                  />
-                </div>
-
-                <div>
-                  <Text strong>Number of Seats</Text>
-                  <InputNumber
-                    min={1}
-                    max={50}
-                    value={selectedElement.numberOfSeats}
-                    onChange={(value) => {
-                      updateRow(selectedElement.sectionId, selectedElement.id, { numberOfSeats: value });
-                      setSelectedElement({ ...selectedElement, numberOfSeats: value });
-                    }}
-                    style={{ width: '100%', marginTop: 8 }}
-                  />
-                </div>
-
-                <div>
-                  <Text strong>Assign Ticket Category to All Seats</Text>
-                  <Select
-                    value={selectedElement.ticketCategory}
-                    onChange={(value) => {
-                      updateRow(selectedElement.sectionId, selectedElement.id, { ticketCategory: value });
-                      setSelectedElement({ ...selectedElement, ticketCategory: value });
-
-                      const section = sections.find(s => s.id === selectedElement.sectionId);
-                      const row = section?.rows.find(r => r.id === selectedElement.id);
-                      row?.seats.forEach(seat => {
-                        updateSeat(selectedElement.sectionId, selectedElement.id, seat.id, { ticketCategory: value });
-                      });
-                    }}
-                    style={{ width: '100%', marginTop: 8 }}
-                    options={ticketCategories.map(cat => ({
-                      value: cat.id,
-                      label: `${cat.name} (₹${cat.price})`
-                    }))}
-                  />
-                </div>
-
-                <div>
-                  <Text strong>Row Shape</Text>
-                  <Select
-                    value={selectedElement.shape}
-                    onChange={(value) => {
-                      updateRow(selectedElement.sectionId, selectedElement.id, { shape: value });
-                      setSelectedElement({ ...selectedElement, shape: value });
-                    }}
-                    style={{ width: '100%', marginTop: 8 }}
-                    options={[
-                      { value: 'straight', label: 'Straight' },
-                      { value: 'curved-convex', label: 'Curved (Convex)' },
-                      { value: 'curved-concave', label: 'Curved (Concave)' }
-                    ]}
-                  />
-                </div>
-
-                {selectedElement.shape !== 'straight' && (
-                  <div>
-                    <Text strong>Curve Amount</Text>
-                    <Slider
-                      min={20}
-                      max={100}
-                      value={selectedElement.curve || 50}
-                      onChange={(value) => {
-                        updateRow(selectedElement.sectionId, selectedElement.id, { curve: value });
-                        setSelectedElement({ ...selectedElement, curve: value });
-                      }}
-                      tooltip={{ formatter: (value) => `${value}px` }}
-                      style={{ marginTop: 8 }}
-                    />
-                  </div>
-                )}
-
-                <div>
-                  <Text strong>Row Spacing</Text>
-                  <Slider
-                    min={30}
-                    max={80}
-                    value={selectedElement.spacing}
-                    onChange={(value) => {
-                      updateRow(selectedElement.sectionId, selectedElement.id, { spacing: value });
-                      setSelectedElement({ ...selectedElement, spacing: value });
-                    }}
-                    tooltip={{ formatter: (value) => `${value}px` }}
-                    style={{ marginTop: 8 }}
-                  />
-                </div>
-
-                <div style={{ 
-                  padding: '12px', 
-                  background: '#f5f5f5', 
-                  borderRadius: '4px',
-                  fontSize: '14px'
-                }}>
-                  <Text strong>Total Seats in Row:</Text> {selectedElement.seats?.length || 0}
-                </div>
-              </Space>
-            )}
-
-            {/* Seat Editor */}
-            {selectedType === 'seat' && selectedElement && (
-              <Form layout="vertical" className="editor-form">
-
-                {/* Seat Label */}
-                <Form.Item label="Seat Label">
-                  <Input
-                    value={selectedElement.label}
-                    onChange={(e) => {
-                      const label = e.target.value;
-                      updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, { label });
-                      setSelectedElement({ ...selectedElement, label });
-                    }}
-                  />
-                </Form.Item>
-
-                {/* Ticket Category */}
-                <Form.Item label="Ticket Category">
-                  <Select
-                    value={selectedElement.ticketCategory}
-                    onChange={(value) => {
-                      updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, { ticketCategory: value });
-                      setSelectedElement({ ...selectedElement, ticketCategory: value });
-                    }}
-                  >
-                    {ticketCategories.map(cat => (
-                      <Option key={cat.id} value={cat.id}>
-                        {cat.name} (₹{cat.price})
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-
-                {/* Seat Status */}
-                <Form.Item label="Seat Status">
-                  <Radio.Group
-                    value={selectedElement.status}
-                    onChange={(e) => {
-                      const status = e.target.value;
-                      updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, { status });
-                      setSelectedElement({ ...selectedElement, status });
-                    }}
-                  >
-                    <Radio value="available" style={{ display: 'block', marginBottom: 4 }}>
-                      Available
-                    </Radio>
-                    <Radio value="disabled" style={{ display: 'block', marginBottom: 4 }}>
-                      Disabled
-                    </Radio>
-                    <Radio value="reserved" style={{ display: 'block', marginBottom: 4 }}>
-                      Reserved
-                    </Radio>
-                    <Radio value="blocked" style={{ display: 'block', marginBottom: 4 }}>
-                      Blocked
-                    </Radio>
-                  </Radio.Group>
-                </Form.Item>
-
-
-                {/* Info Box */}
-                <div className="info-box">
-                  <Space align="center">
-                    <div style={{
-                      width: 30,
-                      height: 30,
-                      borderRadius: '50%',
-                      backgroundColor: getSeatColor(selectedElement),
-                    }} />
-                    <div>
-                      <Text strong>Seat:</Text> {selectedElement.label} <br />
-                      <Text strong>Status:</Text> {selectedElement.status}
-                    </div>
-                  </Space>
-                </div>
-
-              </Form>
-            )}
-            
-          </div>
-
-          {/* Legend */}
-          <div className="legend">
-            <h4>Ticket Categories</h4>
-            {ticketCategories.map(cat => (
-              <div key={cat.id} className="legend-item">
-                <div
-                  className="legend-color"
-                  style={{ backgroundColor: cat.color }}
-                />
-                <span>{cat.name} - ₹{cat.price}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+        <Col lg={4}>
+        <RightPanel
+          selectedType={selectedType}
+          selectedElement={selectedElement}
+          setSelectedElement={setSelectedElement}
+          updateSection={updateSection}
+          setSections={setSections}
+          sections={sections}
+          stage={stage}
+          setStage={setStage}
+          updateRow={updateRow}
+          updateSeat={updateSeat}
+          addRowToSection={addRowToSection}
+          ticketCategories={ticketCategories}
+        />
+        </Col>
+      </Row>
+    </Card>
   );
 };
 
