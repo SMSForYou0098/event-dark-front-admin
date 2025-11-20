@@ -96,6 +96,14 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'theatre',
+        path: `/theatre/book`,
+        component: React.lazy(() => import('views/events/seating_module/theatre_layout/Auditoriumticketbooking')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
         key: 'dashboard-org',
         path: `/dashboard/org`,
         component: React.lazy(() => import('views/events/Dashboard/Organizer/dashabord')),

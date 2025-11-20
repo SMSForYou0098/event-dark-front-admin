@@ -189,7 +189,7 @@ export function buildEventFormData(values, isDraft = false) {
     }
     appendIfDefined('ticket_terms', values.ticket_terms);
     appendIfDefined('multi_scan', values.multi_scan ?? 0);
-    appendIfDefined('ticket_system', values.ticket_system ?? 0);
+    appendIfDefined('ticket_system', values.ticket_system ? 0 : 1);
   }
 
   // ---------- ARTIST ----------

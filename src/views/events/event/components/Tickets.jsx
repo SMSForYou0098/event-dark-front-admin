@@ -7,16 +7,37 @@ import { ROW_GUTTER } from 'constants/ThemeConstant';
 const { TextArea } = Input;
 
 const TicketsStep = ({ eventId, eventName }) => {
-  // For now, using dummy values
-  // You can replace these with actual props later
+  const form = Form.useFormInstance();
 
   const toChecked = (v) => v === 1 || v === '1';
   const toNumber = (checked) => (checked ? 1 : 0);
 
+  const handleBookingTypeChange = (fieldName, checked) => {
+    if (checked) {
+      // If one is turned on, turn off the other
+      if (fieldName === 'ticket_system') {
+        form.setFieldValue('bookingBySeat', 0);
+      } else if (fieldName === 'bookingBySeat') {
+        form.setFieldValue('ticket_system', 0);
+      }
+    }
+    return toNumber(checked);
+  };
+
   const switchFields = [
-    { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans' },
-    { name: 'ticket_system', label: 'Booking By Ticket' },
-    { name: 'bookingBySeat', label: 'Booking By Seat' },
+    { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans', initialValue: 0 },
+    { 
+      name: 'ticket_system', 
+      label: 'Booking By Ticket',
+      onChange: (checked) => handleBookingTypeChange('ticket_system', checked),
+      initialValue: 1  // Default checked
+    },
+    { 
+      name: 'bookingBySeat', 
+      label: 'Booking By Seat',
+      onChange: (checked) => handleBookingTypeChange('bookingBySeat', checked),
+      initialValue: 0
+    },
   ];
 
   return (
@@ -43,8 +64,8 @@ const TicketsStep = ({ eventId, eventName }) => {
                   name={f.name}
                   valuePropName="checked"
                   getValueProps={(v) => ({ checked: toChecked(v) })}
-                  getValueFromEvent={toNumber}
-                  initialValue={0}
+                  getValueFromEvent={f.onChange || toNumber}
+                  initialValue={f.initialValue}
                   noStyle
                 >
                   <Switch checkedChildren="Yes" unCheckedChildren="No" />
@@ -54,6 +75,7 @@ const TicketsStep = ({ eventId, eventName }) => {
           </div>
         </Card>
       </Col>
+
       {/* Terms & Conditions */}
       <Col span={24}>
         <Card title="Terms & Conditions">

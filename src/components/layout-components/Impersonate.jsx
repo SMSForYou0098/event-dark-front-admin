@@ -1,7 +1,6 @@
 // Impersonate.jsx
 import React from 'react';
 import { Button, message } from 'antd'; // <-- use message instead of notification
-import api from 'auth/FetchInterceptor';
 import { UserMinus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import { persistor } from 'store';
@@ -9,6 +8,7 @@ import { authenticated, logout, updateUser } from 'store/slices/authSlice';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { UserDeleteOutlined } from "@ant-design/icons";
+import api from 'auth/FetchInterceptor';
 /**
  * Helpers
  */
