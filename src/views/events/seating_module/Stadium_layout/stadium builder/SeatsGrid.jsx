@@ -1,14 +1,15 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
   ZoomInOutlined,
   ZoomOutOutlined,
   ReloadOutlined,
   CloseCircleOutlined,
   CheckCircleOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
-import { Badge, Button, Space, Typography, Card } from "antd";
-import { Circle } from "lucide-react";
+import { Button, Space, Typography, Card, Tag } from "antd";
 import SelectedSeatsDrawer from "./SelectedSeatsModal";
+import { getSeatIcon } from "./SeatIconOptions";
 import styles from './Seats.module.css';
 
 const { Title } = Typography;
@@ -21,10 +22,8 @@ const SeatsZoomGrid = ({
   setSelectedSeats,
   isMobile,
 }) => {
-
   const [zoomLevel, setZoomLevel] = useState(0.5);
   const containerRef = useRef(null);
-  const zoomControlsRef = useRef(null);
   const scrollContainerRef = useRef(null);
   const [hoveredSeatId, setHoveredSeatId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -32,20 +31,46 @@ const SeatsZoomGrid = ({
   const [scrollCoords, setScrollCoords] = useState({ left: 0, top: 0 });
   const [showSeatsModal, setSeatsShowModal] = useState(false);
 
+  const fallbackSeatPrice =
+    selectedSection?.price ??
+    tier?.price ??
+    stand?.price ??
+    (selectedSection?.rows?.[0]?.price || 0);
+
+  const sectionRows = useMemo(() => {
+    return (selectedSection?.rows || []).map((row, rowIndex) => {
+      if (Array.isArray(row?.seatList) && row.seatList.length) {
+        return row;
+      }
+
+      const seatsCount = Number(row?.seats) || 0;
+      // Create truly unique seat IDs using stand, tier, section, and row info
+      const uniquePrefix = `${stand?.id || stand?.name || 'stand'}-${tier?.id || tier?.name || 'tier'}-${selectedSection?.id || selectedSection?.name || 'section'}-${row?.id || row?.label || `row-${rowIndex}`}`;
+      const seatList = Array.from({ length: seatsCount }, (_, idx) => ({
+        id: `${uniquePrefix}-seat-${idx + 1}`,
+        number: idx + 1,
+        price: row?.price ?? fallbackSeatPrice,
+        status: 'available',
+        isBooked: false,
+      }));
+
+      return {
+        ...row,
+        seatList,
+      };
+    });
+  }, [selectedSection, fallbackSeatPrice, stand, tier]);
+
   // Calculate seat statistics
   let availableSeats = 0;
   let bookedSeats = 0;
-  let blockedRowSeats = 0;
   const baseZoom = 1.1;
   const basePaddingRem = 3;
   const zoomFactor = zoomLevel / baseZoom;
   const dynamicPadding = `${basePaddingRem * zoomFactor}rem`;
 
-  selectedSection.rows.forEach((row) => {
-    const seatsInRow = row.seatList.length;
-    if (row.isBlocked) {
-      blockedRowSeats += seatsInRow;
-    } else {
+  sectionRows.forEach((row) => {
+    if (!row.isBlocked) {
       row.seatList.forEach((seat) => {
         if (seat.isBooked) bookedSeats++;
         else availableSeats++;
@@ -53,13 +78,13 @@ const SeatsZoomGrid = ({
     }
   });
 
-  const totalSeats = selectedSection.rows.reduce(
+  const totalSeats = sectionRows.reduce(
     (total, row) => total + row.seatList.length,
     0
   );
 
   // Dragging handlers
-  const handleDragStart = (e) => {
+  const handleDragStart = useCallback((e) => {
     if (!scrollContainerRef.current) return;
     setIsDragging(true);
     const clientX = e.clientX || e.touches?.[0]?.clientX;
@@ -69,9 +94,9 @@ const SeatsZoomGrid = ({
       left: scrollContainerRef.current.scrollLeft,
       top: scrollContainerRef.current.scrollTop,
     });
-  };
+  }, []);
 
-  const handleDragMove = (e) => {
+  const handleDragMove = useCallback((e) => {
     if (!isDragging || !scrollContainerRef.current) return;
     e.preventDefault();
     const clientX = e.clientX || e.touches?.[0]?.clientX;
@@ -80,9 +105,9 @@ const SeatsZoomGrid = ({
     const dy = (clientY - startCoords.y) * 1.5;
     scrollContainerRef.current.scrollLeft = scrollCoords.left - dx;
     scrollContainerRef.current.scrollTop = scrollCoords.top - dy;
-  };
+  }, [isDragging, scrollCoords, startCoords]);
 
-  const handleDragEnd = () => setIsDragging(false);
+  const handleDragEnd = useCallback(() => setIsDragging(false), []);
 
   // Event listeners
   useEffect(() => {
@@ -107,7 +132,7 @@ const SeatsZoomGrid = ({
       container.removeEventListener("touchmove", handleDragMove);
       container.removeEventListener("touchend", handleDragEnd);
     };
-  }, [isDragging, startCoords, scrollCoords]);
+  }, [isMobile, handleDragStart, handleDragMove, handleDragEnd]);
 
   // Zoom and seat selection functions
   const zoomToSeat = (rowIndex, seatIndex) => {
@@ -121,9 +146,10 @@ const SeatsZoomGrid = ({
       if (!scrollContainer) return;
 
       const maxSeats = Math.max(
-        ...selectedSection.rows.map((row) => row.seatList?.length || 0)
+        ...sectionRows.map((row) => row.seatList?.length || 0),
+        0
       );
-      const seatsInRow = selectedSection.rows[rowIndex].seatList?.length || 0;
+      const seatsInRow = sectionRows[rowIndex].seatList?.length || 0;
       const rowGap = Math.floor((maxSeats - seatsInRow) / 2);
 
       const seatSize = 30;
@@ -195,10 +221,9 @@ const SeatsZoomGrid = ({
 
   if (!selectedSection?.rows?.length) return null;
 
-  const seatSize = `clamp(24px, 4vw, 32px)`;
   const gapSize = `clamp(4px, 1vw, 6px)`;
   const maxSeats = Math.max(
-    ...selectedSection.rows.map((row) => row.seats || row.seatList.length)
+    ...sectionRows.map((row) => row.seats || row.seatList.length)
   );
 
   return (
@@ -225,55 +250,54 @@ const SeatsZoomGrid = ({
         {/* Stats + Zoom Controls */}
         <div style={{
           display: 'flex',
-          flexWrap: 'nowrap',
+          flexWrap: 'wrap',
           alignItems: 'center',
           justifyContent: 'space-between',
-          gap: isMobile ? 8 : 16,
-          overflowX: 'auto',
-          paddingBottom: 8
+          gap: 12,
         }}>
-          {/* Seat Stats */}
-          <Space size={isMobile ? 4 : 8} wrap={false}>
-            <Badge 
-              count={
-                <Space size={4} style={{ padding: isMobile ? '2px 8px' : '4px 12px' }}>
-                  <CheckCircleOutlined style={{ fontSize: isMobile ? 12 : 16 }} />
-                  <span style={{ fontSize: isMobile ? 11 : 14 }}>Available: {availableSeats}</span>
-                </Space>
-              }
+          {/* Seat Stats - Enhanced with Tag */}
+          <Space size={8} wrap>
+            <Tag 
+              icon={<CheckCircleOutlined />} 
+              color="success" 
               style={{ 
-                backgroundColor: '#52c41a',
-                fontSize: isMobile ? 11 : 14
+                padding: isMobile ? '4px 12px' : '6px 16px',
+                fontSize: isMobile ? 12 : 14,
+                fontWeight: 500,
+                borderRadius: 6,
               }}
-            />
+            >
+              Available: {availableSeats}
+            </Tag>
 
-            <Badge 
-              count={
-                <Space size={4} style={{ padding: isMobile ? '2px 8px' : '4px 12px' }}>
-                  <CloseCircleOutlined style={{ fontSize: isMobile ? 12 : 16 }} />
-                  <span style={{ fontSize: isMobile ? 11 : 14 }}>Booked: {bookedSeats}</span>
-                </Space>
-              }
+            <Tag 
+              icon={<CloseCircleOutlined />} 
+              color="error" 
               style={{ 
-                backgroundColor: '#ff4d4f',
-                fontSize: isMobile ? 11 : 14
+                padding: isMobile ? '4px 12px' : '6px 16px',
+                fontSize: isMobile ? 12 : 14,
+                fontWeight: 500,
+                borderRadius: 6,
               }}
-            />
+            >
+              Booked: {bookedSeats}
+            </Tag>
 
-            <Badge 
-              count={
-                <span style={{ 
-                  padding: isMobile ? '2px 8px' : '4px 12px',
-                  fontSize: isMobile ? 11 : 14
-                }}>
-                  Total: {totalSeats}
-                </span>
-              }
+            <Tag 
+              icon={<TeamOutlined />} 
+              color="default" 
               style={{ 
-                backgroundColor: '#8c8c8c',
-                fontSize: isMobile ? 11 : 14
+                padding: isMobile ? '4px 12px' : '6px 16px',
+                fontSize: isMobile ? 12 : 14,
+                fontWeight: 500,
+                borderRadius: 6,
+                backgroundColor: '#595959',
+                color: '#fff',
+                borderColor: '#595959',
               }}
-            />
+            >
+              Total: {totalSeats}
+            </Tag>
           </Space>
 
           {/* Zoom Controls */}
@@ -330,7 +354,7 @@ const SeatsZoomGrid = ({
               padding: `${dynamicPadding} 0 0 0` 
             }}
           >
-            {selectedSection.rows.map((row, rowIndex) => {
+            {sectionRows.map((row, rowIndex) => {
               const seatsInRow = row.seats || row.seatList.length;
               const rowGap = Math.floor((maxSeats - seatsInRow) / 2);
               
@@ -367,13 +391,18 @@ const SeatsZoomGrid = ({
                         onMouseEnter={() => !isDisabled && setHoveredSeatId(seatId)}
                         onMouseLeave={() => !isDisabled && setHoveredSeatId(null)}
                       >
-                        {isBooked ? (
-                          <CloseCircleOutlined className={styles.seatIcon} style={{ fontSize: 20 }} />
-                        ) : isSelected ? (
-                          <CheckCircleOutlined className={styles.seatIcon} style={{ fontSize: 20 }} />
-                        ) : (
-                          <Circle size="20" className={styles.seatIcon} />
-                        )}
+                        {(() => {
+                          if (isBooked) {
+                            return <CloseCircleOutlined className={styles.seatIcon} style={{ fontSize: 20 }} />;
+                          }
+                          if (isSelected) {
+                            return <CheckCircleOutlined className={styles.seatIcon} style={{ fontSize: 20 }} />;
+                          }
+                          // Use custom icon from seat, row, or default to Circle
+                          const iconType = seat.seatIcon || row.seatIcon || 'circle';
+                          const SeatIconComponent = getSeatIcon(iconType);
+                          return <SeatIconComponent className={styles.seatIcon} style={{ fontSize: 20 }} />;
+                        })()}
 
                         {isHovered && (
                           <div className={styles.seatTooltip}>

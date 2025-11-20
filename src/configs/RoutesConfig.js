@@ -88,6 +88,46 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'stadium-id',
+        path: `/stadium/:id`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/StadiumBuilderAdmin')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
+        key: 'stadium-canvas',
+        path: `/stadium-canvas`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/Canvas_Based/StadiumCanvasLayout')),
+        meta: {}
+    },
+    {
+        key: 'stadium-canvas-id',
+        path: `/stadium-canvas/:id`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/Canvas_Based/StadiumCanvasLayout')),
+        meta: {}
+    },
+    {
+        key: 'user-booking-canvas',
+        path: `/user-booking/canvas/:id`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/Canvas_Based/StadiumCanvasUser')),
+        meta: {}
+    },
+    {
+        key: 'user-booking-canvas-base',
+        path: `/user-booking/canvas`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/Canvas_Based/StadiumCanvasUser')),
+        meta: {}
+    },
+    {
+        key: 'user-booking',
+        path: `/user-booking`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/UsersBooking')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
         key: 'theatre',
         path: `/theatre`,
         component: React.lazy(() => import('views/events/seating_module/theatre_layout/TheatreLayout')),

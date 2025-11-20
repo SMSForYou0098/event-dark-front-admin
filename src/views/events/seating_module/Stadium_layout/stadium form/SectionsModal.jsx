@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Modal, Button, Badge, Tag, Table, Input, Switch, Space, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, MenuOutlined, TeamOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, MenuOutlined, TeamOutlined, TagsOutlined } from '@ant-design/icons';
 
 const SectionsModal = ({
   currentModal,
@@ -11,7 +11,9 @@ const SectionsModal = ({
   addSection,
   updateSectionField,
   openModal,
-  removeSection
+  removeSection,
+  openTicketAssignModal,
+  selectedEvent,
 }) => {
   const { standIndex, tierIndex } = currentIndices || {};
   
@@ -120,10 +122,10 @@ const SectionsModal = ({
     {
       title: 'Actions',
       key: 'actions',
-      width: isMobile ? 100 : 120,
+      width: isMobile ? 140 : 180,
       align: 'center',
       render: (_, record, sectionIndex) => (
-        <div className="d-flex justify-content-center gap-2">
+        <div className="d-flex justify-content-center gap-2 flex-wrap">
           <Tooltip title="Manage Rows">
             <Button
               type="text"
@@ -132,6 +134,15 @@ const SectionsModal = ({
                 openModal("rows", { standIndex, tierIndex, sectionIndex })
               }
               size={isMobile ? "small" : "middle"}
+            />
+          </Tooltip>
+          <Tooltip title="Assign Ticket">
+            <Button
+              type="text"
+              icon={<TagsOutlined style={{ color: 'var(--success-color)' }} />}
+              onClick={() => openTicketAssignModal?.('section', record, { standIndex, tierIndex, sectionIndex })}
+              size={isMobile ? "small" : "middle"}
+              disabled={!selectedEvent}
             />
           </Tooltip>
           <Tooltip title="Remove Section">
@@ -186,6 +197,7 @@ const SectionsModal = ({
           </Button>
         </div>
       }
+      closable={false}
       open={currentModal === "sections"}
       onCancel={closeModal}
       width={isMobile ? "95%" : 900}
@@ -242,7 +254,6 @@ const SectionsModal = ({
               dataSource={tier.sections || []}
               rowKey={(record, index) => `section-${standIndex}-${tierIndex}-${index}-${record.name || index}`}
               pagination={false}
-              bordered
               size={isMobile ? "small" : "middle"}
               scroll={{ x: isMobile ? 700 : undefined }}
               className="sections-table"

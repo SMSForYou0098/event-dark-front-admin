@@ -19,7 +19,12 @@ import { useMyContext } from "Context/MyContextProvider";
 
 const { Title, Text } = Typography;
 
-const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
+const StadiumSvgViewer = ({
+  standsData,
+  isUser = true,
+  handleSubmit,
+  enableDrilldown = false,
+}) => {
   const { isMobile } = useMyContext();
   const [hoveredStand, setHoveredStand] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
@@ -31,6 +36,8 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
   const [showModal, setShowModal] = useState(false);
   const [detailView, setDetailView] = useState("stands");
   const [showSeatsModal, setSeatsShowModal] = useState(false);
+
+  const canInteract = isUser || enableDrilldown;
 
   const renderModalContent = () => {
     switch (viewMode) {
@@ -49,7 +56,7 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
                   setSelectedTier(tier);
                   setViewMode("sections");
                 }}
-                isUser={isUser}
+                isUser={canInteract}
                 className="mt-4"
               />
             </Space>
@@ -77,7 +84,7 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
                   setSelectedSection(section);
                   setViewMode("seats");
                 }}
-                isUser={isUser}
+                isUser={canInteract}
                 className="mt-4"
               />
             </Space>
@@ -204,7 +211,7 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
       case "seats":
         return (
           <>
-            {selectedSeats?.length > 0 && (
+            {isUser && selectedSeats?.length > 0 && (
               <div className="w-100 d-flex justify-content-center align-items-center">
                 <Text className="text-white">
                   Selected <Text strong className="text-white">{selectedSeats?.length}</Text> seat(s), Total Price:{' '}
@@ -227,21 +234,24 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
               >
                 Sections
               </Button>
-              <Button
-                type="primary"
-                size={buttonSize}
-                icon={<CheckOutlined />}
-                onClick={() => {
-                  console.log("Booked Tickets", selectedSeats);
-                  setShowModal(false);
-                  setSelectedSeats([]);
-                  handleSubmit(selectedSeats);
-                }}
-                className="bg-success"
-                style={{ backgroundColor: 'var(--success-color)', borderColor: 'var(--success-color)' }}
-              >
-                Confirm
-              </Button>
+              {isUser && (
+                <Button
+                  type="primary"
+                  size={buttonSize}
+                  icon={<CheckOutlined />}
+                  onClick={() => {
+                    console.log("Booked Tickets", selectedSeats);
+                    setShowModal(false);
+                    setSelectedSeats([]);
+                    handleSubmit?.(selectedSeats);
+                  }}
+                  className="bg-success"
+                  style={{ backgroundColor: 'var(--success-color)', borderColor: 'var(--success-color)' }}
+                  disabled={!selectedSeats?.length}
+                >
+                  Confirm
+                </Button>
+              )}
             </div>
           </>
         );
@@ -318,7 +328,7 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
             <circle cx="250" cy="250" r="60" fill="var(--success-color)" stroke="#ddd" />
             <StandsViewer
               standsData={standsData}
-              isUser={isUser}
+              isUser={canInteract}
               onSelectStand={(stand) => {
                 setSelectedStand(stand);
                 setViewMode("tiers");

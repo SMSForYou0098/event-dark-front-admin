@@ -1,19 +1,23 @@
 export const validateStadiumConfig = (config) => {
-  if (!config.stadiumName || !config.stadiumName.trim()) {
-    return "Stadium name is required.";
-  }
+  // if (!config.stadiumName || !config.stadiumName.trim()) {
+  //   return "Stadium name is required.";
+  // }
   if (!config.stadiumCapacity || isNaN(config.stadiumCapacity) || Number(config.stadiumCapacity) <= 0) {
     return "Stadium capacity must be a positive number.";
   }
-  if (!config.location || !config.location.trim()) {
-    return "Location is required.";
-  }
+  // if (!config.location || !config.location.trim()) {
+  //   return "Location is required.";
+  // }
   if (!config.stands || !Array.isArray(config.stands) || config.stands.length === 0) {
     return "At least one stand is required.";
   }
   for (let s = 0; s < config.stands.length; s++) {
     const stand = config.stands[s];
     if (!stand.name || !stand.name.trim()) return `Each stand must have a name (error in stand ${s + 1}).`;
+    const visualWeight = Number(stand.visualWeight ?? 1);
+    if (!Number.isFinite(visualWeight) || visualWeight <= 0) {
+      return `Stand "${stand.name}" must have a visual weight greater than 0.`;
+    }
     if (!stand.tiers || !Array.isArray(stand.tiers) || stand.tiers.length === 0) {
       return `Stand "${stand.name}" must have at least one tier.`;
     }
