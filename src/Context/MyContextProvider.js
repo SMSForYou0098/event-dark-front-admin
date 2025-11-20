@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
-import { Modal, message, notification } from 'antd';
+import { Modal, message } from 'antd';
 import { ExclamationCircleOutlined, CheckCircleOutlined, CloseCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
 import loader from '../assets/event/stock/loader111.gif';
@@ -269,33 +269,27 @@ export const MyContextProvider = ({ children }) => {
 
   // ✅ Replaced SweetAlert with Ant Design notification
   const successAlert = useCallback((title, subtitle) => {
-    notification.success({
-      message: title,
-      description: subtitle,
-      icon: <CheckCircleOutlined style={{ color: '#52c41a' }} />,
-      placement: 'topRight',
+    message.success({
+      content: subtitle ? `${title}: ${subtitle}` : title,
+      icon: <CheckCircleOutlined />,
       duration: 3,
     });
   }, []);
 
   // ✅ Replaced SweetAlert with Ant Design notification
   const ErrorAlert = useCallback((error) => {
-    notification.error({
-      message: 'Error',
-      description: error,
-      icon: <CloseCircleOutlined style={{ color: '#ff4d4f' }} />,
-      placement: 'topRight',
+    message.error({
+      content: error,
+      icon: <CloseCircleOutlined />,
       duration: 4,
     });
   }, []);
 
   // ✅ Replaced SweetAlert with Ant Design notification
   const WarningAlert = useCallback((warning) => {
-    notification.warning({
-      message: 'Warning',
-      description: warning,
-      icon: <WarningOutlined style={{ color: '#faad14' }} />,
-      placement: 'topRight',
+    message.warning({
+      content: warning,
+      icon: <WarningOutlined />,
       duration: 4,
     });
   }, []);

@@ -8,6 +8,7 @@ import {
   Tag,
   Table,
   Input,
+  InputNumber,
   Select,
   Switch,
   Space,
@@ -23,12 +24,19 @@ import {
   HomeOutlined,
   TeamOutlined,
   TrophyOutlined,
+  CompassOutlined,
+  EnvironmentOutlined,
+  TagsOutlined,
 } from "@ant-design/icons";
 import "./Stadium.module.css";
 import TiersModal from "../stadium form/TiersModal";
 import SectionsModal from "../stadium form/SectionsModal";
 import RowsModal from "../stadium form/RowsModal";
+import EventTicketSelector from "./EventTicketSelector";
+import TicketAssignmentModal from "./TicketAssignmentModal";
 import { useMyContext } from "Context/MyContextProvider";
+import { useVenues } from "views/events/event/hooks/useEventOptions";
+import { useNavigate } from "react-router-dom";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -42,15 +50,40 @@ const StadiumConfigForm = ({
   onHide,
   loading,
 }) => {
-  const { stadiumName, stands, location } = config;
+  const { stands, venue_id } = config;
   const [currentModal, setCurrentModal] = useState(null);
   const [currentIndices, setCurrentIndices] = useState({});
   const { isMobile, ErrorAlert } = useMyContext();
   
   const [form] = Form.useForm();
+  const [selectedVenue, setSelectedVenue] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedTicketType, setSelectedTicketType] = useState(null);
+  const [showTicketAssignModal, setShowTicketAssignModal] = useState(false);
+  const [ticketAssignTarget, setTicketAssignTarget] = useState(null);
+  const navigate=useNavigate();
+
+  // Dummy ticket types - will be replaced with real data from selectedEvent
+  const DUMMY_TICKET_TYPES = [
+    { id: 1, name: 'General', price: 500, color: '#52c41a' },
+    { id: 2, name: 'Premium', price: 1500, color: '#faad14' },
+    { id: 3, name: 'VIP', price: 3000, color: '#f5222d' },
+    { id: 4, name: 'Corporate Box', price: 10000, color: '#722ed1' },
+    { id: 5, name: 'Student', price: 300, color: '#13c2c2' },
+  ];
+  
+  const availableTicketTypes = selectedTicketType 
+    ? [selectedTicketType, ...DUMMY_TICKET_TYPES.filter(t => t.id !== selectedTicketType.id)]
+    : DUMMY_TICKET_TYPES;
+  // Fetch venues
+  const {
+    data: venues = [],
+    isLoading: venueLoading,
+  } = useVenues();
 
   const createDefaultRows = () => {
     return Array.from({ length: 2 }, (_, i) => ({
+      id: `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}-${i}`,
       label: `Row ${i + 1}`,
       seats: 1 + i,
       isBlocked: false,
@@ -59,6 +92,7 @@ const StadiumConfigForm = ({
 
   const createDefaultSection = () => {
     return {
+      id: `section-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: "Section 1",
       rows: createDefaultRows(),
       isBlocked: false,
@@ -67,6 +101,7 @@ const StadiumConfigForm = ({
 
   const createDefaultTier = () => {
     return {
+      id: `tier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: "Tier 1",
       sections: [createDefaultSection()],
       isBlocked: false,
@@ -124,8 +159,8 @@ const StadiumConfigForm = ({
   const { stadiumCapacity, stands: standsWithCapacity } = calculateCapacities();
   
   useEffect(() => {
-    setConfig({ ...config, stadiumCapacity });
-  }, [stadiumCapacity]);
+    setConfig((prev) => ({ ...prev, stadiumCapacity }));
+  }, [stadiumCapacity, setConfig]);
 
   const getDefaultName = (type, index) => {
     return `${type} ${index + 1}`;
@@ -133,6 +168,36 @@ const StadiumConfigForm = ({
 
   const updateStadium = (name, value) => {
     setConfig({ ...config, [name]: value });
+  };
+
+  // Handle venue selection
+  const handleVenueChange = (venueId) => {
+    const venue = venues.find((v) => String(v.id) === String(venueId) || String(v.value) === String(venueId));
+    setSelectedVenue(venue);
+    updateStadium("venue_id", venueId);
+  };
+
+  // Render venue option label
+  const renderVenueOptionLabel = (venue) => (
+    <Space direction="vertical" size={0}>
+      <Typography.Text strong>{venue?.name || venue?.label}</Typography.Text>
+      {(venue?.location || venue?.city || venue?.state) && (
+        <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+          {venue?.location || [venue?.city, venue?.state].filter(Boolean).join(', ')}
+        </Typography.Text>
+      )}
+    </Space>
+  );
+
+  const customNotFoundContent = (
+    <Empty
+      description="No venues found"
+      image={Empty.PRESENTED_IMAGE_SIMPLE}
+    />
+  );
+
+  const handleAddVenue = () => {
+    navigate('/venues');
   };
 
   const validateSeats = (value) => {
@@ -229,10 +294,12 @@ const StadiumConfigForm = ({
   // ==== Stand Functions ====
   const addStand = () => {
     const newStand = {
+      id: `stand-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: `Stand ${stands.length + 1}`,
       type: "stand",
       tiers: [createDefaultTier()],
       isBlocked: false,
+      visualWeight: 1,
     };
     setConfig({ ...config, stands: [...stands, newStand] });
   };
@@ -245,7 +312,12 @@ const StadiumConfigForm = ({
 
   const updateStandField = (index, field, value) => {
     const updated = [...stands];
-    updated[index][field] = value;
+    if (field === "visualWeight") {
+      const numeric = Number(value);
+      updated[index][field] = Number.isFinite(numeric) && numeric > 0 ? numeric : 1;
+    } else {
+      updated[index][field] = value;
+    }
     setConfig({ ...config, stands: updated });
   };
 
@@ -266,6 +338,7 @@ const StadiumConfigForm = ({
     const updated = [...stands];
     const tierCount = updated[standIndex].tiers.length;
     updated[standIndex].tiers.push({
+      id: `tier-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: `Tier ${tierCount + 1}`,
       sections: [createDefaultSection()],
       isBlocked: false,
@@ -290,6 +363,7 @@ const StadiumConfigForm = ({
     const updated = [...stands];
     const sectionCount = updated[standIndex].tiers[tierIndex].sections.length;
     updated[standIndex].tiers[tierIndex].sections.push({
+      id: `section-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: `Section ${sectionCount + 1}`,
       rows: createDefaultRows(),
       isBlocked: false,
@@ -307,13 +381,114 @@ const StadiumConfigForm = ({
   const addRow = (standIndex, tierIndex, sectionIndex) => {
     const updated = [...stands];
     updated[standIndex].tiers[tierIndex].sections[sectionIndex].rows.push({
+      id: `row-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       label: getDefaultName(
         "Row",
         updated[standIndex].tiers[tierIndex].sections[sectionIndex].rows.length
       ),
       seats: 1,
       isBlocked: false,
+      seatIcon: 'circle',
     });
+    setConfig({ ...config, stands: updated });
+  };
+
+  // ==== Ticket Assignment Handlers ====
+  const openTicketAssignModal = (level, targetData, indices = {}) => {
+    setTicketAssignTarget({ level, data: targetData, indices });
+    setShowTicketAssignModal(true);
+  };
+
+  const handleTicketAssign = (assignment) => {
+    const { level, ticketTypeId, price, seatIcon, assignmentMode } = assignment;
+    const { indices } = ticketAssignTarget;
+    
+    // Get the ticket type to use its default price if custom price not provided
+    const ticketType = availableTicketTypes.find(t => t.id === ticketTypeId);
+    const finalPrice = price || ticketType?.price || 0;
+    
+    const updated = JSON.parse(JSON.stringify(stands)); // Deep clone
+    
+    const applyTicket = (target) => {
+      target.ticketTypeId = ticketTypeId;
+      target.price = finalPrice;
+      target.seatIcon = seatIcon || 'circle';
+    };
+
+    const cascadeToChildren = (target) => {
+      applyTicket(target);
+      if (target.tiers) {
+        target.tiers.forEach(tier => cascadeToChildren(tier));
+      }
+      if (target.sections) {
+        target.sections.forEach(section => cascadeToChildren(section));
+      }
+      if (target.rows) {
+        target.rows.forEach(row => {
+          applyTicket(row);
+          // Generate seat list with icons if not exists
+          if (!row.seatList || row.seatList.length === 0) {
+            row.seatList = Array.from({ length: row.seats || 0 }, (_, idx) => ({
+              id: `${row.id || Math.random()}-seat-${idx + 1}`,
+              number: idx + 1,
+              isBooked: false,
+              status: 'available',
+              price: finalPrice,
+              seatIcon: seatIcon || 'circle',
+            }));
+          } else {
+            row.seatList.forEach(seat => {
+              seat.price = finalPrice;
+              seat.seatIcon = seatIcon || 'circle';
+            });
+          }
+        });
+      }
+    };
+    
+    // Apply assignment based on level
+    if (level === 'stand' && indices.standIndex !== undefined) {
+      const stand = updated[indices.standIndex];
+      if (assignmentMode === 'override') {
+        cascadeToChildren(stand);
+      } else {
+        applyTicket(stand);
+      }
+    } else if (level === 'tier' && indices.standIndex !== undefined && indices.tierIndex !== undefined) {
+      const tier = updated[indices.standIndex].tiers[indices.tierIndex];
+      if (assignmentMode === 'override') {
+        cascadeToChildren(tier);
+      } else {
+        applyTicket(tier);
+      }
+    } else if (level === 'section' && indices.standIndex !== undefined && indices.tierIndex !== undefined && indices.sectionIndex !== undefined) {
+      const section = updated[indices.standIndex].tiers[indices.tierIndex].sections[indices.sectionIndex];
+      if (assignmentMode === 'override') {
+        cascadeToChildren(section);
+      } else {
+        applyTicket(section);
+      }
+    } else if (level === 'row' && indices.standIndex !== undefined && indices.tierIndex !== undefined && indices.sectionIndex !== undefined && indices.rowIndex !== undefined) {
+      const row = updated[indices.standIndex].tiers[indices.tierIndex].sections[indices.sectionIndex].rows[indices.rowIndex];
+      applyTicket(row);
+      // Generate seat list with icons
+      if (!row.seatList || row.seatList.length === 0) {
+        row.seatList = Array.from({ length: row.seats || 0 }, (_, idx) => ({
+          id: `${row.id || Math.random()}-seat-${idx + 1}`,
+          number: idx + 1,
+          isBooked: false,
+          status: 'available',
+          price: finalPrice,
+          seatIcon: seatIcon || 'circle',
+        }));
+      } else {
+        row.seatList.forEach(seat => {
+          seat.price = finalPrice;
+          seat.seatIcon = seatIcon || 'circle';
+        });
+      }
+    }
+    
     setConfig({ ...config, stands: updated });
   };
 
@@ -411,18 +586,45 @@ const StadiumConfigForm = ({
       ),
     },
     {
+      title: 'Visual Weight',
+      dataIndex: 'visualWeight',
+      key: 'visualWeight',
+      width: isMobile ? 120 : 150,
+      align: 'center',
+      render: (visualWeight, record, standIndex) => (
+        <InputNumber
+          min={0.2}
+          max={4}
+          step={0.1}
+          value={visualWeight ?? 1}
+          onChange={(value) => updateStandField(standIndex, "visualWeight", value)}
+          size={isMobile ? "small" : "middle"}
+          style={{ width: '100%' }}
+        />
+      ),
+    },
+    {
       title: 'Actions',
       key: 'actions',
-      width: isMobile ? 100 : 120,
+      width: isMobile ? 140 : 180,
       align: 'center',
       render: (_, record, standIndex) => (
-        <div className="d-flex justify-content-center gap-2">
+        <div className="d-flex justify-content-center gap-2 flex-wrap">
           <Tooltip title="Manage Tiers">
             <Button
               type="text"
               icon={<SettingOutlined style={{ color: 'var(--primary-color)' }} />}
               onClick={() => openModal("tiers", { standIndex })}
               size={isMobile ? "small" : "middle"}
+            />
+          </Tooltip>
+          <Tooltip title="Assign Ticket">
+            <Button
+              type="text"
+              icon={<TagsOutlined style={{ color: 'var(--success-color)' }} />}
+              onClick={() => openTicketAssignModal('stand', record, { standIndex })}
+              size={isMobile ? "small" : "middle"}
+              disabled={!selectedEvent}
             />
           </Tooltip>
           <Tooltip title="Remove Stand">
@@ -528,9 +730,107 @@ const StadiumConfigForm = ({
           }
         }}
         className="stadium-config-modal"
+        closable={false}
       >
         <Form form={form} layout="vertical">
+          {/* Venue Selection */}
           <Form.Item
+            label={<span className="text-white font-weight-medium">Select Venue</span>}
+            name="venue_id"
+            rules={[{ required: true, message: 'Please select venue' }]}
+            initialValue={venue_id}
+            className="mb-3"
+          >
+            <Select
+              placeholder="Select Venue"
+              loading={venueLoading}
+              onChange={handleVenueChange}
+              options={venues.map((v) => ({
+                value: String(v.id) ?? String(v.value),
+                label: renderVenueOptionLabel(v),
+              }))}
+              optionLabelProp="label"
+              showSearch
+              filterOption={(input, option) => {
+                const text =
+                  (option?.label?.props?.children?.[0]?.props?.children ?? '') + ' ' +
+                  (option?.label?.props?.children?.[1]?.props?.children ?? '');
+                return text.toLowerCase().includes(input.toLowerCase());
+              }}
+              size={isMobile ? "middle" : "large"}
+              className="w-100"
+              notFoundContent={customNotFoundContent}
+            />
+          </Form.Item>
+
+          {/* Event & Ticket Selection */}
+          <EventTicketSelector
+            onEventChange={setSelectedEvent}
+            onTicketTypeChange={setSelectedTicketType}
+            selectedEvent={selectedEvent}
+            selectedTicketType={selectedTicketType}
+          />
+
+          {/* Venue Details */}
+          {selectedVenue && (
+            <Card 
+              size="small" 
+              title={<span className="text-white font-weight-medium">Venue Details</span>}
+              className="mb-4"
+              style={{
+                backgroundColor: 'var(--component-bg)',
+                borderColor: 'var(--border-secondary)',
+              }}
+              extra={
+                <Button
+                  type="link"
+                  onClick={handleAddVenue}
+                  icon={<PlusOutlined />}
+                  size="small"
+                >
+                  New Venue
+                </Button>
+              }
+            >
+              <Space direction="vertical" className="w-100">
+                <Space size="large" wrap>
+                  <Space>
+                    <HomeOutlined className='text-white bg-primary p-2 rounded-circle' />
+                    <Typography.Text className="text-white">
+                      {selectedVenue?.name || selectedVenue?.label}
+                    </Typography.Text>
+                  </Space>
+                  {(selectedVenue?.location || selectedVenue?.city || selectedVenue?.state) && (
+                    <Space>
+                      <CompassOutlined className='text-white bg-primary p-2 rounded-circle' />
+                      <Typography.Text className="text-white">
+                        {selectedVenue?.location || [selectedVenue?.city, selectedVenue?.state].filter(Boolean).join(', ')}
+                      </Typography.Text>
+                    </Space>
+                  )}
+                </Space>
+                {selectedVenue?.address && (
+                  <Space>
+                    <EnvironmentOutlined className='text-white bg-primary p-2 rounded-circle' />
+                    <Typography.Text className="text-white">{selectedVenue.address}</Typography.Text>
+                  </Space>
+                )}
+                {selectedVenue?.address && (
+                  <Button
+                    type="primary"
+                    className='mt-2'
+                    icon={<EnvironmentOutlined />}
+                    onClick={() => window.open(`${selectedVenue?.map_url}`, '_blank')}
+                    size={isMobile ? "middle" : "default"}
+                  >
+                    View Map
+                  </Button>
+                )}
+              </Space>
+            </Card>
+          )}
+
+          {/* <Form.Item
             label={<span className="text-white font-weight-medium">Stadium Name</span>}
             name="stadiumName"
             rules={[{ required: true, message: 'Please enter stadium name' }]}
@@ -560,7 +860,7 @@ const StadiumConfigForm = ({
               size={isMobile ? "middle" : "large"}
               className="w-100"
             />
-          </Form.Item>
+          </Form.Item> */}
 
           {/* Stands Summary */}
           <Card
@@ -621,7 +921,6 @@ const StadiumConfigForm = ({
                 dataSource={standsWithCapacity}
                 rowKey={(record, index) => `stand-${index}-${record.name || index}`}
                 pagination={false}
-                bordered
                 size={isMobile ? "small" : "middle"}
                 scroll={{ x: isMobile ? 700 : undefined }}
                 className="stadium-table"
@@ -643,6 +942,8 @@ const StadiumConfigForm = ({
           updateTierField={updateTierField}
           removeTier={removeTier}
           openModal={openModal}
+          openTicketAssignModal={openTicketAssignModal}
+          selectedEvent={selectedEvent}
         />
       )}
 
@@ -656,6 +957,8 @@ const StadiumConfigForm = ({
         updateSectionField={updateSectionField}
         openModal={openModal}
         removeSection={removeSection}
+        openTicketAssignModal={openTicketAssignModal}
+        selectedEvent={selectedEvent}
       />
 
       <RowsModal
@@ -667,6 +970,20 @@ const StadiumConfigForm = ({
         addRow={addRow}
         updateRow={updateRow}
         removeRow={removeRow}
+        openTicketAssignModal={openTicketAssignModal}
+        selectedEvent={selectedEvent}
+      />
+
+      {/* Ticket Assignment Modal */}
+      <TicketAssignmentModal
+        show={showTicketAssignModal}
+        onHide={() => setShowTicketAssignModal(false)}
+        onAssign={handleTicketAssign}
+        ticketTypes={availableTicketTypes}
+        level={ticketAssignTarget?.level}
+        targetData={ticketAssignTarget?.data}
+        isMobile={isMobile}
+        selectedEvent={selectedEvent}
       />
     </>
   );

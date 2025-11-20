@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal, Table, Input, Button, Badge, Tag, Switch, Space, Tooltip } from "antd";
-import { PlusOutlined, DeleteOutlined, AppstoreOutlined, CloseOutlined, TeamOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, AppstoreOutlined, CloseOutlined, TeamOutlined, TagsOutlined } from "@ant-design/icons";
 
 const TiersModal = ({
   show,
@@ -12,6 +12,8 @@ const TiersModal = ({
   updateTierField,
   removeTier,
   openModal,
+  openTicketAssignModal,
+  selectedEvent,
 }) => {
   const columns = [
     {
@@ -93,16 +95,25 @@ const TiersModal = ({
     {
       title: 'Actions',
       key: 'actions',
-      width: isMobile ? 100 : 120,
+      width: isMobile ? 140 : 180,
       align: 'center',
       render: (_, record, tierIndex) => (
-        <div className="d-flex justify-content-center gap-2">
+        <div className="d-flex justify-content-center gap-2 flex-wrap">
           <Tooltip title="Manage Sections">
             <Button
               type="text"
               icon={<AppstoreOutlined style={{ color: 'var(--primary-color)' }} />}
               onClick={() => openModal("sections", { standIndex, tierIndex })}
               size={isMobile ? "small" : "middle"}
+            />
+          </Tooltip>
+          <Tooltip title="Assign Ticket">
+            <Button
+              type="text"
+              icon={<TagsOutlined style={{ color: 'var(--success-color)' }} />}
+              onClick={() => openTicketAssignModal?.('tier', record, { standIndex, tierIndex })}
+              size={isMobile ? "small" : "middle"}
+              disabled={!selectedEvent}
             />
           </Tooltip>
           <Tooltip title="Remove Tier">
@@ -162,24 +173,8 @@ const TiersModal = ({
       onCancel={onClose}
       width={isMobile ? "95%" : 900}
       centered
+      closable={false}
       maskClosable={false}
-      closeIcon={
-        <CloseOutlined 
-          className="text-white" 
-          style={{ 
-            fontSize: isMobile ? 18 : 20,
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'rotate(90deg) scale(1.2)';
-            e.currentTarget.style.color = 'var(--primary-color)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'rotate(0deg) scale(1)';
-            e.currentTarget.style.color = 'var(--text-white)';
-          }}
-        />
-      }
       footer={[
         <div key="footer" className={`d-flex ${isMobile ? 'flex-column' : 'flex-row'} justify-content-end gap-2 w-100`}>
           <Button 
@@ -231,7 +226,6 @@ const TiersModal = ({
               dataSource={stand?.tiers}
               rowKey={(record, index) => `tier-${standIndex}-${index}-${record.name || index}`}
               pagination={false}
-              bordered
               size={isMobile ? "small" : "middle"}
               scroll={{ x: isMobile ? 700 : undefined }}
               className="tiers-table"

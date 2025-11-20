@@ -1,6 +1,6 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { Modal, Button, Badge, Tag, Table, Input, Switch, Space, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, CloseOutlined, TeamOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, CloseOutlined, TeamOutlined, TagsOutlined } from '@ant-design/icons';
 
 const RowsModal = ({
   currentModal,
@@ -10,7 +10,9 @@ const RowsModal = ({
   standsWithCapacity,
   addRow,
   updateRow,
-  removeRow
+  removeRow,
+  openTicketAssignModal,
+  selectedEvent,
 }) => {
   const { standIndex, tierIndex, sectionIndex } = currentIndices || {};
   const [localRows, setLocalRows] = useState([]);
@@ -161,10 +163,19 @@ const RowsModal = ({
     {
       title: 'Actions',
       key: 'actions',
-      width: isMobile ? 60 : 80,
+      width: isMobile ? 100 : 140,
       align: 'center',
       render: (_, record, rowIndex) => (
-        <div className="d-flex justify-content-center">
+        <div className="d-flex justify-content-center gap-2 flex-wrap">
+          <Tooltip title="Assign Ticket">
+            <Button
+              type="text"
+              icon={<TagsOutlined style={{ color: 'var(--success-color)' }} />}
+              onClick={() => openTicketAssignModal?.('row', record, { standIndex, tierIndex, sectionIndex, rowIndex })}
+              size={isMobile ? "small" : "middle"}
+              disabled={!selectedEvent}
+            />
+          </Tooltip>
           <Tooltip title="Remove Row">
             <Button
               type="text"
@@ -212,6 +223,7 @@ const RowsModal = ({
           </Button>
         </div>
       }
+      closable={false}
       open={currentModal === "rows"}
       onCancel={closeModal}
       width={isMobile ? "95%" : 900}
@@ -268,7 +280,6 @@ const RowsModal = ({
               dataSource={localRows}
               rowKey={(record, index) => `row-${standIndex}-${tierIndex}-${sectionIndex}-${index}-${record.label || index}`}
               pagination={false}
-              bordered
               size={isMobile ? "small" : "middle"}
               scroll={{ x: isMobile ? 600 : undefined }}
               className="rows-table"

@@ -16,6 +16,7 @@ export function mapApiVenueToStadiumConfig(data) {
       name: stand.name,
       type: stand.type,
       isBlocked: Boolean(stand.is_blocked),
+      visualWeight: Number(stand.visual_weight ?? stand.visualWeight ?? 1) || 1,
       tiers: (stand.tiers || []).map(tier => ({
         id: tier.id,
         name: tier.name,
@@ -134,8 +135,15 @@ const StadiumBuilderAdmin = () => {
   const handleCreateNew = () => {
     if (id) {
       setShowConfigModal(true);
-    } else {
-      setShowConfigModal(true);
+      return;
+    }
+
+    setShowConfigModal(true);
+    if (
+      (stadiumConfig?.stands?.length || 0) === 0 &&
+      !stadiumConfig?.stadiumName &&
+      !stadiumConfig?.location
+    ) {
       setStadiumConfig({ stadiumName: '', stadiumCapacity: '', stands: [], location: '' });
     }
   };
@@ -171,7 +179,11 @@ const StadiumBuilderAdmin = () => {
         {/* SVG Viewer */}
         <Col xs={24} md={18}>
           <Card style={{ height: '100%' }}>
-            <StadiumSvgViewer standsData={stadiumConfig.stands} isUser={false} />
+            <StadiumSvgViewer
+              standsData={stadiumConfig.stands}
+              isUser={false}
+              enableDrilldown
+            />
           </Card>
         </Col>
 
