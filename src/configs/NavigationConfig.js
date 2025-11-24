@@ -1,6 +1,4 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { Clock } from 'lucide-react';
-import { roles } from 'views/events/users/constants';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined } from '@ant-design/icons';
 
 // Dashboard
 const dashboardNav = {
@@ -266,6 +264,17 @@ const eventManagementSubmenu = [
     submenu: [],
     roles: ["Admin", "Organizers"],
     permissions: ["View Venues"]
+  },
+  // add one more for layouts use proper icon layout
+  {
+    key: 'layouts',
+    path: 'theatre',
+    title: 'Layouts',
+    icon: LayoutOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin", "Organizers"],
+    permissions: ["View Layouts"]
   },
   {
     key: 'artists',

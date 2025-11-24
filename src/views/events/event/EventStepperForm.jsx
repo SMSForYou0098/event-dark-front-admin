@@ -61,7 +61,7 @@ const STEP_NAMES = {
 
 const EventStepperForm = () => {
     const navigate = useNavigate();
-    const {loader} = useMyContext()
+    const { loader } = useMyContext()
     const location = useLocation();
     const { id } = useParams();
     const isEdit = !!id;
@@ -72,6 +72,7 @@ const EventStepperForm = () => {
     });
     const [form] = Form.useForm();
     const [tickets, setTickets] = useState([]);
+    const [layoutId, setLayoutId] = useState(null)
     const [embedCode, setEmbedCode] = useState('');
 
     // Sync step from location state
@@ -124,7 +125,7 @@ const EventStepperForm = () => {
                 online_att_sug: Number(controls?.online_att_sug) || 0,
                 offline_att_sug: Number(controls?.offline_att_sug) || 0,
                 show_on_home: Number(controls?.show_on_home) || 0,
-                
+
                 // storing instagram post id from url
                 insta_whts_url: detail?.insta_whts_url
                     ? `https://www.instagram.com/p/${detail.insta_whts_url}/`
@@ -157,13 +158,17 @@ const EventStepperForm = () => {
 
         // Step 3: Tickets
         if (current === 3) {
+            const ticketSystem = Number(controls?.ticket_system) || 0;
+            // If both are 0 from backend, default to ticket_system = 1
+            const finalTicketSystem = ticketSystem === 0 ? 1 : 0;
+            const finalBookingBySeat = ticketSystem === 1 ? 1 : 0;
             Object.assign(patch, {
                 multi_scan: Number(controls?.multi_scan) || 0,
-                ticket_system: Number(controls?.ticket_system) || 0,
-                bookingBySeat: Number(controls?.bookingBySeat) || 0,
+                ticket_system: finalTicketSystem,
+                bookingBySeat: finalBookingBySeat,
                 ticket_terms: detail?.ticket_terms || undefined,
             });
-
+            setLayoutId(detail?.layout?.id)
             if (Array.isArray(detail?.tickets) && detail.tickets.length) {
                 setTickets(detail.tickets.map((t, idx) => ({ key: String(idx + 1), ...t })));
             }
@@ -291,6 +296,7 @@ const EventStepperForm = () => {
                 content: (
                     <TicketsStep
                         tickets={tickets}
+                        layoutId={layoutId}
                         form={form}
                         embedCode={embedCode}
                         onEmbedChange={handleEmbedChange}
@@ -335,10 +341,10 @@ const EventStepperForm = () => {
                 });
                 await updateEvent({ id, body });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-                if(current ===6){
+                if (current === 6) {
                     message.success('Event ready to publish!');
                 }
-                else{
+                else {
                     setCurrent((c) => c + 1);
                 }
                 return;
@@ -368,7 +374,7 @@ const EventStepperForm = () => {
             const body = buildEventFormData({
                 ...draftValues,
                 step: stepName,
-            },true);
+            }, true);
 
             if (id) {
                 await updateEvent({ id, body });
@@ -418,7 +424,7 @@ const EventStepperForm = () => {
         return (
             <Card bordered={false} style={{ minHeight: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {/* <Spin size="large" tip={`Loading ${STEP_NAMES[current]} details...`} /> */}
-                 <Image src={loader} width={150} preview={false} />
+                <Image src={loader} width={150} preview={false} />
             </Card>
         );
     }
@@ -463,7 +469,7 @@ const EventStepperForm = () => {
                         }}
                     >
                         {
-                            isEdit && current !==steps.length-1 &&
+                            isEdit && current !== steps.length - 1 &&
                             <Tooltip title="Save current progress">
                                 <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
                                     Save Draft
@@ -472,7 +478,7 @@ const EventStepperForm = () => {
                         }
 
                         <div style={{ display: 'flex', gap: 8 }}>
-                            {current > 0 && current !==steps.length-1 && (
+                            {current > 0 && current !== steps.length - 1 && (
                                 <Button onClick={prev} size="large" disabled={isLoading}>
                                     Previous
                                 </Button>

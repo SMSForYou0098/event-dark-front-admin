@@ -7,6 +7,7 @@ import { useEventCategories, useVenues } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
 import { useNavigate } from 'react-router-dom';
+import { VanueList } from './CONSTANTS';
 
 const { TextArea } = Input;
 
@@ -46,83 +47,11 @@ const BasicDetailsStep = ({ form, isEdit }) => {
   }, [selectedOrganizerFromForm, form, isEdit]);
 
   // venues by organizer
-  const {
-    data: venues = [],
-    isLoading: venueLoading,
-    isError: venueError,
-    error: venueErrObj,
-    refetch: refetchVenues,
-  } = useVenues();
-
-  const renderVenueOptionLabel = (v) => (
-    <div>
-      <Typography.Text strong>
-        {v?.name || v?.label || `Venue #${v?.id ?? ''}`}
-      </Typography.Text>
-      {(v?.location || v?.city || v?.state) && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12 }}>
-          <EnvironmentOutlined />
-          <span>{v?.location || [v?.city, v?.state].filter(Boolean).join(', ')}</span>
-        </div>
-      )}
-      {v?.address && (
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          {v.address}
-        </Typography.Text>
-      )}
-    </div>
-  );
-
-  // selected venue for details card
-  const selectedVenueId = Form.useWatch('venue_id', form);
-  const selectedVenue = useMemo(() => {
-    if (selectedVenueId == null || selectedVenueId === '') return undefined;
-    return venues.find(v =>
-      (v?.id != null && String(v.id) === String(selectedVenueId)) ||
-      (v?.value != null && String(v.value) === String(selectedVenueId))
-    );
-  }, [selectedVenueId, venues]);
-
   const isUserOrganizer = UserData?.role?.toLowerCase() === 'organizer';
-  const navigate = useNavigate()
 
-  const handleAddVenue = () => {
-    navigate('/venues');
-  };
-
-  // Custom empty component with button
-  const customNotFoundContent = (
-    <Empty
-      image={Empty.PRESENTED_IMAGE_SIMPLE}
-      description={
-        <span>
-          {isUserOrganizer ? "No venues found" : "No venues available"}
-        </span>
-      }
-    >
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={handleAddVenue}
-      >
-        Add Venue
-      </Button>
-    </Empty>
-  );
   return (
     <Row gutter={ROW_GUTTER}>
-      {/* Errors */}
-      {venueError && (
-        <Col span={24}>
-          <Alert
-            type="error"
-            showIcon
-            message="Failed to load venues"
-            description={venueErrObj?.message}
-            action={<Button size="small" onClick={() => refetchVenues()}>Retry</Button>}
-          />
-        </Col>
-      )}
+
 
       {/* Organizer (hidden when user is an organizer) */}
       {!isUserOrganizer && (
@@ -180,88 +109,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
 
       </Col>
 
-      {/* Venues — driven by organizerId */}
-      <Col xs={24} md={8}>
-        <Form.Item
-          name="venue_id"
-          label="Select Venue"
-          rules={[{ required: true, message: "Please select venue" }]}
-        >
-          <Select
-            placeholder="Select Venue"
-            loading={venueLoading}
-            options={venues.map((v) => ({
-              value: String(v.id) ?? String(v.value),
-              label: renderVenueOptionLabel(v),
-            }))}
-            optionLabelProp="label"
-            showSearch
-            filterOption={(input, option) => {
-              const text =
-                (option?.label?.props?.children?.[0]?.props?.children ?? '') + ' ' +
-                (option?.label?.props?.children?.[1]?.props?.children?.[1] ?? '') + ' ' +
-                (option?.label?.props?.children?.[2]?.props?.children ?? '');
-              return text.toLowerCase().includes(input.toLowerCase());
-            }}
-            style={{ width: '100%' }}
-            notFoundContent={customNotFoundContent}
-          />
-        </Form.Item>
-      </Col>
-
-      {/* Venue Details */}
-      {selectedVenue && (
-        <Col xs={24}>
-          <Form.Item dependencies={['venue_id']} noStyle>
-            {() => selectedVenue ? (
-              <Card size="small" title="Venue Details"
-                extra={
-                  <Button
-                    // size='small'
-                    type="link"
-                    onClick={handleAddVenue}
-                    icon={<PlusOutlined />}>New Venue</Button>
-                }
-              >
-                <Space direction="vertical">
-                  <Space size="large">
-                    <Space>
-                      <HomeOutlined className='text-white bg-primary p-2 rounded-circle' />
-                      <Typography.Text>{selectedVenue?.name || selectedVenue?.label}</Typography.Text>
-                    </Space>
-                    {(selectedVenue?.location || selectedVenue?.city || selectedVenue?.state) && (
-                      <Space>
-                        <CompassOutlined className='text-white bg-primary p-2 rounded-circle' />
-                        <Typography.Text>
-                          {selectedVenue?.location || [selectedVenue?.city, selectedVenue?.state].filter(Boolean).join(', ')}
-                        </Typography.Text>
-                      </Space>
-                    )}
-                  </Space>
-                  {selectedVenue?.address && (
-                    <Space>
-                      <EnvironmentOutlined className='text-white bg-primary p-2 rounded-circle' />
-                      <Typography.Text>{selectedVenue.address}</Typography.Text>
-                    </Space>
-                  )}
-                </Space>
-                {selectedVenue?.address && (
-                  <Button
-                    type="primary"
-                    className='positive-absolute float-sm-center float-none float-sm-right mt-3'
-                    icon={<EnvironmentOutlined />}
-                    // onClick={() => window.open(`https://maps.google.com/?q=${selectedVenue.address}`, '_blank')}
-                    onClick={() => window.open(`${selectedVenue?.map_url}`, '_blank')}
-                  >
-                    View Map
-                  </Button>
-                )}
-              </Card>
-            ) : null}
-          </Form.Item>
-        </Col>
-      )}
-
+      <VanueList form={form} />
       {/* Description */}
       <Col xs={24}>
         <Form.Item
@@ -275,6 +123,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
           <TextArea rows={5} placeholder="Enter detailed event description..." showCount maxLength={500} />
         </Form.Item>
       </Col>
+
     </Row>
   );
 };

@@ -1,12 +1,14 @@
 // TicketsStep.jsx
 import React from 'react';
-import { Form, Input, Row, Col, Switch, Card } from 'antd';
+import { Form, Input, Row, Col, Switch, Card, Button } from 'antd';
 import TicketManager from 'views/events/Tickets/TicketManager/TicketManager';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
+import { useNavigate } from 'react-router-dom';
 
 const { TextArea } = Input;
 
-const TicketsStep = ({ eventId, eventName }) => {
+const TicketsStep = ({ eventId, eventName, layoutId }) => {
+  const navigate = useNavigate();
   const form = Form.useFormInstance();
 
   const toChecked = (v) => v === 1 || v === '1';
@@ -26,14 +28,14 @@ const TicketsStep = ({ eventId, eventName }) => {
 
   const switchFields = [
     { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans', initialValue: 0 },
-    { 
-      name: 'ticket_system', 
+    {
+      name: 'ticket_system',
       label: 'Booking By Ticket',
       onChange: (checked) => handleBookingTypeChange('ticket_system', checked),
       initialValue: 1  // Default checked
     },
-    { 
-      name: 'bookingBySeat', 
+    {
+      name: 'bookingBySeat',
       label: 'Booking By Seat',
       onChange: (checked) => handleBookingTypeChange('bookingBySeat', checked),
       initialValue: 0
@@ -73,6 +75,17 @@ const TicketsStep = ({ eventId, eventName }) => {
               </div>
             ))}
           </div>
+          {/* show button only when Booking By Seat is selected */}
+          <Form.Item shouldUpdate noStyle>
+            {() => {
+              const bookingBySeatValue = form.getFieldValue('bookingBySeat');
+              return toChecked(bookingBySeatValue) ? (
+                <Button type="primary" onClick={() => navigate(`/theatre/event/${eventId}/layout/${layoutId}`)}>
+                  Manage Ticket in Layout
+                </Button>
+              ) : null;
+            }}
+          </Form.Item>
         </Card>
       </Col>
 
