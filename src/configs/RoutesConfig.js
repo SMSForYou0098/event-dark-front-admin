@@ -130,6 +130,31 @@ export const protectedRoutes = [
     {
         key: 'theatre',
         path: `/theatre`,
+        component: React.lazy(() => import('views/events/seating_module/theatre_layout/index')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
+        key: 'theatre',
+        path: `/theatre/new`,
+        component: React.lazy(() => import('views/events/seating_module/theatre_layout/TheatreLayout')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
+        key: 'theatre-edit',
+        path: `/theatre/:id`,
+        component: React.lazy(() => import('views/events/seating_module/theatre_layout/TheatreLayout')),
+        meta: {
+            // permissions: ['View Dashboard'],
+        }
+    },
+    {
+        key: 'theatre-edit',
+        // path: `/theatre/:id`,
+        path: `/theatre/event/:eventId/layout/:id`,
         component: React.lazy(() => import('views/events/seating_module/theatre_layout/TheatreLayout')),
         meta: {
             // permissions: ['View Dashboard'],

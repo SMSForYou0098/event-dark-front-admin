@@ -1,13 +1,20 @@
-// AuditoriumLayoutDesigner.jsx - UPDATED WITH ROW ICON FEATURE
-import React, { useRef, useState } from 'react';
-import {PlusOutlined,ZoomInOutlined,ZoomOutOutlined,BorderOutlined,SaveOutlined} from '@ant-design/icons';
-import { Button, Card, Col, message, Row, Space } from 'antd';
+// AuditoriumLayoutDesigner.jsx - UPDATED WITH TICKET ASSIGNMENT API
+import React, { useRef, useState, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined } from '@ant-design/icons';
+import { Button, Card, Col, message, Row } from 'antd';
 import api from 'auth/FetchInterceptor';
 import LeftBar from './components/creation/LeftBar';
 import CenterCanvas from './components/creation/CenterCanvas';
 import RightPanel from './components/creation/RightPanel';
+import Loader from 'utils/Loader';
+import { VanueList } from 'views/events/event/components/CONSTANTS';
 
 const AuditoriumLayoutDesigner = () => {
+  const { id: layoutId, eventId } = useParams();
+
+  // Determine mode: if eventId exists, we're in ticket assignment mode
+  const isAssignMode = !!eventId;
 
   // State Management
   const [stage, setStage] = useState({
@@ -21,11 +28,7 @@ const AuditoriumLayoutDesigner = () => {
   });
 
   const [sections, setSections] = useState([]);
-  const [ticketCategories, setTicketCategories] = useState([
-    { id: 'cat_1', name: 'Regular', price: 200, color: '#4CAF50' },
-    { id: 'cat_2', name: 'Premium', price: 350, color: '#2196F3' },
-    { id: 'cat_3', name: 'VIP', price: 500, color: '#FFD700' }
-  ]);
+  const [ticketCategories, setTicketCategories] = useState([]);
 
   const [selectedElement, setSelectedElement] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
@@ -34,9 +37,235 @@ const AuditoriumLayoutDesigner = () => {
   const [nextSectionId, setNextSectionId] = useState(1);
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [layoutName, setLayoutName] = useState('');
+  const [vanueId, setVanueId] = useState(null);
 
 
+  // Fetch layout data if editing
+  useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
 
+    const fetchLayout = async () => {
+      if (!layoutId) return;
+
+      setIsLoading(true);
+
+      try {
+        const response = await api.get(`layout/theatre/${layoutId}`, {
+          signal: abortController.signal
+        });
+
+        if (!isMounted) return;
+
+        const layoutData = response?.data || response;
+
+        setLayoutName(layoutData.name || '');
+        setVanueId(layoutData?.venue_id)
+        if (layoutData.stage) {
+          setStage(layoutData.stage);
+        }
+
+        if (layoutData.sections && Array.isArray(layoutData.sections)) {
+          setSections(layoutData.sections);
+          setNextSectionId(layoutData.sections.length + 1);
+        }
+
+        message.success('Layout loaded successfully');
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        if (!isMounted) return;
+
+        console.error('Error fetching layout:', error);
+        message.error('Failed to load layout');
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchLayout();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [layoutId]);
+
+  // Fetch ticket assignments if in assignment mode
+  useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    const fetchTicketAssignments = async () => {
+      if (!eventId || !layoutId || sections.length === 0) return;
+
+      try {
+        const response = await api.get(`event/layout/${eventId}`, {
+          signal: abortController.signal
+        });
+
+        if (!isMounted) return;
+
+        const assignmentsData = response?.data || response;
+
+        if (assignmentsData && Array.isArray(assignmentsData)) {
+          // Map assignments to seats
+          setSections(prevSections =>
+            prevSections.map(section => ({
+              ...section,
+              rows: section.rows.map(row => ({
+                ...row,
+                seats: row.seats.map(seat => {
+                  const assignment = assignmentsData.find(a => a.seatId === seat.id);
+                  if (assignment) {
+                    return {
+                      ...seat,
+                      ticketCategory: assignment.ticketId,
+                      status: assignment.status || seat.status,
+                      customTicket: true // Mark as custom since it was pre-assigned
+                    };
+                  }
+                  return seat;
+                })
+              }))
+            }))
+          );
+
+          message.success(`Loaded ${assignmentsData.length} ticket assignments`);
+          console.log('Loaded ticket assignments:', assignmentsData);
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        if (!isMounted) return;
+
+        console.error('Error fetching ticket assignments:', error);
+        // Don't show error if assignments don't exist yet
+        if (error.response?.status !== 404) {
+          message.warning('No previous ticket assignments found');
+        }
+      }
+    };
+
+    fetchTicketAssignments();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [eventId, layoutId, sections.length]); // Only run after sections are loaded
+
+  // Fetch tickets if in assignment mode
+  useEffect(() => {
+    let isMounted = true;
+    const abortController = new AbortController();
+
+    const fetchTickets = async () => {
+      if (!eventId) return;
+
+      try {
+        const response = await api.get(`event-ticket/${eventId}`, {
+          signal: abortController.signal
+        });
+
+        if (!isMounted) return;
+
+        const ticketsData = response?.tickets || response;
+        setTicketCategories(ticketsData);
+        message.success(`Loaded ${ticketsData.length} ticket categories`);
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        if (!isMounted) return;
+
+        console.error('Error fetching tickets:', error);
+        message.error('Failed to load tickets');
+      }
+    };
+
+    fetchTickets();
+
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, [eventId]);
+
+  // Sanitize sections when ticketCategories change (removes invalid ticket IDs)
+  useEffect(() => {
+    if (sections.length === 0) return;
+
+    const validTicketIds = new Set(ticketCategories?.map(t => t.id) || []);
+
+    const sanitizedSections = sections.map(section => ({
+      ...section,
+      rows: section.rows?.map(row => ({
+        ...row,
+        // Keep ticket only if it's valid, otherwise set to null
+        ticketCategory: row.ticketCategory && validTicketIds.has(row.ticketCategory)
+          ? row.ticketCategory
+          : null,
+        seats: row.seats?.map(seat => ({
+          ...seat,
+          ticketCategory: seat.ticketCategory && validTicketIds.has(seat.ticketCategory)
+            ? seat.ticketCategory
+            : null
+        })) || []
+      })) || []
+    }));
+
+    // Only update if there are actual changes
+    const hasChanges = JSON.stringify(sections) !== JSON.stringify(sanitizedSections);
+    if (hasChanges) {
+      setSections(sanitizedSections);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticketCategories]); // Run when ticket categories change (intentionally not including 'sections' to avoid infinite loop)
+
+  // Update selectedElement when sections change (to reflect sanitized data)
+  useEffect(() => {
+    if (!selectedElement || !selectedType) return;
+
+    // Find the updated element in the sanitized sections
+    if (selectedType === 'section') {
+      const updatedSection = sections.find(s => s.id === selectedElement.id);
+      if (updatedSection) {
+        // Only update if ticket category was sanitized (changed from invalid to null)
+        if (selectedElement.ticketCategory && !updatedSection.ticketCategory) {
+          setSelectedElement(updatedSection);
+        }
+      }
+    } else if (selectedType === 'row') {
+      const section = sections.find(s => s.id === selectedElement.sectionId);
+      const updatedRow = section?.rows.find(r => r.id === selectedElement.id);
+      if (updatedRow) {
+        // Only update if ticket category was sanitized (changed from invalid to null)
+        const oldTicket = selectedElement.ticketCategory;
+        const newTicket = updatedRow.ticketCategory;
+
+        // Update only if sanitization occurred (had invalid ticket, now null)
+        if (oldTicket && oldTicket !== newTicket && newTicket === null) {
+          setSelectedElement({ ...updatedRow, sectionId: section.id });
+        }
+      }
+    } else if (selectedType === 'seat') {
+      const section = sections.find(s => s.id === selectedElement.sectionId);
+      const row = section?.rows.find(r => r.id === selectedElement.rowId);
+      const updatedSeat = row?.seats.find(s => s.id === selectedElement.id);
+      if (updatedSeat) {
+        // Only update if ticket category was sanitized (changed from invalid to null)
+        const oldTicket = selectedElement.ticketCategory;
+        const newTicket = updatedSeat.ticketCategory;
+
+        // Update only if sanitization occurred (had invalid ticket, now null)
+        if (oldTicket && oldTicket !== newTicket && newTicket === null) {
+          setSelectedElement({ ...updatedSeat, sectionId: section.id, rowId: row.id });
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections]); // Run when sections change (to update selectedElement with sanitized data)
 
   // Generate unique IDs
   const generateId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -97,7 +326,7 @@ const AuditoriumLayoutDesigner = () => {
           id: generateId('row'),
           title: generateRowTitle(rowNumber),
           numberOfSeats: 10,
-          ticketCategory: ticketCategories[0].id,
+          ticketCategory: ticketCategories?.length > 0 ? ticketCategories[0].id : null,
           shape: 'straight',
           curve: 0,
           spacing: 40,
@@ -160,7 +389,8 @@ const AuditoriumLayoutDesigner = () => {
         status: 'available',
         radius: seatRadius,
         icon: row.defaultIcon || null, // NEW: Inherit row's default icon
-        customIcon: false // NEW: Track if seat has custom icon
+        customIcon: false, // NEW: Track if seat has custom icon
+        customTicket: false // NEW: Track if seat has custom ticket assignment
       });
     }
 
@@ -313,57 +543,97 @@ const AuditoriumLayoutDesigner = () => {
     link.click();
   };
 
-  // Save Layout to Backend
+  // NEW: Function to extract ticket assignments from sections (including status)
+  const extractTicketAssignments = () => {
+    const assignments = [];
+
+    sections.forEach(section => {
+      section.rows.forEach(row => {
+        row.seats.forEach(seat => {
+          if (seat.ticketCategory) {
+            assignments.push({
+              seatId: seat.id,
+              ticketId: seat.ticketCategory,
+              status: seat.status || 'available' // Include seat status
+            });
+          }
+        });
+      });
+    });
+
+    return assignments;
+  };
+
+  // Save Layout to Backend (UPDATED WITH ASSIGNMENT MODE)
   const saveLayout = async () => {
     setIsSaving(true);
 
-    const payload = {
-      stage,
-      sections,
-      ticketCategories,
-      metadata: {
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        totalSections: sections.length,
-        totalSeats: sections.reduce((total, section) =>
-          total + section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0)
-          , 0),
-        totalRows: sections.reduce((total, section) => total + section.rows.length, 0)
-      }
-    };
-
     try {
-      const response = await api.post('/auditorium/layout/save', payload);
-      const data = await response.json();
+      if (isAssignMode) {
+        // ASSIGNMENT MODE: Save ticket assignments
+        const ticketAssignments = extractTicketAssignments();
 
-      message.success('Layout saved successfully!');
-      console.log('Saved layout response:', data);
+        const assignPayload = {
+          layoutId: layoutId,
+          eventId: eventId,
+          ticketAssignments: ticketAssignments
+        };
+
+        console.log('Saving ticket assignments:', assignPayload);
+
+        const response = await api.post(`event/layout/${eventId}`, assignPayload);
+
+        message.success(`Successfully assigned tickets to ${ticketAssignments.length} seats!`);
+        console.log('Assignment response:', response);
+
+      } else {
+        if (!vanueId?.trim()) {
+          message.error("Please Select Venue for the layout");
+          return;
+        }
+
+        // LAYOUT CREATION/EDIT MODE: Save layout structure
+        const payload = {
+          name: layoutName || `Layout ${new Date().toISOString()}`,
+          stage,
+          venue_id: vanueId,
+          sections,
+          ticketCategories,
+          metadata: {
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            totalSections: sections.length,
+            totalSeats: sections.reduce((total, section) =>
+              total + section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0)
+              , 0),
+            totalRows: sections.reduce((total, section) => total + section.rows.length, 0)
+          }
+        };
+
+        let response;
+        if (layoutId) {
+          // Update existing layout
+          response = await api.post(`/auditorium/layout/${layoutId}`, payload);
+        } else {
+          // Create new layout
+          response = await api.post('/auditorium/layout/save', payload);
+        }
+
+        message.success(layoutId ? 'Layout updated successfully!' : 'Layout saved successfully!');
+        console.log('Saved layout response:', response);
+      }
 
     } catch (error) {
-      message.error(`Failed to save layout`);
+      console.error('Save error:', error);
+      message.error(
+        isAssignMode
+          ? 'Failed to save ticket assignments'
+          : `Failed to ${layoutId ? 'update' : 'save'} layout`
+      );
     } finally {
       setIsSaving(false);
     }
   };
-
-  // Import Layout
-  // const importLayout = (event) => {
-  //   const file = event.target.files?.[0];
-  //   if (file) {
-  //     const reader = new FileReader();
-  //     reader.onload = (e) => {
-  //       try {
-  //         const layout = JSON.parse(e.target.result);
-  //         setStage(layout.stage || stage);
-  //         setSections(layout.sections || []);
-  //         setTicketCategories(layout.ticketCategories || ticketCategories);
-  //       } catch (error) {
-  //         alert('Invalid layout file');
-  //       }
-  //     };
-  //     reader.readAsText(file);
-  //   }
-  // };
 
   // Handle Canvas Click
   const handleCanvasClick = (e) => {
@@ -408,123 +678,134 @@ const AuditoriumLayoutDesigner = () => {
     stageInst.batchDraw();
   };
 
+  if (isLoading) {
+    return (
+      <Card>
+        <Loader />
+      </Card>
+    );
+  }
+  const onVanueChange = (data) => {
+    setVanueId(data)
+  }
+
   return (
-    <Card title="Auditorium Layout Designer"
-      extra={
-        <Space>
-          <div className="toolbar-left">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={addSection}
-            >
-              Add Section
-            </Button>
+    <Card className="auditorium-designer" bodyStyle={{ paddingTop: 10 }}>
+      <Row align="middle" gutter={10} wrap={false} className='mb-2'>
+        <Col span={10}>
+          <h5>
+            {isAssignMode
+              ? `Assign Tickets to Layout: ${layoutName}`
+              : layoutId
+                ? `Edit Layout: ${layoutName}`
+                : "New Auditorium Layout"}
+          </h5>
+        </Col>
+        {!isAssignMode &&
+          <VanueList
+            hideLable={true}
+            noMargin={true}
+            onChange={onVanueChange}
+            value={vanueId}
+            showDetail={false}
+          />
+        }
+        <Col>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={addSection}
+            disabled={isAssignMode}
+          >
+            Add Section
+          </Button>
+        </Col>
 
-            <Button
-              onClick={() => setShowGrid(!showGrid)}
-              icon={<BorderOutlined />}
-            >
-              {showGrid ? "Hide Grid" : "Show Grid"}
-            </Button>
-          </div>
-          <div className="toolbar-right">
-            <Button
-              icon={<ZoomInOutlined />}
-              onClick={() => handleZoom(true)}
-            />
+        <Col>
+          <Button
+            icon={<BorderOutlined />}
+            onClick={() => setShowGrid(!showGrid)}
+          />
+        </Col>
 
-            <Button
-              icon={<ZoomOutOutlined />}
-              onClick={() => handleZoom(false)}
-            />
+        <Col>
+          <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
+        </Col>
 
-            <Button
-              type="primary"
-              icon={<SaveOutlined />}
-              onClick={saveLayout}
-              loading={isSaving}
-              style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
-            >
-              Save
-            </Button>
+        <Col>
+          <Button icon={<ZoomOutOutlined />} onClick={() => handleZoom(false)} />
+        </Col>
 
-            {/* <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={exportLayout}
-            >
-              Export
-            </Button>
+        <Col>
+          <Button
+            type="primary"
+            icon={<SaveOutlined />}
+            loading={isSaving}
+            onClick={saveLayout}
+            style={{ background: "#52c41a", borderColor: "#52c41a" }}
+          >
+            {isAssignMode ? "Save" : layoutId ? "Update" : "Save"}
+          </Button>
+        </Col>
 
-            <Upload
-              accept=".json"
-              showUploadList={false}
-              customRequest={({ file, onSuccess }) => {
-                importLayout({ target: { files: [file] } });
-                setTimeout(() => onSuccess("ok"), 0);
-              }}
-            >
-              <Button icon={<UploadOutlined />}>Import</Button>
-            </Upload> */}
-          </div>
-        </Space>
-      }
-      className="auditorium-designer"
-    >
+      </Row>
+
 
       <Row>
         <Col lg={4}>
-         {/* Left Panel */}
-        <LeftBar
-          sections={sections}
-          selectedType={selectedType}
-          setSelectedElement={setSelectedElement}
-          stage={stage}
-          setSelectedType={setSelectedType}
-          duplicateSection={duplicateSection}
-          deleteSection={deleteSection}
-          selectedElement={selectedElement}
-          deleteRow={deleteRow}
-          addRowToSection={addRowToSection}
-        />
+          {/* Left Panel */}
+          <LeftBar
+            sections={sections}
+            selectedType={selectedType}
+            setSelectedElement={setSelectedElement}
+            stage={stage}
+            setSelectedType={setSelectedType}
+            duplicateSection={duplicateSection}
+            deleteSection={deleteSection}
+            selectedElement={selectedElement}
+            deleteRow={deleteRow}
+            addRowToSection={addRowToSection}
+            isAssignMode={isAssignMode}
+          />
 
         </Col>
-         {/* Center Canvas */}
+        {/* Center Canvas */}
         <Col lg={16}>
-        <CenterCanvas
-          stageRef={stageRef}
-          canvasScale={canvasScale}
-          showGrid={showGrid}
-          stage={stage}
-          setStage={setStage}
-          sections={sections}
-          updateSection={updateSection}
-          selectedType={selectedType}
-          selectedElement={selectedElement}
-          setSelectedElement={setSelectedElement}
-          setSelectedType={setSelectedType}
-          handleCanvasClick={handleCanvasClick}
-          handleWheel={handleWheel}
-          setStagePosition={setStagePosition}
-        />
+          <CenterCanvas
+            stageRef={stageRef}
+            canvasScale={canvasScale}
+            showGrid={showGrid}
+            stage={stage}
+            setStage={setStage}
+            sections={sections}
+            updateSection={updateSection}
+            selectedType={selectedType}
+            selectedElement={selectedElement}
+            setSelectedElement={setSelectedElement}
+            setSelectedType={setSelectedType}
+            handleCanvasClick={handleCanvasClick}
+            handleWheel={handleWheel}
+            setStagePosition={setStagePosition}
+            isAssignMode={isAssignMode}
+          />
         </Col>
         {/* Right Panel - Editor */}
         <Col lg={4}>
-        <RightPanel
-          selectedType={selectedType}
-          selectedElement={selectedElement}
-          setSelectedElement={setSelectedElement}
-          updateSection={updateSection}
-          setSections={setSections}
-          sections={sections}
-          stage={stage}
-          setStage={setStage}
-          updateRow={updateRow}
-          updateSeat={updateSeat}
-          addRowToSection={addRowToSection}
-          ticketCategories={ticketCategories}
-        />
+          <RightPanel
+            selectedType={selectedType}
+            selectedElement={selectedElement}
+            setSelectedElement={setSelectedElement}
+            updateSection={updateSection}
+            setSections={setSections}
+            sections={sections}
+            stage={stage}
+            setStage={setStage}
+            updateRow={updateRow}
+            updateSeat={updateSeat}
+            addRowToSection={addRowToSection}
+            ticketCategories={ticketCategories}
+            isAssignMode={isAssignMode}
+          />
         </Col>
       </Row>
     </Card>

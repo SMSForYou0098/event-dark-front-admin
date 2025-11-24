@@ -179,7 +179,7 @@ const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransfor
 };
 
 // Icon Image Component - Converts React Icon to Konva Image
-const IconImage = ({ iconName, x, y, size = 20 }) => {
+const IconImage = ({ iconName, x, y, size = 20, opacity = 1 }) => {
   const [image, setImage] = useState(null);
 
   useEffect(() => {
@@ -231,179 +231,197 @@ const IconImage = ({ iconName, x, y, size = 20 }) => {
       y={y - size / 2}
       width={size}
       height={size}
+      opacity={opacity}
       listening={false}
     />
   );
 };
 
 const CenterCanvas = (props) => {
-const { stageRef, canvasScale, showGrid, stage, setStage, sections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition} = props;
+  const { stageRef, canvasScale, showGrid, stage, setStage, sections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition, isAssignMode } = props;
 
 
-    const layerRef = useRef();
-    return (
-        <div className="canvas-container">
-          <Stage
-            ref={stageRef}
-            width={window.innerWidth - 700}
-            height={window.innerHeight - 100}
-            draggable={true}
-            scaleX={canvasScale}
-            scaleY={canvasScale}
-            onClick={handleCanvasClick}
-            onWheel={handleWheel}
-            onDragEnd={(e) => {
-              const pos = e.target.position();
-              setStagePosition(pos);
-            }}
-          >
-            <Layer ref={layerRef}>
-              {/* Grid */}
-              {showGrid && (
-                <>
-                  {Array.from({ length: 50 }).map((_, i) => (
-                    <React.Fragment key={`grid-${i}`}>
-                      <Line
-                        points={[i * 50, 0, i * 50, 3000]}
-                        stroke="#E0E0E0"
-                        strokeWidth={1}
-                        listening={false}
-                      />
-                      <Line
-                        points={[0, i * 50, 3000, i * 50]}
-                        stroke="#E0E0E0"
-                        strokeWidth={1}
-                        listening={false}
-                      />
-                    </React.Fragment>
-                  ))}
-                </>
-              )}
-
-              {/* Stage/Screen */}
-              <DraggableStage
-                stage={stage}
-                isSelected={selectedType === 'stage' && selectedElement?.position === stage.position}
-                onSelect={() => {
-                  setSelectedElement(stage);
-                  setSelectedType('stage');
-                }}
-                onDragEnd={(pos) => {
-                  const updatedStage = { ...stage, ...pos };
-                  setStage(updatedStage);
-                  if (selectedType === 'stage') setSelectedElement(updatedStage);
-                }}
-                onTransformEnd={(transform) => {
-                  const updatedStage = { ...stage, ...transform };
-                  setStage(updatedStage);
-                  if (selectedType === 'stage') setSelectedElement(updatedStage);
-                }}
-              />
-
-              {/* Sections */}
-              {sections.map(section => (
-                <DraggableSection
-                  key={section.id}
-                  section={section}
-                  isSelected={selectedElement?.id === section.id && selectedType === 'section'}
-                  onSelect={() => {
-                    setSelectedElement(section);
-                    setSelectedType('section');
-                  }}
-                  onDragEnd={(pos) => {
-                    const updatedSection = { ...section, ...pos };
-                    updateSection(section.id, pos);
-                    if (selectedElement?.id === section.id && selectedType === 'section') setSelectedElement(updatedSection);
-                  }}
-                  onTransformEnd={(transform) => {
-                    const updatedSection = { ...section, ...transform };
-                    updateSection(section.id, transform);
-                    if (selectedElement?.id === section.id && selectedType === 'section') setSelectedElement(updatedSection);
-                  }}
-                >
-                  {/* Rows and Seats */}
-                  {section.rows.map(row => (
-                    <Group key={row.id}>
-                      <Text
-                        x={10}
-                        y={row.seats[0]?.y - 5}
-                        text={row.title}
-                        fontSize={14}
-                        fill="#FFFFFF"
-                        fontStyle="bold"
-                        listening={false}
-                      />
-
-                      {row.seats.map(seat => {
-                        return (
-                          <Group key={seat.id}>
-                            <Rect
-                              x={seat.x - seat.radius}
-                              y={seat.y - seat.radius}
-                              width={seat.radius * 2}
-                              height={seat.radius * 2}
-                              fill={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : 'transparent'}
-                              stroke={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : '#999'}
-                              strokeWidth={selectedElement?.id === seat.id && selectedType === 'seat' ? 2 : 1}
-                              cornerRadius={4}
-                              onMouseEnter={(e) => {
-                                const container = e.target.getStage().container();
-                                container.style.cursor = 'pointer';
-                              }}
-                              onMouseLeave={(e) => {
-                                const container = e.target.getStage().container();
-                                container.style.cursor = 'default';
-                              }}
-                              onClick={(e) => {
-                                e.cancelBubble = true;
-                                setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
-                                setSelectedType('seat');
-                              }}
-                            />
-                            {seat.icon ? (
-                              <IconImage
-                                iconName={seat.icon}
-                                x={seat.x}
-                                y={seat.y}
-                                size={seat.radius * 1.2}
-                              />
-                            ) : (
-                              <Text
-                                x={seat.x - seat.radius}
-                                y={seat.y - 4}
-                                width={seat.radius * 2}
-                                text={seat.number.toString()}
-                                fontSize={10}
-                                fill="#FFFFFF"
-                                align="center"
-                                verticalAlign="middle"
-                                listening={false}
-                              />
-                            )}
-                            {seat.status === 'disabled' && (
-                              <Line
-                                points={[
-                                  seat.x - seat.radius * 0.7,
-                                  seat.y - seat.radius * 0.7,
-                                  seat.x + seat.radius * 0.7,
-                                  seat.y + seat.radius * 0.7
-                                ]}
-                                stroke="#F44336"
-                                strokeWidth={2}
-                                listening={false}
-                              />
-                            )}
-                          </Group>
-                        );
-                      })}
-                    </Group>
-                  ))}
-                </DraggableSection>
+  const layerRef = useRef();
+  return (
+    <div className="canvas-container">
+      <Stage
+        ref={stageRef}
+        width={window.innerWidth - 700}
+        height={window.innerHeight - 100}
+        draggable={true}
+        scaleX={canvasScale}
+        scaleY={canvasScale}
+        onClick={handleCanvasClick}
+        onWheel={handleWheel}
+        onDragEnd={(e) => {
+          const pos = e.target.position();
+          setStagePosition(pos);
+        }}
+      >
+        <Layer ref={layerRef}>
+          {/* Grid */}
+          {showGrid && (
+            <>
+              {Array.from({ length: 50 }).map((_, i) => (
+                <React.Fragment key={`grid-${i}`}>
+                  <Line
+                    points={[i * 50, 0, i * 50, 3000]}
+                    stroke="#E0E0E0"
+                    strokeWidth={1}
+                    listening={false}
+                  />
+                  <Line
+                    points={[0, i * 50, 3000, i * 50]}
+                    stroke="#E0E0E0"
+                    strokeWidth={1}
+                    listening={false}
+                  />
+                </React.Fragment>
               ))}
-            </Layer>
-          </Stage>
-        </div>
-    )
+            </>
+          )}
+
+          {/* Stage/Screen */}
+          <DraggableStage
+            stage={stage}
+            isSelected={!isAssignMode && selectedType === 'stage' && selectedElement?.position === stage.position}
+            onSelect={() => {
+              if (!isAssignMode) {
+                setSelectedElement(stage);
+                setSelectedType('stage');
+              }
+            }}
+            onDragEnd={(pos) => {
+              if (!isAssignMode) {
+                const updatedStage = { ...stage, ...pos };
+                setStage(updatedStage);
+                if (selectedType === 'stage') setSelectedElement(updatedStage);
+              }
+            }}
+            onTransformEnd={(transform) => {
+              if (!isAssignMode) {
+                const updatedStage = { ...stage, ...transform };
+                setStage(updatedStage);
+                if (selectedType === 'stage') setSelectedElement(updatedStage);
+              }
+            }}
+          />
+
+          {/* Sections */}
+          {sections.map(section => (
+            <DraggableSection
+              key={section.id}
+              section={section}
+              isSelected={!isAssignMode && selectedElement?.id === section.id && selectedType === 'section'}
+              onSelect={() => {
+                if (!isAssignMode) {
+                  setSelectedElement(section);
+                  setSelectedType('section');
+                }
+              }}
+              onDragEnd={(pos) => {
+                if (!isAssignMode) {
+                  const updatedSection = { ...section, ...pos };
+                  updateSection(section.id, pos);
+                  if (selectedElement?.id === section.id && selectedType === 'section') setSelectedElement(updatedSection);
+                }
+              }}
+              onTransformEnd={(transform) => {
+                if (!isAssignMode) {
+                  const updatedSection = { ...section, ...transform };
+                  updateSection(section.id, transform);
+                  if (selectedElement?.id === section.id && selectedType === 'section') setSelectedElement(updatedSection);
+                }
+              }}
+            >
+              {/* Rows and Seats */}
+              {section.rows.map(row => (
+                <Group key={row.id}>
+                  <Text
+                    x={10}
+                    y={row.seats[0]?.y - 5}
+                    text={row.title}
+                    fontSize={14}
+                    fill="#FFFFFF"
+                    fontStyle="bold"
+                    listening={false}
+                  />
+
+                  {row.seats.map(seat => {
+                    // Determine opacity based on seat status
+                    const isDisabled = seat.status === 'disabled';
+                    const seatOpacity = isDisabled ? 0.3 : 1;
+
+                    return (
+                      <Group key={seat.id} opacity={seatOpacity}>
+                        <Rect
+                          x={seat.x - seat.radius}
+                          y={seat.y - seat.radius}
+                          width={seat.radius * 2}
+                          height={seat.radius * 2}
+                          fill={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : 'transparent'}
+                          stroke={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : '#999'}
+                          strokeWidth={selectedElement?.id === seat.id && selectedType === 'seat' ? 2 : 1}
+                          cornerRadius={4}
+                          onMouseEnter={(e) => {
+                            const container = e.target.getStage().container();
+                            container.style.cursor = 'pointer';
+                          }}
+                          onMouseLeave={(e) => {
+                            const container = e.target.getStage().container();
+                            container.style.cursor = 'default';
+                          }}
+                          onClick={(e) => {
+                            e.cancelBubble = true;
+                            setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
+                            setSelectedType('seat');
+                          }}
+                        />
+                        {seat.icon ? (
+                          <IconImage
+                            iconName={seat.icon}
+                            x={seat.x}
+                            y={seat.y}
+                            size={seat.radius * 1.2}
+                            opacity={1} // Icon inherits group opacity
+                          />
+                        ) : (
+                          <Text
+                            x={seat.x - seat.radius}
+                            y={seat.y - 4}
+                            width={seat.radius * 2}
+                            text={seat.number.toString()}
+                            fontSize={10}
+                            fill="#FFFFFF"
+                            align="center"
+                            verticalAlign="middle"
+                            listening={false}
+                          />
+                        )}
+                        {isDisabled && (
+                          <Line
+                            points={[
+                              seat.x - seat.radius * 0.7,
+                              seat.y - seat.radius * 0.7,
+                              seat.x + seat.radius * 0.7,
+                              seat.y + seat.radius * 0.7
+                            ]}
+                            stroke="#F44336"
+                            strokeWidth={2}
+                            listening={false}
+                          />
+                        )}
+                      </Group>
+                    );
+                  })}
+                </Group>
+              ))}
+            </DraggableSection>
+          ))}
+        </Layer>
+      </Stage>
+    </div>
+  )
 }
 
 export default CenterCanvas
