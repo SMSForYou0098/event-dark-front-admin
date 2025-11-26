@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { describeArc, polarToCartesian } from './helperFuntion';
 
 const StandsViewer = ({
@@ -10,66 +10,101 @@ const StandsViewer = ({
   viewDetail = 'stands',
   cx = 250,
   cy = 250,
-  innerRadius = 100,
+  innerRadius = 80,
   outerRadius = 200,
   onMouseEnter,
   onMouseLeave,
 }) => {
+  const [hoveredStand, setHoveredStand] = useState(null);
+  const [hoveredTier, setHoveredTier] = useState(null);
+  const [hoveredSection, setHoveredSection] = useState(null);
+
   const totalStands = standsData?.length || 0;
+  
+  // Calculate total visual weight for proportional sizing
+  const totalWeight = useMemo(() => {
+    if (!standsData) return 0;
+    return standsData.reduce((sum, stand) => sum + (stand.visualWeight || 1), 0);
+  }, [standsData]);
+
   if (totalStands === 0) return null;
 
-  const anglePerSegment = 360 / totalStands;
+  // Color palette - rich, vibrant colors
+  const standColors = [
+    { primary: '#6366f1', secondary: '#818cf8', accent: '#a5b4fc' },
+    { primary: '#ec4899', secondary: '#f472b6', accent: '#f9a8d4' },
+    { primary: '#14b8a6', secondary: '#2dd4bf', accent: '#5eead4' },
+    { primary: '#f59e0b', secondary: '#fbbf24', accent: '#fcd34d' },
+    { primary: '#8b5cf6', secondary: '#a78bfa', accent: '#c4b5fd' },
+    { primary: '#ef4444', secondary: '#f87171', accent: '#fca5a5' },
+    { primary: '#06b6d4', secondary: '#22d3ee', accent: '#67e8f9' },
+    { primary: '#84cc16', secondary: '#a3e635', accent: '#bef264' },
+  ];
+
+  const getStandColor = (index) => standColors[index % standColors.length];
+
   const paths = [];
 
-  const getHSL = (h, s, l) => `hsl(${h}, ${s}%, ${l}%)`;
+  // Calculate angles based on visual weight
+  let currentAngle = 0;
+  const standAngles = standsData.map((stand) => {
+    const weight = stand.visualWeight || 1;
+    const angleSpan = (weight / totalWeight) * 360;
+    const start = currentAngle;
+    currentAngle += angleSpan;
+    return { start, end: currentAngle, span: angleSpan };
+  });
 
-  // Stand wedge + label
   standsData.forEach((stand, standIndex) => {
-    const startAngle = standIndex * anglePerSegment;
-    const endAngle = startAngle + anglePerSegment;
-    const hue = (standIndex * 360) / Math.min(totalStands, 20);
+    const { start: startAngle, end: endAngle, span: angleSpan } = standAngles[standIndex];
+    const colors = getStandColor(standIndex);
+    const isStandHovered = hoveredStand === standIndex;
 
-    const baseColor = getHSL(hue, 60, 65);
-    const fillColor = stand.isBlocked ? 'var(--gray-color)' : baseColor;
-    const opacity = stand.isBlocked ? 0.6 : 0.9;
+    const baseOpacity = stand.isBlocked ? 0.4 : 0.9;
+    const hoverOpacity = 0.98;
 
-    const path =
+    // Stand path
+    const standPath =
       totalStands === 1
         ? describeArc(cx, cy, innerRadius, outerRadius, 0.01, 359.99)
         : describeArc(cx, cy, innerRadius, outerRadius, startAngle, endAngle);
 
-    if (viewDetail === 'stands' || viewDetail === 'tiers') {
+    if (viewDetail === 'stands') {
+      const fillColor = stand.isBlocked ? '#4b5563' : colors.primary;
+
       paths.push(
         <path
           key={`stand-${standIndex}`}
-          d={path}
+          d={standPath}
           fill={fillColor}
-          stroke="var(--border-secondary)"
-          strokeWidth="0.8"
-          onMouseEnter={(e) => onMouseEnter?.(stand.name, e)}
-          onMouseLeave={onMouseLeave}
-          onClick={() => !stand.isBlocked && isUser && onSelectStand?.(stand)}
-          className={stand.isBlocked ? 'cursor-not-allowed' : 'cursor-pointer'}
-          style={{
-            opacity,
-            transition: 'all 0.2s ease-in-out',
-            filter: 'brightness(1)',
-          }}
-          onMouseOver={(e) => {
+          stroke={isStandHovered && !stand.isBlocked ? '#fff' : 'rgba(255,255,255,0.15)'}
+          strokeWidth={isStandHovered && !stand.isBlocked ? 2.5 : 1}
+          onMouseEnter={(e) => {
             if (!stand.isBlocked) {
-              e.currentTarget.style.filter = 'brightness(1.15)';
-              e.currentTarget.style.strokeWidth = '1.2';
+              setHoveredStand(standIndex);
+              onMouseEnter?.(stand.name, e);
             }
           }}
-          onMouseOut={(e) => {
-            e.currentTarget.style.filter = 'brightness(1)';
-            e.currentTarget.style.strokeWidth = '0.8';
+          onMouseLeave={() => {
+            setHoveredStand(null);
+            onMouseLeave?.();
+          }}
+          onClick={() => !stand.isBlocked && isUser && onSelectStand?.(stand)}
+          style={{
+            cursor: stand.isBlocked ? 'not-allowed' : 'pointer',
+            opacity: isStandHovered && !stand.isBlocked ? hoverOpacity : baseOpacity,
+            transition: 'all 0.2s ease-out',
+            filter: isStandHovered && !stand.isBlocked 
+              ? 'brightness(1.15) drop-shadow(0 4px 12px rgba(0,0,0,0.4))' 
+              : 'none',
           }}
         />
       );
 
+      // Stand label
       const middleAngle = (startAngle + endAngle) / 2;
-      const labelPos = polarToCartesian(cx, cy, (innerRadius + outerRadius) / 2, middleAngle);
+      const labelRadius = (innerRadius + outerRadius) / 2;
+      const labelPos = polarToCartesian(cx, cy, labelRadius, middleAngle);
 
       paths.push(
         <text
@@ -77,64 +112,76 @@ const StandsViewer = ({
           x={labelPos.x}
           y={labelPos.y}
           textAnchor="middle"
-          fontSize="13"
+          dominantBaseline="middle"
+          fontSize="14"
           fontWeight="700"
-          fill={stand.isBlocked ? 'var(--text-muted)' : 'var(--text-white)'}
+          fill="#fff"
           style={{ 
             pointerEvents: 'none',
-            userSelect: 'none',
-            textShadow: stand.isBlocked ? 'none' : '0 1px 3px rgba(0,0,0,0.5)',
-            letterSpacing: '0.3px'
+            textShadow: '0 2px 4px rgba(0,0,0,0.6)',
+            letterSpacing: '0.5px'
           }}
         >
           {stand.name}
         </text>
       );
+
+      // Blocked indicator
+      if (stand.isBlocked) {
+        const iconPos = polarToCartesian(cx, cy, labelRadius + 20, middleAngle);
+        paths.push(
+          <g key={`blocked-${standIndex}`} transform={`translate(${iconPos.x - 8}, ${iconPos.y - 8})`}>
+            <circle cx="8" cy="8" r="10" fill="rgba(0,0,0,0.6)" />
+            <text x="8" y="12" textAnchor="middle" fontSize="10" fill="#fff">🔒</text>
+          </g>
+        );
+      }
     }
 
+    // Tiers view
     if (viewDetail === 'tiers' || viewDetail === 'sections') {
-      const tierCount = stand.tiers.length;
+      const tierCount = stand.tiers?.length || 0;
+      if (tierCount === 0) return;
+
       const tierHeight = (outerRadius - innerRadius) / tierCount;
 
       stand.tiers.forEach((tier, tierIndex) => {
         const tierInner = innerRadius + tierIndex * tierHeight;
-        const tierOuter = tierInner + tierHeight;
-        const brightness = 65 - tierIndex * 8;
-        const tierColor = getHSL(hue, 70, brightness);
-        const arc = describeArc(cx, cy, tierInner, tierOuter, startAngle, endAngle);
-        
+        const tierOuter = tierInner + tierHeight - 2; // Gap between tiers
+        const isTierHovered = hoveredTier === `${standIndex}-${tierIndex}`;
+        const isBlocked = tier?.isBlocked || stand.isBlocked;
+
+        // Calculate tier color based on stand color but with variation
+        const brightness = 100 - tierIndex * 15;
+        const tierColor = isBlocked 
+          ? '#4b5563' 
+          : `color-mix(in srgb, ${colors.primary} ${brightness}%, ${colors.secondary})`;
+
+        const tierArc = describeArc(cx, cy, tierInner, tierOuter, startAngle, endAngle);
+
         if (viewDetail === 'tiers') {
-          const isBlocked = tier?.isBlocked || stand.isBlocked;
-          
           paths.push(
             <path
               key={`tier-${standIndex}-${tierIndex}`}
-              d={arc}
-              fill={isBlocked ? "var(--gray-color)" : tierColor}
-              stroke="var(--border-secondary)"
-              strokeWidth="0.5"
-              className={isBlocked ? 'cursor-not-allowed' : 'cursor-pointer'}
-              style={{ 
-                opacity: isBlocked ? 0.5 : 0.85,
-                transition: 'all 0.2s ease-in-out',
-                filter: 'brightness(1)',
-              }}
+              d={tierArc}
+              fill={isBlocked ? '#4b5563' : colors.secondary}
+              stroke={isTierHovered && !isBlocked ? '#fff' : 'rgba(255,255,255,0.1)'}
+              strokeWidth={isTierHovered && !isBlocked ? 2 : 0.8}
+              onMouseEnter={() => !isBlocked && setHoveredTier(`${standIndex}-${tierIndex}`)}
+              onMouseLeave={() => setHoveredTier(null)}
               onClick={() => !isBlocked && isUser && onSelectTier?.(tier, stand)}
-              onMouseOver={(e) => {
-                if (!isBlocked) {
-                  e.currentTarget.style.filter = 'brightness(1.2)';
-                  e.currentTarget.style.strokeWidth = '0.8';
-                  e.currentTarget.style.opacity = '0.95';
-                }
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.filter = 'brightness(1)';
-                e.currentTarget.style.strokeWidth = '0.5';
-                e.currentTarget.style.opacity = isBlocked ? '0.5' : '0.85';
+              style={{ 
+                cursor: isBlocked ? 'not-allowed' : 'pointer',
+                opacity: isBlocked ? 0.4 : (isTierHovered ? 0.98 : 0.85),
+                transition: 'all 0.2s ease-out',
+                filter: isTierHovered && !isBlocked 
+                  ? 'brightness(1.2) drop-shadow(0 3px 8px rgba(0,0,0,0.3))' 
+                  : 'none',
               }}
             />
           );
 
+          // Tier label
           const labelAngle = (startAngle + endAngle) / 2;
           const labelRadius = tierInner + tierHeight / 2;
           const pos = polarToCartesian(cx, cy, labelRadius, labelAngle);
@@ -145,14 +192,13 @@ const StandsViewer = ({
               x={pos.x}
               y={pos.y}
               textAnchor="middle"
+              dominantBaseline="middle"
               fontSize="11"
               fontWeight="700"
-              fill={isBlocked ? 'var(--text-muted)' : 'var(--text-white)'}
+              fill="#fff"
               style={{ 
                 pointerEvents: 'none',
-                textShadow: isBlocked ? 'none' : '0 0 4px rgba(0,0,0,0.8)',
-                userSelect: 'none',
-                letterSpacing: '0.2px'
+                textShadow: '0 1px 3px rgba(0,0,0,0.7)',
               }}
             >
               {tier.name}
@@ -160,101 +206,107 @@ const StandsViewer = ({
           );
         }
 
+        // Sections view
         if (viewDetail === 'sections') {
-          const sections = tier.sections;
-          const sectionAngle = anglePerSegment / sections.length;
+          const sections = tier.sections || [];
+          const sectionCount = sections.length;
+          if (sectionCount === 0) return;
+
+          const sectionAngle = angleSpan / sectionCount;
 
           sections.forEach((section, sectionIndex) => {
-            const sStart = startAngle + sectionIndex * sectionAngle;
-            const sEnd = sStart + sectionAngle;
-            const sectionHue = (hue + sectionIndex * 8) % 360;
-            const sectionColor = getHSL(sectionHue, 70, 68 - sectionIndex * 3);
+            const sStart = startAngle + sectionIndex * sectionAngle + 0.5;
+            const sEnd = sStart + sectionAngle - 1;
+            const isSectionHovered = hoveredSection === `${standIndex}-${tierIndex}-${sectionIndex}`;
+            const isSectionBlocked = stand?.isBlocked || tier?.isBlocked || section?.isBlocked;
+
+            // Section colors with variation
+            const sectionHue = (standIndex * 45 + sectionIndex * 20) % 360;
+            const sectionColor = isSectionBlocked 
+              ? '#4b5563' 
+              : `hsl(${sectionHue}, 65%, ${55 - tierIndex * 8}%)`;
 
             const sectionArc = describeArc(cx, cy, tierInner, tierOuter, sStart, sEnd);
-            const isBlocked = stand?.isBlocked || tier?.isBlocked || section?.isBlocked;
 
             paths.push(
               <path
                 key={`section-${standIndex}-${tierIndex}-${sectionIndex}`}
                 d={sectionArc}
-                fill={isBlocked ? "var(--gray-color)" : sectionColor}
-                stroke="var(--border-secondary)"
-                strokeWidth="0.5"
-                className={isBlocked ? 'cursor-not-allowed' : 'cursor-pointer'}
+                fill={sectionColor}
+                stroke={isSectionHovered && !isSectionBlocked ? '#fff' : 'rgba(255,255,255,0.08)'}
+                strokeWidth={isSectionHovered && !isSectionBlocked ? 2 : 0.5}
+                onMouseEnter={() => !isSectionBlocked && setHoveredSection(`${standIndex}-${tierIndex}-${sectionIndex}`)}
+                onMouseLeave={() => setHoveredSection(null)}
+                onClick={() => !isSectionBlocked && isUser && onSelectSection?.(section, stand, tier)}
                 style={{ 
-                  opacity: isBlocked ? 0.4 : 0.85,
-                  transition: 'all 0.2s ease-in-out',
-                  filter: 'brightness(1)',
-                }}
-                onClick={() => !isBlocked && isUser && onSelectSection?.(section, stand, tier)}
-                onMouseOver={(e) => {
-                  if (!isBlocked) {
-                    e.currentTarget.style.filter = 'brightness(1.25)';
-                    e.currentTarget.style.strokeWidth = '0.8';
-                    e.currentTarget.style.opacity = '0.95';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.filter = 'brightness(1)';
-                  e.currentTarget.style.strokeWidth = '0.5';
-                  e.currentTarget.style.opacity = isBlocked ? '0.4' : '0.85';
+                  cursor: isSectionBlocked ? 'not-allowed' : 'pointer',
+                  opacity: isSectionBlocked ? 0.35 : (isSectionHovered ? 0.98 : 0.8),
+                  transition: 'all 0.2s ease-out',
+                  filter: isSectionHovered && !isSectionBlocked 
+                    ? 'brightness(1.25) drop-shadow(0 2px 6px rgba(0,0,0,0.3))' 
+                    : 'none',
                 }}
               />
             );
 
-            const midAngle = (sStart + sEnd) / 2;
-            const labelPos = polarToCartesian(cx, cy, tierInner + tierHeight / 2, midAngle);
+            // Section label (only if enough space)
+            if (sectionAngle > 8) {
+              const midAngle = (sStart + sEnd) / 2;
+              const labelPos = polarToCartesian(cx, cy, tierInner + tierHeight / 2, midAngle);
 
-            paths.push(
-              <text
-                key={`section-label-${standIndex}-${tierIndex}-${sectionIndex}`}
-                x={labelPos.x}
-                y={labelPos.y}
-                textAnchor="middle"
-                fontSize="9"
-                fontWeight="700"
-                fill={isBlocked ? 'var(--text-muted)' : 'var(--text-white)'}
-                style={{ 
-                  pointerEvents: 'none',
-                  textShadow: isBlocked ? 'none' : '0 0 4px rgba(0,0,0,0.9)',
-                  userSelect: 'none',
-                  letterSpacing: '0.2px'
-                }}
-              >
-                {section.name}
-              </text>
-            );
+              paths.push(
+                <text
+                  key={`section-label-${standIndex}-${tierIndex}-${sectionIndex}`}
+                  x={labelPos.x}
+                  y={labelPos.y}
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  fontSize="9"
+                  fontWeight="600"
+                  fill="#fff"
+                  style={{ 
+                    pointerEvents: 'none',
+                    textShadow: '0 1px 2px rgba(0,0,0,0.8)',
+                  }}
+                >
+                  {section.name}
+                </text>
+              );
+            }
           });
         }
       });
     }
   });
 
-  // Add radial partition lines (for multiple stands)
+  // Add radial partition lines for stands view
   if (viewDetail === 'stands' && totalStands > 1) {
-    for (let i = 0; i < totalStands; i++) {
-      const angle = i * anglePerSegment;
-      const p1 = polarToCartesian(cx, cy, innerRadius, angle);
-      const p2 = polarToCartesian(cx, cy, outerRadius, angle);
+    let lineAngle = 0;
+    standsData.forEach((stand, i) => {
+      const weight = stand.visualWeight || 1;
+      const angleSpan = (weight / totalWeight) * 360;
+      
+      if (i > 0) {
+        const p1 = polarToCartesian(cx, cy, innerRadius, lineAngle);
+        const p2 = polarToCartesian(cx, cy, outerRadius, lineAngle);
 
-      paths.push(
-        <line
-          key={`divider-${i}`}
-          x1={p1.x}
-          y1={p1.y}
-          x2={p2.x}
-          y2={p2.y}
-          stroke="var(--border-secondary)"
-          strokeWidth="1"
-          style={{
-            opacity: 0.6
-          }}
-        />
-      );
-    }
+        paths.push(
+          <line
+            key={`divider-${i}`}
+            x1={p1.x}
+            y1={p1.y}
+            x2={p2.x}
+            y2={p2.y}
+            stroke="rgba(255,255,255,0.2)"
+            strokeWidth="1.5"
+          />
+        );
+      }
+      lineAngle += angleSpan;
+    });
   }
 
-  return <g transform={`rotate(${-anglePerSegment / 2}, ${cx}, ${cy})`}>{paths}</g>;
+  return <g>{paths}</g>;
 };
 
 export default StandsViewer;

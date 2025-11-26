@@ -25,7 +25,7 @@ import {
   CloseOutlined,
 } from '@ant-design/icons';
 import { SAMPLE_STADIUM_LAYOUT, DEFAULT_SPECIAL_ZONES } from './sampleLayout';
-import SeatsGrid from '../stadium builder/SeatsGrid';
+import { CanvasSeatsGrid } from './CanvasSeats';
 import TierViewer from '../stadium builder/TierViewer';
 import SectionViewer from '../stadium builder/SectionViewer';
 import SelectedSeatsModal from '../stadium builder/SelectedSeatsModal';
@@ -829,7 +829,7 @@ const StadiumCanvasViewer = ({
                 View Selected
               </Button>
             </div>
-            <SeatsGrid
+            <CanvasSeatsGrid
               selectedSection={selectedSection}
               tier={selectedTier}
               stand={selectedStand}
@@ -909,7 +909,7 @@ const StadiumCanvasViewer = ({
               >
                 Sections
               </Button>
-              {isUser && (
+              {isUser && typeof handleSubmit === 'function' && (
                 <Button
                   type="primary"
                   size={buttonSize}

@@ -120,6 +120,19 @@ export const protectedRoutes = [
         meta: {}
     },
     {
+        key: 'canvas-performance-demo',
+        path: `/stadium/canvas-demo`,
+        component: React.lazy(() => import('views/events/seating_module/Stadium_layout/Canvas_Based/CanvasSeats/CanvasStadiumDemo')),
+        meta: {}
+    },
+    // StadiumV2 - Fresh Build
+    {
+        key: 'stadium-v2-admin',
+        path: `/stadium-v2`,
+        component: React.lazy(() => import('views/events/seating_module/StadiumV2/StadiumAdmin')),
+        meta: {}
+    },
+    {
         key: 'user-booking',
         path: `/user-booking`,
         component: React.lazy(() => import('views/events/seating_module/Stadium_layout/UsersBooking')),

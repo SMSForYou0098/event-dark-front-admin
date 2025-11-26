@@ -91,13 +91,14 @@ const BasicDetailsStep = ({ form, isEdit }) => {
             {
               validator: (_, value) => {
                 if (!value) return Promise.resolve();
-                // \p{L} = any kind of letter in any language (requires `u` flag)
-                const valid = /^[\p{L}0-9 ._-]+$/u.test(value);
+                // Allow letters (any language), digits, spaces, hyphen and underscore only.
+                // Disallow dot (.) and other special characters because they cause issues with Easebuzz.
+                const valid = /^[\p{L}0-9 _-]+$/u.test(value);
                 return valid
                   ? Promise.resolve()
                   : Promise.reject(
                     new Error(
-                      "Only letters, numbers, spaces, hyphen (-), underscore (_) and dot (.) are allowed."
+                      "Only letters, numbers and spaces are allowed — hyphen (-) and underscore (_) are also permitted. Dots (.) and other special characters are not allowed."
                     )
                   );
               },

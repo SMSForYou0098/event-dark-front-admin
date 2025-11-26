@@ -1,6 +1,6 @@
-import React, { useMemo, useEffect, useState } from 'react';
-import { Modal, Button, Badge, Tag, Table, Input, Switch, Space, Tooltip } from 'antd';
-import { PlusOutlined, DeleteOutlined, CloseOutlined, TeamOutlined, TagsOutlined } from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Modal, Button, Tag, Table, Input, Switch, Tooltip } from 'antd';
+import { PlusOutlined, DeleteOutlined, TeamOutlined, TagsOutlined } from '@ant-design/icons';
 
 const RowsModal = ({
   currentModal,
@@ -129,6 +129,8 @@ const RowsModal = ({
           }
           size={isMobile ? "small" : "middle"}
           className="w-100"
+          disabled
+          style={{ cursor: 'not-allowed', opacity: 0.6 }}
         />
       ),
     },

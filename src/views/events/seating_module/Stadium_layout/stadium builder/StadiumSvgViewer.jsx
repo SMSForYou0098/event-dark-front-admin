@@ -234,7 +234,7 @@ const StadiumSvgViewer = ({
               >
                 Sections
               </Button>
-              {isUser && (
+              {isUser && typeof handleSubmit === 'function' && (
                 <Button
                   type="primary"
                   size={buttonSize}
@@ -243,7 +243,7 @@ const StadiumSvgViewer = ({
                     console.log("Booked Tickets", selectedSeats);
                     setShowModal(false);
                     setSelectedSeats([]);
-                    handleSubmit?.(selectedSeats);
+                    handleSubmit(selectedSeats);
                   }}
                   className="bg-success"
                   style={{ backgroundColor: 'var(--success-color)', borderColor: 'var(--success-color)' }}
