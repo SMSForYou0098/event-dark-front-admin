@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Modal, Button, Badge, Tag, Table, Input, Switch, Space, Tooltip } from 'antd';
+import { Modal, Button, Badge, Tag, Table, Input, Switch, Tooltip } from 'antd';
 import { PlusOutlined, DeleteOutlined, MenuOutlined, TeamOutlined, TagsOutlined } from '@ant-design/icons';
 
 const SectionsModal = ({
@@ -72,6 +72,8 @@ const SectionsModal = ({
           required
           size={isMobile ? "small" : "middle"}
           className="w-100"
+          disabled
+          style={{ cursor: 'not-allowed', opacity: 0.6 }}
         />
       ),
     },

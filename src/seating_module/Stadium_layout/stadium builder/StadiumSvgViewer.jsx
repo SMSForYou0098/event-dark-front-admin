@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import SeatsGrid from "./SeatsGrid";
 import TierViewer from "./TierViewer";
 import SectionViewer from "./SectionViewer";
-import { describeArc, polarToCartesian } from "./helperFuntion";
 import StandsViewer from "./StandsViewer";
-import { Badge, Button, Space, Typography } from "antd";
+import { Badge, Button, Space, Typography, Tooltip, Segmented, Tag } from "antd";
 import SelectedSeatsModal from "./SelectedSeatsModal";
 import {
   EyeOutlined,
@@ -14,13 +13,19 @@ import {
   ArrowLeftOutlined,
   CheckOutlined,
   CloseOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  ExpandOutlined,
+  FullscreenOutlined,
 } from "@ant-design/icons";
 import { useMyContext } from "Context/MyContextProvider";
 
 const { Title, Text } = Typography;
 
-const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
+const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit, enableDrilldown = false }) => {
   const { isMobile } = useMyContext();
+  
+  // View state
   const [hoveredStand, setHoveredStand] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [selectedStand, setSelectedStand] = useState(null);
@@ -31,126 +36,163 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
   const [showModal, setShowModal] = useState(false);
   const [detailView, setDetailView] = useState("stands");
   const [showSeatsModal, setSeatsShowModal] = useState(false);
+  
+  // Zoom and pan state
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  
+  const containerRef = useRef(null);
+  const svgContainerRef = useRef(null);
+
+  const canInteract = isUser || enableDrilldown;
+
+  // Zoom handlers
+  const handleZoomIn = useCallback(() => {
+    setScale(prev => Math.min(prev + 0.2, 3));
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    setScale(prev => Math.max(prev - 0.2, 0.5));
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  }, []);
+
+  // Mouse wheel zoom
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    setScale(prev => Math.min(Math.max(prev + delta, 0.5), 3));
+  }, []);
+
+  // Pan handlers
+  const handleMouseDown = useCallback((e) => {
+    if (e.button !== 0) return;
+    setIsDragging(true);
+    setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
+  }, [position]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isDragging) return;
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Touch handlers for mobile
+  const handleTouchStart = useCallback((e) => {
+    if (e.touches.length === 1) {
+      setIsDragging(true);
+      setDragStart({ 
+        x: e.touches[0].clientX - position.x, 
+        y: e.touches[0].clientY - position.y 
+      });
+    }
+  }, [position]);
+
+  const handleTouchMove = useCallback((e) => {
+    if (!isDragging || e.touches.length !== 1) return;
+    setPosition({
+      x: e.touches[0].clientX - dragStart.x,
+      y: e.touches[0].clientY - dragStart.y
+    });
+  }, [isDragging, dragStart]);
+
+  useEffect(() => {
+    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener('touchend', handleMouseUp);
+    return () => {
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [handleMouseUp]);
 
   const renderModalContent = () => {
     switch (viewMode) {
       case "tiers":
         return (
-          <div className="bg-dark border border-secondary rounded p-3 p-md-4 text-center">
-            <Space direction="vertical" align="center" size="middle" className="w-100">
-              <Title level={4} className="m-0 d-flex align-items-center justify-content-center">
-                <BankOutlined className="mr-2 text-primary" />
-                <span className="text-white">{selectedStand?.name}</span>
-              </Title>
-              <Text className="text-muted">Select a tier to view sections</Text>
-              <TierViewer
-                tiers={selectedStand?.tiers || []}
-                onSelectTier={(tier) => {
-                  setSelectedTier(tier);
-                  setViewMode("sections");
-                }}
-                isUser={isUser}
-                className="mt-4"
-              />
-            </Space>
+          <div className="p-3 p-md-4">
+            <div className="text-center mb-4">
+              <Space direction="vertical" align="center" size="small">
+                <Tag 
+                  icon={<BankOutlined />} 
+                  color="blue"
+                  style={{ fontSize: 14, padding: '4px 12px' }}
+                >
+                  {selectedStand?.name}
+                </Tag>
+                <Text type="secondary">Select a tier to view sections</Text>
+              </Space>
+            </div>
+            <TierViewer
+              tiers={selectedStand?.tiers || []}
+              onSelectTier={(tier) => {
+                setSelectedTier(tier);
+                setViewMode("sections");
+              }}
+              isUser={canInteract}
+            />
           </div>
         );
 
       case "sections":
         return (
-          <div className="bg-dark border border-secondary rounded p-3 p-md-4 text-center">
-            <Space direction="vertical" align="center" size="middle" className="w-100">
-              <div className={`d-flex ${isMobile ? 'flex-column' : 'flex-row'} align-items-center justify-content-center`} style={{ gap: '1rem', flexWrap: 'wrap' }}>
-                <Space align="center">
-                  <BankOutlined className="text-primary" style={{ fontSize: 20 }} />
-                  <Text strong className="text-white" style={{ fontSize: 16 }}>{selectedStand?.name}</Text>
-                </Space>
-                <Space align="center">
-                  <AppstoreOutlined className="text-info" style={{ fontSize: 20, color: '#17c0eb' }} />
-                  <Text strong style={{ fontSize: 16, color: '#17c0eb' }}>{selectedTier?.name}</Text>
-                </Space>
+          <div className="p-3 p-md-4">
+            <div className="text-center mb-4">
+              <Space wrap size="small" className="justify-content-center">
+                <Tag icon={<BankOutlined />} color="blue" style={{ fontSize: 13 }}>
+                  {selectedStand?.name}
+                </Tag>
+                <Tag icon={<AppstoreOutlined />} color="cyan" style={{ fontSize: 13 }}>
+                  {selectedTier?.name}
+                </Tag>
+              </Space>
+              <div className="mt-2">
+                <Text type="secondary">Select a section to view seats</Text>
               </div>
-              <Text className="text-muted">Select a section to view seats</Text>
-              <SectionViewer
-                sections={selectedTier?.sections || []}
-                onSelectSection={(section) => {
-                  setSelectedSection(section);
-                  setViewMode("seats");
-                }}
-                isUser={isUser}
-                className="mt-4"
-              />
-            </Space>
+            </div>
+            <SectionViewer
+              sections={selectedTier?.sections || []}
+              onSelectSection={(section) => {
+                setSelectedSection(section);
+                setViewMode("seats");
+              }}
+              isUser={canInteract}
+            />
           </div>
         );
 
       case "seats":
         return (
-          <div className={`p-${isMobile ? 3 : 4}`}>
+          <div className="p-3 p-md-4">
             <div className={`d-flex ${isMobile ? 'flex-column' : 'flex-row'} justify-content-between align-items-center mb-4`} style={{ gap: '0.75rem' }}>
-              {/* Badges */}
-              <div className="d-flex flex-wrap justify-content-center" style={{ gap: '0.5rem' }}>
-                <Badge
-                  count={
-                    <Space size={4} className="px-3 py-1">
-                      <BankOutlined />
-                      <span>{selectedStand?.name}</span>
-                    </Space>
-                  }
-                  style={{
-                    backgroundColor: 'rgba(181, 21, 21, 0.1)',
-                    color: 'var(--primary-color)',
-                    border: '1px solid var(--primary-color)',
-                    fontWeight: 600,
-                    fontSize: isMobile ? 13 : 16,
-                  }}
-                />
-                <Badge
-                  count={
-                    <Space size={4} className="px-3 py-1">
-                      <AppstoreOutlined />
-                      <span>{selectedTier?.name}</span>
-                    </Space>
-                  }
-                  style={{
-                    backgroundColor: 'rgba(4, 209, 130, 0.1)',
-                    color: 'var(--success-color)',
-                    border: '1px solid var(--success-color)',
-                    fontWeight: 600,
-                    fontSize: isMobile ? 13 : 16,
-                  }}
-                />
-                <Badge
-                  count={
-                    <Space size={4} className="px-3 py-1">
-                      <LayoutOutlined />
-                      <span>{selectedSection?.name}</span>
-                    </Space>
-                  }
-                  style={{
-                    backgroundColor: 'rgba(255, 197, 66, 0.12)',
-                    color: 'var(--warning-color)',
-                    border: '1px solid var(--warning-color)',
-                    fontWeight: 600,
-                    fontSize: isMobile ? 13 : 16,
-                  }}
-                />
-              </div>
-              {/* View Button */}
+              {/* Breadcrumb Tags */}
+              <Space wrap size="small">
+                <Tag icon={<BankOutlined />} color="blue">{selectedStand?.name}</Tag>
+                <Tag icon={<AppstoreOutlined />} color="cyan">{selectedTier?.name}</Tag>
+                <Tag icon={<LayoutOutlined />} color="gold">{selectedSection?.name}</Tag>
+              </Space>
+              {/* View Selected Button */}
               <Button
                 type="default"
-                size={isMobile ? "middle" : "large"}
+                size={isMobile ? "small" : "middle"}
                 icon={<EyeOutlined />}
                 onClick={() => setSeatsShowModal(!showSeatsModal)}
-                className="font-weight-semibold"
                 style={{
-                  borderWidth: 2,
-                  backgroundColor: 'rgba(181, 21, 21, 0.1)',
-                  color: 'var(--primary-color)',
                   borderColor: 'var(--primary-color)',
+                  color: 'var(--primary-color)',
                 }}
               >
-                View Selected
+                View Selected ({selectedSeats.length})
               </Button>
             </div>
             {/* Seats Grid */}
@@ -184,9 +226,8 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
               setViewMode("stands");
               setShowModal(false);
             }}
-            className="bg-primary"
           >
-            Stands
+            Back to Stadium
           </Button>
         );
       case "sections":
@@ -196,52 +237,51 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
             size={buttonSize}
             icon={<ArrowLeftOutlined />}
             onClick={() => setViewMode("tiers")}
-            className="bg-primary"
           >
-            Tiers
+            Back to Tiers
           </Button>
         );
       case "seats":
         return (
           <>
-            {selectedSeats?.length > 0 && (
-              <div className="w-100 d-flex justify-content-center align-items-center">
+            {isUser && selectedSeats?.length > 0 && (
+              <div className="w-100 text-center mb-3">
                 <Text className="text-white">
-                  Selected <Text strong className="text-white">{selectedSeats?.length}</Text> seat(s), Total Price:{' '}
-                  <Text strong className="text-success">
-                    ₹
-                    {selectedSeats
-                      ?.reduce((sum, seat) => sum + parseFloat(seat.price || 0), 0)
-                      .toFixed(2)}
+                  <Text strong style={{ color: 'var(--primary-color)' }}>{selectedSeats?.length}</Text> seat(s) selected • Total:{' '}
+                  <Text strong style={{ color: 'var(--success-color)' }}>
+                    ₹{selectedSeats?.reduce((sum, seat) => sum + parseFloat(seat.price || 0), 0).toFixed(2)}
                   </Text>
                 </Text>
               </div>
             )}
-            <div className="w-100 d-flex flex-row justify-content-between align-items-center" style={{ gap: '0.75rem' }}>
+            <div className="w-100 d-flex justify-content-between align-items-center" style={{ gap: '0.75rem' }}>
               <Button
                 type="primary"
                 size={buttonSize}
                 icon={<ArrowLeftOutlined />}
                 onClick={() => setViewMode("sections")}
-                className="bg-primary"
               >
-                Sections
+                Back to Sections
               </Button>
-              <Button
-                type="primary"
-                size={buttonSize}
-                icon={<CheckOutlined />}
-                onClick={() => {
-                  console.log("Booked Tickets", selectedSeats);
-                  setShowModal(false);
-                  setSelectedSeats([]);
-                  handleSubmit(selectedSeats);
-                }}
-                className="bg-success"
-                style={{ backgroundColor: 'var(--success-color)', borderColor: 'var(--success-color)' }}
-              >
-                Confirm
-              </Button>
+              {isUser && typeof handleSubmit === 'function' && (
+                <Button
+                  type="primary"
+                  size={buttonSize}
+                  icon={<CheckOutlined />}
+                  onClick={() => {
+                    handleSubmit(selectedSeats);
+                    setShowModal(false);
+                    setSelectedSeats([]);
+                  }}
+                  style={{ 
+                    backgroundColor: 'var(--success-color)', 
+                    borderColor: 'var(--success-color)' 
+                  }}
+                  disabled={!selectedSeats?.length}
+                >
+                  Confirm Booking
+                </Button>
+              )}
             </div>
           </>
         );
@@ -260,156 +300,280 @@ const StadiumSvgViewer = ({ standsData, isUser = true, handleSubmit }) => {
     setHoveredStand(null);
   };
 
+  const viewOptions = [
+    { label: 'Stands', value: 'stands' },
+    { label: 'Tiers', value: 'tiers' },
+    { label: 'Sections', value: 'sections' },
+  ];
+
   return (
     <>
-      <div className="position-relative border border-secondary rounded overflow-hidden d-flex flex-column" 
-           style={{ 
-             height: "800px",
-             background: "var(--component-bg)"
-           }}>
-        {/* View Mode Controls */}
-        <div className="position-absolute d-flex shadow-sm rounded p-2"
-             style={{
-               top: 12,
-               right: 12,
-               zIndex: 20,
-               gap: 10,
-               backgroundColor: "rgba(252,252,252,0.03)",
-               border: '1px solid var(--border-secondary)'
-             }}>
-          <Button
-            type={detailView === "stands" ? "primary" : "info"}
-            size="small"
-            onClick={() => setDetailView("stands")}
-            className={`font-weight-semibold`}
-            style={{ minWidth: 90 }}
-          >
-            Stands Only
-          </Button>
-          <Button
-            type={detailView === "tiers" ? "primary" : "info"}
-            size="small"
-            onClick={() => setDetailView("tiers")}
-            className={`font-weight-semibold `}
-            style={{ minWidth: 110 }}
-          >
-            Stands + Tiers
-          </Button>
-          <Button
-            type={detailView === "sections" ? "primary" : "info"}
-            size="small"
-            onClick={() => setDetailView("sections")}
-            className={`font-weight-semibold`}
-            style={{ minWidth: 105 }}
-          >
-            Full Detail
-          </Button>
+      <div 
+        ref={containerRef}
+        className="position-relative d-flex flex-column" 
+        style={{ 
+          height: isMobile ? "500px" : "700px",
+          borderRadius: 16,
+          overflow: 'hidden',
+          background: 'linear-gradient(145deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* Top Controls Bar */}
+        <div 
+          className="d-flex justify-content-between align-items-center flex-wrap p-3"
+          style={{
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(10px)',
+            borderBottom: '1px solid rgba(255,255,255,0.1)',
+            gap: '0.75rem',
+          }}
+        >
+          {/* View Mode Selector */}
+          <Segmented
+            options={viewOptions}
+            value={detailView}
+            onChange={setDetailView}
+            size={isMobile ? "small" : "middle"}
+          />
+
+          {/* Zoom Controls */}
+          <Space size="small">
+            <Tooltip title="Zoom Out">
+              <Button 
+                type="text" 
+                icon={<ZoomOutOutlined />}
+                onClick={handleZoomOut}
+                size="small"
+                style={{ color: '#fff' }}
+              />
+            </Tooltip>
+            <Tag style={{ margin: 0, minWidth: 50, textAlign: 'center' }}>
+              {Math.round(scale * 100)}%
+            </Tag>
+            <Tooltip title="Zoom In">
+              <Button 
+                type="text" 
+                icon={<ZoomInOutlined />}
+                onClick={handleZoomIn}
+                size="small"
+                style={{ color: '#fff' }}
+              />
+            </Tooltip>
+            <Tooltip title="Reset View">
+              <Button 
+                type="text" 
+                icon={<ExpandOutlined />}
+                onClick={handleReset}
+                size="small"
+                style={{ color: '#fff' }}
+              />
+            </Tooltip>
+          </Space>
         </div>
 
-        {/* The main pan/zoom viewer fills remaining space */}
-        <div className="flex-grow-1 position-relative" style={{ minHeight: 0 }}>
-          <svg
-            viewBox="0 0 500 500"
-            width="100%"
-            height="100%"
-            preserveAspectRatio="xMidYMid meet"
-            style={{ backgroundColor: "#000" }}
+        {/* Main SVG Container */}
+        <div 
+          ref={svgContainerRef}
+          className="flex-grow-1 position-relative" 
+          style={{ 
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              cursor: isDragging ? 'grabbing' : 'grab',
+              transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+              transformOrigin: 'center center',
+              transition: isDragging ? 'none' : 'transform 0.15s ease-out',
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onWheel={handleWheel}
           >
-            <circle cx="250" cy="250" r="60" fill="var(--success-color)" stroke="#ddd" />
-            <StandsViewer
-              standsData={standsData}
-              isUser={isUser}
-              onSelectStand={(stand) => {
-                setSelectedStand(stand);
-                setViewMode("tiers");
-                setShowModal(true);
-              }}
-              onSelectSection={(section, stand, tier) => {
-                setSelectedSection(section);
-                setSelectedTier(tier);
-                setViewMode("sections");
-                setShowModal(true);
-                setSelectedStand(stand);
-              }}
-              onSelectTier={(tier, stand) => {
-                setSelectedTier(tier);
-                setViewMode("sections");
-                setShowModal(true);
-                setSelectedStand(stand);
-              }}
-              viewDetail={detailView}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            />
-          </svg>
+            <svg
+              viewBox="0 0 500 500"
+              width="100%"
+              height="100%"
+              preserveAspectRatio="xMidYMid meet"
+            >
+              {/* Background pattern */}
+              <defs>
+                <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                  <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="0.5"/>
+                </pattern>
+                <radialGradient id="fieldGradient" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stopColor="#2e7d32" />
+                  <stop offset="70%" stopColor="#1b5e20" />
+                  <stop offset="100%" stopColor="#145214" />
+                </radialGradient>
+                <filter id="fieldGlow">
+                  <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                  <feMerge>
+                    <feMergeNode in="coloredBlur"/>
+                    <feMergeNode in="SourceGraphic"/>
+                  </feMerge>
+                </filter>
+              </defs>
+              
+              <rect width="500" height="500" fill="url(#grid)" />
+              
+              {/* Center field */}
+              <circle 
+                cx="250" 
+                cy="250" 
+                r="60" 
+                fill="url(#fieldGradient)" 
+                stroke="rgba(255,255,255,0.3)"
+                strokeWidth="2"
+                filter="url(#fieldGlow)"
+              />
+              <circle 
+                cx="250" 
+                cy="250" 
+                r="35" 
+                fill="none" 
+                stroke="rgba(255,255,255,0.2)"
+                strokeWidth="1"
+              />
+              <text
+                x="250"
+                y="250"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize="12"
+                fontWeight="600"
+                fill="rgba(255,255,255,0.7)"
+                style={{ letterSpacing: '2px' }}
+              >
+                FIELD
+              </text>
 
-          {/* Modal Content Overlay */}
-          {showModal && (
-            <div className="position-absolute bg-dark border border-3 border-dark d-flex flex-column rounded shadow-lg"
-                 style={{
-                   inset: 0,
-                   zIndex: 1050,
-                   backgroundColor: 'var(--body-bg)',
-                   borderColor: 'var(--border-secondary) !important'
-                 }}>
-              {/* Sticky Header */}
-              <div className={`d-flex justify-content-between align-items-center border-bottom position-sticky ${isMobile ? 'px-3 py-2' : 'px-4 py-3'}`}
-                   style={{
-                     top: 0,
-                     zIndex: 1,
-                     backgroundColor: 'var(--component-bg)',
-                     borderBottomLeftRadius: 0,
-                     borderBottomRightRadius: 0,
-                     borderColor: 'var(--border-secondary)'
-                   }}>
-                <Title level={5} className={`m-0 text-white ${isMobile ? 'font-size-base' : 'font-size-lg'}`}>
-                  Book Tickets
-                </Title>
-                <Button
-                  type="text"
-                  icon={<CloseOutlined className="text-white" />}
-                  onClick={() => setShowModal(false)}
-                  className="ml-2"
-                />
-              </div>
+              {/* Stands */}
+              <StandsViewer
+                standsData={standsData}
+                isUser={canInteract}
+                onSelectStand={(stand) => {
+                  setSelectedStand(stand);
+                  setViewMode("tiers");
+                  setShowModal(true);
+                }}
+                onSelectSection={(section, stand, tier) => {
+                  setSelectedSection(section);
+                  setSelectedTier(tier);
+                  setSelectedStand(stand);
+                  setViewMode("seats");
+                  setShowModal(true);
+                }}
+                onSelectTier={(tier, stand) => {
+                  setSelectedTier(tier);
+                  setSelectedStand(stand);
+                  setViewMode("sections");
+                  setShowModal(true);
+                }}
+                viewDetail={detailView}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              />
+            </svg>
+          </div>
 
-              {/* Modal scrollable body */}
-              <div className="flex-grow-1 overflow-auto" style={{ minHeight: 0 }}>
-                {renderModalContent()}
-              </div>
-
-              {/* Sticky Footer */}
-              <div className="border-top position-sticky d-flex flex-wrap justify-content-between align-items-center rounded-bottom p-3 shadow-sm"
-                   style={{
-                     bottom: 0,
-                     gap: '1rem',
-                     backgroundColor: 'var(--component-bg)',
-                     borderTopColor: 'var(--border-secondary)'
-                   }}>
-                {renderFooterButtons()}
-              </div>
-            </div>
-          )}
-
-          {/* Tooltip (fixed, never overflows parent) */}
+          {/* Tooltip */}
           {hoveredStand && (
-            <div className="position-fixed border rounded shadow-sm font-weight-semibold"
-                 style={{
-                   left: `${tooltipPosition.x}px`,
-                   top: `${tooltipPosition.y}px`,
-                   backgroundColor: "var(--component-bg)",
-                   color: "var(--text-white)",
-                   borderColor: 'var(--border-secondary)',
-                   padding: "6px 13px",
-                   fontSize: 14,
-                   pointerEvents: "none",
-                   zIndex: 9999,
-                   transform: "translate(10px, 10px)",
-                 }}>
+            <div 
+              className="position-fixed"
+              style={{
+                left: `${tooltipPosition.x + 15}px`,
+                top: `${tooltipPosition.y + 15}px`,
+                background: 'rgba(0,0,0,0.85)',
+                color: '#fff',
+                padding: '8px 14px',
+                borderRadius: 8,
+                fontSize: 13,
+                fontWeight: 600,
+                pointerEvents: 'none',
+                zIndex: 9999,
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.2)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              }}
+            >
               {hoveredStand}
             </div>
           )}
         </div>
+
+        {/* Info Bar */}
+        <div 
+          className="d-flex justify-content-between align-items-center px-3 py-2"
+          style={{
+            background: 'rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(10px)',
+            borderTop: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
+            {standsData?.length || 0} stands • Click to explore
+          </Text>
+          <Text style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
+            Scroll to zoom • Drag to pan
+          </Text>
+        </div>
+
+        {/* Modal Overlay */}
+        {showModal && (
+          <div 
+            className="position-absolute d-flex flex-column"
+            style={{
+              inset: 0,
+              zIndex: 1050,
+              background: 'linear-gradient(145deg, #0a0a1a 0%, #1a1a2e 100%)',
+              borderRadius: 16,
+            }}
+          >
+            {/* Modal Header */}
+            <div 
+              className="d-flex justify-content-between align-items-center px-4 py-3"
+              style={{
+                background: 'rgba(0,0,0,0.4)',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              <Title level={5} className="m-0" style={{ color: '#fff' }}>
+                {viewMode === 'tiers' && 'Select Tier'}
+                {viewMode === 'sections' && 'Select Section'}
+                {viewMode === 'seats' && 'Select Seats'}
+              </Title>
+              <Button
+                type="text"
+                icon={<CloseOutlined style={{ color: '#fff' }} />}
+                onClick={() => setShowModal(false)}
+              />
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-grow-1 overflow-auto" style={{ minHeight: 0 }}>
+              {renderModalContent()}
+            </div>
+
+            {/* Modal Footer */}
+            <div 
+              className="px-4 py-3"
+              style={{
+                background: 'rgba(0,0,0,0.4)',
+                borderTop: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              {renderFooterButtons()}
+            </div>
+          </div>
+        )}
       </div>
 
       <SelectedSeatsModal

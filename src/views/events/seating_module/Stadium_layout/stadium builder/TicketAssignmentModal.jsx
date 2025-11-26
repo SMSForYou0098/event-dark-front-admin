@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Modal,
   Form,
@@ -8,7 +8,6 @@ import {
   Card,
   Typography,
   Tag,
-  Radio,
   Alert,
 } from 'antd';
 import {
@@ -30,19 +29,54 @@ const TicketAssignmentModal = ({
   targetData,
   isMobile,
   selectedEvent,
+  selectedTicketType,
 }) => {
   const [form] = Form.useForm();
-  const [assignmentLevel, setAssignmentLevel] = useState('current'); // 'current' or 'override'
+  const [assignmentLevel, setAssignmentLevel] = useState('override');
   const [selectedTicket, setSelectedTicket] = useState(null);
-  
-  // Reset form and state when modal opens/closes
+
+  // Figure out which ticket should be preselected:
+  // priority 1: already assigned ticket on the target
+  // priority 2: ticket chosen in the EventTicketSelector
+  const defaultTicketId = useMemo(() => {
+    if (!ticketTypes || ticketTypes.length === 0) return null;
+
+    if (targetData?.ticketTypeId) {
+      const existing = ticketTypes.find(
+        (ticket) => ticket.id === targetData.ticketTypeId
+      );
+      if (existing) return existing.id;
+    }
+
+    if (selectedTicketType?.id) {
+      const fallback = ticketTypes.find(
+        (ticket) => ticket.id === selectedTicketType.id
+      );
+      if (fallback) return fallback.id;
+    }
+
+    return null;
+  }, [ticketTypes, targetData?.ticketTypeId, selectedTicketType?.id]);
+
+  // Pre-populate form whenever the modal opens
   useEffect(() => {
-    if (show) {
+    if (!show) {
       form.resetFields();
       setSelectedTicket(null);
-      setAssignmentLevel('current');
+      return;
     }
-  }, [show, form]);
+
+    setAssignmentLevel('override');
+
+    if (defaultTicketId) {
+      form.setFieldsValue({ ticketTypeId: defaultTicketId });
+      const ticket = ticketTypes?.find((t) => t.id === defaultTicketId);
+      setSelectedTicket(ticket || null);
+    } else {
+      form.resetFields(['ticketTypeId']);
+      setSelectedTicket(null);
+    }
+  }, [show, defaultTicketId, ticketTypes, form]);
   
   // Auto-fill price when ticket type is selected
   const handleTicketTypeChange = (ticketTypeId) => {
@@ -119,6 +153,7 @@ const TicketAssignmentModal = ({
       zIndex={2000}
       maskClosable={false}
       destroyOnClose
+      getContainer={false}
       footer={[
         <Button key="cancel" onClick={onHide} size={isMobile ? 'middle' : 'large'}>
           Cancel
@@ -128,6 +163,7 @@ const TicketAssignmentModal = ({
           type="primary"
           onClick={handleSubmit}
           size={isMobile ? 'middle' : 'large'}
+          disabled={!selectedEvent || !ticketTypes || ticketTypes.length === 0}
         >
           Assign Ticket
         </Button>,
@@ -144,7 +180,7 @@ const TicketAssignmentModal = ({
         },
       }}
     >
-      <Form form={form} layout="vertical" initialValues={{ seatIcon: 'circle' }}>
+      <Form form={form} layout="vertical" initialValues={{ seatIcon: 'circle', assignmentMode: 'override' }}>
         <Card
           size="small"
           style={{
@@ -161,42 +197,54 @@ const TicketAssignmentModal = ({
           </Space>
         </Card>
 
-        <Alert
-          message="Assignment Scope"
-          description="This will assign the ticket type to all seats within this level."
-          type="info"
-          showIcon
-          style={{ marginBottom: 16 }}
-        />
-
-        <Form.Item
-          label={<span className="text-white">Ticket Type</span>}
-          name="ticketTypeId"
-          rules={[{ required: true, message: 'Please select a ticket type' }]}
-        >
-          <Select
-            placeholder="Select ticket type"
-            size="large"
-            showSearch
-            onChange={handleTicketTypeChange}
-            optionFilterProp="label"
+        {!selectedEvent ? (
+          <Alert
+            message="No Event Selected"
+            description="Please select an event first from the Event & Ticket Selector above before assigning tickets."
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        ) : !ticketTypes || ticketTypes.length === 0 ? (
+          <Alert
+            message="No Tickets Available"
+            description="No ticket types are available for the selected event."
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        ) : (
+          <Form.Item
+            label={<span className="text-white">Ticket Type</span>}
+            name="ticketTypeId"
+            rules={[{ required: true, message: 'Please select a ticket type' }]}
           >
-            {ticketTypes?.map((ticket) => (
-              <Option 
-                key={ticket.id} 
-                value={ticket.id}
-                label={`${ticket.name} ${ticket.price}`}
-              >
-                <Space>
-                  <Tag color={ticket.color} style={{ margin: 0 }}>
-                    {ticket.name}
-                  </Tag>
-                  <Text>₹{ticket.price?.toLocaleString()}</Text>
-                </Space>
-              </Option>
-            ))}
-          </Select>
-        </Form.Item>
+            <Select
+              placeholder="Select ticket type"
+              size="large"
+              showSearch
+              onChange={handleTicketTypeChange}
+              optionFilterProp="label"
+              getPopupContainer={(trigger) => trigger.parentNode}
+              dropdownStyle={{ zIndex: 2001 }}
+            >
+              {ticketTypes?.map((ticket) => (
+                <Option 
+                  key={ticket.id} 
+                  value={ticket.id}
+                  label={`${ticket.name} ${ticket.price}`}
+                >
+                  <Space>
+                    <Tag color={ticket.color} style={{ margin: 0 }}>
+                      {ticket.name}
+                    </Tag>
+                    <Text>₹{ticket.price?.toLocaleString()}</Text>
+                  </Space>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        )}
 
         {selectedTicket && (
           <Card
@@ -271,35 +319,12 @@ const TicketAssignmentModal = ({
         </Form.Item>
         */}
 
-        <Form.Item
-          label={<span className="text-white">Assignment Mode</span>}
-          name="assignmentMode"
-          initialValue="current"
-        >
-          <Radio.Group
-            onChange={(e) => setAssignmentLevel(e.target.value)}
-            buttonStyle="solid"
-            size="large"
-            style={{ width: '100%' }}
-          >
-            <Radio.Button value="current" style={{ width: '50%', textAlign: 'center' }}>
-              Current Level Only
-            </Radio.Button>
-            <Radio.Button value="override" style={{ width: '50%', textAlign: 'center' }}>
-              Override Children
-            </Radio.Button>
-          </Radio.Group>
-        </Form.Item>
-
-        {assignmentLevel === 'override' && (
-          <Alert
-            message="Override Mode"
-            description="This will override all child-level ticket assignments (e.g., if assigning to a tier, it will override section and seat assignments)."
-            type="warning"
-            showIcon
-            style={{ marginTop: 12 }}
-          />
-        )}
+        <Alert
+          message="Assignment Scope"
+          description="This will apply the ticket type to all seats within this level and override any existing assignments in child levels."
+          type="info"
+          showIcon
+        />
       </Form>
     </Modal>
   );

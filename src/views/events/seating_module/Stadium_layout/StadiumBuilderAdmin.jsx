@@ -9,6 +9,13 @@ import StadiumConfigForm from './stadium builder/StadiumConfigForm';
 
 const { Title, Text } = Typography;
 
+const INITIAL_CONFIG = {
+  stadiumName: '',
+  stadiumCapacity: '',
+  location: '',
+  stands: [],
+};
+
 export function mapApiVenueToStadiumConfig(data) {
   const mapZones = (zones) =>
     (zones || []).filter(z => z.type === 'stand').map(stand => ({
@@ -53,12 +60,7 @@ export function mapApiVenueToStadiumConfig(data) {
 
 const StadiumBuilderAdmin = () => {
   const { id } = useParams();
-  const [stadiumConfig, setStadiumConfig] = useState({
-    stadiumName: '',
-    stadiumCapacity: '',
-    location: '',
-    stands: [],
-  });
+  const [stadiumConfig, setStadiumConfig] = useState(() => ({ ...INITIAL_CONFIG }));
   const [dataLoading, setDataLoading] = useState(false);
   const [showConfigModal, setShowConfigModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -107,7 +109,7 @@ const StadiumBuilderAdmin = () => {
 
       if (response?.data?.status) {
         if (!id) {
-          setStadiumConfig({ stadiumName: '', stadiumCapacity: '', stands: [], location: '' });
+          setStadiumConfig({ ...INITIAL_CONFIG });
           navigate(-1);
         } else {
           getStadiumData();
@@ -132,20 +134,31 @@ const StadiumBuilderAdmin = () => {
     }
   };
 
+  const handleApplyConfig = () => {
+    setShowConfigModal(false);
+    successAlert(
+      'Draft saved',
+      'Configuration updated locally. Use "Save To Server" to publish changes.'
+    );
+  };
+
   const handleCreateNew = () => {
     if (id) {
       setShowConfigModal(true);
       return;
     }
 
-    setShowConfigModal(true);
-    if (
-      (stadiumConfig?.stands?.length || 0) === 0 &&
-      !stadiumConfig?.stadiumName &&
-      !stadiumConfig?.location
-    ) {
-      setStadiumConfig({ stadiumName: '', stadiumCapacity: '', stands: [], location: '' });
+    const hasDraftData = Boolean(
+      stadiumConfig?.stadiumName ||
+      stadiumConfig?.location ||
+      (stadiumConfig?.stands && stadiumConfig.stands.length > 0)
+    );
+
+    if (!hasDraftData) {
+      setStadiumConfig({ ...INITIAL_CONFIG });
     }
+
+    setShowConfigModal(true);
   };
 
   useEffect(() => {
@@ -190,7 +203,7 @@ const StadiumBuilderAdmin = () => {
         {/* Config info / controls */}
         <Col xs={24} md={6}>
           <Card style={{ height: '100%' }}>
-            {stadiumConfig.stadiumName ? (
+      {stadiumConfig.stadiumName ? (
               <>
                 <Title level={5}>Configuration Info</Title>
                 <div style={{ marginBottom: 16 }}>
@@ -220,7 +233,16 @@ const StadiumBuilderAdmin = () => {
                   {id ? 'Update Stadium Config' : 'Create new Stadium Config'}
                 </Button>
               </>
-            )}
+      )}
+      <Button
+        type="primary"
+        block
+        style={{ marginTop: 16 }}
+        onClick={handleSubmit}
+        loading={loading}
+      >
+        Save To Server
+      </Button>
           </Card>
         </Col>
       </Row>
@@ -229,7 +251,7 @@ const StadiumBuilderAdmin = () => {
       <StadiumConfigForm
         config={stadiumConfig}
         setConfig={setStadiumConfig}
-        onSubmit={handleSubmit}
+        onApply={handleApplyConfig}
         show={showConfigModal}
         onHide={() => setShowConfigModal(false)}
         loading={loading}

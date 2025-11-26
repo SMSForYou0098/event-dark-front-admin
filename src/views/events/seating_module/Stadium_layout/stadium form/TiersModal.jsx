@@ -1,6 +1,6 @@
 import React from "react";
-import { Modal, Table, Input, Button, Badge, Tag, Switch, Space, Tooltip } from "antd";
-import { PlusOutlined, DeleteOutlined, AppstoreOutlined, CloseOutlined, TeamOutlined, TagsOutlined } from "@ant-design/icons";
+import { Modal, Table, Input, Button, Badge, Tag, Switch, Tooltip } from "antd";
+import { PlusOutlined, DeleteOutlined, AppstoreOutlined, TeamOutlined, TagsOutlined } from "@ant-design/icons";
 
 const TiersModal = ({
   show,
@@ -51,6 +51,8 @@ const TiersModal = ({
           required
           size={isMobile ? "small" : "middle"}
           className="w-100"
+          disabled
+          style={{ cursor: 'not-allowed', opacity: 0.6 }}
         />
       ),
     },

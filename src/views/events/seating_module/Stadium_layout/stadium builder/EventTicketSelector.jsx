@@ -103,9 +103,9 @@ const EventTicketSelector = ({ onEventChange, onTicketTypeChange, selectedEvent,
           )}
         </div>
 
-        <Divider style={{ margin: '12px 0', borderColor: 'var(--border-secondary)' }} />
+        {/* <Divider style={{ margin: '12px 0', borderColor: 'var(--border-secondary)' }} /> */}
 
-        <div>
+        {/* <div>
           <Title level={5} style={{ marginBottom: 12, color: 'var(--text-white)' }}>
             <TagsOutlined style={{ marginRight: 8, color: 'var(--success-color)' }} />
             Select Ticket Type
@@ -162,7 +162,6 @@ const EventTicketSelector = ({ onEventChange, onTicketTypeChange, selectedEvent,
           )}
         </div>
 
-        {/* Success Banner */}
         {selectedEvent && selectedTicketType && (
           <>
             <Divider style={{ margin: '12px 0', borderColor: 'var(--border-secondary)' }} />
@@ -175,7 +174,7 @@ const EventTicketSelector = ({ onEventChange, onTicketTypeChange, selectedEvent,
               style={{ borderRadius: 8 }}
             />
           </>
-        )}
+        )} */}
       </Space>
     </Card>
   );

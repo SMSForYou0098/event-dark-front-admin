@@ -44,7 +44,7 @@ const { Option } = Select;
 const StadiumConfigForm = ({
   config,
   setConfig,
-  onSubmit,
+  onApply,
   mode = "add",
   show,
   onHide,
@@ -72,9 +72,9 @@ const StadiumConfigForm = ({
     { id: 5, name: 'Student', price: 300, color: '#13c2c2' },
   ];
   
-  const availableTicketTypes = selectedTicketType 
-    ? [selectedTicketType, ...DUMMY_TICKET_TYPES.filter(t => t.id !== selectedTicketType.id)]
-    : DUMMY_TICKET_TYPES;
+  // Show all ticket types from the event (for now, using DUMMY_TICKET_TYPES)
+  // In production, this would filter based on selectedEvent.ticketTypes
+  const availableTicketTypes = selectedEvent ? DUMMY_TICKET_TYPES : [];
   // Fetch venues
   const {
     data: venues = [],
@@ -205,9 +205,9 @@ const StadiumConfigForm = ({
     return isNaN(val) || val < 1 ? 1 : val;
   };
 
-  const handleSubmit = () => {
+  const handleApply = () => {
     form.validateFields().then(() => {
-      onSubmit?.();
+      onApply?.();
     }).catch((error) => {
       ErrorAlert("Please fill all required fields");
     });
@@ -400,8 +400,16 @@ const StadiumConfigForm = ({
   };
 
   const handleTicketAssign = (assignment) => {
-    const { level, ticketTypeId, price, seatIcon, assignmentMode } = assignment;
+    const {
+      level,
+      ticketTypeId,
+      price,
+      seatIcon,
+      assignmentMode,
+      assignmentLevel: assignmentLevelValue,
+    } = assignment;
     const { indices } = ticketAssignTarget;
+    const mode = assignmentLevelValue || assignmentMode || 'override';
     
     // Get the ticket type to use its default price if custom price not provided
     const ticketType = availableTicketTypes.find(t => t.id === ticketTypeId);
@@ -449,27 +457,37 @@ const StadiumConfigForm = ({
     // Apply assignment based on level
     if (level === 'stand' && indices.standIndex !== undefined) {
       const stand = updated[indices.standIndex];
-      if (assignmentMode === 'override') {
+      if (!stand) return;
+      if (mode === 'override') {
         cascadeToChildren(stand);
       } else {
         applyTicket(stand);
       }
     } else if (level === 'tier' && indices.standIndex !== undefined && indices.tierIndex !== undefined) {
-      const tier = updated[indices.standIndex].tiers[indices.tierIndex];
-      if (assignmentMode === 'override') {
+      const stand = updated[indices.standIndex];
+      const tier = stand?.tiers?.[indices.tierIndex];
+      if (!tier) return;
+      if (mode === 'override') {
         cascadeToChildren(tier);
       } else {
         applyTicket(tier);
       }
     } else if (level === 'section' && indices.standIndex !== undefined && indices.tierIndex !== undefined && indices.sectionIndex !== undefined) {
-      const section = updated[indices.standIndex].tiers[indices.tierIndex].sections[indices.sectionIndex];
-      if (assignmentMode === 'override') {
+      const stand = updated[indices.standIndex];
+      const tier = stand?.tiers?.[indices.tierIndex];
+      const section = tier?.sections?.[indices.sectionIndex];
+      if (!section) return;
+      if (mode === 'override') {
         cascadeToChildren(section);
       } else {
         applyTicket(section);
       }
     } else if (level === 'row' && indices.standIndex !== undefined && indices.tierIndex !== undefined && indices.sectionIndex !== undefined && indices.rowIndex !== undefined) {
-      const row = updated[indices.standIndex].tiers[indices.tierIndex].sections[indices.sectionIndex].rows[indices.rowIndex];
+      const stand = updated[indices.standIndex];
+      const tier = stand?.tiers?.[indices.tierIndex];
+      const section = tier?.sections?.[indices.sectionIndex];
+      const row = section?.rows?.[indices.rowIndex];
+      if (!row) return;
       applyTicket(row);
       // Generate seat list with icons
       if (!row.seatList || row.seatList.length === 0) {
@@ -701,7 +719,7 @@ const StadiumConfigForm = ({
               key="submit"
               type="primary"
               icon={<HomeOutlined />}
-              onClick={handleSubmit}
+              onClick={handleApply}
               loading={loading}
               size={isMobile ? "middle" : "large"}
               className={`bg-primary border-0 font-weight-semibold ${isMobile ? 'w-100' : ''}`}
@@ -709,7 +727,7 @@ const StadiumConfigForm = ({
                 minWidth: isMobile ? 'auto' : 150,
               }}
             >
-              {mode === "edit" ? "Update Stadium" : "Create Stadium"}
+              {mode === "edit" ? "Apply Changes" : "Save Layout"}
             </Button>
           </div>
         ]}
@@ -984,6 +1002,7 @@ const StadiumConfigForm = ({
         targetData={ticketAssignTarget?.data}
         isMobile={isMobile}
         selectedEvent={selectedEvent}
+        selectedTicketType={selectedTicketType}
       />
     </>
   );

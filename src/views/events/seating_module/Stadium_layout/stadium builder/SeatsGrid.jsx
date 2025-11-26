@@ -25,17 +25,10 @@ const SeatsZoomGrid = ({
   const [zoomLevel, setZoomLevel] = useState(0.5);
   const containerRef = useRef(null);
   const scrollContainerRef = useRef(null);
+  const dragStateRef = useRef({ startX: 0, startY: 0, left: 0, top: 0 });
   const [hoveredSeatId, setHoveredSeatId] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [startCoords, setStartCoords] = useState({ x: 0, y: 0 });
-  const [scrollCoords, setScrollCoords] = useState({ left: 0, top: 0 });
   const [showSeatsModal, setSeatsShowModal] = useState(false);
-
-  const fallbackSeatPrice =
-    selectedSection?.price ??
-    tier?.price ??
-    stand?.price ??
-    (selectedSection?.rows?.[0]?.price || 0);
 
   const sectionRows = useMemo(() => {
     return (selectedSection?.rows || []).map((row, rowIndex) => {
@@ -44,14 +37,26 @@ const SeatsZoomGrid = ({
       }
 
       const seatsCount = Number(row?.seats) || 0;
-      // Create truly unique seat IDs using stand, tier, section, and row info
+      if (!seatsCount) {
+        return row?.seatList ? row : { ...row, seatList: [] };
+      }
+
       const uniquePrefix = `${stand?.id || stand?.name || 'stand'}-${tier?.id || tier?.name || 'tier'}-${selectedSection?.id || selectedSection?.name || 'section'}-${row?.id || row?.label || `row-${rowIndex}`}`;
+      const resolvedPrice = row?.price ?? tier?.price ?? stand?.price ?? 0;
+      const resolvedSeatIcon =
+        row?.seatIcon ||
+        selectedSection?.seatIcon ||
+        tier?.seatIcon ||
+        stand?.seatIcon ||
+        'circle';
+
       const seatList = Array.from({ length: seatsCount }, (_, idx) => ({
         id: `${uniquePrefix}-seat-${idx + 1}`,
         number: idx + 1,
-        price: row?.price ?? fallbackSeatPrice,
-        status: 'available',
+        price: resolvedPrice,
+        status: row?.isBlocked ? 'blocked' : 'available',
         isBooked: false,
+        seatIcon: resolvedSeatIcon,
       }));
 
       return {
@@ -59,7 +64,7 @@ const SeatsZoomGrid = ({
         seatList,
       };
     });
-  }, [selectedSection, fallbackSeatPrice, stand, tier]);
+  }, [selectedSection, stand, tier]);
 
   // Calculate seat statistics
   let availableSeats = 0;
@@ -70,8 +75,9 @@ const SeatsZoomGrid = ({
   const dynamicPadding = `${basePaddingRem * zoomFactor}rem`;
 
   sectionRows.forEach((row) => {
+    const seatList = Array.isArray(row?.seatList) ? row.seatList : [];
     if (!row.isBlocked) {
-      row.seatList.forEach((seat) => {
+      seatList.forEach((seat) => {
         if (seat.isBooked) bookedSeats++;
         else availableSeats++;
       });
@@ -79,33 +85,36 @@ const SeatsZoomGrid = ({
   });
 
   const totalSeats = sectionRows.reduce(
-    (total, row) => total + row.seatList.length,
+    (total, row) => total + (Array.isArray(row?.seatList) ? row.seatList.length : 0),
     0
   );
 
   // Dragging handlers
   const handleDragStart = useCallback((e) => {
-    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    if (!container) return;
     setIsDragging(true);
     const clientX = e.clientX || e.touches?.[0]?.clientX;
     const clientY = e.clientY || e.touches?.[0]?.clientY;
-    setStartCoords({ x: clientX, y: clientY });
-    setScrollCoords({
-      left: scrollContainerRef.current.scrollLeft,
-      top: scrollContainerRef.current.scrollTop,
-    });
+    dragStateRef.current = {
+      startX: clientX,
+      startY: clientY,
+      left: container.scrollLeft,
+      top: container.scrollTop,
+    };
   }, []);
 
   const handleDragMove = useCallback((e) => {
     if (!isDragging || !scrollContainerRef.current) return;
     e.preventDefault();
+    const { startX, startY, left, top } = dragStateRef.current;
     const clientX = e.clientX || e.touches?.[0]?.clientX;
     const clientY = e.clientY || e.touches?.[0]?.clientY;
-    const dx = (clientX - startCoords.x) * 1.5;
-    const dy = (clientY - startCoords.y) * 1.5;
-    scrollContainerRef.current.scrollLeft = scrollCoords.left - dx;
-    scrollContainerRef.current.scrollTop = scrollCoords.top - dy;
-  }, [isDragging, scrollCoords, startCoords]);
+    const dx = (clientX - startX) * 1.5;
+    const dy = (clientY - startY) * 1.5;
+    scrollContainerRef.current.scrollLeft = left - dx;
+    scrollContainerRef.current.scrollTop = top - dy;
+  }, [isDragging]);
 
   const handleDragEnd = useCallback(() => setIsDragging(false), []);
 
@@ -355,7 +364,8 @@ const SeatsZoomGrid = ({
             }}
           >
             {sectionRows.map((row, rowIndex) => {
-              const seatsInRow = row.seats || row.seatList.length;
+              const seatList = Array.isArray(row?.seatList) ? row.seatList : [];
+              const seatsInRow = row.seats || seatList.length;
               const rowGap = Math.floor((maxSeats - seatsInRow) / 2);
               
               return (
@@ -366,7 +376,7 @@ const SeatsZoomGrid = ({
                   ))}
 
                   {/* Actual Seats */}
-                  {row.seatList.map((seat) => {
+                  {seatList.map((seat, seatIndex) => {
                     const seatId = seat.id;
                     const isSelected = selectedSeats.some((s) => s.id === seat.id);
                     const isBooked = seat.isBooked;
@@ -384,7 +394,7 @@ const SeatsZoomGrid = ({
                             seat,
                             isBooked ? "booked" : seat.status,
                             rowIndex,
-                            row.seatList.findIndex((s) => s.id === seat.id),
+                            seatIndex,
                             row.label
                           )
                         }
