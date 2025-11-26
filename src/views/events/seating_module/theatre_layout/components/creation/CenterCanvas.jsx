@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Stage, Layer, Rect, Text, Group, Line, Transformer, Image as KonvaImage } from 'react-konva';
+import { Stage, Layer, Rect, Text, Group, Line, Transformer, Image as KonvaImage, Path } from 'react-konva';
 import { PRIMARY } from 'utils/consts';
 import { MdOutlineChair, MdOutlineTableBar } from 'react-icons/md';
 import { PiArmchairLight, PiChair, PiOfficeChair } from 'react-icons/pi';
@@ -12,7 +12,7 @@ import { SiTablecheck } from 'react-icons/si';
 
 
 // Draggable Stage Component
-const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd }) => {
+const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd, setIsDraggingElement }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
@@ -34,7 +34,16 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
         y={stage.y}
         onClick={onSelect}
         onTap={onSelect}
+        onDragStart={(e) => {
+          e.cancelBubble = true;
+          setIsDraggingElement(true);
+        }}
+        onDragMove={(e) => {
+          e.cancelBubble = true;
+        }}
         onDragEnd={(e) => {
+          e.cancelBubble = true;
+          setIsDraggingElement(false);
           onDragEnd({
             x: e.target.x(),
             y: e.target.y()
@@ -57,16 +66,36 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
           node.scaleY(1);
         }}
       >
-        <Rect
-          width={stage.width}
-          height={stage.height}
-          fill="#333"
-          stroke={isSelected ? PRIMARY : '#000'}
-          strokeWidth={isSelected ? 2 : 1}
-        />
+        {stage.shape === 'curved' ? (
+          // Curved stage using Path (like a curved cinema screen)
+          <Path
+            data={`
+              M 0 0
+              Q ${stage.width / 2} ${stage.height * (stage.curve || 0.15)} ${stage.width} 0
+              L ${stage.width} ${stage.height}
+              Q ${stage.width / 2} ${stage.height * (1 - (stage.curve || 0.15))} 0 ${stage.height}
+              Z
+            `}
+            fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+            fillLinearGradientEndPoint={{ x: 0, y: stage.height }}
+            fillLinearGradientColorStops={[1, "#b51515", 0, "#0d0d0d"]}
+            strokeWidth={isSelected ? 2 : 1}
+          />
+        ) : (
+          // Straight stage
+          <Rect
+            width={stage.width}
+            height={stage.height}
+            fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+            fillLinearGradientEndPoint={{ x: 0, y: stage.height }}
+            fillLinearGradientColorStops={[1, "#b51515", 0, "#0d0d0d"]}
+            strokeWidth={isSelected ? 2 : 1}
+            cornerRadius={5}
+          />
+        )}
         <Text
           width={stage.width}
-          y={stage.height / 2 - 10}
+          y={stage.height + 5}
           text={stage.name || 'SCREEN'}
           fontSize={18}
           fill="#FFF"
@@ -86,7 +115,7 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
             }
             return newBox;
           }}
-          enabledAnchors={['middle-left', 'middle-right']}
+          enabledAnchors={['middle-left', 'middle-right', 'top-center', 'bottom-center']}
           rotateEnabled={false}
         />
       )}
@@ -95,7 +124,7 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
 };
 
 // Draggable Section Component
-const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransformEnd, children }) => {
+const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransformEnd, children, setIsDraggingElement }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
@@ -117,7 +146,16 @@ const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransfor
         y={section.y}
         onClick={onSelect}
         onTap={onSelect}
+        onDragStart={(e) => {
+          e.cancelBubble = true;
+          setIsDraggingElement(true);
+        }}
+        onDragMove={(e) => {
+          e.cancelBubble = true;
+        }}
         onDragEnd={(e) => {
+          e.cancelBubble = true;
+          setIsDraggingElement(false);
           onDragEnd({
             x: e.target.x(),
             y: e.target.y()
@@ -143,18 +181,21 @@ const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransfor
         <Rect
           width={section.width}
           height={section.height}
-          fill="rgba(200, 200, 200, 0.2)"
+          fill="transparent"
           stroke={isSelected ? PRIMARY : '#999'}
-          strokeWidth={isSelected ? 2 : 1}
+          strokeWidth={0.5}
           dash={[5, 5]}
+          cornerRadius={5}
         />
         <Text
-          x={10}
+          x={0}
           y={10}
+          width={section.width}
           text={section.name}
           fontSize={16}
           fill="#FFFFFF"
           fontStyle="bold"
+          align="center"
         />
         {children}
       </Group>
@@ -242,13 +283,15 @@ const CenterCanvas = (props) => {
 
 
   const layerRef = useRef();
+  const [isDraggingElement, setIsDraggingElement] = React.useState(false);
+
   return (
     <div className="canvas-container">
       <Stage
         ref={stageRef}
         width={window.innerWidth - 700}
         height={window.innerHeight - 100}
-        draggable={true}
+        draggable={!isDraggingElement}
         scaleX={canvasScale}
         scaleY={canvasScale}
         onClick={handleCanvasClick}
@@ -285,6 +328,7 @@ const CenterCanvas = (props) => {
           <DraggableStage
             stage={stage}
             isSelected={!isAssignMode && selectedType === 'stage' && selectedElement?.position === stage.position}
+            setIsDraggingElement={setIsDraggingElement}
             onSelect={() => {
               if (!isAssignMode) {
                 setSelectedElement(stage);
@@ -293,14 +337,25 @@ const CenterCanvas = (props) => {
             }}
             onDragEnd={(pos) => {
               if (!isAssignMode) {
-                const updatedStage = { ...stage, ...pos };
+                const updatedStage = {
+                  ...stage,
+                  x: parseFloat(pos.x) || 0,
+                  y: parseFloat(pos.y) || 0
+                };
+                console.log(updatedStage)
                 setStage(updatedStage);
                 if (selectedType === 'stage') setSelectedElement(updatedStage);
               }
             }}
             onTransformEnd={(transform) => {
               if (!isAssignMode) {
-                const updatedStage = { ...stage, ...transform };
+                const updatedStage = {
+                  ...stage,
+                  x: parseFloat(transform.x) || 0,
+                  y: parseFloat(transform.y) || 0,
+                  width: parseFloat(transform.width) || 200,
+                  height: parseFloat(transform.height) || 30
+                };
                 setStage(updatedStage);
                 if (selectedType === 'stage') setSelectedElement(updatedStage);
               }
@@ -313,6 +368,7 @@ const CenterCanvas = (props) => {
               key={section.id}
               section={section}
               isSelected={!isAssignMode && selectedElement?.id === section.id && selectedType === 'section'}
+              setIsDraggingElement={setIsDraggingElement}
               onSelect={() => {
                 if (!isAssignMode) {
                   setSelectedElement(section);
@@ -323,7 +379,9 @@ const CenterCanvas = (props) => {
                 if (!isAssignMode) {
                   const updatedSection = { ...section, ...pos };
                   updateSection(section.id, pos);
-                  if (selectedElement?.id === section.id && selectedType === 'section') setSelectedElement(updatedSection);
+                  if (selectedElement?.id === section.id && selectedType === 'section') {
+                    setSelectedElement(updatedSection);
+                  }
                 }
               }}
               onTransformEnd={(transform) => {
@@ -334,88 +392,102 @@ const CenterCanvas = (props) => {
                 }
               }}
             >
+
               {/* Rows and Seats */}
-              {section.rows.map(row => (
-                <Group key={row.id}>
-                  <Text
-                    x={10}
-                    y={row.seats[0]?.y - 5}
-                    text={row.title}
-                    fontSize={14}
-                    fill="#FFFFFF"
-                    fontStyle="bold"
-                    listening={false}
-                  />
+              {section.rows.map(row => {
+                // Safety check for row seats
+                if (!row.seats || row.seats.length === 0) return null;
 
-                  {row.seats.map(seat => {
-                    // Determine opacity based on seat status
-                    const isDisabled = seat.status === 'disabled';
-                    const seatOpacity = isDisabled ? 0.3 : 1;
+                const firstSeatY = row.seats[0]?.y ?? 50;
 
-                    return (
-                      <Group key={seat.id} opacity={seatOpacity}>
-                        <Rect
-                          x={seat.x - seat.radius}
-                          y={seat.y - seat.radius}
-                          width={seat.radius * 2}
-                          height={seat.radius * 2}
-                          fill={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : 'transparent'}
-                          stroke={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : '#999'}
-                          strokeWidth={selectedElement?.id === seat.id && selectedType === 'seat' ? 2 : 1}
-                          cornerRadius={4}
-                          onMouseEnter={(e) => {
-                            const container = e.target.getStage().container();
-                            container.style.cursor = 'pointer';
-                          }}
-                          onMouseLeave={(e) => {
-                            const container = e.target.getStage().container();
-                            container.style.cursor = 'default';
-                          }}
-                          onClick={(e) => {
-                            e.cancelBubble = true;
-                            setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
-                            setSelectedType('seat');
-                          }}
-                        />
-                        {seat.icon ? (
-                          <IconImage
-                            iconName={seat.icon}
-                            x={seat.x}
-                            y={seat.y}
-                            size={seat.radius * 1.2}
-                            opacity={1} // Icon inherits group opacity
-                          />
-                        ) : (
-                          <Text
+                return (
+                  <Group key={row.id}>
+                    <Text
+                      x={10}
+                      y={firstSeatY - 5}
+                      text={row.title}
+                      fontSize={14}
+                      fill="#FFFFFF"
+                      fontStyle="bold"
+                      listening={false}
+                    />
+
+                    {row.seats.map(seat => {
+                      // Safety checks for seat properties
+                      if (!seat || typeof seat.x !== 'number' || typeof seat.y !== 'number' || typeof seat.radius !== 'number') {
+                        console.warn('Invalid seat data:', seat);
+                        return null;
+                      }
+
+                      // Determine opacity based on seat status
+                      const isDisabled = seat.status === 'disabled';
+                      const seatOpacity = isDisabled ? 0.3 : 1;
+
+                      return (
+                        <Group key={seat.id} opacity={seatOpacity}>
+                          <Rect
                             x={seat.x - seat.radius}
-                            y={seat.y - 4}
+                            y={seat.y - seat.radius}
                             width={seat.radius * 2}
-                            text={seat.number.toString()}
-                            fontSize={10}
-                            fill="#FFFFFF"
-                            align="center"
-                            verticalAlign="middle"
-                            listening={false}
+                            height={seat.radius * 2}
+                            fill={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : 'transparent'}
+                            stroke={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : PRIMARY}
+                            strokeWidth={selectedElement?.id === seat.id && selectedType === 'seat' ? 2 : 1}
+                            cornerRadius={4}
+                            onMouseEnter={(e) => {
+                              const container = e.target.getStage().container();
+                              container.style.cursor = 'pointer';
+                            }}
+                            onMouseLeave={(e) => {
+                              const container = e.target.getStage().container();
+                              container.style.cursor = 'default';
+                            }}
+                            onClick={(e) => {
+                              e.cancelBubble = true;
+                              setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
+                              setSelectedType('seat');
+                            }}
                           />
-                        )}
-                        {isDisabled && (
-                          <Line
-                            points={[
-                              seat.x - seat.radius * 0.7,
-                              seat.y - seat.radius * 0.7,
-                              seat.x + seat.radius * 0.7,
-                              seat.y + seat.radius * 0.7
-                            ]}
-                            stroke="#F44336"
-                            strokeWidth={2}
-                            listening={false}
-                          />
-                        )}
-                      </Group>
-                    );
-                  })}
-                </Group>
-              ))}
+                          {seat.icon ? (
+                            <IconImage
+                              iconName={seat.icon}
+                              x={seat.x}
+                              y={seat.y}
+                              size={seat.radius * 1.2}
+                              opacity={1} // Icon inherits group opacity
+                            />
+                          ) : (
+                            <Text
+                              x={seat.x - seat.radius}
+                              y={seat.y - 4}
+                              width={seat.radius * 2}
+                              text={seat.number.toString()}
+                              fontSize={10}
+                              fill="#FFFFFF"
+                              align="center"
+                              verticalAlign="middle"
+                              listening={false}
+                            />
+                          )}
+                          {isDisabled && (
+                            <Line
+                              points={[
+                                seat.x - seat.radius * 0.7,
+                                seat.y - seat.radius * 0.7,
+                                seat.x + seat.radius * 0.7,
+                                seat.y + seat.radius * 0.7
+                              ]}
+                              stroke="#F44336"
+                              strokeWidth={2}
+                              listening={false}
+                            />
+                          )}
+                        </Group>
+                      );
+                    })}
+                  </Group>
+                );
+              })}
             </DraggableSection>
           ))}
         </Layer>

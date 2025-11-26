@@ -93,8 +93,8 @@ export const fetchLocationData = async (country = 'India') => {
             citiesCache
         };
     } catch (err) {
-        console.error('Failed to fetch location data:', err);
-        message.error('Failed to load location data');
+        //console.error('Failed to fetch location data:', err);
+        //message.error('Failed to load location data');
         throw err;
     }
 };

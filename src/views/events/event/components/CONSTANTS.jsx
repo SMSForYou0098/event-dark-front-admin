@@ -60,6 +60,7 @@ export const CONSTANTS = {
 export const VanueList = ({
     form,
     value,
+    span,
     noMargin = false,
     hideLable = false,
     showDetail = true,
@@ -172,7 +173,7 @@ export const VanueList = ({
                 </Col>
             )}
             {/* Venues — driven by organizerId */}
-            <Col xs={24} md={8}>
+            <Col xs={24} md={span ?? 8}>
                 {form ? (
                     <Form.Item
                         name="venue_id"

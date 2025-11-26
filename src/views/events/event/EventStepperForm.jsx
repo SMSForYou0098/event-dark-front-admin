@@ -72,7 +72,8 @@ const EventStepperForm = () => {
     });
     const [form] = Form.useForm();
     const [tickets, setTickets] = useState([]);
-    const [layoutId, setLayoutId] = useState(null)
+    const [layouts, setLayouts] = useState([]);
+    const [eventLayoutId, setEventLayoutId] = useState(null)
     const [embedCode, setEmbedCode] = useState('');
 
     // Sync step from location state
@@ -168,7 +169,8 @@ const EventStepperForm = () => {
                 bookingBySeat: finalBookingBySeat,
                 ticket_terms: detail?.ticket_terms || undefined,
             });
-            setLayoutId(detail?.layout?.id)
+            setEventLayoutId(detail?.event_has_layout?.layout_id)
+            setLayouts(detail?.layout)
             if (Array.isArray(detail?.tickets) && detail.tickets.length) {
                 setTickets(detail.tickets.map((t, idx) => ({ key: String(idx + 1), ...t })));
             }
@@ -296,7 +298,8 @@ const EventStepperForm = () => {
                 content: (
                     <TicketsStep
                         tickets={tickets}
-                        layoutId={layoutId}
+                        layouts={layouts}
+                        eventLayoutId={eventLayoutId}
                         form={form}
                         embedCode={embedCode}
                         onEmbedChange={handleEmbedChange}

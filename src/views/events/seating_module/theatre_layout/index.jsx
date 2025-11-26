@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Space, Button, Tooltip, message } from 'antd';
-import { DeleteOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons';
+import { Space, Button, Tooltip, message, Modal, Form, Input } from 'antd';
+import { DeleteOutlined, PlusOutlined, SettingOutlined, CopyOutlined } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';
 import DataTable from 'views/events/common/DataTable';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +10,9 @@ const Layouts = () => {
   const [layouts, setLayouts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isCloneModalVisible, setIsCloneModalVisible] = useState(false);
+  const [selectedLayout, setSelectedLayout] = useState(null);
+  const [cloneForm] = Form.useForm();
 
   // Fetch theatre layouts from API
   const fetchLayouts = async () => {
@@ -47,19 +50,72 @@ const Layouts = () => {
     } catch (err) {
       setError(err);
       console.error('Error deleting layout:', err);
+      message.error('Failed to delete layout');
     } finally {
       setLoading(false);
     }
   };
 
+  // Open clone modal
+  const handleCloneClick = (record) => {
+    setSelectedLayout(record);
+    cloneForm.setFieldsValue({
+      name: `${record?.name || 'Layout'} - Copy`
+    });
+    setIsCloneModalVisible(true);
+  };
+
+  // Handle clone submission
+  const handleCloneSubmit = async () => {
+    try {
+      const values = await cloneForm.validateFields();
+      setLoading(true);
+
+      await api.post('auditorium/clone/layout', {
+        id: selectedLayout.id,
+        name: values.name
+      });
+
+      message.success('Layout cloned successfully');
+      setIsCloneModalVisible(false);
+      cloneForm.resetFields();
+      setSelectedLayout(null);
+      fetchLayouts();
+    } catch (err) {
+      if (err.errorFields) {
+        // Form validation error
+        return;
+      }
+      console.error('Error cloning layout:', err);
+      message.error('Failed to clone layout');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle clone modal cancel
+  const handleCloneCancel = () => {
+    setIsCloneModalVisible(false);
+    cloneForm.resetFields();
+    setSelectedLayout(null);
+  };
+
   // Define table columns
   const columns = [
     {
-      title: 'ID',
-      dataIndex: 'id',
-      key: 'id',
+      title: "ID",
+      dataIndex: "id",
+      key: "id",
+      width: "6%",
+      render: (text, record, index) => index + 1,
+      searchable: false,
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
       searchable: true,
-      width: 80,
+      render: (text) => <span className="font-weight-bold">{text || 'N/A'}</span>,
     },
     {
       title: 'Venue Name',
@@ -107,15 +163,22 @@ const Layouts = () => {
     {
       title: 'Actions',
       key: 'actions',
-      width: 150,
+      width: 200,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Tooltip title="manage">
+          <Tooltip title="Manage">
             <Button
               icon={<SettingOutlined />}
               size="small"
               onClick={() => navigate(`/theatre/${record.id}`)}
+            />
+          </Tooltip>
+          <Tooltip title="Clone Layout">
+            <Button
+              icon={<CopyOutlined />}
+              size="small"
+              onClick={() => handleCloneClick(record)}
             />
           </Tooltip>
           <Tooltip title="Delete">
@@ -133,23 +196,60 @@ const Layouts = () => {
   ];
 
   return (
-    <DataTable
-      title="Theatre Layouts"
-      data={layouts}
-      columns={columns}
-      loading={loading}
-      error={error}
-      showRefresh={true}
-      extraHeaderContent={
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/theatre/new')}>
-          New Layout
-        </Button>
-      }
-      onRefresh={fetchLayouts}
-      enableSearch={true}
-      showSearch={true}
-      emptyText="No theatre layouts found"
-    />
+    <>
+      <DataTable
+        title="Theatre Layouts"
+        data={layouts}
+        columns={columns}
+        loading={loading}
+        error={error}
+        showRefresh={true}
+        extraHeaderContent={
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/theatre/new')}>
+            New Layout
+          </Button>
+        }
+        onRefresh={fetchLayouts}
+        enableSearch={true}
+        showSearch={true}
+        emptyText="No theatre layouts found"
+      />
+
+      {/* Clone Layout Modal */}
+      <Modal
+        title="Clone Layout"
+        open={isCloneModalVisible}
+        onOk={handleCloneSubmit}
+        onCancel={handleCloneCancel}
+        confirmLoading={loading}
+        okText="Clone"
+        cancelText="Cancel"
+      >
+        <Form
+          form={cloneForm}
+          layout="vertical"
+          name="clone_layout_form"
+        >
+          <Form.Item
+            name="name"
+            label="New Layout Name"
+            rules={[
+              { required: true, message: 'Please enter a name for the cloned layout' },
+              { min: 3, message: 'Name must be at least 3 characters long' },
+              { max: 100, message: 'Name must not exceed 100 characters' }
+            ]}
+          >
+            <Input
+              placeholder="Enter new layout name"
+              autoFocus
+            />
+          </Form.Item>
+          <p className="text-muted mb-0">
+            Cloning: <strong>{selectedLayout?.venue?.name || 'N/A'}</strong>
+          </p>
+        </Form>
+      </Modal>
+    </>
   );
 };
 

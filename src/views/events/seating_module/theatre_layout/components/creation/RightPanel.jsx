@@ -9,12 +9,13 @@ import {
   Slider,
   Radio,
   Typography,
-  Alert
+  Alert,
+  Col,
+  Row
 } from "antd";
 
 import {
   PlusOutlined,
-  WarningOutlined,
   InfoCircleOutlined
 } from "@ant-design/icons";
 import { getIconComponent, seatIcons } from "../consts";
@@ -40,7 +41,7 @@ const RightPanel = (props) => {
   } = props;
 
   return (
-    <div className="right-panel">
+    <div className="right-panel bg-custom-secondary">
       <div className="panel-header">
         <Title level={4} className="mb-0">
           {selectedType === 'stage' && 'Stage Editor'}
@@ -90,7 +91,7 @@ const RightPanel = (props) => {
 
             <Form.Item label="Shape">
               <Select
-                value={stage.shape}
+                value={stage.shape || 'curved'}
                 onChange={(value) => {
                   const updatedStage = { ...stage, shape: value };
                   setStage(updatedStage);
@@ -105,9 +106,9 @@ const RightPanel = (props) => {
             <Form.Item label="Width">
               <InputNumber
                 min={200}
-                value={stage.width}
+                value={parseFloat(stage.width) || 800}
                 onChange={(value) => {
-                  const updatedStage = { ...stage, width: value };
+                  const updatedStage = { ...stage, width: parseFloat(value) || 800 };
                   setStage(updatedStage);
                   setSelectedElement(updatedStage);
                 }}
@@ -118,15 +119,32 @@ const RightPanel = (props) => {
             <Form.Item label="Height">
               <InputNumber
                 min={30}
-                value={stage.height}
+                value={parseFloat(stage.height) || 50}
                 onChange={(value) => {
-                  const updatedStage = { ...stage, height: value };
+                  const updatedStage = { ...stage, height: parseFloat(value) || 50 };
                   setStage(updatedStage);
                   setSelectedElement(updatedStage);
                 }}
                 className="w-100"
               />
             </Form.Item>
+
+            {stage.shape === 'curved' && (
+              <Form.Item label="Curve Amount">
+                <Slider
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  value={stage.curve || 0.15}
+                  onChange={(value) => {
+                    const updatedStage = { ...stage, curve: value };
+                    setStage(updatedStage);
+                    setSelectedElement(updatedStage);
+                  }}
+                  tooltip={{ formatter: (value) => `${Math.round(value * 100)}%` }}
+                />
+              </Form.Item>
+            )}
 
             <Alert
               message="💡 Tip: Click and drag the screen to move it. Use corner handles to resize."
@@ -244,99 +262,105 @@ const RightPanel = (props) => {
             {!isAssignMode && (
               <Form.Item
                 label="Row Seat Icon"
-                help="Apply icon to all seats (except custom ones)"
+                help="Apply icon to all seats in this row"
               >
-                <Space wrap size={8}>
+                <Row gutter={[16, 10]}>
                   {/* Default numeric seat */}
-                  <div
-                    onClick={() => {
-                      setSections(sections?.map(section => {
-                        if (section?.id === selectedElement?.sectionId) {
-                          return {
-                            ...section,
-                            rows: section?.rows?.map(row => {
-                              if (row?.id === selectedElement?.id) {
-                                return {
-                                  ...row,
-                                  defaultIcon: null,
-                                  seats: (row?.seats || [])?.map(seat =>
-                                    seat.customIcon ? seat : { ...seat, icon: null }
-                                  )
-                                };
-                              }
-                              return row;
-                            })
-                          };
-                        }
-                        return section;
-                      }));
-                      setSelectedElement({ ...selectedElement, defaultIcon: null });
-                    }}
-                    className="border border-secondary rounded d-flex align-items-center justify-content-center"
-                    style={{
-                      width: 48,
-                      height: 48,
-                      cursor: 'pointer',
-                      background: !selectedElement.defaultIcon ? 'var(--primary-color)' : 'transparent',
-                      color: '#ffffff',
-                      fontSize: 16,
-                      fontWeight: 600,
-                    }}
-                    title="Default (Numbers)"
-                  >
-                    1
-                  </div>
+                  <Col span={4}>
+                    <div
+                      onClick={() => {
+                        setSections(sections?.map(section => {
+                          if (section?.id === selectedElement?.sectionId) {
+                            return {
+                              ...section,
+                              rows: section?.rows?.map(row => {
+                                if (row?.id === selectedElement?.id) {
+                                  return {
+                                    ...row,
+                                    defaultIcon: null,
+                                    seats: (row?.seats || [])?.map(seat => ({
+                                      ...seat,
+                                      icon: null,
+                                      customIcon: false
+                                    }))
+                                  };
+                                }
+                                return row;
+                              })
+                            };
+                          }
+                          return section;
+                        }));
+                        setSelectedElement({ ...selectedElement, defaultIcon: null });
+                      }}
+                      className="border border-secondary rounded d-flex align-items-center justify-content-center"
+                      style={{
+                        width: 38,
+                        height: 38,
+                        cursor: 'pointer',
+                        background: !selectedElement.defaultIcon ? 'var(--primary-color)' : 'transparent',
+                        color: '#ffffff',
+                        fontSize: 16,
+                        fontWeight: 600,
+                      }}
+                      title="Default (Numbers)"
+                    >
+                      1
+                    </div>
+                  </Col>
 
-                  {/* Icon options */}
                   {seatIcons?.map(iconObj => {
                     const IconComponent = getIconComponent(iconObj?.icon);
                     const isActive = selectedElement.defaultIcon === iconObj?.icon;
 
                     return (
-                      <div
-                        key={iconObj?.id}
-                        className="rounded d-flex align-items-center justify-content-center"
-                        onClick={() => {
-                          setSections(sections?.map(section => {
-                            if (section?.id === selectedElement?.sectionId) {
-                              return {
-                                ...section,
-                                rows: section?.rows?.map(row => {
-                                  if (row?.id === selectedElement?.id) {
-                                    return {
-                                      ...row,
-                                      defaultIcon: iconObj.icon,
-                                      seats: row?.seats?.map(seat =>
-                                        seat.customIcon ? seat : { ...seat, icon: iconObj.icon }
-                                      )
-                                    };
-                                  }
-                                  return row;
-                                })
-                              };
-                            }
-                            return section;
-                          }));
-                          setSelectedElement({ ...selectedElement, defaultIcon: iconObj.icon });
-                        }}
-                        style={{
-                          width: 48,
-                          height: 48,
-                          border: isActive
-                            ? '2px solid var(--primary-color)'
-                            : '1px solid #d9d9d9',
-                          cursor: 'pointer',
-                          background: isActive ? 'var(--primary-color)' : 'transparent',
-                          color: '#ffffff',
-                          fontSize: 22,
-                        }}
-                        title={iconObj.name}
-                      >
-                        <IconComponent />
-                      </div>
+                      <Col span={4} key={iconObj?.id}>
+                        <div
+                          className="border border-secondary rounded d-flex align-items-center justify-content-center"
+                          onClick={() => {
+                            setSections(sections?.map(section => {
+                              if (section?.id === selectedElement?.sectionId) {
+                                return {
+                                  ...section,
+                                  rows: section?.rows?.map(row => {
+                                    if (row?.id === selectedElement?.id) {
+                                      return {
+                                        ...row,
+                                        defaultIcon: iconObj.icon,
+                                        seats: row?.seats?.map(seat => ({
+                                          ...seat,
+                                          icon: iconObj.icon,
+                                          customIcon: false
+                                        }))
+                                      };
+                                    }
+                                    return row;
+                                  })
+                                };
+                              }
+                              return section;
+                            }));
+                            setSelectedElement({ ...selectedElement, defaultIcon: iconObj.icon });
+                          }}
+                          style={{
+                            width: 38,
+                            height: 38,
+                            border: isActive
+                              ? '2px solid var(--primary-color)'
+                              : '1px solid #d9d9d9',
+                            cursor: 'pointer',
+                            background: isActive ? 'var(--primary-color)' : 'transparent',
+                            color: '#ffffff',
+                            fontSize: 22,
+                          }}
+                          title={iconObj.name}
+                        >
+                          <IconComponent />
+                        </div>
+                      </Col>
                     );
                   })}
-                </Space>
+                </Row>
               </Form.Item>
             )}
 
@@ -344,7 +368,7 @@ const RightPanel = (props) => {
               <Select
                 value={selectedElement.ticketCategory}
                 onChange={(value) => {
-                  // Update the row's ticket category and cascade to seats that don't have custom assignments
+                  // Update the row's ticket category and override ALL seats (including custom ones)
                   setSections(sections.map(section => {
                     if (section.id === selectedElement.sectionId) {
                       return {
@@ -354,16 +378,12 @@ const RightPanel = (props) => {
                             return {
                               ...row,
                               ticketCategory: value,
-                              seats: row.seats.map(seat =>
-                                !seat.customTicket
-                                  ? {
-                                    ...seat,
-                                    ticketCategory: value,
-                                    // Maintain existing status or default to available
-                                    status: seat.status || 'available'
-                                  }
-                                  : seat
-                              )
+                              seats: row.seats.map(seat => ({
+                                ...seat,
+                                ticketCategory: value,
+                                status: seat.status || 'available',
+                                customTicket: false // Reset custom flag
+                              }))
                             };
                           }
                           return row;
@@ -377,6 +397,11 @@ const RightPanel = (props) => {
                 }}
                 placeholder="Select a ticket category"
                 allowClear
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                }
               >
                 {ticketCategories?.map(cat => (
                   <Option key={cat.id} value={cat.id}>
@@ -386,27 +411,13 @@ const RightPanel = (props) => {
               </Select>
             </Form.Item>
 
-            {/* <Form.Item label="Row Shape">
-              <Select
-                value={selectedElement.shape}
-                onChange={(value) => {
-                  updateRow(selectedElement.sectionId, selectedElement.id, { shape: value });
-                  setSelectedElement({ ...selectedElement, shape: value });
-                }}
-                options={[
-                  { value: 'straight', label: 'Straight' },
-                  { value: 'curved-convex', label: 'Curved (Convex)' },
-                  { value: 'curved-concave', label: 'Curved (Concave)' }
-                ]}
-              />
-            </Form.Item> */}
 
             {selectedElement.shape !== 'straight' && (
-              <Form.Item label="Curve Amount">
+              <Form.Item label="Curve Amount" initialValue={95}>
                 <Slider
                   min={20}
                   max={100}
-                  value={selectedElement.curve || 50}
+                  value={selectedElement.curve || 95}
                   onChange={(value) => {
                     updateRow(selectedElement.sectionId, selectedElement.id, { curve: value });
                     setSelectedElement({ ...selectedElement, curve: value });
@@ -453,6 +464,7 @@ const RightPanel = (props) => {
           <Form layout="vertical" className="editor-form">
             <Form.Item label="Seat Label">
               <Input
+                disabled={isAssignMode}
                 value={selectedElement.label}
                 onChange={(e) => {
                   const label = e.target.value;
@@ -466,7 +478,7 @@ const RightPanel = (props) => {
             {!isAssignMode && (
               <Form.Item
                 label="Seat Icon"
-                help="Setting a custom icon will prevent row-level icon changes from affecting this seat"
+                help="Set custom icon for this seat. Note: Row-level changes will override this."
               >
                 <Space wrap size={8}>
                   {/* Default numeric seat */}
@@ -532,9 +544,9 @@ const RightPanel = (props) => {
                 </Space>
                 {selectedElement.customIcon && (
                   <Alert
-                    message="This seat has a custom icon and won't be affected by row-level icon changes"
-                    type="warning"
-                    icon={<WarningOutlined />}
+                    message="Custom icon set. This will be overridden if row-level icon is changed."
+                    type="info"
+                    icon={<InfoCircleOutlined />}
                     showIcon
                     className="mt-2"
                   />
@@ -571,7 +583,7 @@ const RightPanel = (props) => {
 
             {selectedElement.customTicket && (
               <Alert
-                message="This seat has a custom ticket assignment and won't be affected by row-level ticket changes"
+                message="Custom ticket assigned. This will be overridden if row-level ticket is changed."
                 type="info"
                 icon={<InfoCircleOutlined />}
                 showIcon

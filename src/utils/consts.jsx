@@ -2,15 +2,16 @@ export const API_ENDPOINT_URL = process.env.REACT_APP_API_ENDPOINT_URL || 'http:
 export const USERSITE_URL = process.env.REACT_APP_USERSITE_URL || 'http://localhost:3000/';
 
 export const PRIMARY = '#b51515';
+export const SECONDARY = '#0d0d0d;';
 
 export const ORGANIZER_ALLOWED_ROLES = [
-    'POS',
-    'Agent',
-    'Scanner',
-    'Shop Keeper',
-    'Box Office Manager',
-    'Sponsor',
-    'Accreditation'
+  'POS',
+  'Agent',
+  'Scanner',
+  'Shop Keeper',
+  'Box Office Manager',
+  'Sponsor',
+  'Accreditation'
 ];
 
 
