@@ -9,10 +9,10 @@ import { calcTicketTotals } from 'utils/ticketCalculations';
 const { Title } = Typography;
 
 const OrderSummary = (props) => {
-  const {  userId,ticketCurrency, discount, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
-    const {
-      grandTotal,
-    } = calcTicketTotals(selectedTickets, discount);
+  const { userId, ticketCurrency, discount, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
+  const {
+    grandTotal,
+  } = calcTicketTotals(selectedTickets, discount);
   // ✅ Determine which handler to use
   const handleButtonClick = () => {
     if (currentStep === 0) {
@@ -44,7 +44,7 @@ const OrderSummary = (props) => {
   };
   return (
     <Card bordered={false}>
-      <BookingStats type="agent" id={userId}/>
+      <BookingStats type="agent" id={userId} />
 
       <Space direction="vertical" size="small" style={{ width: '100%' }}>
         <OrderCalculation

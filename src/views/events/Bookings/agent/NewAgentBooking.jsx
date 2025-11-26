@@ -22,6 +22,8 @@ import {
 } from './useAgentBookingHooks';
 import BookingSummary from './components/BookingSummary';
 import { calcTicketTotals, distributeDiscount, getSubtotal } from 'utils/ticketCalculations';
+import BookingLayout from 'views/events/seating_module/theatre_booking/Bookinglayout';
+import SeatingModuleSummary from './components/SeatingModuleSummary';
 
 const NewAgentBooking = memo(({ type }) => {
   const {
@@ -51,6 +53,7 @@ const NewAgentBooking = memo(({ type }) => {
   const [method, setMethod] = useState('UPI');
   const [tickets, setTickets] = useState([]);
   const [isAttendeeRequire, setIsAttendeeRequire] = useState(false);
+  const [seatingModule, setSeatingModule] = useState(false);
   const [categoryFields, setCategoryFields] = useState([]);
   const [savedAttendeeIds, setSavedAttendeeIds] = useState({}); // ✅ NEW: Store saved attendee IDs by ticket
   const [isCorporate, setIsCorporate] = useState(false);
@@ -190,6 +193,7 @@ const NewAgentBooking = memo(({ type }) => {
 
       return {
         id: ticket.id,
+        seats: ticket.seats,
         category: ticket.category,
         quantity: ticket.quantity,
         price: ticket.price,
@@ -221,7 +225,8 @@ const NewAgentBooking = memo(({ type }) => {
       type: event?.event_type || 'daily',
       tickets: ticketsPayload
     };
-
+    // console.log(bookingPayload)
+    // return
     const url = isAmusment ? `amusement-agent-book-ticket/${eventID}` : `booking/${type}/${eventID}`;
 
     // ✅ Call booking API ONLY ONCE
@@ -467,6 +472,7 @@ const NewAgentBooking = memo(({ type }) => {
     setEvent(evnt);
     setEventID(evnt?.id);
     setTickets(tkts);
+    setSeatingModule(evnt?.event_controls?.ticket_system);
     setCategoryId(evnt?.category);
     setCurrentStep(0); // Reset to step 0
 
@@ -593,17 +599,31 @@ const NewAgentBooking = memo(({ type }) => {
 
             {/* Step 0: Ticket Selection */}
             {currentStep === 0 && (
-              <Col xs={24} lg={16}>
-                <TicketSelectionStep
-                  event={event}
-                  selectedTickets={selectedTickets}
-                  setSelectedTickets={setSelectedTickets}
-                  getCurrencySymbol={getCurrencySymbol}
-                  formatDateRange={formatDateRange}
-                  onNext={goToNextStep} // ✅ Pass navigation function
-                />
-              </Col>
+              <>
+                {seatingModule ? (
+                  <Col xs={24} lg={16}>
+                    <BookingLayout
+                      eventId={event?.id}
+                      setSelectedTkts={setSelectedTickets}
+                      layoutId={event?.layout_id}
+                      onNext={goToNextStep}
+                    />
+                  </Col>
+                ) : (
+                  <Col xs={24} lg={16}>
+                    <TicketSelectionStep
+                      event={event}
+                      selectedTickets={selectedTickets}
+                      setSelectedTickets={setSelectedTickets}
+                      getCurrencySymbol={getCurrencySymbol}
+                      formatDateRange={formatDateRange}
+                      onNext={goToNextStep}
+                    />
+                  </Col>
+                )}
+              </>
             )}
+
 
             {/* Step 1: Attendee Management */}
             {currentStep === 1 && isAttendeeRequire && (
@@ -624,31 +644,38 @@ const NewAgentBooking = memo(({ type }) => {
             {/* Right Sidebar - Order Summary */}
             {
               currentStep <= (isAttendeeRequire ? 1 : 0) ?
-                <Col xs={24} lg={8}>
-                  <OrderSummary
-                    userId={UserData?.id}
-                    authToken={authToken}
-                    ticketCurrency={ticketCurrency}
-                    discountType={discountType}
-                    setDiscountType={setDiscountType}
-                    discountValue={discountValue}
-                    setDiscountValue={setDiscountValue}
-                    disableChoice={disableChoice}
-                    handleDiscount={handleDiscount}
-                    currentStep={currentStep}
-                    isAttendeeRequire={isAttendeeRequire}
-                    selectedTickets={selectedTickets}
-                    isLoading={isLoading}
-                    onNext={goToNextStep} // ✅ Pass navigation function
-                    onCheckout={handleBooking} // ✅ Only used for final checkout
-                    isMobile={isMobile}
-                    discount={discount}
-                  />
-                </Col>
-                : <Col xs={24}>
-
-                  <BookingSummary response={bookingResponse} setResponse={setBookingResponse} setCurrentStep={setCurrentStep} />
-                </Col>
+                <>
+                  <Col xs={24} lg={8}>
+                    <OrderSummary
+                      userId={UserData?.id}
+                      authToken={authToken}
+                      ticketCurrency={ticketCurrency}
+                      discountType={discountType}
+                      setDiscountType={setDiscountType}
+                      discountValue={discountValue}
+                      setDiscountValue={setDiscountValue}
+                      disableChoice={disableChoice}
+                      handleDiscount={handleDiscount}
+                      currentStep={currentStep}
+                      isAttendeeRequire={isAttendeeRequire}
+                      selectedTickets={selectedTickets}
+                      isLoading={isLoading}
+                      onNext={goToNextStep} // ✅ Pass navigation function
+                      onCheckout={handleBooking} // ✅ Only used for final checkout
+                      isMobile={isMobile}
+                      discount={discount}
+                    />
+                  </Col>
+                  <Col xs={24} lg={24}>
+                    <SeatingModuleSummary selectedTickets={selectedTickets} />
+                  </Col>
+                </>
+                :
+                <>
+                  <Col xs={24}>
+                    <BookingSummary response={bookingResponse} setResponse={setBookingResponse} setCurrentStep={setCurrentStep} />
+                  </Col>
+                </>
             }
           </>
         )}

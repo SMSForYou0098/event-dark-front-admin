@@ -1,15 +1,17 @@
-// TicketsStep.jsx
-import React from 'react';
-import { Form, Input, Row, Col, Switch, Card, Button } from 'antd';
+import React, { useState } from 'react';
+import { Form, Input, Row, Col, Switch, Card, Button, Modal, List, Typography, Tag } from 'antd';
+import { ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
 import TicketManager from 'views/events/Tickets/TicketManager/TicketManager';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useNavigate } from 'react-router-dom';
 
 const { TextArea } = Input;
+const { Text } = Typography;
 
-const TicketsStep = ({ eventId, eventName, layoutId }) => {
+const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
   const navigate = useNavigate();
   const form = Form.useFormInstance();
+  const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
 
   const toChecked = (v) => v === 1 || v === '1';
   const toNumber = (checked) => (checked ? 1 : 0);
@@ -24,6 +26,28 @@ const TicketsStep = ({ eventId, eventName, layoutId }) => {
       }
     }
     return toNumber(checked);
+  };
+
+  const handleManageLayoutClick = () => {
+    if (!layouts || layouts.length === 0) {
+      Modal.confirm({
+        title: 'No Layout Found',
+        content: 'There is no layout available for this venue. Would you like to create a new layout?',
+        okText: 'Create Layout',
+        cancelText: 'Cancel',
+        centered: true,
+        onOk: () => {
+          navigate(`/theatre/new?venueId=${eventLayoutId}`);
+        }
+      });
+      return;
+    }
+
+    if (layouts.length === 1) {
+      navigate(`/theatre/event/${eventId}/layout/${layouts[0].id}`);
+    } else {
+      setIsLayoutModalVisible(true);
+    }
   };
 
   const switchFields = [
@@ -80,7 +104,7 @@ const TicketsStep = ({ eventId, eventName, layoutId }) => {
             {() => {
               const bookingBySeatValue = form.getFieldValue('bookingBySeat');
               return toChecked(bookingBySeatValue) ? (
-                <Button type="primary" onClick={() => navigate(`/theatre/event/${eventId}/layout/${layoutId}`)}>
+                <Button type="primary" onClick={handleManageLayoutClick}>
                   Manage Ticket in Layout
                 </Button>
               ) : null;
@@ -106,6 +130,46 @@ const TicketsStep = ({ eventId, eventName, layoutId }) => {
           </Form.Item>
         </Card>
       </Col>
+
+      {/* Layout Selection Modal */}
+      <Modal
+        title="Select Layout for Event"
+        open={isLayoutModalVisible}
+        onCancel={() => setIsLayoutModalVisible(false)}
+        footer={null}
+      >
+        <List
+          dataSource={layouts}
+          renderItem={(item) => {
+            const isAssigned = Number(item.id) === Number(eventLayoutId);
+            console.log(item.id, eventLayoutId, isAssigned)
+            return (<List.Item
+              className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}
+              onClick={() => {
+                setIsLayoutModalVisible(false);
+                navigate(`/theatre/event/${eventId}/layout/${item.id}`);
+              }}
+              actions={[
+                isAssigned ? (
+                  <Tag className='cursor-pointer m-0' color="success" icon={<CheckCircleFilled />}>
+                    Currently Assigned
+                  </Tag>
+                ) : (
+                  <Button type='primary' icon={<ArrowRightOutlined />}>
+                    Select
+                  </Button>
+                )
+              ]}
+            >
+              <List.Item.Meta
+                title={<Text strong>{item.name}</Text>}
+              //description={`Venue ID: ${item.venue_id}`}
+              />
+            </List.Item>
+            )
+          }}
+        />
+      </Modal>
     </Row>
   );
 };

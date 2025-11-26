@@ -1,10 +1,11 @@
-import React from 'react';
-import { Button, Card, Typography, Descriptions, List, Divider, Space, Avatar, Row, Col } from 'antd';
+import React, { Fragment } from 'react';
+import { Button, Card, Typography, List, Space, Avatar, Row, Col, Tag } from 'antd';
 import { MailOutlined, PhoneOutlined, ShoppingOutlined, TagOutlined, UserOutlined } from '@ant-design/icons';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil';
+import Flex from 'components/shared-components/Flex';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
   const handleBookNew = () => {
@@ -37,7 +38,8 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
         bookings: [],
         totalAmount: 0,
         totalDiscount: 0,
-        attendees: []
+        attendees: [],
+        sectionGroups: {} // Nested grouping by section
       };
     }
 
@@ -45,11 +47,32 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
     acc[ticketId].totalAmount += parseFloat(booking.total_amount || 0);
     acc[ticketId].totalDiscount += parseFloat(booking.discount || 0);
 
+    // Group seats by section within this ticket
+    if (booking.seat_name && booking.l_section) {
+      const sectionId = booking.l_section.id || 'no-section';
+      const sectionName = booking.l_section.name || 'General';
+
+      if (!acc[ticketId].sectionGroups[sectionId]) {
+        acc[ticketId].sectionGroups[sectionId] = {
+          sectionId: sectionId,
+          sectionName: sectionName,
+          seats: []
+        };
+      }
+
+      acc[ticketId].sectionGroups[sectionId].seats.push({
+        seatName: booking.seat_name,
+        bookingId: booking.id,
+        attendee: booking.attendee
+      });
+    }
+
     // Add attendee if exists
     if (booking.attendee) {
       acc[ticketId].attendees.push({
         ...booking.attendee,
-        bookingId: booking.id
+        bookingId: booking.id,
+        seatName: booking.seat_name
       });
     }
 
@@ -107,10 +130,7 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
     <Card
       bordered={false}
       className='bg-transparent'
-      title={`Booking Confirmed : ${eventName}`}
-      extra={<Button type="primary" onClick={handleBookNew}>
-        Book New
-      </Button>}
+    //title={`Booking Confirmed : ${eventName}`}
     >
       {/* Success Message */}
       <Row gutter={ROW_GUTTER}>
@@ -195,45 +215,69 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
         </Col>
         <Col xs={24} md={16}>
           <Card title={
-             <Space size={8}>
-             <Avatar
-               size={32}
-               shape='square'
-               icon={<TagOutlined />}
-               style={{
-                 backgroundColor: '#1890ff',
-               }}
-             />
-             <Text strong style={{ fontSize: 18 }}>{'Ticket Details'}</Text>
-           </Space>
-          }>
-            <Row style={{maxHeight : '75vh' , overflow:'auto'}}>
+            <Space size={8}>
+              <Avatar
+                size={32}
+                shape='square'
+                icon={<TagOutlined />}
+                style={{
+                  backgroundColor: '#1890ff',
+                }}
+              />
+              <Text strong style={{ fontSize: 18 }}>{eventName}</Text>
+            </Space>
+          }
+            extra={<Button type="primary" onClick={handleBookNew}>
+              Book New
+            </Button>}
+          >
+            <Row style={{ maxHeight: '75vh', overflow: 'auto' }}>
               {Object.entries(groupedByTicket).map(([ticketId, group]) => {
                 const ticket = group.ticket;
-
                 return (
                   <Col xs={24} md={24} key={ticketId}>
                     <Card
                       size="small"
-                      style={{ marginBottom: 16 }}
+                      className='mb-0'
                       title={ticket?.name || 'N/A'}
                       extra={
-                        <Space size={24}>
-                          <div  className='text-center'>
-                            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>QTY</Text>
-                            <Text strong style={{ fontSize: 18 }}>{group.bookings.length}</Text>
-                          </div>
-                          <div >
-                            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>AMOUNT</Text>
-                            <Text strong style={{ fontSize: 18, color: '#52c41a' }}>{formatINR(group.totalAmount)}</Text>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>DISCOUNT</Text>
-                            <Text strong style={{ fontSize: 18, color: '#00d9ff' }}>{formatINR(group.discount)}</Text>
-                          </div>
-                        </Space>
+                        <Row gutter={[24, 16]} align="middle">
+                          <Col xs={24} sm={24} md={12} lg={14}>
+                            <Flex gap={16} wrap="wrap" align="flex-start">
+                              {Object.entries(group.sectionGroups).map(([sectionId, sectionData]) => (
+                                <div key={sectionId}>
+                                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                                    {sectionData.sectionName}
+                                  </Text>
+                                  <Flex wrap="wrap" gap={4}>
+                                    {sectionData.seats.map((seat) => (
+                                      <Tag key={seat.bookingId} color="green" className='px-2 py-1'>
+                                        {seat.seatName}
+                                      </Tag>
+                                    ))}
+                                  </Flex>
+                                </div>
+                              ))}
+                            </Flex>
+                          </Col>
+
+                          <Col xs={12} sm={12} md={6} lg={5}>
+                            <div className='text-center'>
+                              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>QTY</Text>
+                              <Text strong style={{ fontSize: 18 }}>{group.bookings.length}</Text>
+                            </div>
+                          </Col>
+
+                          <Col xs={12} sm={12} md={6} lg={5}>
+                            <div className='text-center'>
+                              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>AMOUNT</Text>
+                              <Text strong style={{ fontSize: 18, color: '#52c41a' }}>{formatINR(group.totalAmount)}</Text>
+                            </div>
+                          </Col>
+                        </Row>
                       }
                     >
+
                       {/* Attendees Section */}
                       <div className='border-top pt-2'>
                         <Text type="secondary" style={{ fontSize: 12, textTransform: 'uppercase' }}>
@@ -242,7 +286,7 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
 
                         <Row gutter={[16, 16]} style={{ marginTop: 12 }}>
                           {group.attendees.map((attendee) => (
-                            <Col xs={24} sm={12} md={8} key={attendee.id}>
+                            <Col xs={24} sm={12} md={12} lg={8} xl={8} key={attendee.id}>
                               <Card
                                 size="small"
                                 style={{
@@ -264,6 +308,11 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
                                     <Text strong style={{ display: 'block' }}>
                                       {attendee.Name || 'N/A'}
                                     </Text>
+                                    {/* {attendee.seatName && (
+                                      <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
+                                        🎫 {attendee.seatName}
+                                      </Text>
+                                    )} */}
                                     {attendee.Mo && (
                                       <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
                                         📱 {attendee.Mo}
@@ -284,7 +333,7 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
           </Card>
         </Col>
       </Row>
-    </Card>
+    </Card >
   );
 };
 

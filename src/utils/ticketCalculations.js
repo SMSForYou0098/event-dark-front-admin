@@ -1,5 +1,5 @@
-function safe(n) { 
-  return Number.isFinite(n) ? n : 0; 
+function safe(n) {
+  return Number.isFinite(n) ? n : 0;
 }
 
 export function getSubtotal(tickets = []) {
@@ -82,7 +82,7 @@ export function getTotalDiscount(tickets = []) {
 export function getDiscountDetails(tickets = []) {
   const totalDiscount = parseFloat(getTotalDiscount(tickets));
   const subtotal = parseFloat(getSubtotal(tickets));
-  
+
   if (totalDiscount === 0 || subtotal === 0) {
     return {
       value: 0,
@@ -90,9 +90,9 @@ export function getDiscountDetails(tickets = []) {
       percentage: 0,
     };
   }
-  
+
   const percentage = ((totalDiscount / subtotal) * 100).toFixed(2);
-  
+
   return {
     value: totalDiscount,
     amount: totalDiscount,
@@ -135,14 +135,14 @@ export function getGrandTotal(tickets = [], discount = 0) {
   const centralGST = parseFloat(getCentralGST(tickets));
   const stateGST = parseFloat(getStateGST(tickets));
   const convenienceFee = parseFloat(getConvenienceFee(tickets));
-  
+
   return (baseAmount + centralGST + stateGST + convenienceFee).toFixed(2);
 }
 
 export function calcTicketTotals(tickets = [], discount = 0) {
   const totalDiscount = parseFloat(getTotalDiscount(tickets));
   const finalDiscount = discount || totalDiscount;
-  
+
   return {
     subtotal: getSubtotal(tickets),
     totalDiscount: getTotalDiscount(tickets),

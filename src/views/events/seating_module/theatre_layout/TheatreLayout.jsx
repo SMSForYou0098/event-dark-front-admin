@@ -2,13 +2,47 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined } from '@ant-design/icons';
-import { Button, Card, Col, message, Row } from 'antd';
+import { Button, Card, Col, Input, message, Row } from 'antd';
 import api from 'auth/FetchInterceptor';
 import LeftBar from './components/creation/LeftBar';
 import CenterCanvas from './components/creation/CenterCanvas';
 import RightPanel from './components/creation/RightPanel';
 import Loader from 'utils/Loader';
 import { VanueList } from 'views/events/event/components/CONSTANTS';
+
+// Helper functions to sanitize numeric values from API (strings to numbers)
+const sanitizeStageNumbers = (stageData) => ({
+  ...stageData,
+  x: parseFloat(stageData.x) || 0,
+  y: parseFloat(stageData.y) || 0,
+  width: parseFloat(stageData.width) || 800,
+  height: parseFloat(stageData.height) || 50
+});
+
+const sanitizeSeat = (seat) => ({
+  ...seat,
+  number: parseInt(seat.number) || 0,
+  x: parseFloat(seat.x) || 0,
+  y: parseFloat(seat.y) || 0,
+  radius: parseFloat(seat.radius) || 12
+});
+
+const sanitizeRow = (row) => ({
+  ...row,
+  numberOfSeats: parseInt(row.numberOfSeats) || 0,
+  curve: parseFloat(row.curve) || 0,
+  spacing: parseFloat(row.spacing) || 40,
+  seats: row.seats?.map(sanitizeSeat) || []
+});
+
+const sanitizeSection = (section) => ({
+  ...section,
+  x: parseFloat(section.x) || 0,
+  y: parseFloat(section.y) || 0,
+  width: parseFloat(section.width) || 600,
+  height: parseFloat(section.height) || 250,
+  rows: section.rows?.map(sanitizeRow) || []
+});
 
 const AuditoriumLayoutDesigner = () => {
   const { id: layoutId, eventId } = useParams();
@@ -19,12 +53,13 @@ const AuditoriumLayoutDesigner = () => {
   // State Management
   const [stage, setStage] = useState({
     position: 'top',
-    shape: 'straight',
+    shape: 'curved',
     width: 800,
     height: 50,
     x: 100,
     y: 50,
-    name: 'SCREEN'
+    name: 'SCREEN',
+    curve: 0.95 // Curve depth as percentage (0-1)
   });
 
   const [sections, setSections] = useState([]);
@@ -64,11 +99,11 @@ const AuditoriumLayoutDesigner = () => {
         setLayoutName(layoutData.name || '');
         setVanueId(layoutData?.venue_id)
         if (layoutData.stage) {
-          setStage(layoutData.stage);
+          setStage(sanitizeStageNumbers(layoutData.stage));
         }
 
         if (layoutData.sections && Array.isArray(layoutData.sections)) {
-          setSections(layoutData.sections);
+          setSections(layoutData.sections.map(sanitizeSection));
           setNextSectionId(layoutData.sections.length + 1);
         }
 
@@ -133,14 +168,10 @@ const AuditoriumLayoutDesigner = () => {
               }))
             }))
           );
-
-          message.success(`Loaded ${assignmentsData.length} ticket assignments`);
-          console.log('Loaded ticket assignments:', assignmentsData);
         }
       } catch (error) {
         if (error.name === 'AbortError') return;
         if (!isMounted) return;
-
         console.error('Error fetching ticket assignments:', error);
         // Don't show error if assignments don't exist yet
         if (error.response?.status !== 404) {
@@ -579,16 +610,16 @@ const AuditoriumLayoutDesigner = () => {
           ticketAssignments: ticketAssignments
         };
 
-        console.log('Saving ticket assignments:', assignPayload);
-
         const response = await api.post(`event/layout/${eventId}`, assignPayload);
 
         message.success(`Successfully assigned tickets to ${ticketAssignments.length} seats!`);
-        console.log('Assignment response:', response);
-
       } else {
         if (!vanueId?.trim()) {
           message.error("Please Select Venue for the layout");
+          return;
+        }
+        if (!layoutName?.trim()) {
+          message.error("Please Enter Layout Name");
           return;
         }
 
@@ -691,7 +722,7 @@ const AuditoriumLayoutDesigner = () => {
 
   return (
     <Card className="auditorium-designer" bodyStyle={{ paddingTop: 10 }}>
-      <Row align="middle" gutter={10} wrap={false} className='mb-2'>
+      <Row align="middle" gutter={10} wrap={false} className='mb-4'>
         <Col span={10}>
           <h5>
             {isAssignMode
@@ -701,12 +732,21 @@ const AuditoriumLayoutDesigner = () => {
                 : "New Auditorium Layout"}
           </h5>
         </Col>
+        <Col span={4}>
+          {/* add field to write name for layout */}
+          <Input
+            placeholder="Layout Name"
+            value={layoutName}
+            onChange={(e) => setLayoutName(e.target.value)}
+          />
+        </Col>
         {!isAssignMode &&
           <VanueList
             hideLable={true}
             noMargin={true}
             onChange={onVanueChange}
             value={vanueId}
+            span={4}
             showDetail={false}
           />
         }
@@ -778,6 +818,7 @@ const AuditoriumLayoutDesigner = () => {
             stage={stage}
             setStage={setStage}
             sections={sections}
+            setSections={setSections}
             updateSection={updateSection}
             selectedType={selectedType}
             selectedElement={selectedElement}
