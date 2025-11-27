@@ -283,7 +283,7 @@ const CenterCanvas = (props) => {
 
 
   const layerRef = useRef();
-  const [isDraggingElement, setIsDraggingElement] = React.useState(false);
+  const [isDraggingElement, setIsDraggingElement] = useState(false);
 
   return (
     <div className="canvas-container">
@@ -386,9 +386,14 @@ const CenterCanvas = (props) => {
               }}
               onTransformEnd={(transform) => {
                 if (!isAssignMode) {
-                  const updatedSection = { ...section, ...transform };
+                  // Update section with transform data - this will trigger gap preservation in updateSection
                   updateSection(section.id, transform);
-                  if (selectedElement?.id === section.id && selectedType === 'section') setSelectedElement(updatedSection);
+
+                  // Update selected element to reflect new dimensions
+                  if (selectedElement?.id === section.id && selectedType === 'section') {
+                    const updatedSection = { ...section, ...transform };
+                    setSelectedElement(updatedSection);
+                  }
                 }
               }}
             >
@@ -417,6 +422,27 @@ const CenterCanvas = (props) => {
                       if (!seat || typeof seat.x !== 'number' || typeof seat.y !== 'number' || typeof seat.radius !== 'number') {
                         console.warn('Invalid seat data:', seat);
                         return null;
+                      }
+
+                      // Handle blank seats (gaps) differently
+                      if (seat.type === 'blank') {
+                        return (
+                          <Group key={seat.id}>
+                            <Rect
+                              x={seat.x - seat.radius}
+                              y={seat.y - seat.radius}
+                              width={seat.radius * 2}
+                              height={seat.radius * 2}
+                              fill="transparent"
+                              stroke="#666"
+                              strokeWidth={1}
+                              dash={[3, 3]}
+                              cornerRadius={4}
+                              listening={false}
+                              opacity={0.3}
+                            />
+                          </Group>
+                        );
                       }
 
                       // Determine opacity based on seat status

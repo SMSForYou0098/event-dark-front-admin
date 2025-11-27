@@ -1,5 +1,5 @@
 import React, { Fragment } from 'react';
-import { Button, Card, Typography, List, Space, Avatar, Row, Col, Tag } from 'antd';
+import { Button, Card, Typography, List, Space, Avatar, Row, Col, Tag, Divider } from 'antd';
 import { MailOutlined, PhoneOutlined, ShoppingOutlined, TagOutlined, UserOutlined } from '@ant-design/icons';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil';
@@ -239,44 +239,65 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
                     <Card
                       size="small"
                       className='mb-0'
-                      title={ticket?.name || 'N/A'}
-                      extra={
-                        <Row gutter={[24, 16]} align="middle">
-                          <Col xs={24} sm={24} md={12} lg={14}>
-                            <Flex gap={16} wrap="wrap" align="flex-start">
-                              {Object.entries(group.sectionGroups).map(([sectionId, sectionData]) => (
-                                <div key={sectionId}>
-                                  <Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 4 }}>
+                    >
+                      <Row
+                        gutter={[24, 16]}
+                        align="top"
+                      >
+                        {/* NAME */}
+                        <Col lg={6} xs={24} md={10}>
+                          <Text strong style={{ fontSize: 16, display: "block" }}>
+                            {ticket?.name || "N/A"}
+                          </Text>
+                        </Col>
+
+                        {/* SECTIONS + SEATS */}
+                        <Col lg={8} xs={24} md={14}>
+                          <Flex align="center">
+                            {Object.entries(group.sectionGroups).map(([sectionId, sectionData], index, arr) => (
+                              <React.Fragment key={sectionId}>
+
+                                {/* Section Block */}
+                                <div style={{ marginBottom: 8 }}>
+                                  <Text
+                                    type="secondary"
+                                    style={{ fontSize: 12, display: "block", marginBottom: 4 }}
+                                  >
                                     {sectionData.sectionName}
                                   </Text>
+
                                   <Flex wrap="wrap" gap={4}>
                                     {sectionData.seats.map((seat) => (
-                                      <Tag key={seat.bookingId} color="green" className='px-2 py-1'>
+                                      <Tag key={seat.bookingId} color="green" className="px-2 py-1">
                                         {seat.seatName}
                                       </Tag>
                                     ))}
                                   </Flex>
                                 </div>
-                              ))}
-                            </Flex>
-                          </Col>
 
-                          <Col xs={12} sm={12} md={6} lg={5}>
-                            <div className='text-center'>
-                              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>QTY</Text>
-                              <Text strong style={{ fontSize: 18 }}>{group.bookings.length}</Text>
-                            </div>
-                          </Col>
+                                {/* Divider between sections */}
+                                {index !== arr.length - 1 && (
+                                  <Divider type="vertical" style={{ height: "auto", margin: "0 12px" }} />
+                                )}
+                              </React.Fragment>
+                            ))}
+                          </Flex>
+                        </Col>
 
-                          <Col xs={12} sm={12} md={6} lg={5}>
-                            <div className='text-center'>
-                              <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>AMOUNT</Text>
-                              <Text strong style={{ fontSize: 18, color: '#52c41a' }}>{formatINR(group.totalAmount)}</Text>
-                            </div>
-                          </Col>
-                        </Row>
-                      }
-                    >
+                        {/* QTY */}
+                        <Col lg={4} xs={12} md={12}>
+                          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>QTY</Text>
+                          <Text strong style={{ fontSize: 18 }}>{group.bookings.length}</Text>
+                        </Col>
+
+                        {/* AMOUNT */}
+                        <Col lg={4} xs={12} md={12}>
+                          <Text type="secondary" style={{ fontSize: 12, display: "block" }}>AMOUNT</Text>
+                          <Text strong style={{ fontSize: 18, color: "#52c41a" }}>
+                            {formatINR(group.totalAmount)}
+                          </Text>
+                        </Col>
+                      </Row>
 
                       {/* Attendees Section */}
                       <div className='border-top pt-2'>

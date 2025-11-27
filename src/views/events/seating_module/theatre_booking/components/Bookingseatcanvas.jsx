@@ -14,9 +14,6 @@ import { SiTablecheck } from 'react-icons/si';
 import { PlusOutlined, MinusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { Button, Popover, Typography } from 'antd';
 
-// ============================================================================
-// 🎨 THEME COLORS - Change these to update the entire component
-// ============================================================================
 const THEME = {
     // Primary brand color
     primary: PRIMARY,
@@ -53,9 +50,6 @@ const THEME = {
     errorColor: '#ef4444',
 };
 
-// ============================================================================
-// PERFORMANCE CONSTANTS
-// ============================================================================
 const IS_MOBILE = typeof navigator !== 'undefined' &&
     /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const PIXEL_RATIO = typeof window !== 'undefined' ?
@@ -63,14 +57,9 @@ const PIXEL_RATIO = typeof window !== 'undefined' ?
 
 // Disable Konva warnings in production
 Konva.showWarnings = false;
-
-// ============================================================================
-// GLOBAL ICON CACHE - Create icons ONCE, reuse forever
-// ============================================================================
 const iconImageCache = new Map();
 const iconLoadingPromises = new Map();
 
-// Icon component mapping - same as creation canvas
 const ICON_MAP = {
     'FaChair': FaChair,
     'MdOutlineChair': MdOutlineChair,
@@ -84,7 +73,6 @@ const ICON_MAP = {
     'MdOutlineTableBar': MdOutlineTableBar
 };
 
-// Create cached icon image using actual React icon components
 const createIconImage = (iconName, size, color = '#FFFFFF') => {
     const cacheKey = `${iconName}-${size}-${color}`;
 
@@ -98,11 +86,9 @@ const createIconImage = (iconName, size, color = '#FFFFFF') => {
 
     const promise = new Promise((resolve) => {
         try {
-            // Get the icon component from the map
             const IconComponent = ICON_MAP[iconName];
 
             if (!IconComponent) {
-                // If icon not found, use default chair icon
                 const DefaultIcon = ICON_MAP['FaChair'];
                 const svgString = renderToStaticMarkup(
                     <DefaultIcon size={size} color={color} />
@@ -122,7 +108,6 @@ const createIconImage = (iconName, size, color = '#FFFFFF') => {
                 return;
             }
 
-            // Render the React icon component to static SVG markup
             const svgString = renderToStaticMarkup(
                 <IconComponent size={size} color={color} />
             );
@@ -149,9 +134,6 @@ const createIconImage = (iconName, size, color = '#FFFFFF') => {
     return promise;
 };
 
-// ============================================================================
-// SEAT COLORS - Using THEME values
-// ============================================================================
 const SEAT_COLORS = {
     available: THEME.seatAvailable,
     selected: THEME.seatSelected,
@@ -168,9 +150,6 @@ const getSeatColor = (seat, isSelected) => {
     return SEAT_COLORS.available;
 };
 
-// ============================================================================
-// OPTIMIZED SEAT COMPONENT
-// ============================================================================
 const Seat = memo(({
     seat,
     isSelected,
@@ -211,6 +190,28 @@ const Seat = memo(({
     const x = seat.x;
     const y = seat.y;
     const radius = seat.radius;
+
+    // Handle blank seats (gaps) - render with dotted outline, non-interactive
+    if (seat.type === 'blank') {
+        return (
+            <Group x={x} y={y}>
+                <Rect
+                    x={-radius}
+                    y={-radius}
+                    width={radius * 2}
+                    height={radius * 2}
+                    fill="transparent"
+                    stroke="transparent"
+                    strokeWidth={1}
+                    dash={[3, 3]}
+                    cornerRadius={4}
+                    listening={false}
+                    opacity={0.3}
+                    perfectDrawEnabled={false}
+                />
+            </Group>
+        );
+    }
 
     // Determine fill and stroke based on seat status
     const isAvailable = hasTicket && seat.status !== 'booked' && seat.status !== 'disabled' && !isSelected;
@@ -327,9 +328,6 @@ const Seat = memo(({
 
 Seat.displayName = 'Seat';
 
-// ============================================================================
-// ROW COMPONENT
-// ============================================================================
 const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave, sectionId }) => {
     if (!row.seats || row.seats.length === 0) return null;
 
@@ -383,9 +381,6 @@ const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave,
 
 Row.displayName = 'Row';
 
-// ============================================================================
-// SECTION COMPONENT
-// ============================================================================
 const Section = memo(({ section, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave }) => {
     return (
         <Group x={section.x} y={section.y}>
@@ -431,9 +426,6 @@ const Section = memo(({ section, selectedSeatIds, onSeatClick, onSeatHover, onSe
 
 Section.displayName = 'Section';
 
-// ============================================================================
-// STAGE/SCREEN COMPONENT - CONDITIONAL CURVED/STRAIGHT LINE
-// ============================================================================
 const StageScreen = memo(({ stage }) => {
     if (!stage) return null;
 
@@ -495,9 +487,7 @@ const StageScreen = memo(({ stage }) => {
 
 StageScreen.displayName = 'StageScreen';
 
-// ============================================================================
-// CALCULATE LAYOUT BOUNDS
-// ============================================================================
+
 const getLayoutBounds = (stage, sections) => {
     if (!stage || !sections || sections.length === 0) {
         return { minX: 0, minY: 0, maxX: 1000, maxY: 600, width: 1000, height: 600 };
@@ -525,16 +515,10 @@ const getLayoutBounds = (stage, sections) => {
     };
 };
 
-// ============================================================================
-// HELPER: Get distance between two touch points
-// ============================================================================
 const getDistance = (p1, p2) => {
     return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
 };
 
-// ============================================================================
-// HELPER: Get center point between two points
-// ============================================================================
 const getCenter = (p1, p2) => {
     return {
         x: (p1.x + p2.x) / 2,
@@ -542,9 +526,6 @@ const getCenter = (p1, p2) => {
     };
 };
 
-// ============================================================================
-// MAIN CANVAS COMPONENT
-// ============================================================================
 const BookingSeatCanvas = ({
     stageRef: externalStageRef,
     canvasScale: externalScale,
@@ -560,7 +541,6 @@ const BookingSeatCanvas = ({
     const stageRef = externalStageRef || internalStageRef;
     const containerRef = useRef(null);
 
-    // Touch/pinch state refs
     const lastCenter = useRef(null);
     const lastDist = useRef(0);
     const dragStopped = useRef(false);

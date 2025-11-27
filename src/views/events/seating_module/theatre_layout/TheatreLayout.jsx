@@ -416,6 +416,7 @@ const AuditoriumLayoutDesigner = () => {
         label: `${row.title}${seatNumber}`,
         x,
         y,
+        type: 'regular', // NEW: Seat type - 'regular' or 'blank'
         ticketCategory: row.ticketCategory,
         status: 'available',
         radius: seatRadius,
@@ -428,6 +429,137 @@ const AuditoriumLayoutDesigner = () => {
     return seats;
   };
 
+  // Recalculate seat positions after adding/removing gaps
+  const recalculateSeatPositions = (seats, section, rowIndex, row) => {
+    const leftPadding = 50;
+    const rightPadding = 20;
+    const totalWidth = section.width - leftPadding - rightPadding;
+
+    // Calculate spacing including blank seats
+    const totalSeats = seats.length;
+    const seatSpacing = totalWidth / totalSeats;
+
+    return seats.map((seat, index) => {
+      let x, y;
+
+      if (row.shape === 'straight') {
+        x = leftPadding + (seatSpacing * index) + (seatSpacing / 2);
+        y = 50 + (rowIndex * row.spacing);
+      } else if (row.shape === 'curved-convex') {
+        const angle = (index / (totalSeats - 1)) * Math.PI - Math.PI / 2;
+        const radius = totalWidth / 2;
+        x = section.width / 2 + Math.cos(angle) * radius;
+        y = 50 + (rowIndex * row.spacing) - Math.sin(angle) * (row.curve || 50);
+      } else if (row.shape === 'curved-concave') {
+        const angle = (index / (totalSeats - 1)) * Math.PI - Math.PI / 2;
+        const radius = totalWidth / 2;
+        x = section.width / 2 + Math.cos(angle) * radius;
+        y = 50 + (rowIndex * row.spacing) + Math.sin(angle) * (row.curve || 50);
+      }
+
+      return {
+        ...seat,
+        x,
+        y
+      };
+    });
+  };
+
+  // Add blank seat after specified seat number
+  const addBlankSeatToRow = (sectionId, rowId, afterSeatNumber, applyToAllRows, numberOfGaps = 1) => {
+    setSections(sections.map(section => {
+      if (section.id === sectionId) {
+        return {
+          ...section,
+          rows: section.rows.map((row, rowIndex) => {
+            // Apply to current row or all rows if checkbox is checked
+            if (row.id === rowId || applyToAllRows) {
+              const newSeats = [...row.seats];
+
+              // Find the index of the seat after which to insert the gap
+              const insertIndex = newSeats.findIndex(s => s.number === afterSeatNumber && s.type === 'regular');
+
+              if (insertIndex === -1) {
+                console.warn(`Seat number ${afterSeatNumber} not found in row`);
+                return row;
+              }
+
+              const seatRadius = newSeats[insertIndex]?.radius || 12;
+
+              // Create multiple blank seats
+              const blankSeats = [];
+              for (let i = 0; i < numberOfGaps; i++) {
+                blankSeats.push({
+                  id: generateId('seat'),
+                  number: afterSeatNumber + 0.1 + (i * 0.1), // Use incremental decimals to maintain order
+                  label: '',
+                  type: 'blank',
+                  x: 0, // Will be recalculated
+                  y: 0, // Will be recalculated
+                  radius: seatRadius,
+                  ticketCategory: null,
+                  status: 'unavailable',
+                  icon: null,
+                  customIcon: false,
+                  customTicket: false
+                });
+              }
+
+              // Insert all blank seats after the specified seat
+              newSeats.splice(insertIndex + 1, 0, ...blankSeats);
+
+              // Recalculate positions for all seats
+              const updatedSeats = recalculateSeatPositions(newSeats, section, rowIndex, row);
+
+              return {
+                ...row,
+                seats: updatedSeats
+              };
+            }
+            return row;
+          })
+        };
+      }
+      return section;
+    }));
+  };
+
+  // Remove all gaps from specified row(s)
+  const removeAllGapsFromRow = (sectionId, rowId, applyToAllRows) => {
+    setSections(sections.map(section => {
+      if (section.id === sectionId) {
+        return {
+          ...section,
+          rows: section.rows.map((row, rowIndex) => {
+            if (row.id === rowId || applyToAllRows) {
+              const regularSeats = row.seats.filter(seat => seat.type !== 'blank');
+              return {
+                ...row,
+                seats: recalculateSeatPositions(regularSeats, section, rowIndex, row)
+              };
+            }
+            return row;
+          })
+        };
+      }
+      return section;
+    }));
+  };
+
+  // Get gap pattern from a row (for applying to other rows)
+  const getGapPattern = (row) => {
+    const gaps = [];
+    row.seats.forEach((seat, index) => {
+      if (seat.type === 'blank' && index > 0) {
+        const previousSeat = row.seats[index - 1];
+        if (previousSeat.type !== 'blank') {
+          gaps.push(previousSeat.number);
+        }
+      }
+    });
+    return gaps;
+  };
+
   // Update Section
   const updateSection = (sectionId, updates) => {
     setSections(sections.map(section => {
@@ -437,10 +569,77 @@ const AuditoriumLayoutDesigner = () => {
         // Regenerate seats if width or height changed significantly
         if ((updates.width && Math.abs(updates.width - section.width) > 10) ||
           (updates.height && Math.abs(updates.height - section.height) > 10)) {
-          updatedSection.rows = section.rows.map((row, index) => ({
-            ...row,
-            seats: generateSeatsForRow(row, updatedSection, index)
-          }));
+          updatedSection.rows = section.rows.map((row, index) => {
+            // Extract gap information: { afterSeatNumber: gapCount }
+            const gapInfo = {};
+
+            // Find all gap groups and count consecutive blanks
+            for (let idx = 0; idx < row.seats.length; idx++) {
+              const seat = row.seats[idx];
+
+              // Start of a gap group (first blank after a regular seat)
+              if (seat.type === 'blank' && idx > 0) {
+                const prevSeat = row.seats[idx - 1];
+
+                if (prevSeat.type === 'regular') {
+                  // Count all consecutive blanks starting from this position
+                  let gapCount = 0;
+                  let checkIdx = idx;
+
+                  while (checkIdx < row.seats.length && row.seats[checkIdx].type === 'blank') {
+                    gapCount++;
+                    checkIdx++;
+                  }
+
+                  // Store the count for this position
+                  gapInfo[prevSeat.number] = gapCount;
+                }
+              }
+            }
+
+            // Generate new seats
+            let newSeats = generateSeatsForRow(row, updatedSection, index);
+
+            // Re-insert gaps at the same positions with correct counts
+            Object.entries(gapInfo).forEach(([afterSeatNumberStr, gapCount]) => {
+              const afterSeatNumber = parseInt(afterSeatNumberStr);
+              const insertIndex = newSeats.findIndex(s => s.number === afterSeatNumber && s.type === 'regular');
+
+              if (insertIndex !== -1) {
+                const seatRadius = newSeats[insertIndex]?.radius || 12;
+
+                // Create multiple blank seats to match the original gap count
+                const blankSeats = [];
+                for (let i = 0; i < gapCount; i++) {
+                  blankSeats.push({
+                    id: generateId('seat'),
+                    number: afterSeatNumber + 0.1 + (i * 0.1),
+                    label: '',
+                    type: 'blank',
+                    x: 0,
+                    y: 0,
+                    radius: seatRadius,
+                    ticketCategory: null,
+                    status: 'unavailable',
+                    icon: null,
+                    customIcon: false,
+                    customTicket: false
+                  });
+                }
+
+                // Insert all blank seats after the specified seat
+                newSeats.splice(insertIndex + 1, 0, ...blankSeats);
+              }
+            });
+
+            // Recalculate positions
+            newSeats = recalculateSeatPositions(newSeats, updatedSection, index, row);
+
+            return {
+              ...row,
+              seats: newSeats
+            };
+          });
         }
 
         return updatedSection;
@@ -549,29 +748,6 @@ const AuditoriumLayoutDesigner = () => {
       }
       return section;
     }));
-  };
-
-  // Export Layout
-  const exportLayout = () => {
-    const layout = {
-      stage,
-      sections,
-      ticketCategories,
-      metadata: {
-        createdAt: new Date().toISOString(),
-        totalSections: sections.length,
-        totalSeats: sections.reduce((total, section) =>
-          total + section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0)
-          , 0)
-      }
-    };
-
-    const blob = new Blob([JSON.stringify(layout, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `auditorium-layout-${Date.now()}.json`;
-    link.click();
   };
 
   // NEW: Function to extract ticket assignments from sections (including status)
@@ -846,6 +1022,8 @@ const AuditoriumLayoutDesigner = () => {
             addRowToSection={addRowToSection}
             ticketCategories={ticketCategories}
             isAssignMode={isAssignMode}
+            addBlankSeatToRow={addBlankSeatToRow}
+            removeAllGapsFromRow={removeAllGapsFromRow}
           />
         </Col>
       </Row>
