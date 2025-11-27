@@ -11,7 +11,9 @@ import {
   Typography,
   Alert,
   Col,
-  Row
+  Row,
+  Checkbox,
+  Divider
 } from "antd";
 
 import {
@@ -37,11 +39,36 @@ const RightPanel = (props) => {
     setSections,
     addRowToSection,
     ticketCategories,
-    isAssignMode = false
+    isAssignMode = false,
+    addBlankSeatToRow,
+    removeAllGapsFromRow
   } = props;
 
+  // State for gap management
+  const [gapAfterSeatNumber, setGapAfterSeatNumber] = React.useState('');
+  const [applyGapToAllRows, setApplyGapToAllRows] = React.useState(false);
+  const [numberOfGaps, setNumberOfGaps] = React.useState(1); // NEW: Number of gaps to add
+  const [previousRowId, setPreviousRowId] = React.useState(null); // Track previous row ID
+
+  // Reset gap form fields when switching to a DIFFERENT row
+  React.useEffect(() => {
+    if (selectedType === 'row' && selectedElement?.id) {
+      // Only clear if we're switching to a different row
+      if (previousRowId !== null && previousRowId !== selectedElement.id) {
+        setGapAfterSeatNumber('');
+        setNumberOfGaps(1);
+        setApplyGapToAllRows(false);
+      }
+      // Update the previous row ID
+      setPreviousRowId(selectedElement.id);
+    } else if (selectedType !== 'row') {
+      // Reset tracking when not on a row
+      setPreviousRowId(null);
+    }
+  }, [selectedElement?.id, selectedType, previousRowId]);
+
   return (
-    <div className="right-panel bg-custom-secondary">
+    <div className="right-panel bg-custom-secondary" style={{ maxHeight: 'calc(100vh - 100px)', overflowX: 'hidden', overflowY: 'auto' }}>
       <div className="panel-header">
         <Title level={4} className="mb-0">
           {selectedType === 'stage' && 'Stage Editor'}
@@ -439,6 +466,130 @@ const RightPanel = (props) => {
                 tooltip={{ formatter: (value) => `${value}px` }}
               />
             </Form.Item>
+
+            {/* Gap Management Section */}
+            {!isAssignMode && (
+              <>
+                <Divider style={{ margin: '16px 0' }} />
+                <Form.Item label="Add Blank Seat/Gap" help="Create spacing between seats">
+                  <Space direction="vertical" style={{ width: '100%' }} size="small">
+                    {/* Method 1: Input seat number */}
+                    <Input
+                      type="number"
+                      placeholder="Enter seat number"
+                      value={gapAfterSeatNumber}
+                      onChange={(e) => setGapAfterSeatNumber(e.target.value)}
+                      min={1}
+                      max={selectedElement.numberOfSeats}
+                    />
+
+                    {/* Method 2: Select from dropdown */}
+                    <Select
+                      showSearch
+                      placeholder="Or select seat"
+                      value={gapAfterSeatNumber || undefined}
+                      onChange={setGapAfterSeatNumber}
+                      style={{ width: '100%' }}
+                      allowClear
+                    >
+                      {selectedElement.seats
+                        ?.filter(s => s.type !== 'blank')
+                        .map(seat => (
+                          <Option key={seat.id} value={seat.number}>
+                            After Seat {seat.label}
+                          </Option>
+                        ))
+                      }
+                    </Select>
+
+                    {/* Number of gaps to add */}
+                    <Form.Item label="Number of Gaps" className="mb-2">
+                      <InputNumber
+                        min={1}
+                        max={10}
+                        value={numberOfGaps}
+                        onChange={setNumberOfGaps}
+                        style={{ width: '100%' }}
+                      />
+                    </Form.Item>
+
+                    {/* Apply to all rows checkbox */}
+                    <Checkbox
+                      checked={applyGapToAllRows}
+                      onChange={(e) => setApplyGapToAllRows(e.target.checked)}
+                    >
+                      Apply to all rows in this section
+                    </Checkbox>
+
+                    {/* Action buttons */}
+                    <Space style={{ width: '100%' }}>
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<PlusOutlined />}
+                        onClick={() => {
+                          if (gapAfterSeatNumber && addBlankSeatToRow) {
+                            addBlankSeatToRow(
+                              selectedElement.sectionId,
+                              selectedElement.id,
+                              parseInt(gapAfterSeatNumber),
+                              applyGapToAllRows,
+                              numberOfGaps
+                            );
+                            setGapAfterSeatNumber('');
+                          }
+                        }}
+                        disabled={!gapAfterSeatNumber}
+                      >
+                        Add {numberOfGaps > 1 ? `${numberOfGaps} Gaps` : 'Gap'}
+                      </Button>
+
+                      <Button
+                        size="small"
+                        danger
+                        onClick={() => {
+                          if (removeAllGapsFromRow) {
+                            removeAllGapsFromRow(
+                              selectedElement.sectionId,
+                              selectedElement.id,
+                              applyGapToAllRows
+                            );
+                          }
+                        }}
+                      >
+                        Remove All Gaps
+                      </Button>
+                    </Space>
+                  </Space>
+                </Form.Item>
+
+                {/* Show current gaps */}
+                {selectedElement.seats?.some(s => s.type === 'blank') && (
+                  <Alert
+                    message={
+                      <div>
+                        <div><strong>Current gaps: {selectedElement.seats.filter(s => s.type === 'blank').length}</strong></div>
+                        <div className="mt-1" style={{ fontSize: '12px' }}>
+                          Gaps after seats: {
+                            selectedElement.seats
+                              .filter((s, idx) => s.type === 'blank' && idx > 0)
+                              .map((s, idx) => {
+                                const prevSeat = selectedElement.seats[selectedElement.seats.indexOf(s) - 1];
+                                return prevSeat.type === 'regular' ? prevSeat.number : null;
+                              })
+                              .filter((num, idx, arr) => num !== null && arr.indexOf(num) === idx) // Remove duplicates
+                              .join(', ')
+                          }
+                        </div>
+                      </div>
+                    }
+                    type="info"
+                    showIcon
+                    className="mt-2"
+                  />
+                )}
+              </>
+            )}
 
             <div className="p-3 bg-light rounded">
               <div className="mb-1"><Text strong>Total Seats in Row:</Text> {selectedElement.seats?.length || 0}</div>
