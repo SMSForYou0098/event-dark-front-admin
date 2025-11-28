@@ -95,6 +95,7 @@ const POSPrintModal = ({
                 key: 'ticketName',
                 width: '50%',
                 align: 'left',
+
             },
         ];
 
