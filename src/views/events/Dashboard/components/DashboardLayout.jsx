@@ -8,6 +8,9 @@ import DiscountCard from './DiscountCard';
 import { getBookingStats, getCncData, getDiscountData, getEventStats, getGatewayColumns, getGatewayData, getRevenueStats, getUserStats } from './dashboardConfig';
 import DashSkeleton from '../Admin/DashSkeleton';
 import { useDashboardData } from './useDashboardData';
+import OrganizerSummary from './OrganizerSummary';
+import { organizerSummary, organizerTickets } from './dummyData';
+import EventTicketsSummary from './EventTicketsSummary';
 
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
     const { isMobile } = useMyContext();
@@ -217,6 +220,8 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                     </Row>
                 </Col>
             </Row>
+            <OrganizerSummary organizerSummary={organizerSummary} />
+            <EventTicketsSummary organizerTickets={organizerTickets} isLoading={isLoading} />
         </div>
     );
 };

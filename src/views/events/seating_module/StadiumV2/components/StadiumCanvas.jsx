@@ -14,13 +14,11 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Tag } from 'antd';
 import {
   calculateStadiumLayout,
-  findItemAtPosition,
   drawArc,
   drawText,
   drawField,
   polarToCartesian,
   lightenColor,
-  withAlpha,
 } from '../utils/stadiumRenderer';
 
 const StadiumCanvas = ({
@@ -37,6 +35,7 @@ const StadiumCanvas = ({
   interactive = true,
 }) => {
   const canvasRef = useRef(null);
+  const drawRef = useRef(null);
   const [hoveredItem, setHoveredItem] = useState(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [scale, setScale] = useState(1);
@@ -54,29 +53,33 @@ const StadiumCanvas = ({
     return calculateStadiumLayout(stadium, { width, height });
   }, [stadium, width, height]);
 
-  // Get items to render based on view level
+  // Extract field type for draw function
+  const fieldType = useMemo(() => stadium?.geometry?.field?.type || 'cricket', [stadium?.geometry?.field?.type]);
+
+  // Get items to render based on view level - optimized with early returns
   const visibleItems = useMemo(() => {
-    if (!layout) return [];
+    if (!layout || !layout.stands?.length) return [];
 
     if (viewLevel === 'stands') {
       return layout.stands.map(s => ({ ...s, type: 'stand' }));
     }
 
-    if (viewLevel === 'tiers' && selectedStand) {
+    if (viewLevel === 'tiers' && selectedStand?.id) {
       const stand = layout.stands.find(s => s.id === selectedStand.id);
-      if (!stand) return [];
+      if (!stand?.tiers?.length) return [];
       return stand.tiers.map(t => ({ ...t, type: 'tier', parentStand: stand }));
     }
 
-    if (viewLevel === 'sections' && selectedTier) {
-      const stand = layout.stands.find(s => s.id === selectedStand?.id);
-      const tier = stand?.tiers.find(t => t.id === selectedTier.id);
-      if (!tier) return [];
+    if (viewLevel === 'sections' && selectedTier?.id && selectedStand?.id) {
+      const stand = layout.stands.find(s => s.id === selectedStand.id);
+      if (!stand) return [];
+      const tier = stand.tiers?.find(t => t.id === selectedTier.id);
+      if (!tier?.sections?.length) return [];
       return tier.sections.map(s => ({ ...s, type: 'section', parentTier: tier, parentStand: stand }));
     }
 
     return [];
-  }, [layout, viewLevel, selectedStand, selectedTier]);
+  }, [layout, viewLevel, selectedStand?.id, selectedTier?.id]);
 
   // Draw the canvas
   const draw = useCallback(() => {
@@ -112,7 +115,7 @@ const StadiumCanvas = ({
       cx: layout.cx,
       cy: layout.cy,
       radius: layout.fieldRadius,
-      type: stadium.geometry?.field?.type || 'cricket',
+      type: fieldType,
     });
 
     // Draw visible items
@@ -185,12 +188,19 @@ const StadiumCanvas = ({
               color: 'rgba(255,255,255,0.5)',
             });
           }
-          if (item.type === 'tier' && item.basePrice) {
+          if (item.type === 'tier' && item.ticketId && item.basePrice) {
             drawText(ctx, `₹${item.basePrice}`, {
               x: labelPos.x,
               y: labelPos.y + fontSize * 2 + 4,
               fontSize: fontSize - 1,
-              color: 'rgba(255,255,255,0.6)',
+              color: '#4ade80',
+            });
+          } else if (item.type === 'tier' && !item.ticketId) {
+            drawText(ctx, 'No Ticket', {
+              x: labelPos.x,
+              y: labelPos.y + fontSize * 2 + 4,
+              fontSize: fontSize - 2,
+              color: '#f87171',
             });
           }
         }
@@ -212,9 +222,14 @@ const StadiumCanvas = ({
     });
 
     ctx.restore();
-  }, [layout, visibleItems, hoveredItem, scale, offset, width, height, showLabels, viewLevel, selectedStand, selectedTier, stadium]);
+  }, [layout, visibleItems, hoveredItem, scale, offset, width, height, showLabels, viewLevel, selectedStand, selectedTier, fieldType]);
 
-  // Setup canvas
+  // Store draw function in ref
+  useEffect(() => {
+    drawRef.current = draw;
+  }, [draw]);
+
+  // Setup canvas dimensions
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -224,13 +239,20 @@ const StadiumCanvas = ({
     canvas.height = height * dpr;
     canvas.style.width = `${width}px`;
     canvas.style.height = `${height}px`;
+  }, [width, height]);
 
-    draw();
-  }, [width, height, draw]);
-
+  // Draw when relevant data changes - use requestAnimationFrame for smooth rendering
   useEffect(() => {
-    draw();
-  }, [draw]);
+    if (!layout || !drawRef.current) return;
+    
+    const rafId = requestAnimationFrame(() => {
+      if (drawRef.current) {
+        drawRef.current();
+      }
+    });
+    
+    return () => cancelAnimationFrame(rafId);
+  }, [layout, visibleItems, hoveredItem, scale, offset, showLabels, viewLevel, selectedStand, selectedTier]);
 
   // Transform coordinates
   const transformCoords = useCallback((clientX, clientY) => {
@@ -466,28 +488,85 @@ const StadiumCanvas = ({
       {hoveredItem && !isDragging && !isMobile && (
         <div style={{
           position: 'fixed', left: mousePos.x + 15, top: mousePos.y - 10,
-          background: 'rgba(20, 20, 35, 0.95)', border: '1px solid rgba(255,255,255,0.1)',
-          borderRadius: 8, padding: '10px 14px', color: '#fff', fontSize: 13,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)', pointerEvents: 'none', zIndex: 1000, minWidth: 150,
+          background: 'rgba(20, 20, 35, 0.98)', border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: 10, padding: '12px 16px', color: '#fff', fontSize: 13,
+          boxShadow: '0 8px 32px rgba(0,0,0,0.5)', pointerEvents: 'none', zIndex: 1000, minWidth: 180,
+          backdropFilter: 'blur(8px)',
         }}>
-          <div style={{ fontWeight: 600, marginBottom: 4 }}>{hoveredItem.name}</div>
+          <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14, borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: 8 }}>
+            {hoveredItem.name}
+          </div>
           {hoveredItem.type === 'stand' && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-              {hoveredItem.tiers?.length || 0} tier(s)<br />
-              <span style={{ color: '#1890ff' }}>Click to view tiers</span>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Tiers:</span>
+                <span style={{ color: '#60a5fa' }}>{hoveredItem.tiers?.length || 0}</span>
+              </div>
+              {hoveredItem.geometry && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span>Start Angle:</span>
+                    <span style={{ color: '#a78bfa' }}>{hoveredItem.geometry.startAngle?.toFixed(1) || 0}°</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span>End Angle:</span>
+                    <span style={{ color: '#a78bfa' }}>{hoveredItem.geometry.endAngle?.toFixed(1) || 0}°</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span>Arc Span:</span>
+                    <span style={{ color: '#f59e0b' }}>{((hoveredItem.geometry.endAngle || 0) - (hoveredItem.geometry.startAngle || 0)).toFixed(1)}°</span>
+                  </div>
+                  {hoveredItem.geometry.visualWeight && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span>Weight:</span>
+                      <span style={{ color: '#10b981' }}>{hoveredItem.geometry.visualWeight}</span>
+                    </div>
+                  )}
+                </>
+              )}
+              <div style={{ marginTop: 8, color: '#1890ff', textAlign: 'center' }}>Click to view tiers →</div>
             </div>
           )}
           {hoveredItem.type === 'tier' && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-              {hoveredItem.sections?.length || 0} section(s)<br />
-              {hoveredItem.basePrice && `₹${hoveredItem.basePrice}`}<br />
-              <span style={{ color: '#1890ff' }}>Click to view sections</span>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Level:</span>
+                <span style={{ color: '#60a5fa' }}>{(hoveredItem.level || 0) + 1}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Sections:</span>
+                <span style={{ color: '#60a5fa' }}>{hoveredItem.sections?.length || 0}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Total Seats:</span>
+                <span style={{ color: '#a78bfa' }}>{hoveredItem.sections?.reduce((sum, s) => sum + (s.rows?.reduce((rs, r) => rs + (r.seatCount || 0), 0) || 0), 0) || 0}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Ticket:</span>
+                {hoveredItem.ticketId ? (
+                  <span style={{ color: '#4ade80' }}>₹{hoveredItem.basePrice}</span>
+                ) : (
+                  <span style={{ color: '#f87171' }}>Not assigned</span>
+                )}
+              </div>
+              <div style={{ marginTop: 8, color: '#1890ff', textAlign: 'center' }}>Click to view sections →</div>
             </div>
           )}
           {hoveredItem.type === 'section' && (
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>
-              {hoveredItem.rows?.length || 0} row(s)<br />
-              <span style={{ color: '#1890ff' }}>Click to view seats</span>
+            <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 12, lineHeight: 1.6 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Code:</span>
+                <span style={{ color: '#60a5fa' }}>{hoveredItem.code || '-'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Rows:</span>
+                <span style={{ color: '#a78bfa' }}>{hoveredItem.rows?.length || 0}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span>Total Seats:</span>
+                <span style={{ color: '#10b981' }}>{hoveredItem.rows?.reduce((sum, r) => sum + (r.seatCount || 0), 0) || 0}</span>
+              </div>
+              <div style={{ marginTop: 8, color: '#1890ff', textAlign: 'center' }}>Click to view seats →</div>
             </div>
           )}
         </div>
@@ -521,4 +600,16 @@ const zoomBtnStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
 
-export default StadiumCanvas;
+export default React.memo(StadiumCanvas, (prevProps, nextProps) => {
+  // Custom comparison to prevent unnecessary re-renders
+  return (
+    prevProps.stadium === nextProps.stadium &&
+    prevProps.width === nextProps.width &&
+    prevProps.height === nextProps.height &&
+    prevProps.viewLevel === nextProps.viewLevel &&
+    prevProps.selectedStand?.id === nextProps.selectedStand?.id &&
+    prevProps.selectedTier?.id === nextProps.selectedTier?.id &&
+    prevProps.showLabels === nextProps.showLabels &&
+    prevProps.interactive === nextProps.interactive
+  );
+});

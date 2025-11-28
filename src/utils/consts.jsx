@@ -1416,3 +1416,51 @@ export const DUMMY_DATA = {
     }
   }
 }
+
+export const DEFAULT_STADIUM_LAYOUT = {
+  id: 'layout_stadium_default',
+  name: 'Standard Bowl Layout',
+  code: 'STD',
+  stands: [
+    {
+      name: 'Stand A',
+      code: 'A',
+      order: 0,
+      geometry: {
+        startAngle: 0,
+        endAngle: 85,
+        visualWeight: 1,
+        shape: 'arc',
+      },
+      status: 'active',
+      tiers: [
+        {
+          name: 'Lower Bowl',
+          code: 'T1',
+          level: 0,
+          geometry: { radiusOffset: 0, thickness: 40, elevation: 0 },
+          status: 'active',
+          basePrice: 750,
+          sections: [
+            {
+              name: 'Section 1',
+              code: 'S1',
+              order: 0,
+              geometry: { startAngle: 0, endAngle: 0, curve: 0 },
+              status: 'active',
+              rows: [
+                {
+                  label: 'A',
+                  order: 0,
+                  seatCount: 24,
+                  geometry: { curve: 3, spacing: 2, offsetX: 0, offsetY: 0 },
+                  status: 'active',
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};

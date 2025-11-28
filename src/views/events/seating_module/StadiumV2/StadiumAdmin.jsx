@@ -27,11 +27,17 @@ import StadiumCanvas from './components/StadiumCanvas';
 import SeatsCanvas from './components/SeatsCanvas';
 import TicketAssignment from './components/TicketAssignment';
 import { EMPTY_STADIUM } from './api/mockData';
-import { NARENDRA_MODI_STADIUM, SIMPLE_STADIUM } from './api/sampleStadiums';
 import { DUMMY_EVENTS } from './api/ticketData';
 
 const { useBreakpoint } = Grid;
 const { Title, Text } = Typography;
+
+const createBlankStadium = () => ({
+  ...EMPTY_STADIUM,
+  id: `stadium-${Date.now()}`,
+  stands: [],
+  rings: [],
+});
 
 const StadiumAdmin = () => {
   // Responsive breakpoints
@@ -40,7 +46,7 @@ const StadiumAdmin = () => {
   const isTablet = screens.md && !screens.lg;
 
   // Stadium data - using proper hierarchical schema
-  const [stadium, setStadium] = useState(() => NARENDRA_MODI_STADIUM);
+  const [stadium, setStadium] = useState(() => createBlankStadium());
 
   // Mobile drawer state
   const [mobileBuilderDrawer, setMobileBuilderDrawer] = useState(false);
@@ -49,7 +55,7 @@ const StadiumAdmin = () => {
   const [selectedEventId, setSelectedEventId] = useState(DUMMY_EVENTS[0]?.id || null);
 
   // View state
-  const [viewMode, setViewMode] = useState('split'); // 'split' | 'builder' | 'preview'
+  const [viewMode, setViewMode] = useState('builder'); // 'builder' | 'preview'
   
   // Drill-down: stands → tiers → sections → seats
   const [viewLevel, setViewLevel] = useState('stands'); // 'stands' | 'tiers' | 'sections' | 'seats'
@@ -178,27 +184,9 @@ const StadiumAdmin = () => {
 
   // Create new stadium
   const handleCreateNew = useCallback(() => {
-    setStadium({
-      ...EMPTY_STADIUM,
-      id: `stadium-${Date.now()}`,
-      stands: [],
-    });
+    setStadium(createBlankStadium());
     resetPreview();
     message.info('Creating new stadium');
-  }, [resetPreview]);
-
-  // Load simple stadium
-  const handleLoadSample = useCallback(() => {
-    setStadium(SIMPLE_STADIUM);
-    resetPreview();
-    message.success('Simple stadium loaded');
-  }, [resetPreview]);
-
-  // Load full stadium (Narendra Modi Stadium style)
-  const handleLoadMultiRing = useCallback(() => {
-    setStadium(NARENDRA_MODI_STADIUM);
-    resetPreview();
-    message.success('Narendra Modi Stadium loaded');
   }, [resetPreview]);
 
   // Open ticket assignment
@@ -332,8 +320,8 @@ const StadiumAdmin = () => {
     return { width: 500, height: 500 };
   }, [viewMode, isMobile, isTablet]);
 
-  // Render preview content based on level
-  const renderPreviewContent = () => {
+  // Render preview content based on level - memoized callback
+  const renderPreviewContent = useCallback(() => {
     if (viewLevel === 'seats' && selectedSection) {
       return (
         <SeatsCanvas
@@ -380,7 +368,7 @@ const StadiumAdmin = () => {
         onSectionClick={handleSectionClick}
       />
     );
-  };
+  }, [viewLevel, selectedSection, selectedTier, selectedStand, selectedEventId, selectedSeats, viewMode, canvasSize, stadium, handleStandClick, handleTierClick, handleSectionClick]);
 
   return (
     <div style={{ 
@@ -418,12 +406,6 @@ const StadiumAdmin = () => {
                 <Button onClick={handleCreateNew} size={isTablet ? 'small' : 'middle'}>
                   New
                 </Button>
-                <Button onClick={handleLoadSample} size={isTablet ? 'small' : 'middle'}>
-                  Simple
-                </Button>
-                <Button onClick={handleLoadMultiRing} type="dashed" size={isTablet ? 'small' : 'middle'}>
-                  NMS Stadium
-                </Button>
                 <Segmented
                   value={viewMode}
                   onChange={setViewMode}
@@ -431,7 +413,6 @@ const StadiumAdmin = () => {
                   options={[
                     { label: 'Builder', value: 'builder', icon: <EditOutlined /> },
                     { label: 'Preview', value: 'preview', icon: <EyeOutlined /> },
-                    { label: 'Split', value: 'split' },
                   ]}
                 />
               </Space>
@@ -450,10 +431,7 @@ const StadiumAdmin = () => {
                     { label: <EyeOutlined />, value: 'preview' },
                   ]}
                 />
-                <Space size={4}>
-                  <Button size="small" onClick={handleCreateNew}>New</Button>
-                  <Button size="small" onClick={handleLoadMultiRing} type="dashed">Load</Button>
-                </Space>
+                <Button size="small" onClick={handleCreateNew}>New</Button>
               </Space>
             )}
           </Col>
@@ -462,9 +440,9 @@ const StadiumAdmin = () => {
 
       {/* Main Content */}
       <Row gutter={isMobile ? 12 : 24}>
-        {/* Builder Panel - Desktop/Tablet */}
+        {/* Builder Panel - Now full width since it has its own canvas */}
         {!isMobile && (viewMode === 'split' || viewMode === 'builder') && (
-          <Col span={viewMode === 'split' ? 12 : 24}>
+          <Col span={24}>
             <Card
               style={{
                 height: isTablet ? 'calc(100vh - 160px)' : 'calc(100vh - 180px)',
@@ -486,9 +464,9 @@ const StadiumAdmin = () => {
           </Col>
         )}
 
-        {/* Preview Panel */}
-        {(viewMode === 'split' || viewMode === 'preview' || isMobile) && (
-          <Col span={(!isMobile && viewMode === 'split') ? 12 : 24}>
+        {/* Preview Panel - Only shown in preview mode */}
+        {(viewMode === 'preview' || isMobile) && (
+          <Col span={24}>
             <Card
               style={{
                 height: isMobile ? 'calc(100vh - 200px)' : isTablet ? 'calc(100vh - 160px)' : 'calc(100vh - 180px)',
