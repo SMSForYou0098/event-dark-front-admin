@@ -20,16 +20,13 @@ const Artist = () => {
   const fetchData = async () => {
     const url = `/artist-list/${UserData?.id}`;
     const response = await api.get(url);
-    if (!response.status) {
-      throw new Error('Failed to fetch organizers');
-    }
     return response.data || [];
   };
 
   const {
     data: artists = [],
     isLoading: loading,
-    error: organizersError,
+    error: artistError,
     refetch
   } = useQuery({
     queryFn: fetchData,
@@ -37,9 +34,6 @@ const Artist = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
     queryKey: ['artists', UserData?.id],
-    // refetchOnMount: "ifStale",
-    // refetchOnWindowFocus: true,
-    // refetchOnReconnect: true,
     onError: (err) => {
       setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
       message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");
@@ -49,7 +43,7 @@ const Artist = () => {
   const columns = [
     {
       title: '#',
-      width : 50,
+      width: 50,
       render: (_, __, index) => index + 1,
       searchable: false,
     },
@@ -57,7 +51,7 @@ const Artist = () => {
       title: 'Photo',
       dataIndex: 'photo',
       key: 'photo',
-      width : 100,
+      width: 100,
       render: (photo) => photo ? <Image src={photo} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       searchable: false,
     },
@@ -113,18 +107,18 @@ const Artist = () => {
             <Space>
               {actions.map((action, index) => (
                 <PermissionChecker key={index} permission={action.permission}>
-                <Tooltip title={action.tooltip}>
-                  <Button
-                    size="small"
-                    type={action.type}
-                    danger={action.danger}
-                    icon={action.icon}
-                    onClick={action.onClick}
-                    disabled={isDisabled}
-                    loading={action.loading}
-                  />
-                </Tooltip>
-                 </PermissionChecker>
+                  <Tooltip title={action.tooltip}>
+                    <Button
+                      size="small"
+                      type={action.type}
+                      danger={action.danger}
+                      icon={action.icon}
+                      onClick={action.onClick}
+                      disabled={isDisabled}
+                      loading={action.loading}
+                    />
+                  </Tooltip>
+                </PermissionChecker>
               ))}
             </Space>
           </div>
@@ -167,7 +161,7 @@ const Artist = () => {
         DeleteMethod.mutate(id);
       }
     });
-  }, [loading,DeleteMethod]);
+  }, [loading, DeleteMethod]);
 
   const handleCreate = () => {
     setModalMode('create');
@@ -175,22 +169,22 @@ const Artist = () => {
     setIsModalOpen(true);
   };
 
-const handleEdit = (venue) => {
-  setSelectedData(venue);
-  setModalMode('edit');
-  
-  // Delay opening modal to ensure state is updated
-  setTimeout(() => {
-    setIsModalOpen(true);
-  }, 10); // Even 10ms is enough
-};
+  const handleEdit = (venue) => {
+    setSelectedData(venue);
+    setModalMode('edit');
+
+    // Delay opening modal to ensure state is updated
+    setTimeout(() => {
+      setIsModalOpen(true);
+    }, 10); // Even 10ms is enough
+  };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
     setSelectedData(null);
     refetch()
   };
-  
+
   return (
     <>
       <ArtistModal
@@ -212,16 +206,16 @@ const handleEdit = (venue) => {
         loading={loading}
         extraHeaderContent={
           <PermissionChecker permission="Create Artist">
-          <Tooltip title="Create Artist">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-            />
-          </Tooltip>
-           </PermissionChecker>
+            <Tooltip title="Create Artist">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+              />
+            </Tooltip>
+          </PermissionChecker>
         }
-        error={organizersError || error}
+        error={artistError || error}
         tableProps={{
           scroll: { x: 1200 },
           size: "middle",

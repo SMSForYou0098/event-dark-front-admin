@@ -91,10 +91,10 @@ const RolePermission = ({ isUser = false }) => {
 
             // Filter permissions based on user role
             let availablePermissions = response.data.AllPermission;
-            
+
             if (userRole === 'Organizer') {
                 // Only show permissions that the organizer has
-                availablePermissions = response.data.AllPermission.filter(permission => 
+                availablePermissions = response.data.AllPermission.filter(permission =>
                     UserPermissions?.includes(permission.name)
                 );
             }
@@ -365,12 +365,14 @@ const RolePermission = ({ isUser = false }) => {
                     <Form.Item
                         label="Name"
                         name="name"
+                        autoFocus
                         rules={[
                             { required: true, message: 'Permission name is required.' },
                             { whitespace: true, message: 'Permission name cannot be empty.' },
                         ]}
                     >
                         <Input
+                            autoFocus
                             placeholder={
                                 isEdit ? 'Edit permission name' : 'Permission name'
                             }
@@ -384,34 +386,34 @@ const RolePermission = ({ isUser = false }) => {
                 title={`${isUser ? 'User' : 'Role'} Permission - ${roleName || (isUser ? 'User' : 'Role')}`}
                 extra={
                     <Space align="center" wrap>
-                      {/* ✅ Left Section: Checkbox + Search */}
-                      <Space align="center" wrap>
-                        <Checkbox onChange={handleMultiSelect} checked={selectAll}>
-                          {selectAll ? 'Deselect All' : 'Select All'}
-                          {searchText && ` (${filteredPermissions.length} filtered)`}
-                        </Checkbox>
-                  
-                        <Search
-                          placeholder="Search Permission"
-                          allowClear
-                          value={searchText}
-                          onSearch={handleSearch}
-                          onChange={(e) => handleSearch(e.target.value)}
-                          style={{ width: 240 }}
-                        />
-                      </Space>
-                  
-                      {/* ✅ Right Section: New Permission Button */}
-                      <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={showModal}
-                      >
-                        New Permission
-                      </Button>
+                        {/* ✅ Left Section: Checkbox + Search */}
+                        <Space align="center" wrap>
+                            <Checkbox onChange={handleMultiSelect} checked={selectAll}>
+                                {selectAll ? 'Deselect All' : 'Select All'}
+                                {searchText && ` (${filteredPermissions.length} filtered)`}
+                            </Checkbox>
+
+                            <Search
+                                placeholder="Search Permission"
+                                allowClear
+                                value={searchText}
+                                onSearch={handleSearch}
+                                onChange={(e) => handleSearch(e.target.value)}
+                                style={{ width: 240 }}
+                            />
+                        </Space>
+
+                        {/* ✅ Right Section: New Permission Button */}
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={showModal}
+                        >
+                            New Permission
+                        </Button>
                     </Space>
-                  }
-                  
+                }
+
             >
 
                 <Row gutter={[16, 16]} style={{ maxHeight: '30rem', overflow: 'auto' }}>

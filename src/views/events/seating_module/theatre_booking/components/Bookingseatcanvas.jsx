@@ -983,7 +983,7 @@ const BookingSeatCanvas = ({
                     shape="circle"
                     icon={<PlusOutlined />}
                     onClick={handleZoomIn}
-                    size={IS_MOBILE ? 'small' : 'large'}
+                    size={'small'}
                 />
 
                 <Button
@@ -991,14 +991,14 @@ const BookingSeatCanvas = ({
                     shape="circle"
                     icon={<MinusOutlined />}
                     onClick={handleZoomOut}
-                    size={IS_MOBILE ? 'small' : 'large'}
+                    size={'small'}
                 />
 
                 <Button
                     shape="circle"
                     icon={<ReloadOutlined />}
                     onClick={handleResetView}
-                    size={IS_MOBILE ? 'small' : 'large'}
+                    size={'small'}
                 />
             </div>
 

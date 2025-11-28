@@ -123,6 +123,29 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
   );
 };
 
+// Helper function to calculate minimum section size based on content
+const calculateMinSectionSize = (section) => {
+  if (!section.rows || section.rows.length === 0) {
+    return { minWidth: 200, minHeight: 150 };
+  }
+
+  // Calculate minimum width based on maximum seats in any row
+  const maxSeatsInRow = Math.max(...section.rows.map(row => row.seats?.length || 0));
+  const leftPadding = 50;
+  const rightPadding = 20;
+  const minSeatSize = 8; // Minimum size per seat (including spacing)
+  const minWidth = Math.max(200, leftPadding + rightPadding + (maxSeatsInRow * minSeatSize));
+
+  // Calculate minimum height based on number of rows and spacing
+  const topPadding = 50;
+  const bottomPadding = 30;
+  const maxSpacing = Math.max(...section.rows.map(row => row.spacing || 40));
+  const numRows = section.rows.length;
+  const minHeight = Math.max(150, topPadding + bottomPadding + ((numRows - 1) * Math.min(maxSpacing, 35)) + 30);
+
+  return { minWidth, minHeight };
+};
+
 // Draggable Section Component
 const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransformEnd, children, setIsDraggingElement }) => {
   const shapeRef = useRef();
@@ -207,7 +230,8 @@ const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransfor
           anchorFill={PRIMARY}
           flipEnabled={false}
           boundBoxFunc={(oldBox, newBox) => {
-            if (Math.abs(newBox.width) < 200 || Math.abs(newBox.height) < 150) {
+            const { minWidth, minHeight } = calculateMinSectionSize(section);
+            if (Math.abs(newBox.width) < minWidth || Math.abs(newBox.height) < minHeight) {
               return oldBox;
             }
             return newBox;

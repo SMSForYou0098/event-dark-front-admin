@@ -20,8 +20,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
     const [form] = Form.useForm();
     const location = useLocation();
-    const editOtherUser =
-        ['Admin', 'Organizer'].includes(userRole) || id == UserData.id;
+    const editOtherUser = !['Admin', 'Organizer'].includes(userRole) || id === UserData.id;
 
     //   if(editOtherUser ===false){
     //     navigate('/forbidden')
@@ -459,19 +458,21 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     </PermissionChecker>
 
                     {/* Basic Information */}
-                    <Card title="Basic Information" extra={
-                        editOtherUser &&
-                        <PermissionChecker permission={["Edit User", "Edit Profile"]}>
-                            <Flex justifyContent="end">
-                                <Button className="mr-2" onClick={() => navigate(-1)}>
-                                    Discard
-                                </Button>
-                                <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                                    {mode === "create" ? "Create" : "Update"}
-                                </Button>
-                            </Flex>
-                        </PermissionChecker>
-                    }>
+                    <Card title="Basic Information"
+                        extra={
+                            editOtherUser &&
+                            <PermissionChecker permission={["Edit User", "Edit Profile"]}>
+                                <Flex justifyContent="end">
+                                    <Button className="mr-2" onClick={() => navigate(-1)}>
+                                        Discard
+                                    </Button>
+                                    <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                        {mode === "create" ? "Create" : "Update"}
+                                    </Button>
+                                </Flex>
+                            </PermissionChecker>
+                        }
+                    >
 
                         <Row gutter={[16, 16]}>
                             <Col xs={24} md={8}>
@@ -642,7 +643,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                         <Form.Item
                                             label="Assign Events"
                                             name="events"
-                                            rules={[requiredIf(needsEvents, 'Please select at least one event')]}
+                                        //rules={[requiredIf(needsEvents, 'Please select at least one event')]}
                                         >
                                             <Select
                                                 mode={formState.roleName !== 'Scanner' && "multiple"}
@@ -801,7 +802,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     {!showRoleGate && (
                         <PermissionChecker role={['Admin', 'Organizer']}>
                             <Card title="Status & Security" extra={
-                                editOtherUser &&
                                 <PermissionChecker permission={["Edit User", "Edit Profile"]}>
                                     <Flex justifyContent="end">
                                         <Button className="mr-2" onClick={() => navigate(-1)}>

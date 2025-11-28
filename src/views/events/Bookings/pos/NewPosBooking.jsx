@@ -12,6 +12,9 @@ import BookingTickets from "../components/BookingTickets";
 import StickyLayout from "utils/MobileStickyBottom.jsx/StickyLayout";
 import { calcTicketTotals } from "utils/ticketCalculations";
 import { BookingStats, handleDiscountChange } from "../agent/utils";
+import BookingLayout from "views/events/seating_module/theatre_booking/Bookinglayout";
+import SeatingModuleSummary from "../agent/components/SeatingModuleSummary";
+import { ROW_GUTTER } from "constants/ThemeConstant";
 
 const { Title, Text } = Typography;
 
@@ -31,6 +34,7 @@ const POS = memo(() => {
   const [eventID, setEventID] = useState(true);
   const [isCheckOut, setIsCheckOut] = useState(true);
   const [event, setEvent] = useState([]);
+  const [seatingModule, setSeatingModule] = useState(false);
   const [selectedTickets, setSelectedTickets] = useState([]);
 
 
@@ -58,7 +62,9 @@ const POS = memo(() => {
 
   const StorePOSBooking = useCallback(async () => {
     setShowAttendeeModel(false);
+    console.log(selectedTickets)
     const validTickets = selectedTickets?.filter(ticket => ticket?.quantity > 0);
+    console.log(validTickets)
 
     if (validTickets[0]?.quantity === undefined) {
       ErrorAlert('Please Select A Ticket');
@@ -84,24 +90,24 @@ const POS = memo(() => {
         cancelToken
       });
 
-       if (res.data.warningCode) {
-                switch (res.data.warningCode) {
-                  case "TICKET_LIMIT_REACHED":
-                    message.warning(res.data.message || "Ticket limit reached. Please reduce quantity.");
-                    break;
-      
-                  case "TICKETS_SOLD_OUT":
-                    message.error(res.data.message || "Tickets are sold out.");
-                    break;
-      
-                  default:
-                    message.warning(res.data.message || "Something went wrong. Please try again.");
-                }
-      
-                // Stop further success flow if it’s a warning/error
-                //setIsBookingInProgress(false);
-                return;
-              }
+      if (res.data.warningCode) {
+        switch (res.data.warningCode) {
+          case "TICKET_LIMIT_REACHED":
+            message.warning(res.data.message || "Ticket limit reached. Please reduce quantity.");
+            break;
+
+          case "TICKETS_SOLD_OUT":
+            message.error(res.data.message || "Tickets are sold out.");
+            break;
+
+          default:
+            message.warning(res.data.message || "Something went wrong. Please try again.");
+        }
+
+        // Stop further success flow if it’s a warning/error
+        //setIsBookingInProgress(false);
+        return;
+      }
       if (res.data.status) {
         setShowPrintModel(true);
         setBookingData(res.data?.bookings);
@@ -141,6 +147,7 @@ const POS = memo(() => {
 
   const handleButtonClick = useCallback((evnt, tkts) => {
     setEvent(evnt)
+    setSeatingModule(evnt?.event_controls?.ticket_system);
     // setTickets(tkts)
   }, []);
 
@@ -221,31 +228,40 @@ const POS = memo(() => {
 
 
 
-      <Row gutter={[16, 16]}>
+      <Row gutter={ROW_GUTTER}>
         <Col span={24}>
           <PosEvents handleButtonClick={handleButtonClick} />
         </Col>
-
-        <Col xs={24} lg={16}>
-          <Card
-            bordered={false}
-            title={event?.name}
-            extra={event?.date_range && (
-              <Space>
-                <CalendarOutlined className="text-primary" />
-                <Text>{formatDateRange(event?.date_range)}</Text>
-              </Space>
-            )}
-          >
-            <BookingTickets
-              event={event}
-              selectedTickets={selectedTickets}
-              setSelectedTickets={setSelectedTickets}
-              getCurrencySymbol={getCurrencySymbol}
-              type={'pos'}
+        {seatingModule ? (
+          <Col xs={24} lg={16}>
+            <BookingLayout
+              eventId={event?.id}
+              setSelectedTkts={setSelectedTickets}
+              layoutId={event?.layout_id}
             />
-          </Card>
-        </Col>
+          </Col>
+        ) : (
+          <Col xs={24} lg={16}>
+            <Card
+              bordered={false}
+              title={event?.name}
+              extra={event?.date_range && (
+                <Space>
+                  <CalendarOutlined className="text-primary" />
+                  <Text>{formatDateRange(event?.date_range)}</Text>
+                </Space>
+              )}
+            >
+              <BookingTickets
+                event={event}
+                selectedTickets={selectedTickets}
+                setSelectedTickets={setSelectedTickets}
+                getCurrencySymbol={getCurrencySymbol}
+                type={'pos'}
+              />
+            </Card>
+          </Col>
+        )}
 
 
         <Col xs={24} lg={8}>
@@ -304,6 +320,9 @@ const POS = memo(() => {
               </div>
             </Space>
           </Card>
+        </Col>
+        <Col xs={24} lg={24}>
+          <SeatingModuleSummary selectedTickets={selectedTickets} />
         </Col>
       </Row>
     </Fragment>

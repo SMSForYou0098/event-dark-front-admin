@@ -50,14 +50,57 @@ const RightPanel = (props) => {
   const [numberOfGaps, setNumberOfGaps] = React.useState(1); // NEW: Number of gaps to add
   const [previousRowId, setPreviousRowId] = React.useState(null); // Track previous row ID
 
+  // Helper function to extract first gap information from a row
+  const extractFirstGapFromRow = React.useCallback((row) => {
+    if (!row?.seats || row.seats.length === 0) return null;
+
+    // Find first gap group
+    for (let idx = 0; idx < row.seats.length; idx++) {
+      const seat = row.seats[idx];
+      if (seat.type === 'blank' && idx > 0) {
+        const prevSeat = row.seats[idx - 1];
+        if (prevSeat.type === 'regular') {
+          // Count consecutive blanks
+          let gapCount = 0;
+          let checkIdx = idx;
+          while (checkIdx < row.seats.length && row.seats[checkIdx].type === 'blank') {
+            gapCount++;
+            checkIdx++;
+          }
+          return {
+            afterSeat: prevSeat.number,
+            gapCount: gapCount
+          };
+        }
+      }
+    }
+    return null;
+  }, []);
+
   // Reset gap form fields when switching to a DIFFERENT row
   React.useEffect(() => {
     if (selectedType === 'row' && selectedElement?.id) {
-      // Only clear if we're switching to a different row
+      // Only update if we're switching to a different row
       if (previousRowId !== null && previousRowId !== selectedElement.id) {
-        setGapAfterSeatNumber('');
-        setNumberOfGaps(1);
+        // Extract gap information from the new row
+        const firstGapInfo = extractFirstGapFromRow(selectedElement);
+
+        if (firstGapInfo) {
+          setGapAfterSeatNumber(firstGapInfo.afterSeat);
+          setNumberOfGaps(firstGapInfo.gapCount);
+        } else {
+          // No gaps found, reset to defaults
+          setGapAfterSeatNumber('');
+          setNumberOfGaps(1);
+        }
         setApplyGapToAllRows(false);
+      } else if (previousRowId === null) {
+        // First time selecting this row, load its gap data
+        const firstGapInfo = extractFirstGapFromRow(selectedElement);
+        if (firstGapInfo) {
+          setGapAfterSeatNumber(firstGapInfo.afterSeat);
+          setNumberOfGaps(firstGapInfo.gapCount);
+        }
       }
       // Update the previous row ID
       setPreviousRowId(selectedElement.id);
@@ -65,7 +108,7 @@ const RightPanel = (props) => {
       // Reset tracking when not on a row
       setPreviousRowId(null);
     }
-  }, [selectedElement?.id, selectedType, previousRowId]);
+  }, [selectedElement, selectedType, previousRowId, extractFirstGapFromRow]);
 
   return (
     <div className="right-panel bg-custom-secondary" style={{ maxHeight: 'calc(100vh - 100px)', overflowX: 'hidden', overflowY: 'auto' }}>
@@ -536,7 +579,6 @@ const RightPanel = (props) => {
                               applyGapToAllRows,
                               numberOfGaps
                             );
-                            setGapAfterSeatNumber('');
                           }
                         }}
                         disabled={!gapAfterSeatNumber}

@@ -142,10 +142,11 @@ export const MyContextProvider = ({ children }) => {
   }
 
   const initializeLocationData = async () => {
-    // Try cache first
+    // Tier 2: Try cache first
     const cachedData = loadLocationFromCache();
 
     if (cachedData) {
+      console.log('✅ Location data loaded from cache');
       setLocationData({
         ...cachedData,
         isInitialized: true,
@@ -154,7 +155,7 @@ export const MyContextProvider = ({ children }) => {
       return;
     }
 
-    // Fetch if no cache
+    // Tier 1 & 3: Fetch from API (which will fallback to local JSON if API fails)
     setLocationData(prev => ({ ...prev, loading: true }));
 
     try {
@@ -165,7 +166,13 @@ export const MyContextProvider = ({ children }) => {
         loading: false
       });
     } catch (err) {
-      setLocationData(prev => ({ ...prev, loading: false }));
+      console.error('All location data sources failed:', err);
+      // This should rarely happen since fetchLocationData has its own fallback to local JSON
+      setLocationData(prev => ({
+        ...prev,
+        loading: false,
+        isInitialized: true // Mark as initialized even on error so app doesn't hang
+      }));
     }
   };
   // Helper to get cities
