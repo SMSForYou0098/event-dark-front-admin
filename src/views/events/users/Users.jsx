@@ -40,6 +40,7 @@ const Users = () => {
     auth_session,
     session_id,
     loader,
+    UserData,
   } = useMyContext();
   const dispatch = useDispatch();
 
@@ -94,7 +95,7 @@ const Users = () => {
     error: usersError,
     refetch: refetchUsers,
   } = useQuery({
-    queryKey: ["users", { dateRange }],
+    queryKey: ["users", { dateRange, userId: UserData?.id }],
     queryFn: fetchUsers,
     staleTime: 5 * 60 * 1000,
     refetchOnMount: "ifStale",
