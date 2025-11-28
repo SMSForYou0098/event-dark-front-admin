@@ -55,7 +55,7 @@ const NewAgentBooking = memo(({ type }) => {
   const [isAttendeeRequire, setIsAttendeeRequire] = useState(false);
   const [seatingModule, setSeatingModule] = useState(false);
   const [categoryFields, setCategoryFields] = useState([]);
-  const [savedAttendeeIds, setSavedAttendeeIds] = useState({}); // ✅ NEW: Store saved attendee IDs by ticket
+  const [savedAttendeeIds, setSavedAttendeeIds] = useState({});
   const [isCorporate, setIsCorporate] = useState(false);
   const [isAgent, setIsAgent] = useState(true);
   const [stickerData, setStickerData] = useState(null);

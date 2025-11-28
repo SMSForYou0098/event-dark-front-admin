@@ -160,18 +160,6 @@ export const VanueList = ({
 
     return (
         <>
-            {/* Errors */}
-            {venueError && (
-                <Col span={24}>
-                    <Alert
-                        type="error"
-                        showIcon
-                        message="Failed to load venues"
-                        description={venueErrObj?.message}
-                        action={<Button size="small" onClick={() => refetchVenues()}>Retry</Button>}
-                    />
-                </Col>
-            )}
             {/* Venues — driven by organizerId */}
             <Col xs={24} md={span ?? 8}>
                 {form ? (

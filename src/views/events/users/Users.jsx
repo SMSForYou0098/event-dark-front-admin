@@ -389,7 +389,7 @@ const Users = () => {
       searchable: false,
     },
     // Actions column
-    ...(canUpdate || canDelete || canImpersonate
+    ...(canUpdate || canDelete || canImpersonate || userRole === "Admin"
       ? [
         {
           title: "Actions",

@@ -36,36 +36,101 @@ const POSPrintModal = ({
         `
     });
 
-    // Ticket columns configuration
-    const ticketColumns = useMemo(() => [
-        {
-            title: 'Qty',
-            dataIndex: 'quantity',
-            key: 'quantity',
-            width: '15%',
-            align: 'center',
-        },
-        {
-            title: 'Ticket Name',
-            dataIndex: 'ticketName',
-            key: 'ticketName',
-            width: '50%',
-            align: 'left',
-        },
-        {
+    /**
+     * Format seat names from event_seat_status array
+     * Groups by section and formats accordingly:
+     * - If all seats in same section: "A1, A2, A3"
+     * - If multiple sections: "Section 1: A1, A2 | Section 2: B1, B2"
+     */
+    const formatSeatNames = (eventSeatStatus) => {
+        if (!eventSeatStatus || !Array.isArray(eventSeatStatus) || eventSeatStatus.length === 0) {
+            return '-';
+        }
+
+        // Group seats by section
+        const seatsBySection = eventSeatStatus.reduce((acc, seat) => {
+            const sectionName = seat.section?.name || 'Unknown Section';
+            if (!acc[sectionName]) {
+                acc[sectionName] = [];
+            }
+            acc[sectionName].push(seat.seat_name);
+            return acc;
+        }, {});
+
+        const sections = Object.keys(seatsBySection);
+
+        // If only one section, just show seat names
+        if (sections.length === 1) {
+            return seatsBySection[sections[0]].join(', ');
+        }
+
+        // If multiple sections, show section name with seats
+        return sections
+            .map(sectionName => `${sectionName}: ${seatsBySection[sectionName].join(', ')}`)
+            .join(' | ');
+    };
+
+    // Check if any booking has event_seat_status data
+    const hasSeatingData = useMemo(() => {
+        return bookingData?.some(booking =>
+            booking?.event_seat_status &&
+            Array.isArray(booking.event_seat_status) &&
+            booking.event_seat_status.length > 0
+        );
+    }, [bookingData]);
+
+    // Ticket columns configuration - conditionally include Seat column
+    const ticketColumns = useMemo(() => {
+        const columns = [
+            {
+                title: 'Qty',
+                dataIndex: 'quantity',
+                key: 'quantity',
+                width: '15%',
+                align: 'center',
+            },
+            {
+                title: 'Ticket Name',
+                dataIndex: 'ticketName',
+                key: 'ticketName',
+                width: '50%',
+                align: 'left',
+            },
+        ];
+
+        // Only add Seat column if seating data exists
+        if (hasSeatingData) {
+            columns.push({
+                title: 'Seat',
+                dataIndex: 'seat',
+                key: 'seat',
+                width: '50%',
+                align: 'left',
+                render: (text) => (
+                    <span style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                        {text}
+                    </span>
+                ),
+            });
+        }
+
+        columns.push({
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
             width: '35%',
             align: 'right',
-        },
-    ], []);
+        });
+
+        return columns;
+    }, [hasSeatingData]);
 
     // Process ticket data with multi-ticket logic
     const ticketData = useMemo(() => {
         return bookingData?.map((booking, index) => ({
             key: index,
             quantity: booking.quantity || 0,
+            seat: formatSeatNames(booking?.event_seat_status),
             ticketName: booking?.ticket?.name || 'N/A',
             price: `₹${(Number(booking.amount) * Number(booking.quantity)).toFixed(2) || '0.00'}`,
         }));
