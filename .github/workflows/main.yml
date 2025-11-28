@@ -1,0 +1,48 @@
+name: Deploy React App (t1.getyourticket.com)
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      # ---------------------------
+      # 🔥 Cache npm dependencies
+      # ---------------------------
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
+      # ---------------------------
+      # 🔥 Install with force (fix dependency issues)
+      # ---------------------------
+      - name: Install Dependencies (force)
+        run: npm install --force
+
+      - name: Build React App
+        run: npm run build
+
+      - name: Upload Build to CloudPanel
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "build/*"
+          target: ${{ secrets.APP_PATH }}
