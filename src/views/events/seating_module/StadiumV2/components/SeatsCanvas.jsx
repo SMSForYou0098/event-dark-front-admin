@@ -8,7 +8,7 @@ import {
   CheckCircleFilled,
   InfoCircleOutlined
 } from '@ant-design/icons';
-import { SEAT_ICONS, getSeatColor, getSeatIcon } from '../api/ticketData';
+import { SEAT_ICONS, getSeatColor, getSeatIcon, getTicketById } from '../api/ticketData';
 
 const { Text, Title } = Typography;
 const { useToken } = theme;
@@ -43,74 +43,280 @@ const SeatsCanvas = ({
   const touchStartRef = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0, scale: 1, distance: 0 });
   const [isTouching, setIsTouching] = useState(false);
 
-  // --- DATA GENERATION (Kept mostly same, added visual tweaks) ---
+  // --- DATA GENERATION ---
   const effectiveSection = useMemo(() => {
     if (section?.rows?.length > 0) return section;
+    
+    // Demo data with section-level EXIT tunnel
     return {
       ...section,
+      name: 'Section A',
+      // Section-level aisles with new schema
+      aisles: [
+        { 
+          id: 'exit-1', 
+          afterSeat: 10,        // Aisle appears after seat 10
+          width: 80, 
+          type: 'exit',
+          label: 'EXIT',
+          startRowIndex: 0,     // Start from row A (index 0)
+          endRowIndex: 5,       // End at row F (index 5) - partial tunnel
+        },
+      ],
       rows: [
-        { id: 'test-row-A', label: 'A', seatCount: 18, geometry: { curve: 6 } },
-        { id: 'test-row-B', label: 'B', seatCount: 20, geometry: { curve: 6.5 } },
-        { id: 'test-row-C', label: 'C', seatCount: 22, geometry: { curve: 7 } },
-        { id: 'test-row-D', label: 'D', seatCount: 24, geometry: { curve: 7.5 } },
-        { id: 'test-row-E', label: 'E', seatCount: 26, geometry: { curve: 8 } },
+        { id: 'row-A', label: 'A', seatCount: 24, geometry: { curve: 3 } },
+        { id: 'row-B', label: 'B', seatCount: 24, geometry: { curve: 3.5 } },
+        { id: 'row-C', label: 'C', seatCount: 24, geometry: { curve: 4 } },
+        { id: 'row-D', label: 'D', seatCount: 24, geometry: { curve: 4.5 } },
+        { id: 'row-E', label: 'E', seatCount: 24, geometry: { curve: 5 } },
+        { id: 'row-F', label: 'F', seatCount: 24, geometry: { curve: 5.5 } },
+        { id: 'row-G', label: 'G', seatCount: 24, geometry: { curve: 6 } },
+        { id: 'row-H', label: 'H', seatCount: 24, geometry: { curve: 6.5 } },
       ],
     };
   }, [section]);
 
+  // Get section aisles (new schema: afterSeat, startRowIndex, endRowIndex)
+  const sectionAisles = useMemo(() => {
+    return effectiveSection?.aisles || [];
+  }, [effectiveSection]);
+
   const seatsData = useMemo(() => {
     const rows = effectiveSection?.rows || [];
-    if (!rows.length) return { seats: [], bounds: { minX: 0, maxX: 0, minY: 0, maxY: 0 }, rowLabels: [] };
+    if (!rows.length) return { seats: [], tunnels: [], rowLabels: [], rowAisles: [] };
 
     const seats = [];
-    const seatSize = 20; // Slightly smaller for cleaner look
-    const seatGap = 6;
-    const rowGap = 12;
+    const rowLabels = [];
+    const rowAisles = []; // Aisles from row.blocks
+    const seatSize = 22;
+    const seatGap = 5;
+    const rowGap = 30;
     const stageHeight = 100;
-    const startY = stageHeight + 60;
+    const startY = stageHeight + 70;
     const centerX = width / 2;
     let currentY = startY;
 
-    rows.forEach((row, rowIndex) => {
-      const seatCount = row.seatCount || row.seats?.length || 0;
-      if (seatCount === 0) return;
+    // If stand or tier is blocked, all seats are blocked
+    const isParentBlocked = stand?.status === 'blocked' || tier?.status === 'blocked' || effectiveSection?.status === 'blocked';
 
-      const rowWidth = seatCount * (seatSize + seatGap);
-      const startX = centerX - rowWidth / 2;
-      const curveAmount = row.geometry?.curve || 3;
-      
-      const isBlocked = row.status === 'blocked' || effectiveSection?.status === 'blocked';
-      
-      for (let i = 0; i < seatCount; i++) {
-        const progress = seatCount > 1 ? i / (seatCount - 1) : 0.5;
-        const curveOffset = Math.sin(progress * Math.PI) * curveAmount * 3; // Increased curve for visual effect
-        
-        const x = startX + i * (seatSize + seatGap) + seatSize / 2;
-        const y = currentY + curveOffset;
-        
-        // ID Generation
-        const seatId = `${effectiveSection?.id || 'SEC'}-${row.label || 'R'}-${i + 1}`;
-        const isSelected = selectedSeats.some(s => s.id === seatId);
-        
-        seats.push({
-          id: seatId,
-          number: i + 1,
-          rowLabel: row.label,
-          sectionName: effectiveSection?.name || 'General',
-          ticketId: row.ticketId || effectiveSection?.ticketId || 'STD',
-          x, y,
-          size: seatSize,
-          status: isSelected ? 'selected' : (isBlocked ? 'blocked' : 'available'),
-        });
+    // Get icon from hierarchy (row → section → tier → stand)
+    const getIcon = (row) => {
+      return row.icon || effectiveSection?.icon || tier?.icon || stand?.icon || 'circle';
+    };
+
+    // Pre-calculate tunnel zones (fixed positions based on canvas center)
+    // Each tunnel is positioned relative to the CENTER of the canvas
+    const tunnelZones = sectionAisles.map(aisle => {
+      const aisleWidth = aisle.width || 80;
+      // Calculate tunnel center X based on afterSeat
+      // Assume average seat width = seatSize + seatGap
+      const avgSeatWidth = seatSize + seatGap;
+      // Offset from center: negative = left, positive = right
+      // afterSeat determines how many seats are on the left of the tunnel
+      // For center tunnel with afterSeat=10 and ~20 total seats, it's roughly centered
+      return {
+        ...aisle,
+        width: aisleWidth,
+        halfWidth: aisleWidth / 2,
+        startRowIndex: aisle.startRowIndex ?? 0,
+        endRowIndex: aisle.endRowIndex ?? rows.length - 1,
+      };
+    });
+
+    // Track tunnel Y bounds
+    const tunnelBounds = {};
+    tunnelZones.forEach(tz => {
+      tunnelBounds[tz.id] = { minY: Infinity, maxY: -Infinity, x: 0 };
+    });
+
+    // PRE-CALCULATE: Find the maximum row width to ensure consistent tunnel alignment
+    // All rows will use the same starting X based on max width
+    let maxRowWidth = 0;
+    rows.forEach((row, rowIndex) => {
+      const hasBlocks = row.blocks && row.blocks.length > 0;
+      let seatCount;
+      if (hasBlocks) {
+        seatCount = row.blocks.filter(b => b.type === 'seats').reduce((sum, b) => sum + (b.seats || 0), 0);
+      } else {
+        seatCount = row.seatCount || row.seats?.length || 0;
       }
+      
+      const activeTunnels = tunnelZones.filter(tz => 
+        rowIndex >= tz.startRowIndex && rowIndex <= tz.endRowIndex
+      );
+      
+      let rowWidth;
+      if (hasBlocks) {
+        rowWidth = row.blocks.reduce((sum, block) => {
+          if (block.type === 'seats') return sum + (block.seats || 0) * (seatSize + seatGap);
+          if (block.type === 'aisle') return sum + (block.width || 60);
+          return sum;
+        }, 0);
+      } else {
+        const seatsWidth = seatCount * (seatSize + seatGap);
+        const aislesWidth = activeTunnels.reduce((sum, a) => sum + (a.width || 80), 0);
+        rowWidth = seatsWidth + aislesWidth;
+      }
+      maxRowWidth = Math.max(maxRowWidth, rowWidth);
+    });
+
+    // Fixed start X for all rows (based on max width for alignment)
+    const fixedRowStartX = centerX - maxRowWidth / 2;
+
+    rows.forEach((row, rowIndex) => {
+      const curveAmount = row.geometry?.curve || 3;
+      const isBlocked = isParentBlocked || row.status === 'blocked';
+      const seatIcon = getIcon(row);
+      
+      // Check if row has blocks (advanced mode from RowEditPanel)
+      const hasBlocks = row.blocks && row.blocks.length > 0;
+      
+      // Calculate seat count
+      let seatCount;
+      if (hasBlocks) {
+        seatCount = row.blocks
+          .filter(b => b.type === 'seats')
+          .reduce((sum, b) => sum + (b.seats || 0), 0);
+      } else {
+        seatCount = row.seatCount || row.seats?.length || 0;
+      }
+      
+      if (seatCount === 0 && !hasBlocks) {
+        currentY += seatSize + rowGap;
+        return;
+      }
+
+      // Find which tunnels apply to this row
+      const activeTunnels = tunnelZones.filter(tz => 
+        rowIndex >= tz.startRowIndex && rowIndex <= tz.endRowIndex
+      );
+
+      // Use fixed start X for consistent tunnel alignment
+      rowLabels.push({ label: row.label, y: currentY, x: fixedRowStartX - 25 });
+
+      let seatNumber = 0;
+      let currentX = fixedRowStartX;
+      
+      if (hasBlocks) {
+        // Advanced mode: iterate through blocks
+        row.blocks.forEach((block) => {
+          if (block.type === 'seats') {
+            for (let i = 0; i < (block.seats || 0); i++) {
+              seatNumber++;
+              
+              const blockProgress = block.seats > 1 ? i / (block.seats - 1) : 0.5;
+              const curveOffset = Math.sin(blockProgress * Math.PI) * curveAmount * 0.5;
+              
+              const x = currentX + seatSize / 2;
+              const y = currentY + curveOffset;
+              
+              const seatId = `${effectiveSection?.id || 'SEC'}-${row.label || 'R'}-${seatNumber}`;
+              const isSelected = selectedSeats.some(s => s.id === seatId);
+              
+              const seatTicketId = row.ticketId || effectiveSection?.ticketId || tier?.ticketId || stand?.ticketId || null;
+              const seatEventId = row.eventId || effectiveSection?.eventId || tier?.eventId || stand?.eventId || eventId || null;
+              
+              seats.push({
+                id: seatId,
+                number: seatNumber,
+                rowLabel: row.label,
+                sectionName: effectiveSection?.name || 'General',
+                ticketId: seatTicketId,
+                eventId: seatEventId,
+                icon: seatIcon,
+                x, y,
+                size: seatSize,
+                status: isSelected ? 'selected' : (isBlocked ? 'blocked' : 'available'),
+              });
+              
+              currentX += seatSize + seatGap;
+            }
+          } else if (block.type === 'aisle') {
+            const aisleWidth = block.width || 60;
+            rowAisles.push({
+              x: currentX + aisleWidth / 2,
+              y: currentY,
+              width: aisleWidth,
+              height: seatSize,
+              label: block.label || '',
+              rowLabel: row.label,
+            });
+            currentX += aisleWidth;
+          }
+        });
+      } else {
+        // Simple mode: place seats with tunnel gaps
+        for (let i = 0; i < seatCount; i++) {
+          seatNumber++;
+          
+          const progress = seatCount > 1 ? i / (seatCount - 1) : 0.5;
+          const curveOffset = Math.sin(progress * Math.PI) * curveAmount * 2;
+          
+          const x = currentX + seatSize / 2;
+          const y = currentY + curveOffset;
+          
+          const seatId = `${effectiveSection?.id || 'SEC'}-${row.label || 'R'}-${seatNumber}`;
+          const isSelected = selectedSeats.some(s => s.id === seatId);
+          
+          const seatTicketId = row.ticketId || effectiveSection?.ticketId || tier?.ticketId || stand?.ticketId || null;
+          const seatEventId = row.eventId || effectiveSection?.eventId || tier?.eventId || stand?.eventId || eventId || null;
+          
+          seats.push({
+            id: seatId,
+            number: seatNumber,
+            rowLabel: row.label,
+            sectionName: effectiveSection?.name || 'General',
+            ticketId: seatTicketId,
+            eventId: seatEventId,
+            icon: seatIcon,
+            x, y,
+            size: seatSize,
+            status: isSelected ? 'selected' : (isBlocked ? 'blocked' : 'available'),
+          });
+          
+          currentX += seatSize + seatGap;
+          
+          // Add tunnel gap after this seat if needed
+          activeTunnels.forEach(tunnel => {
+            if (seatNumber === tunnel.afterSeat) {
+              const aisleWidth = tunnel.width || 80;
+              const tunnelCenterX = currentX + aisleWidth / 2;
+              
+              // Update tunnel bounds
+              if (tunnelBounds[tunnel.id]) {
+                tunnelBounds[tunnel.id].minY = Math.min(tunnelBounds[tunnel.id].minY, currentY - 5);
+                tunnelBounds[tunnel.id].maxY = Math.max(tunnelBounds[tunnel.id].maxY, currentY + seatSize + 5);
+                // Use the center X from this row (first row sets it)
+                if (tunnelBounds[tunnel.id].x === 0) {
+                  tunnelBounds[tunnel.id].x = tunnelCenterX;
+                }
+              }
+              
+              currentX += aisleWidth;
+            }
+          });
+        }
+      }
+      
       currentY += seatSize + rowGap;
     });
 
-    return {
-      seats,
-      rowLabels: rows.map((r, i) => ({ label: r.label, y: startY + i * (seatSize + rowGap) })),
-    };
-  }, [effectiveSection, selectedSeats, width]);
+    // Build tunnel data
+    const tunnels = tunnelZones.map(tz => {
+      const bounds = tunnelBounds[tz.id];
+      if (bounds && bounds.minY !== Infinity && bounds.x !== 0) {
+        return {
+          ...tz,
+          x: bounds.x,
+          startY: bounds.minY - 10,
+          endY: bounds.maxY + 10,
+        };
+      }
+      return null;
+    }).filter(Boolean);
+
+    return { seats, tunnels, rowLabels, rowAisles };
+  }, [effectiveSection, selectedSeats, width, stand, tier, eventId, sectionAisles]);
 
   // --- DRAWING LOGIC (Enhanced) ---
   const draw = useCallback(() => {
@@ -161,7 +367,104 @@ const SeatsCanvas = ({
     ctx.textAlign = 'center';
     ctx.fillText('FIELD / STAGE', width / 2, 55);
 
-    // 3. Draw Seats
+    // 3. Draw EXIT Tunnels FIRST (so seats appear on top of tunnel edges)
+    if (seatsData.tunnels && seatsData.tunnels.length > 0) {
+      seatsData.tunnels.forEach(tunnel => {
+        const tunnelX = tunnel.x - tunnel.halfWidth;
+        const tunnelWidth = tunnel.width;
+        const tunnelHeight = tunnel.endY - tunnel.startY;
+
+        // Main tunnel background
+        const tunnelGradient = ctx.createLinearGradient(tunnelX, tunnel.startY, tunnelX + tunnelWidth, tunnel.startY);
+        tunnelGradient.addColorStop(0, 'rgba(20, 20, 30, 0.95)');
+        tunnelGradient.addColorStop(0.3, 'rgba(30, 30, 40, 0.9)');
+        tunnelGradient.addColorStop(0.7, 'rgba(30, 30, 40, 0.9)');
+        tunnelGradient.addColorStop(1, 'rgba(20, 20, 30, 0.95)');
+        
+        ctx.fillStyle = tunnelGradient;
+        ctx.beginPath();
+        ctx.roundRect(tunnelX, tunnel.startY, tunnelWidth, tunnelHeight, 6);
+        ctx.fill();
+
+        // Inner shadow
+        const innerGradient = ctx.createLinearGradient(tunnelX, tunnel.startY, tunnelX, tunnel.endY);
+        innerGradient.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
+        innerGradient.addColorStop(0.3, 'rgba(0, 0, 0, 0.2)');
+        innerGradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.2)');
+        innerGradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+        
+        ctx.fillStyle = innerGradient;
+        ctx.beginPath();
+        ctx.roundRect(tunnelX + 5, tunnel.startY + 5, tunnelWidth - 10, tunnelHeight - 10, 4);
+        ctx.fill();
+
+        // Stairs pattern
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        const stepGap = 12;
+        for (let sy = tunnel.startY + 20; sy < tunnel.endY - 10; sy += stepGap) {
+          ctx.beginPath();
+          ctx.moveTo(tunnelX + 8, sy);
+          ctx.lineTo(tunnelX + tunnelWidth - 8, sy);
+          ctx.stroke();
+        }
+
+        // Side railings
+        ctx.strokeStyle = 'rgba(150, 150, 160, 0.4)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(tunnelX + 4, tunnel.startY + 10);
+        ctx.lineTo(tunnelX + 4, tunnel.endY - 10);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(tunnelX + tunnelWidth - 4, tunnel.startY + 10);
+        ctx.lineTo(tunnelX + tunnelWidth - 4, tunnel.endY - 10);
+        ctx.stroke();
+
+        // Border
+        ctx.strokeStyle = 'rgba(100, 100, 110, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.roundRect(tunnelX, tunnel.startY, tunnelWidth, tunnelHeight, 6);
+        ctx.stroke();
+
+        // Sign at top
+        if (tunnel.label) {
+          const signWidth = tunnel.label.length * 8 + 20;
+          const signX = tunnel.x - signWidth / 2;
+          const signY = tunnel.startY - 22;
+          
+          ctx.fillStyle = tunnel.type === 'exit' ? '#389e0d' : 
+                          tunnel.type === 'stairs' ? '#d48806' : '#096dd9';
+          ctx.beginPath();
+          ctx.roundRect(signX, signY, signWidth, 18, 3);
+          ctx.fill();
+          
+          ctx.strokeStyle = tunnel.type === 'exit' ? '#52c41a' : 
+                            tunnel.type === 'stairs' ? '#faad14' : '#1890ff';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 10px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(tunnel.label, tunnel.x, signY + 9);
+        }
+
+        // Arrow at bottom
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.beginPath();
+        const arrowY = tunnel.endY - 20;
+        ctx.moveTo(tunnel.x, arrowY + 12);
+        ctx.lineTo(tunnel.x - 8, arrowY);
+        ctx.lineTo(tunnel.x + 8, arrowY);
+        ctx.closePath();
+        ctx.fill();
+      });
+    }
+
+    // 4. Draw Seats (on top of tunnels)
     seatsData.seats.forEach(seat => {
       const isHovered = hoveredSeat?.id === seat.id;
       const isSelected = seat.status === 'selected';
@@ -192,46 +495,88 @@ const SeatsCanvas = ({
         shadowColor = 'rgba(64, 169, 255, 0.4)';
       }
 
-      // Draw Seat (Circle with depth)
-      const renderSize = isHovered ? seat.size * 1.3 : seat.size;
+      // Draw Seat using the appropriate icon shape
+      const renderSize = isHovered ? seat.size * 1.15 : seat.size;
       
       ctx.shadowColor = shadowColor;
       ctx.shadowBlur = shadowBlur;
       
-      ctx.beginPath();
-      ctx.arc(seat.x, seat.y, renderSize / 2, 0, Math.PI * 2);
-      ctx.fillStyle = fillColor;
-      ctx.fill();
+      // Get the icon draw function
+      const iconKey = seat.icon || 'circle';
+      const iconDef = SEAT_ICONS[iconKey] || SEAT_ICONS.circle;
       
-      // Inner stroke for detail
-      if (!isSelected && !isHovered) {
-          ctx.strokeStyle = strokeColor;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-      }
+      // Draw the seat using the icon's draw function
+      iconDef.draw(ctx, seat.x, seat.y, renderSize, fillColor, strokeColor);
+      
+      // Reset shadow
+      ctx.shadowBlur = 0;
 
-      // 4. Seat Number (Only visible when zoomed in)
-      if (scale > 1.4 || isSelected || isHovered) {
-        ctx.fillStyle = '#fff';
-        ctx.font = `600 ${Math.max(8, 9 * scale)}px Inter, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowBlur = 0;
-        ctx.fillText(String(seat.number), seat.x, seat.y);
-      }
+      // 4. Seat Number - ALWAYS show, properly sized inside the seat
+      // Calculate font size based on seat size (not scale) so it fits inside
+      const fontSize = Math.max(8, Math.min(renderSize * 0.45, 12));
+      ctx.fillStyle = isSelected || isHovered ? '#fff' : 'rgba(255,255,255,0.8)';
+      ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(seat.number), seat.x, seat.y);
     });
 
     // 5. Row Labels
     ctx.shadowBlur = 0;
-    ctx.fillStyle = 'rgba(255,255,255,0.3)';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.textAlign = 'right';
-    seatsData.rowLabels.forEach(({ label, y }) => {
-       // Draw label on left side
-       ctx.fillText(label, width / 2 - (width * 0.4), y + 4);
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = 'bold 14px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    seatsData.rowLabels.forEach(({ label, x, y }) => {
+       // Draw label on left side with background pill
+       const labelX = x - 10;
+       
+       // Background pill
+       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+       ctx.beginPath();
+       ctx.roundRect(labelX - 12, y - 10, 24, 20, 10);
+       ctx.fill();
+       
+       // Label text
+       ctx.fillStyle = 'rgba(255,255,255,0.7)';
+       ctx.fillText(label, labelX, y);
     });
 
-    // 6. Selection Box
+    // 6. Draw Row-level Aisles (from row.blocks)
+    if (seatsData.rowAisles && seatsData.rowAisles.length > 0) {
+      seatsData.rowAisles.forEach(aisle => {
+        const aisleX = aisle.x - aisle.width / 2;
+        const aisleY = aisle.y - 2;
+        const aisleHeight = aisle.height + 4;
+        
+        // Aisle background - dark gap
+        const aisleGradient = ctx.createLinearGradient(aisleX, aisleY, aisleX + aisle.width, aisleY);
+        aisleGradient.addColorStop(0, 'rgba(15, 15, 25, 0.9)');
+        aisleGradient.addColorStop(0.5, 'rgba(25, 25, 35, 0.85)');
+        aisleGradient.addColorStop(1, 'rgba(15, 15, 25, 0.9)');
+        
+        ctx.fillStyle = aisleGradient;
+        ctx.beginPath();
+        ctx.roundRect(aisleX, aisleY, aisle.width, aisleHeight, 4);
+        ctx.fill();
+        
+        // Border
+        ctx.strokeStyle = 'rgba(100, 100, 110, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        // Aisle label if provided
+        if (aisle.label) {
+          ctx.fillStyle = '#fff';
+          ctx.font = 'bold 9px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(aisle.label, aisle.x, aisle.y + aisle.height / 2);
+        }
+      });
+    }
+
+    // 8. Selection Box
     if (isSelecting && selectionStart && selectionEnd) {
       ctx.fillStyle = 'rgba(24, 144, 255, 0.2)';
       ctx.strokeStyle = '#1890ff';
@@ -695,10 +1040,25 @@ const handleMouseUp = useCallback((e) => {
           
           {/* Tooltip Body */}
           <div style={{ padding: '10px 14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Price Tier</Text>
-                  <Text style={{ color: '#fff', fontSize: 12 }}>{hoveredSeat.ticketId}</Text>
-              </div>
+              {/* Show ticket info only if assigned */}
+              {hoveredSeat.ticketId && hoveredSeat.eventId && (() => {
+                const ticket = getTicketById(hoveredSeat.eventId, hoveredSeat.ticketId);
+                if (ticket) {
+                  return (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Ticket</Text>
+                        <Text style={{ color: ticket.color || '#fff', fontSize: 12, fontWeight: 500 }}>{ticket.name}</Text>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>Price</Text>
+                        <Text style={{ color: '#4ade80', fontSize: 12, fontWeight: 600 }}>₹{ticket.price?.toLocaleString()}</Text>
+                      </div>
+                    </>
+                  );
+                }
+                return null;
+              })()}
               
               {hoveredSeat.status === 'available' ? (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#52c41a', fontSize: 12, marginTop: 8 }}>

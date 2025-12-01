@@ -46,6 +46,7 @@ import {
 import FolderItem from './FolderItem';
 import StandEditPanel from './StandEditPanel';
 import RowEditPanel from './RowEditPanel';
+import SectionEditPanel from './SectionEditPanel';
 import { useStadiumData } from './useStadiumData';
 import { STAND_COLORS, TIER_COLORS } from './constants';
 
@@ -82,6 +83,9 @@ const StadiumBuilder = ({
 
   // Edit mode for stand geometry
   const [editingStandId, setEditingStandId] = useState(null);
+  
+  // Edit mode for section aisles
+  const [editingSectionId, setEditingSectionId] = useState(null);
 
   // ============================================
   // DATA OPERATIONS HOOK
@@ -358,6 +362,24 @@ const StadiumBuilder = ({
       }
     }
 
+    // Section aisles editing
+    if (editingSectionId && navLevel === 'sections') {
+      const section = selectedTier?.sections?.find(s => s.id === editingSectionId);
+      if (section) {
+        return (
+          <SectionEditPanel
+            section={section}
+            onUpdate={(updates) => {
+              updateSection(section.id, updates);
+              message.success('Section aisles updated');
+            }}
+            onBack={() => setEditingSectionId(null)}
+            isMobile={isMobile}
+          />
+        );
+      }
+    }
+
     // Row editing
     if (navLevel === 'seats' && selectedRow) {
       return (
@@ -460,6 +482,8 @@ const StadiumBuilder = ({
                 onDelete={() => deleteSection(item.id)}
                 onStatusChange={(status) => updateSection(item.id, { status })}
                 onAssignTicket={() => onAssignTicket?.('section', item, selectedStand?.id, selectedTier?.id, item.id)}
+                onEditGeometry={() => setEditingSectionId(item.id)}
+                editGeometryTooltip="Configure Aisles"
                 isMobile={isMobile}
               />
             );

@@ -20,6 +20,7 @@ import {
   polarToCartesian,
   lightenColor,
 } from '../utils/stadiumRenderer';
+import { getTicketById } from '../api/ticketData';
 
 const StadiumCanvas = ({
   stadium,
@@ -57,6 +58,8 @@ const StadiumCanvas = ({
   const fieldType = useMemo(() => stadium?.geometry?.field?.type || 'cricket', [stadium?.geometry?.field?.type]);
 
   // Get items to render based on view level - optimized with early returns
+  // If parent is blocked, all children inherit blocked status
+  // When viewing sections, recalculate geometry to spread them across more canvas space
   const visibleItems = useMemo(() => {
     if (!layout || !layout.stands?.length) return [];
 
@@ -67,7 +70,14 @@ const StadiumCanvas = ({
     if (viewLevel === 'tiers' && selectedStand?.id) {
       const stand = layout.stands.find(s => s.id === selectedStand.id);
       if (!stand?.tiers?.length) return [];
-      return stand.tiers.map(t => ({ ...t, type: 'tier', parentStand: stand }));
+      // If stand is blocked, all tiers are blocked
+      const isStandBlocked = stand.status === 'blocked';
+      return stand.tiers.map(t => ({ 
+        ...t, 
+        type: 'tier', 
+        parentStand: stand,
+        status: isStandBlocked ? 'blocked' : t.status 
+      }));
     }
 
     if (viewLevel === 'sections' && selectedTier?.id && selectedStand?.id) {
@@ -75,11 +85,52 @@ const StadiumCanvas = ({
       if (!stand) return [];
       const tier = stand.tiers?.find(t => t.id === selectedTier.id);
       if (!tier?.sections?.length) return [];
-      return tier.sections.map(s => ({ ...s, type: 'section', parentTier: tier, parentStand: stand }));
+      
+      // If stand or tier is blocked, all sections are blocked
+      const isParentBlocked = stand.status === 'blocked' || tier.status === 'blocked';
+      
+      // Recalculate section geometry to spread across a larger arc (fan view)
+      const totalSections = tier.sections.length;
+      const cx = layout.cx;
+      const cy = height - 50; // Move center point down for fan effect
+      
+      // Use larger arc spread for better visibility
+      const spreadAngle = Math.min(Math.PI * 0.8, Math.PI * 0.4 + (totalSections * 0.02)); // Dynamic spread based on section count
+      const startAngle = -Math.PI / 2 - spreadAngle / 2;
+      
+      // Calculate radii for fan layout
+      const innerRadius = 80;
+      const outerRadius = Math.min(width, height) * 0.55;
+      
+      const sectionGap = 0.015; // Gap between sections in radians
+      const availableAngle = spreadAngle - (sectionGap * (totalSections - 1));
+      const sectionAngle = availableAngle / totalSections;
+      
+      return tier.sections.map((section, idx) => {
+        const secStartAngle = startAngle + (idx * (sectionAngle + sectionGap));
+        const secEndAngle = secStartAngle + sectionAngle;
+        const midAngle = (secStartAngle + secEndAngle) / 2;
+        
+        return {
+          ...section,
+          type: 'section',
+          parentTier: tier,
+          parentStand: stand,
+          status: isParentBlocked ? 'blocked' : section.status,
+          // Override geometry for fan layout
+          startAngle: secStartAngle,
+          endAngle: secEndAngle,
+          midAngle,
+          innerRadius,
+          outerRadius,
+          cx,
+          cy,
+        };
+      });
     }
 
     return [];
-  }, [layout, viewLevel, selectedStand?.id, selectedTier?.id]);
+  }, [layout, viewLevel, selectedStand?.id, selectedTier?.id, width, height]);
 
   // Draw the canvas
   const draw = useCallback(() => {
@@ -110,23 +161,48 @@ const StadiumCanvas = ({
     ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, width, height);
 
-    // Draw field
-    drawField(ctx, {
-      cx: layout.cx,
-      cy: layout.cy,
-      radius: layout.fieldRadius,
-      type: fieldType,
-    });
+    // Draw field only for stands and tiers view (not sections fan view)
+    if (viewLevel !== 'sections') {
+      drawField(ctx, {
+        cx: layout.cx,
+        cy: layout.cy,
+        radius: layout.fieldRadius,
+        type: fieldType,
+      });
+    } else {
+      // Draw stage/screen indicator for sections fan view
+      const stageCx = width / 2;
+      const stageCy = height - 50;
+      ctx.fillStyle = 'rgba(34, 197, 94, 0.3)';
+      ctx.strokeStyle = 'rgba(34, 197, 94, 0.6)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(stageCx, stageCy + 20, 60, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      
+      // Stage label
+      ctx.fillStyle = '#4ade80';
+      ctx.font = '12px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('STAGE / FIELD', stageCx, stageCy + 20);
+    }
 
     // Draw visible items
     visibleItems.forEach(item => {
       const isHovered = hoveredItem?.id === item.id;
+      // Item is blocked if explicitly set to 'blocked'
       const isBlocked = item.status === 'blocked';
 
       // Get color
       let baseColor = item.style?.color || '#3b82f6';
       if (item.type === 'tier' && item.style?.color) {
         baseColor = item.style.color;
+      }
+      // Use section's parent tier color if available
+      if (item.type === 'section' && item.parentTier?.style?.color) {
+        baseColor = item.parentTier.style.color;
       }
       
       const fillColor = isBlocked
@@ -135,10 +211,14 @@ const StadiumCanvas = ({
           ? lightenColor(baseColor, 0.15)
           : baseColor;
 
+      // Use item's cx/cy if available (for sections fan view), otherwise use layout center
+      const centerX = item.cx ?? layout.cx;
+      const centerY = item.cy ?? layout.cy;
+
       // Draw arc
       drawArc(ctx, {
-        cx: layout.cx,
-        cy: layout.cy,
+        cx: centerX,
+        cy: centerY,
         innerRadius: item.innerRadius,
         outerRadius: item.outerRadius,
         startAngle: item.startAngle,
@@ -151,7 +231,7 @@ const StadiumCanvas = ({
       // Draw label
       if (showLabels) {
         const labelRadius = (item.innerRadius + item.outerRadius) / 2;
-        const labelPos = polarToCartesian(layout.cx, layout.cy, labelRadius, item.midAngle);
+        const labelPos = polarToCartesian(centerX, centerY, labelRadius, item.midAngle);
 
         // Calculate if label fits
         const arcLength = (item.endAngle - item.startAngle) * labelRadius;
@@ -188,38 +268,52 @@ const StadiumCanvas = ({
               color: 'rgba(255,255,255,0.5)',
             });
           }
-          if (item.type === 'tier' && item.ticketId && item.basePrice) {
-            drawText(ctx, `₹${item.basePrice}`, {
-              x: labelPos.x,
-              y: labelPos.y + fontSize * 2 + 4,
-              fontSize: fontSize - 1,
-              color: '#4ade80',
-            });
-          } else if (item.type === 'tier' && !item.ticketId) {
-            drawText(ctx, 'No Ticket', {
-              x: labelPos.x,
-              y: labelPos.y + fontSize * 2 + 4,
-              fontSize: fontSize - 2,
-              color: '#f87171',
-            });
+          // Only show price if ticket is actually assigned
+          if (item.type === 'tier' && item.ticketId && item.eventId) {
+            const ticket = getTicketById(item.eventId, item.ticketId);
+            if (ticket?.price) {
+              drawText(ctx, `₹${ticket.price.toLocaleString()}`, {
+                x: labelPos.x,
+                y: labelPos.y + fontSize * 2 + 4,
+                fontSize: fontSize - 1,
+                color: '#4ade80',
+              });
+            }
           }
         }
       }
     });
 
-    // Center label
-    const levelLabel = viewLevel === 'stands'
-      ? 'Click a stand'
-      : viewLevel === 'tiers'
-        ? selectedStand?.name || 'Tiers'
-        : selectedTier?.name || 'Sections';
+    // Center label - position differently for sections fan view
+    if (viewLevel !== 'sections') {
+      const levelLabel = viewLevel === 'stands'
+        ? 'Click a stand'
+        : selectedStand?.name || 'Tiers';
 
-    drawText(ctx, levelLabel, {
-      x: layout.cx,
-      y: layout.cy + layout.fieldRadius + 18,
-      fontSize: 11,
-      color: 'rgba(255,255,255,0.4)',
-    });
+      drawText(ctx, levelLabel, {
+        x: layout.cx,
+        y: layout.cy + layout.fieldRadius + 18,
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.4)',
+      });
+    } else {
+      // For sections view, show tier name at top
+      drawText(ctx, selectedTier?.name || 'Sections', {
+        x: width / 2,
+        y: 25,
+        fontSize: 14,
+        color: 'rgba(255,255,255,0.6)',
+      });
+      
+      // Show section count
+      const sectionCount = visibleItems.length;
+      drawText(ctx, `${sectionCount} Sections - Click to view seats`, {
+        x: width / 2,
+        y: 45,
+        fontSize: 11,
+        color: 'rgba(255,255,255,0.35)',
+      });
+    }
 
     ctx.restore();
   }, [layout, visibleItems, hoveredItem, scale, offset, width, height, showLabels, viewLevel, selectedStand, selectedTier, fieldType]);
@@ -274,8 +368,12 @@ const StadiumCanvas = ({
     if (!layout) return null;
 
     for (const item of visibleItems) {
-      const dx = x - layout.cx;
-      const dy = y - layout.cy;
+      // Use item's own center point if available (for sections fan view)
+      const centerX = item.cx ?? layout.cx;
+      const centerY = item.cy ?? layout.cy;
+      
+      const dx = x - centerX;
+      const dy = y - centerY;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
       if (distance < item.innerRadius || distance > item.outerRadius) continue;

@@ -1140,7 +1140,7 @@ const AuditoriumLayoutDesigner = () => {
                 <div>
                   <div style={{ marginBottom: '8px', fontSize: '14px', fontWeight: 500 }}>Row Seat Icon</div>
                   <div style={{ marginBottom: '8px', fontSize: '12px', color: '#666' }}>
-                    Apply icon to all seats (except custom ones)
+                    Apply icon to allsss seats (except custom ones)
                   </div>
                   <Space wrap size={8}>
                     {/* Default numeric seat */}

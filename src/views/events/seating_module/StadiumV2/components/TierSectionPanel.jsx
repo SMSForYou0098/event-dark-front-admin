@@ -153,7 +153,9 @@ const TierSectionPanel = ({
                 0
               ) || 0;
               const isSelectedTier = selectedTierId === tier.id;
-              const isBlocked = tier.status === 'blocked';
+              // If stand is blocked, tier is also blocked
+              const isStandBlocked = stand.status === 'blocked';
+              const isBlocked = isStandBlocked || tier.status === 'blocked';
 
               return (
                 <div 
@@ -340,7 +342,8 @@ const TierSectionPanel = ({
                               const rowCount = section.rows?.length || 0;
                               const seatCount = section.rows?.reduce((sum, row) => sum + (row.seatCount || 0), 0) || 0;
                               const isSelectedSection = selectedSectionId === section.id;
-                              const isSectionBlocked = section.status === 'blocked';
+                              // If stand or tier is blocked, section is also blocked
+                              const isSectionBlocked = isBlocked || section.status === 'blocked';
 
                               return (
                                 <div

@@ -12,7 +12,7 @@
  */
 
 import React, { useState, useCallback, useMemo } from 'react';
-import { Row, Col, Card, Button, Space, Typography, Breadcrumb, Tag, message, Drawer, Grid, Segmented, FloatButton } from 'antd';
+import { Row, Col, Card, Button, Space, Typography, Breadcrumb, Tag, message, Drawer, Grid, Segmented, FloatButton, Select } from 'antd';
 import {
   ArrowLeftOutlined,
   HomeOutlined,
@@ -21,6 +21,7 @@ import {
   TagOutlined,
   MenuOutlined,
   SettingOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import StadiumBuilder from './components/StadiumBuilder';
 import StadiumCanvas from './components/StadiumCanvas';
@@ -389,7 +390,7 @@ const StadiumAdmin = () => {
           <Col xs={24} sm={24} md={12} lg={10}>
             <Space size={isMobile ? 'small' : 'large'} wrap>
               <Title level={isMobile ? 5 : 3} style={{ margin: 0, color: '#fff', whiteSpace: 'nowrap' }}>
-                🏟️ {isMobile ? 'Stadium' : 'Stadium Builder V2'}
+                🏟️ {isMobile ? 'Stadium' : 'Stadium Builder Version 2'}
               </Title>
               <Tag color="blue" style={{ fontSize: isMobile ? 11 : 14 }}>
                 {stadium?.name || 'Untitled'}
@@ -403,6 +404,22 @@ const StadiumAdmin = () => {
             {/* Desktop Controls */}
             {!isMobile ? (
               <Space wrap style={{ justifyContent: 'flex-end', width: '100%' }}>
+                {/* Event Selection */}
+                Select Event
+                <Select
+                  value={selectedEventId}
+                  onChange={setSelectedEventId}
+                  style={{ minWidth: 200 }}
+                  size={isTablet ? 'small' : 'middle'}
+                  placeholder="Select Event"
+                  suffixIcon={<CalendarOutlined />}
+                >
+                  {DUMMY_EVENTS.map(event => (
+                    <Select.Option key={event.id} value={event.id}>
+                      {event.name}
+                    </Select.Option>
+                  ))}
+                </Select>
                 <Button onClick={handleCreateNew} size={isTablet ? 'small' : 'middle'}>
                   New
                 </Button>
@@ -652,6 +669,7 @@ const StadiumAdmin = () => {
             level={ticketAssignmentTarget.level}
             target={ticketAssignmentTarget.target}
             parentPath={ticketAssignmentTarget.parentPath}
+            selectedEventId={selectedEventId}
             onAssign={handleTicketAssign}
             onClose={() => setShowTicketAssignment(false)}
           />

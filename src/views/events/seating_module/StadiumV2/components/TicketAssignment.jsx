@@ -2,45 +2,66 @@
  * TicketAssignment - Assign tickets to stands/tiers/sections/rows
  * 
  * Features:
- * - Select event first
- * - Then select ticket type
- * - Assign at any level (cascades down)
+ * - Event is selected at stadium level (passed as prop)
+ * - Select ticket type from available tickets for the event
+ * - Assign at any level (always cascades down to children)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Card,
-  Select,
   Space,
   Typography,
-  Tag,
   Button,
   Divider,
   Empty,
   Alert,
-  Radio,
+  Row,
+  Col,
 } from 'antd';
 import {
   CheckOutlined,
   CalendarOutlined,
   TagOutlined,
 } from '@ant-design/icons';
-import { DUMMY_EVENTS, DUMMY_TICKETS, SEAT_ICONS } from '../api/ticketData';
+import { DUMMY_EVENTS, DUMMY_TICKETS } from '../api/ticketData';
+import { getIconComponent, seatIcons } from '../../theatre_layout/components/consts';
 
 const { Text } = Typography;
-const { Option } = Select;
 
 const TicketAssignment = ({
   level, // 'stand' | 'tier' | 'section' | 'row'
   target, // The item being assigned (stand, tier, section, or row object)
   parentPath, // { stand, tier, section } - parents for context
+  selectedEventId, // Event ID passed from parent (stadium level)
   onAssign,
   onClose,
 }) => {
-  const [selectedEventId, setSelectedEventId] = useState(null);
   const [selectedTicketId, setSelectedTicketId] = useState(null);
   const [selectedIcon, setSelectedIcon] = useState(null);
-  const [assignmentMode, setAssignmentMode] = useState('cascade'); // 'cascade' | 'this-only'
+  // Always cascade to children - no mode selection needed
+
+  // Get the selected event details
+  const selectedEvent = useMemo(() => {
+    return DUMMY_EVENTS.find(e => e.id === selectedEventId);
+  }, [selectedEventId]);
+
+  // Initialize with previously assigned ticket (if any)
+  useEffect(() => {
+    if (target) {
+      if (target.ticketId) {
+        setSelectedTicketId(target.ticketId);
+      } else {
+        setSelectedTicketId(null);
+      }
+      
+      if (target.icon) {
+        setSelectedIcon(target.icon);
+      } else {
+        setSelectedIcon(null);
+      }
+    }
+  }, [target]);
 
   // Get tickets for selected event
   const availableTickets = useMemo(() => {
@@ -54,14 +75,14 @@ const TicketAssignment = ({
     return availableTickets.find(t => t.id === selectedTicketId);
   }, [selectedTicketId, availableTickets]);
 
-  // Handle assignment
+  // Handle assignment - always cascade to all children
   const handleAssign = () => {
     if (!selectedTicketId) return;
 
     onAssign?.({
       ticketId: selectedTicketId,
       icon: selectedIcon || selectedTicket?.icon || 'circle',
-      mode: assignmentMode,
+      mode: 'cascade', // Always apply to all children
       eventId: selectedEventId,
     });
   };
@@ -114,38 +135,41 @@ const TicketAssignment = ({
         }}
       />
 
-      {/* Step 1: Select Event */}
+      {/* Event Info (read-only, set at stadium level) */}
       <div style={{ marginBottom: 20 }}>
         <Text style={{ color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>
-          1. Select Event
+          Event
         </Text>
-        <Select
-          placeholder="Choose an event..."
-          value={selectedEventId}
-          onChange={(v) => {
-            setSelectedEventId(v);
-            setSelectedTicketId(null); // Reset ticket when event changes
-          }}
-          style={{ width: '100%' }}
-          size="large"
-        >
-          {DUMMY_EVENTS.map(event => (
-            <Option key={event.id} value={event.id}>
-              <Space>
-                <CalendarOutlined />
-                <span>{event.name}</span>
-                <Tag size="small">{event.date}</Tag>
-              </Space>
-            </Option>
-          ))}
-        </Select>
+        {selectedEvent ? (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            padding: '12px 16px',
+            background: 'rgba(82, 196, 26, 0.1)',
+            border: '1px solid rgba(82, 196, 26, 0.3)',
+            borderRadius: 8,
+          }}>
+            <CalendarOutlined style={{ fontSize: 18, color: '#52c41a' }} />
+            <div>
+              <Text strong style={{ color: '#fff', display: 'block' }}>{selectedEvent.name}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>{selectedEvent.date}</Text>
+            </div>
+          </div>
+        ) : (
+          <Alert
+            type="warning"
+            message="No event selected. Please select an event from the header first."
+            style={{ background: 'rgba(250, 173, 20, 0.1)', border: '1px solid rgba(250, 173, 20, 0.3)' }}
+          />
+        )}
       </div>
 
-      {/* Step 2: Select Ticket */}
+      {/* Select Ticket Type */}
       {selectedEventId && (
         <div style={{ marginBottom: 20 }}>
           <Text style={{ color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>
-            2. Select Ticket Type
+            Select Ticket Type
           </Text>
           {availableTickets.length === 0 ? (
             <Empty description="No tickets for this event" />
@@ -203,82 +227,73 @@ const TicketAssignment = ({
           <Text style={{ color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>
             3. Seat Icon (Optional)
           </Text>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {Object.entries(SEAT_ICONS).map(([key, icon]) => (
+          <Row gutter={[8, 8]}>
+            {/* Default circle icon */}
+            <Col>
               <div
-                key={key}
-                onClick={() => setSelectedIcon(key)}
+                onClick={() => setSelectedIcon('circle')}
                 style={{
-                  width: 48,
-                  height: 48,
+                  width: 44,
+                  height: 44,
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  background: selectedIcon === key 
-                    ? 'rgba(24, 144, 255, 0.2)' 
-                    : 'rgba(255,255,255,0.03)',
-                  border: selectedIcon === key 
+                  background: selectedIcon === 'circle' || !selectedIcon
+                    ? selectedTicket?.color || '#1890ff'
+                    : 'rgba(255,255,255,0.05)',
+                  border: selectedIcon === 'circle' || !selectedIcon
                     ? '2px solid #1890ff' 
-                    : '1px solid rgba(255,255,255,0.1)',
+                    : '1px solid rgba(255,255,255,0.15)',
                   borderRadius: 8,
                   cursor: 'pointer',
                   transition: 'all 0.2s',
                 }}
-                title={icon.name}
+                title="Default Circle"
               >
-                <canvas
-                  ref={(canvas) => {
-                    if (canvas) {
-                      const ctx = canvas.getContext('2d');
-                      ctx.clearRect(0, 0, 24, 24);
-                      icon.draw(ctx, 12, 12, 16, selectedTicket?.color || '#52c41a', 'rgba(255,255,255,0.3)');
-                    }
-                  }}
-                  width={24}
-                  height={24}
-                  style={{ display: 'block' }}
-                />
+                <div style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  background: selectedIcon === 'circle' || !selectedIcon ? '#fff' : 'rgba(255,255,255,0.3)',
+                }} />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </Col>
 
-      {/* Step 4: Assignment Mode */}
-      {selectedTicketId && level !== 'row' && (
-        <div style={{ marginBottom: 20 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.7)', display: 'block', marginBottom: 8 }}>
-            4. Assignment Mode
-          </Text>
-          <Radio.Group
-            value={assignmentMode}
-            onChange={(e) => setAssignmentMode(e.target.value)}
-            style={{ width: '100%' }}
-          >
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <Radio value="cascade" style={{ color: '#fff' }}>
-                <div>
-                  <Text strong style={{ color: '#fff' }}>Apply to all children</Text>
-                  <br />
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                    {level === 'stand' && 'All tiers, sections, and rows in this stand'}
-                    {level === 'tier' && 'All sections and rows in this tier'}
-                    {level === 'section' && 'All rows in this section'}
-                  </Text>
-                </div>
-              </Radio>
-              <Radio value="this-only" style={{ color: '#fff' }}>
-                <div>
-                  <Text strong style={{ color: '#fff' }}>This {level} only</Text>
-                  <br />
-                  <Text style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-                    Only set default for this {level}, children can override
-                  </Text>
-                </div>
-              </Radio>
-            </Space>
-          </Radio.Group>
+            {/* Chair/Seat icons from theatre layout */}
+            {seatIcons?.map(iconObj => {
+              const IconComponent = getIconComponent(iconObj.icon);
+              const isActive = selectedIcon === iconObj.icon;
+
+              return (
+                <Col key={iconObj.id}>
+                  <div
+                    onClick={() => setSelectedIcon(iconObj.icon)}
+                    style={{
+                      width: 44,
+                      height: 44,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: isActive 
+                        ? selectedTicket?.color || '#1890ff'
+                        : 'rgba(255,255,255,0.05)',
+                      border: isActive 
+                        ? '2px solid #1890ff' 
+                        : '1px solid rgba(255,255,255,0.15)',
+                      borderRadius: 8,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      color: isActive ? '#fff' : 'rgba(255,255,255,0.6)',
+                      fontSize: 22,
+                    }}
+                    title={iconObj.name}
+                  >
+                    {IconComponent && <IconComponent />}
+                  </div>
+                </Col>
+              );
+            })}
+          </Row>
         </div>
       )}
 

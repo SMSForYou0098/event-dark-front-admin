@@ -155,6 +155,199 @@ export const SEAT_ICONS = {
       ctx.fillText('♿', x, y);
     },
   },
+  // Chair icons from theatre_layout - drawn as stylized seats
+  FaChair: {
+    name: 'Chair',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.45;
+      ctx.fillStyle = fill;
+      // Seat back
+      ctx.beginPath();
+      ctx.roundRect(x - s, y - s, s * 2, s * 1.2, 3);
+      ctx.fill();
+      // Seat bottom
+      ctx.beginPath();
+      ctx.roundRect(x - s, y + s * 0.3, s * 2, s * 0.8, 3);
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    },
+  },
+  MdOutlineChair: {
+    name: 'Modern Chair',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.45;
+      ctx.fillStyle = fill;
+      // Modern chair shape
+      ctx.beginPath();
+      ctx.moveTo(x - s, y - s);
+      ctx.lineTo(x + s, y - s);
+      ctx.lineTo(x + s * 0.8, y + s);
+      ctx.lineTo(x - s * 0.8, y + s);
+      ctx.closePath();
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    },
+  },
+  PiArmchairLight: {
+    name: 'Armchair',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.45;
+      ctx.fillStyle = fill;
+      // Armchair with rounded back
+      ctx.beginPath();
+      ctx.arc(x, y - s * 0.3, s, Math.PI, 0, false);
+      ctx.lineTo(x + s, y + s);
+      ctx.lineTo(x - s, y + s);
+      ctx.closePath();
+      ctx.fill();
+      // Arms
+      ctx.beginPath();
+      ctx.roundRect(x - s * 1.3, y - s * 0.2, s * 0.4, s * 1.2, 2);
+      ctx.roundRect(x + s * 0.9, y - s * 0.2, s * 0.4, s * 1.2, 2);
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    },
+  },
+  PiChair: {
+    name: 'Simple Chair',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.4;
+      ctx.fillStyle = fill;
+      // Simple chair
+      ctx.fillRect(x - s, y - s, s * 2, s * 0.8);
+      ctx.fillRect(x - s, y, s * 2, s);
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x - s, y - s, s * 2, s * 0.8);
+        ctx.strokeRect(x - s, y, s * 2, s);
+      }
+    },
+  },
+  PiOfficeChair: {
+    name: 'Office Chair',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.4;
+      ctx.fillStyle = fill;
+      // Office chair
+      ctx.beginPath();
+      ctx.arc(x, y - s * 0.5, s, Math.PI * 0.8, Math.PI * 0.2, false);
+      ctx.fill();
+      ctx.fillRect(x - s * 0.8, y, s * 1.6, s * 0.7);
+      // Base
+      ctx.beginPath();
+      ctx.moveTo(x, y + s * 0.8);
+      ctx.lineTo(x, y + s * 1.2);
+      ctx.strokeStyle = fill;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+      }
+    },
+  },
+  LuSofa: {
+    name: 'Sofa',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.5;
+      ctx.fillStyle = fill;
+      // Sofa back
+      ctx.beginPath();
+      ctx.roundRect(x - s, y - s * 0.8, s * 2, s * 1, 4);
+      ctx.fill();
+      // Seat cushion
+      ctx.beginPath();
+      ctx.roundRect(x - s * 1.2, y + s * 0.3, s * 2.4, s * 0.6, 3);
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    },
+  },
+  TbSofa: {
+    name: 'Sofa 2',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.45;
+      ctx.fillStyle = fill;
+      // Modern sofa
+      ctx.beginPath();
+      ctx.roundRect(x - s * 1.1, y - s, s * 2.2, s * 1.8, 5);
+      ctx.fill();
+      // Cushion line
+      ctx.strokeStyle = stroke || 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - s * 0.8, y);
+      ctx.lineTo(x + s * 0.8, y);
+      ctx.stroke();
+    },
+  },
+  GiRoundTable: {
+    name: 'Round Table',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.arc(x, y, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      // Table ring
+      ctx.strokeStyle = stroke || 'rgba(255,255,255,0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(x, y, size / 3, 0, Math.PI * 2);
+      ctx.stroke();
+    },
+  },
+  SiTablecheck: {
+    name: 'Table',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.45;
+      ctx.fillStyle = fill;
+      ctx.beginPath();
+      ctx.roundRect(x - s, y - s * 0.6, s * 2, s * 1.2, 3);
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    },
+  },
+  MdOutlineTableBar: {
+    name: 'Bar Table',
+    draw: (ctx, x, y, size, fill, stroke) => {
+      const s = size * 0.35;
+      ctx.fillStyle = fill;
+      // Table top
+      ctx.beginPath();
+      ctx.ellipse(x, y - s * 0.5, s * 1.2, s * 0.4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Base
+      ctx.fillRect(x - s * 0.2, y - s * 0.2, s * 0.4, s * 1.2);
+      ctx.beginPath();
+      ctx.ellipse(x, y + s, s * 0.8, s * 0.3, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (stroke) {
+        ctx.strokeStyle = stroke;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    },
+  },
 };
 
 // ============================================
