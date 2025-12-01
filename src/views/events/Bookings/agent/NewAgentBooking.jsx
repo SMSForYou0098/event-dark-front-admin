@@ -666,9 +666,6 @@ const NewAgentBooking = memo(({ type }) => {
                       discount={discount}
                     />
                   </Col>
-                  <Col xs={24} lg={24}>
-                    <SeatingModuleSummary selectedTickets={selectedTickets} />
-                  </Col>
                 </>
                 :
                 <>
@@ -677,6 +674,11 @@ const NewAgentBooking = memo(({ type }) => {
                   </Col>
                 </>
             }
+            {seatingModule && (
+              <Col xs={24} lg={24}>
+                <SeatingModuleSummary selectedTickets={selectedTickets} />
+              </Col>
+            )}
           </>
         )}
       </Row>

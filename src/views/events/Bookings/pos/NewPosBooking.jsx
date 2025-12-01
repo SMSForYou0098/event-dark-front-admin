@@ -321,9 +321,11 @@ const POS = memo(() => {
             </Space>
           </Card>
         </Col>
-        <Col xs={24} lg={24}>
-          <SeatingModuleSummary selectedTickets={selectedTickets} />
-        </Col>
+        {seatingModule && (
+          <Col xs={24} lg={24}>
+            <SeatingModuleSummary selectedTickets={selectedTickets} />
+          </Col>
+        )}
       </Row>
     </Fragment>
   );
