@@ -342,7 +342,7 @@ export const ExpandDataTable = ({
   return (
     <>
       {showGatewayReport && (
-        <BookingCount date={dateRange} type={type} />
+        <BookingCount date={dateRange} showGatewayAmount={showGatewayReport} type={type} />
       )}
       <Card
         bordered={false}

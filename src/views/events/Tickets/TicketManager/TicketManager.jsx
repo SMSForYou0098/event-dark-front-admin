@@ -242,6 +242,19 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
         setSelectedCurrency(ticket.currency || 'INR');
         setPriceValue(ticket.price);
+
+        // Update tickets array so the main table shows the same fallback values
+        // (form.setFieldsValue only updates the form, not the table data source)
+        setTickets(prev => prev.map(t => {
+            if (!t) return t;
+            if (t.id === ticket.id) {
+                return {
+                    ...t,
+                    remaining_quantity: ticket?.remaining_quantity ?? 50,
+                };
+            }
+            return t;
+        }));
     }, [form]);
 
     // Handle delete ticket
@@ -413,6 +426,36 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             title: 'Quantity',
             dataIndex: 'ticket_quantity',
             key: 'ticket_quantity',
+        },
+        {
+            title: 'Sold',
+            key: 'sold',
+            render: (_, record) => {
+                // Prefer explicit sold_count if provided, otherwise compute from ticket_quantity - remaining_count
+                const soldExplicit = record.sold_count ?? record.sold_tickets ?? record.sold ?? null;
+                if (soldExplicit !== null && soldExplicit !== undefined) return soldExplicit;
+
+                const total = Number(record.ticket_quantity ?? record.ticket_qty ?? 0);
+                const remaining = Number(record.remaining_count ?? record.remaining_quantity ?? record.remaining_qty ?? 0);
+                const soldComputed = Number.isFinite(total) && Number.isFinite(remaining) ? Math.max(0, total - remaining) : '-';
+                return soldComputed;
+            }
+        },
+        {
+            title: 'Remaining Quantity',
+            dataIndex: 'remaining_quantity',
+            key: 'remaining_quantity',
+            render: (val, record) => {
+                // Prefer explicit remaining fields in order of likelihood
+                const remainingExplicit = record.remaining_count ?? record.remaining_quantity ?? record.remaining_qty;
+                if (remainingExplicit !== undefined && remainingExplicit !== null) return remainingExplicit;
+
+                // Fallback: compute remaining from available - sold
+                const avail = Number(record.available_quantity ?? record.available_qty ?? record.ticket_quantity ?? 0);
+                const sold = Number(record.sold_count ?? record.sold_tickets ?? record.sold ?? 0);
+                const computed = Number.isFinite(avail) && Number.isFinite(sold) ? Math.max(0, avail - sold) : '-';
+                return computed;
+            }
         },
         {
             title: 'Sale',
@@ -655,6 +698,41 @@ const switchesConfig = [
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
                                 </Col>
+
+                                                                {/* Read-only Sold / Remaining display when editing */}
+                                                                {editingTicket && (
+                                                                    <>
+                                                                        <Col xs={24} md={4}>
+                                                                            <Form.Item label="Sold">
+                                                                                <div style={{ padding: '6px 12px' }}>
+                                                                                    {(() => {
+                                                                                        const rec = editingTicket;
+                                                                                        const soldExplicit = rec.sold_count ?? rec.sold_tickets ?? rec.sold ?? null;
+                                                                                        if (soldExplicit !== null && soldExplicit !== undefined) return soldExplicit;
+                                                                                        const total = Number(rec.ticket_quantity ?? rec.ticket_qty ?? 0);
+                                                                                        const remaining = Number(rec.remaining_count ?? rec.remaining_quantity ?? rec.remaining_qty ?? 0);
+                                                                                        return Number.isFinite(total) && Number.isFinite(remaining) ? Math.max(0, total - remaining) : '-';
+                                                                                    })()}
+                                                                                </div>
+                                                                            </Form.Item>
+                                                                        </Col>
+
+                                                                        <Col xs={24} md={4}>
+                                                                            <Form.Item label="Remaining">
+                                                                                <div style={{ padding: '6px 12px' }}>
+                                                                                    {(() => {
+                                                                                        const rec = editingTicket;
+                                                                                        const remainingExplicit = rec.remaining_count ?? rec.remaining_quantity ?? rec.remaining_qty;
+                                                                                        if (remainingExplicit !== undefined && remainingExplicit !== null) return remainingExplicit;
+                                                                                        const avail = Number(rec.available_quantity ?? rec.available_qty ?? rec.ticket_quantity ?? 0);
+                                                                                        const sold = Number(rec.sold_count ?? rec.sold_tickets ?? rec.sold ?? 0);
+                                                                                        return Number.isFinite(avail) && Number.isFinite(sold) ? Math.max(0, avail - sold) : '-';
+                                                                                    })()}
+                                                                                </div>
+                                                                            </Form.Item>
+                                                                        </Col>
+                                                                    </>
+                                                                )}
 
                                 <Col xs={24} md={8}>
                                     <Form.Item

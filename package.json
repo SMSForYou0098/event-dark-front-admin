@@ -85,6 +85,7 @@
     "save": "^2.4.0",
     "slick-carousel": "^1.8.1",
     "start": "^5.1.0",
+    "styled-components": "^6.1.19",
     "sweetalert2": "^11.23.0",
     "use-sound": "^5.0.0",
     "uuid": "^13.0.0",

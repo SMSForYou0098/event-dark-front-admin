@@ -129,39 +129,27 @@ const SeatsCanvas = ({
       tunnelBounds[tz.id] = { minY: Infinity, maxY: -Infinity, x: 0 };
     });
 
-    // PRE-CALCULATE: Find the maximum row width to ensure consistent tunnel alignment
-    // All rows will use the same starting X based on max width
-    let maxRowWidth = 0;
+    const seatUnit = seatSize + seatGap;
+
+    // PRE-CALCULATE: Fixed tunnel position at canvas center
+    // Tunnel center will be at centerX, creating symmetric layout
+    const tunnelCenterFixed = centerX;
+    
+    // Find the BASE seat count for tunnel rows (the row with minimum seats that has tunnel)
+    // This becomes our reference - extra seats in larger rows are split evenly on both sides
+    let baseTunnelSeatCount = Infinity;
     rows.forEach((row, rowIndex) => {
-      const hasBlocks = row.blocks && row.blocks.length > 0;
-      let seatCount;
-      if (hasBlocks) {
-        seatCount = row.blocks.filter(b => b.type === 'seats').reduce((sum, b) => sum + (b.seats || 0), 0);
-      } else {
-        seatCount = row.seatCount || row.seats?.length || 0;
-      }
-      
-      const activeTunnels = tunnelZones.filter(tz => 
+      const hasTunnel = tunnelZones.some(tz => 
         rowIndex >= tz.startRowIndex && rowIndex <= tz.endRowIndex
       );
-      
-      let rowWidth;
-      if (hasBlocks) {
-        rowWidth = row.blocks.reduce((sum, block) => {
-          if (block.type === 'seats') return sum + (block.seats || 0) * (seatSize + seatGap);
-          if (block.type === 'aisle') return sum + (block.width || 60);
-          return sum;
-        }, 0);
-      } else {
-        const seatsWidth = seatCount * (seatSize + seatGap);
-        const aislesWidth = activeTunnels.reduce((sum, a) => sum + (a.width || 80), 0);
-        rowWidth = seatsWidth + aislesWidth;
+      if (hasTunnel) {
+        const count = row.seatCount || row.seats?.length || 0;
+        if (count > 0 && count < baseTunnelSeatCount) {
+          baseTunnelSeatCount = count;
+        }
       }
-      maxRowWidth = Math.max(maxRowWidth, rowWidth);
     });
-
-    // Fixed start X for all rows (based on max width for alignment)
-    const fixedRowStartX = centerX - maxRowWidth / 2;
+    if (baseTunnelSeatCount === Infinity) baseTunnelSeatCount = 20; // fallback
 
     rows.forEach((row, rowIndex) => {
       const curveAmount = row.geometry?.curve || 3;
@@ -191,14 +179,123 @@ const SeatsCanvas = ({
         rowIndex >= tz.startRowIndex && rowIndex <= tz.endRowIndex
       );
 
-      // Use fixed start X for consistent tunnel alignment
-      rowLabels.push({ label: row.label, y: currentY, x: fixedRowStartX - 25 });
-
       let seatNumber = 0;
-      let currentX = fixedRowStartX;
-      
-      if (hasBlocks) {
-        // Advanced mode: iterate through blocks
+
+      if (activeTunnels.length > 0 && !hasBlocks) {
+        // TUNNEL ROW: Create SYMMETRIC trapezium around tunnel
+        const tunnel = activeTunnels[0];
+        const tunnelWidth = tunnel.width || 80;
+        const baseAfterSeat = tunnel.afterSeat || 0;
+        
+        // Calculate how many EXTRA seats this row has compared to base
+        const extraSeats = seatCount - baseTunnelSeatCount;
+        
+        // Split extra seats evenly: half go to left, half go to right
+        const extraLeft = Math.floor(extraSeats / 2);
+        const extraRight = extraSeats - extraLeft; // Remainder goes to right
+        
+        // Actual seat counts for this row
+        const seatsOnLeft = baseAfterSeat + extraLeft;
+        const seatsOnRight = (baseTunnelSeatCount - baseAfterSeat) + extraRight;
+        
+        // Tunnel position: centered at tunnelCenterFixed
+        const tunnelLeftX = tunnelCenterFixed - tunnelWidth / 2;
+        const tunnelRightX = tunnelCenterFixed + tunnelWidth / 2;
+        
+        // LEFT SIDE: seats grow outward (right-aligned to tunnel)
+        const leftSideWidth = seatsOnLeft * seatUnit;
+        const leftStartX = tunnelLeftX - leftSideWidth;
+        
+        // RIGHT SIDE: seats grow outward (left-aligned from tunnel)
+        const rightStartX = tunnelRightX;
+        
+        // Row label position (leftmost)
+        rowLabels.push({ label: row.label, y: currentY, x: leftStartX - 25 });
+        
+        // Place LEFT SIDE seats
+        let currentX = leftStartX;
+        for (let i = 0; i < seatsOnLeft; i++) {
+          seatNumber++;
+          
+          const progress = seatsOnLeft > 1 ? i / (seatsOnLeft - 1) : 0.5;
+          const curveOffset = Math.sin(progress * Math.PI) * curveAmount;
+          
+          const x = currentX + seatSize / 2;
+          const y = currentY + curveOffset;
+          
+          const seatId = `${effectiveSection?.id || 'SEC'}-${row.label || 'R'}-${seatNumber}`;
+          const isSelected = selectedSeats.some(s => s.id === seatId);
+          
+          const seatTicketId = row.ticketId || effectiveSection?.ticketId || tier?.ticketId || stand?.ticketId || null;
+          const seatEventId = row.eventId || effectiveSection?.eventId || tier?.eventId || stand?.eventId || eventId || null;
+          
+          seats.push({
+            id: seatId,
+            number: seatNumber,
+            rowLabel: row.label,
+            sectionName: effectiveSection?.name || 'General',
+            ticketId: seatTicketId,
+            eventId: seatEventId,
+            icon: seatIcon,
+            x, y,
+            size: seatSize,
+            status: isSelected ? 'selected' : (isBlocked ? 'blocked' : 'available'),
+          });
+          
+          currentX += seatUnit;
+        }
+        
+        // Update tunnel bounds
+        if (tunnelBounds[tunnel.id]) {
+          tunnelBounds[tunnel.id].minY = Math.min(tunnelBounds[tunnel.id].minY, currentY - 5);
+          tunnelBounds[tunnel.id].maxY = Math.max(tunnelBounds[tunnel.id].maxY, currentY + seatSize + 5);
+          tunnelBounds[tunnel.id].x = tunnelCenterFixed;
+        }
+        
+        // Place RIGHT SIDE seats
+        currentX = rightStartX;
+        for (let i = 0; i < seatsOnRight; i++) {
+          seatNumber++;
+          
+          const progress = seatsOnRight > 1 ? i / (seatsOnRight - 1) : 0.5;
+          const curveOffset = Math.sin(progress * Math.PI) * curveAmount;
+          
+          const x = currentX + seatSize / 2;
+          const y = currentY + curveOffset;
+          
+          const seatId = `${effectiveSection?.id || 'SEC'}-${row.label || 'R'}-${seatNumber}`;
+          const isSelected = selectedSeats.some(s => s.id === seatId);
+          
+          const seatTicketId = row.ticketId || effectiveSection?.ticketId || tier?.ticketId || stand?.ticketId || null;
+          const seatEventId = row.eventId || effectiveSection?.eventId || tier?.eventId || stand?.eventId || eventId || null;
+          
+          seats.push({
+            id: seatId,
+            number: seatNumber,
+            rowLabel: row.label,
+            sectionName: effectiveSection?.name || 'General',
+            ticketId: seatTicketId,
+            eventId: seatEventId,
+            icon: seatIcon,
+            x, y,
+            size: seatSize,
+            status: isSelected ? 'selected' : (isBlocked ? 'blocked' : 'available'),
+          });
+          
+          currentX += seatUnit;
+        }
+      } else if (hasBlocks) {
+        // BLOCKS MODE: center based on total width
+        const thisRowWidth = row.blocks.reduce((sum, block) => {
+          if (block.type === 'seats') return sum + (block.seats || 0) * seatUnit;
+          if (block.type === 'aisle') return sum + (block.width || 60);
+          return sum;
+        }, 0);
+        const rowStartX = centerX - thisRowWidth / 2;
+        
+        rowLabels.push({ label: row.label, y: currentY, x: rowStartX - 25 });
+        
+        let currentX = rowStartX;
         row.blocks.forEach((block) => {
           if (block.type === 'seats') {
             for (let i = 0; i < (block.seats || 0); i++) {
@@ -229,7 +326,7 @@ const SeatsCanvas = ({
                 status: isSelected ? 'selected' : (isBlocked ? 'blocked' : 'available'),
               });
               
-              currentX += seatSize + seatGap;
+              currentX += seatUnit;
             }
           } else if (block.type === 'aisle') {
             const aisleWidth = block.width || 60;
@@ -245,7 +342,13 @@ const SeatsCanvas = ({
           }
         });
       } else {
-        // Simple mode: place seats with tunnel gaps
+        // NO TUNNEL, NO BLOCKS: center based on own width (trapezium effect)
+        const thisRowWidth = seatCount * seatUnit;
+        const rowStartX = centerX - thisRowWidth / 2;
+        
+        rowLabels.push({ label: row.label, y: currentY, x: rowStartX - 25 });
+        
+        let currentX = rowStartX;
         for (let i = 0; i < seatCount; i++) {
           seatNumber++;
           
@@ -274,27 +377,7 @@ const SeatsCanvas = ({
             status: isSelected ? 'selected' : (isBlocked ? 'blocked' : 'available'),
           });
           
-          currentX += seatSize + seatGap;
-          
-          // Add tunnel gap after this seat if needed
-          activeTunnels.forEach(tunnel => {
-            if (seatNumber === tunnel.afterSeat) {
-              const aisleWidth = tunnel.width || 80;
-              const tunnelCenterX = currentX + aisleWidth / 2;
-              
-              // Update tunnel bounds
-              if (tunnelBounds[tunnel.id]) {
-                tunnelBounds[tunnel.id].minY = Math.min(tunnelBounds[tunnel.id].minY, currentY - 5);
-                tunnelBounds[tunnel.id].maxY = Math.max(tunnelBounds[tunnel.id].maxY, currentY + seatSize + 5);
-                // Use the center X from this row (first row sets it)
-                if (tunnelBounds[tunnel.id].x === 0) {
-                  tunnelBounds[tunnel.id].x = tunnelCenterX;
-                }
-              }
-              
-              currentX += aisleWidth;
-            }
-          });
+          currentX += seatUnit;
         }
       }
       

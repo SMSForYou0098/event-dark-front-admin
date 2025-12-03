@@ -12,6 +12,12 @@ export const useDashboardData = (userId) => {
         return response;
     };
 
+    // TODO: Uncomment when API endpoint is ready
+    // const fetchGatewayWiseSales = async () => {
+    //     const response = await api.get(`gateway-wise-sales/${userId}`);
+    //     return response;
+    // };
+
     const { data: bookingData, error: bookingError, isLoading: isBookingLoading } = useQuery({
         queryKey: ['bookingData', userId],
         queryFn: () => fetchBookingData(userId),
@@ -28,9 +34,19 @@ export const useDashboardData = (userId) => {
         keepPreviousData: true
     });
 
+    // TODO: Uncomment when API endpoint is ready
+    // const { data: gatewayWiseSalesData, error: gatewayError, isLoading: gatewayLoading } = useQuery({
+    //     queryKey: ['gatewayWiseSales', userId],
+    //     queryFn: () => fetchGatewayWiseSales(userId),
+    //     staleTime: 5 * 60 * 1000,
+    //     cacheTime: 30 * 60 * 1000,
+    //     keepPreviousData: true
+    // });
+
     return {
             bookingData: bookingData,
             salesData: salesData,
+            // gatewayWiseSalesData: gatewayWiseSalesData, // Uncomment when API is ready
             isLoading: isBookingLoading || salesLoading,
             error: bookingError || salesError,
     };
