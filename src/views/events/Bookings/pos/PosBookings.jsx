@@ -7,19 +7,12 @@ import {
   Modal,
   message,
   Switch,
-  Table,
-  Space,
-  DatePicker,
-  Card,
 } from "antd";
 import {
   PrinterOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
-  ReloadOutlined,
   ClockCircleOutlined,
-  CheckCircleOutlined,
-  ScanOutlined,
   CheckOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
@@ -27,23 +20,27 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import POSPrintModal from "./POSPrintModal";
 import { useMyContext } from "Context/MyContextProvider";
-import usePermission from "utils/hooks/usePermission";
 import { useNavigate } from "react-router-dom";
-import { CloudCog } from "lucide-react";
 import { ExpandDataTable } from "views/events/common/ExpandDataTable";
+import PermissionChecker from "layouts/PermissionChecker";
 
-const { RangePicker } = DatePicker;
 const { confirm } = Modal;
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const PosBooking = memo(() => {
   const navigate = useNavigate();
-  const { api, UserData, formatDateTime, authToken, formatDateRange } = useMyContext();
+  const { api, UserData, formatDateTime, authToken } = useMyContext();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState(null);
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
 
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
 
   // Format date range for API
   const formattedDateRange = useMemo(() => {
@@ -53,15 +50,36 @@ const PosBooking = memo(() => {
 
   // Fetch bookings with TanStack Query
   const {
-    data: bookings = [],
+    data: bookingsData = { bookings: [], pagination: null },
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['pos-bookings', UserData?.id, formattedDateRange],
+    queryKey: ['pos-bookings', UserData?.id, formattedDateRange, currentPage, pageSize, searchText, sortField, sortOrder],
     queryFn: async () => {
-      const queryParams = formattedDateRange ? `?date=${formattedDateRange}` : '';
-      const url = `${api}pos-bookings/${UserData?.id}${queryParams}`;
+      const params = new URLSearchParams();
+
+      // Pagination params
+      params.set("page", currentPage.toString());
+      params.set("per_page", pageSize.toString());
+
+      // Search param
+      if (searchText) {
+        params.set("search", searchText);
+      }
+
+      // Sorting params
+      if (sortField && sortOrder) {
+        params.set("sort_by", sortField);
+        params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+      }
+
+      // Date range params
+      if (formattedDateRange) {
+        params.set("date", formattedDateRange);
+      }
+
+      const url = `${api}bookings/pos/${UserData?.id}?${params.toString()}`;
 
       try {
         const response = await axios.get(url, {
@@ -74,7 +92,17 @@ const PosBooking = memo(() => {
           throw new Error(response.data.message || 'Failed to fetch bookings');
         }
 
-        return response.data.bookings || [];
+        const bookings = response.data.bookings || [];
+        
+        // Extract pagination data from response
+        const paginationData = response.data.pagination || {
+          current_page: currentPage,
+          per_page: pageSize,
+          total: bookings.length,
+          last_page: 1,
+        };
+
+        return { bookings, pagination: paginationData };
       } catch (err) {
         throw err;
       }
@@ -83,6 +111,10 @@ const PosBooking = memo(() => {
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
+
+  // Extract bookings and pagination from query data
+  const bookings = useMemo(() => bookingsData.bookings || [], [bookingsData.bookings]);
+  const pagination = bookingsData.pagination;
 
   // Set default expanded rows when bookings load
   // React.useEffect(() => {
@@ -99,8 +131,8 @@ const PosBooking = memo(() => {
   const toggleStatusMutation = useMutation({
     mutationFn: async ({ id, isDeleted }) => {
       const url = isDeleted
-        ? `${api}restore-pos-booking/${id}`
-        : `${api}delete-pos-booking/${id}`;
+        ? `${api}booking/pos/restore/${id}`
+        : `${api}booking/pos/delete/${id}`;
 
       const response = isDeleted
         ? await axios.get(url, {
@@ -440,7 +472,29 @@ const PosBooking = memo(() => {
   ]);
 
   const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1); // Reset to first page on date change
     setDateRange(dates);
+  }, []);
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
   }, []);
 
   return (
@@ -463,6 +517,7 @@ const PosBooking = memo(() => {
         // exportRoute={config.exportRoute}
         // ExportPermission={UserPermissions?.includes(config.exportPermission)}
         extraHeaderContent={
+          <PermissionChecker permission={["Create POS Bookings"]}>
           <Tooltip title="Add Booking">
             <Button
               type="primary"
@@ -470,13 +525,21 @@ const PosBooking = memo(() => {
               onClick={() => navigate('new')}
             />
           </Tooltip>
+          </PermissionChecker>
         }
         showDateRange={true}
         showRefresh={true}
         showTotal={true}
-
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
+        // Backend pagination props
+        serverSide={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        onSearch={handleSearchChange}
+        onSortChange={handleSortChange}
+        searchValue={searchText}
+        // Loading and error
         loading={isLoading}
         error={error}
         enableExport={true}

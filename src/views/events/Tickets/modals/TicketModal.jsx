@@ -94,7 +94,6 @@ const TicketModal = (props) => {
         }
     }, [show, ticketData, card_url, bgRequired, isIdCard]);
 
-    console.log(ticketData)
     return (
         <Modal
             open={show}

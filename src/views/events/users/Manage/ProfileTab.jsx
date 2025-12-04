@@ -638,7 +638,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
                             {/* Events Assignment */}
                             {needsEvents && (
-                                <>
+                                <PermissionChecker role={['Admin', 'Organizer']}>
                                     <Col xs={24} md={12}>
                                         <Form.Item
                                             label="Assign Events"
@@ -684,11 +684,13 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             </Form.Item>
                                         </Col>
                                     }
-                                </>
+                                </PermissionChecker>
                             )}
 
                             {/* Agent Discount */}
                             {formState.roleName === 'Agent' && (
+                                <PermissionChecker role={['Admin', 'Organizer']}>
+
                                 <Col xs={24} md={12}>
                                     <Form.Item
                                         label="Agent Discount"
@@ -698,6 +700,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                         <Switch />
                                     </Form.Item>
                                 </Col>
+                                </PermissionChecker>
                             )}
 
                             {/* Scanner QR Length */}

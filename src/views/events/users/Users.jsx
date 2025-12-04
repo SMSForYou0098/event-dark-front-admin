@@ -48,6 +48,13 @@ const Users = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [mutationLoading, setMutationLoading] = useState(false);
 
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
   // Add state for modal
   const [confirmDeleteModal, setConfirmDeleteModal] = useState({
     visible: false,
@@ -62,7 +69,24 @@ const Users = () => {
   const fetchUsers = async () => {
     const params = new URLSearchParams();
 
+    // Pagination params
+    params.set("page", currentPage.toString());
+    params.set("per_page", pageSize.toString());
+
+    // Search param
+    if (searchText) {
+      params.set("search", searchText);
+    }
+
+    // Sorting params
+    if (sortField && sortOrder) {
+      params.set("sort_by", sortField);
+      params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+    }
+
+    // Date range params
     if (dateRange && dateRange.startDate && dateRange.endDate) {
+      params.set("type", "custom");
       params.set("start_date", dateRange.startDate);
       params.set("end_date", dateRange.endDate);
     } else {
@@ -78,24 +102,31 @@ const Users = () => {
       throw new Error(body.message || "API returned status=false");
     }
 
+    // Extract users data
     const users =
-      (Array.isArray(body.allData) && body.allData) ||
       (Array.isArray(body.data) && body.data) ||
-      (Array.isArray(body.users) && body.users) ||
       (Array.isArray(body) && body) ||
       [];
 
-    return users;
+    // Extract pagination data from response
+    const paginationData = body.pagination || {
+      current_page: currentPage,
+      per_page: pageSize,
+      total: users.length,
+      last_page: 1,
+    };
+
+    return { users, pagination: paginationData };
   };
 
   // Use query to fetch users
   const {
-    data: users = [],
+    data: usersData = { users: [], pagination: null },
     isLoading: usersLoading,
     error: usersError,
     refetch: refetchUsers,
   } = useQuery({
-    queryKey: ["users", { dateRange, userId: UserData?.id }],
+    queryKey: ["users", { dateRange, userId: UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder }],
     queryFn: fetchUsers,
     staleTime: 5 * 60 * 1000,
     refetchOnMount: "ifStale",
@@ -104,6 +135,10 @@ const Users = () => {
     cacheTime: 10 * 60 * 1000,
     retry: 1,
   });
+
+  // Extract users and pagination from query data
+  const users = usersData.users || [];
+  const pagination = usersData.pagination;
 
   // Delete user mutation
   const deleteUserMutation = useMutation({
@@ -217,6 +252,7 @@ const Users = () => {
 
   // Handle date range change
   const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1); // Reset to first page on date change
     setDateRange(
       dates
         ? {
@@ -225,6 +261,27 @@ const Users = () => {
         }
         : null
     );
+  }, []);
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
   }, []);
 
   // Role selection for Organizer
@@ -269,7 +326,7 @@ const Users = () => {
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
     },
-    ...(UserPermissions?.includes("View Contact") || userRole === "Admin"
+    ...(UserPermissions?.includes("View User Number") || userRole === "Admin"
       ? [
         {
           title: "Contact",
@@ -285,7 +342,7 @@ const Users = () => {
         },
       ]
       : []),
-    ...(userRole === "Admin" || UserPermissions?.includes("View Email")
+    ...(userRole === "Admin" || UserPermissions?.includes("View User Email")
       ? [
         {
           title: "Email",
@@ -540,6 +597,13 @@ const Users = () => {
         // Date range
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
+        // Backend pagination props
+        serverSide={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        onSearch={handleSearchChange}
+        onSortChange={handleSortChange}
+        searchValue={searchText}
         // Export functionality
         enableExport={true}
         exportRoute={"export-users"}

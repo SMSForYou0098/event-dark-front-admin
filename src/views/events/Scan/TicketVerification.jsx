@@ -277,7 +277,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             showErrorModal(err?.response?.data?.message);
         } finally {
 
-            setLoading(prev => ({ ...prev, verifying: true }));
+            setLoading(prev => ({ ...prev, verifying: false }));
             setIsProcessing(false);
         }
     };

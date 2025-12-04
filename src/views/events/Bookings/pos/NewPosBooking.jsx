@@ -31,7 +31,6 @@ const POS = memo(() => {
   } = useMyContext();
 
   // State management
-  const [eventID, setEventID] = useState(true);
   const [isCheckOut, setIsCheckOut] = useState(true);
   const [event, setEvent] = useState([]);
   const [seatingModule, setSeatingModule] = useState(false);
@@ -82,8 +81,8 @@ const POS = memo(() => {
 
     try {
       const url = isAmusment
-        ? `${api}amusementBook-pos/${eventID}`
-        : `${api}book-pos/${eventID}`;
+        ? `${api}amusement/booking/pos`
+        : `${api}booking/pos`;
 
       const res = await axios.post(url, requestData, {
         headers: { 'Authorization': 'Bearer ' + authToken },
@@ -115,7 +114,7 @@ const POS = memo(() => {
     } catch (err) {
       console.log(err);
     }
-  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, eventID, authToken, ErrorAlert, grandTotal]);
+  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, authToken, ErrorAlert, grandTotal]);
 
   // Effects
   useEffect(() => {

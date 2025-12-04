@@ -1,6 +1,6 @@
 import React, { memo, Fragment, useState, useCallback, useMemo, useRef } from "react";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
-import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal, Spin } from 'antd';
+import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal } from 'antd';
 import { MoreOutlined, QuestionCircleOutlined, LoadingOutlined, CloseOutlined, CheckOutlined, BlockOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,50 +27,27 @@ const BookingList = memo(({ type = 'agent' }) => {
     const [ticketOptionModal, setTicketOptionModal] = useState({ visible: false, hasMultiple: false });
     const ticketRefs = useRef([]);
 
-    // Configuration based on type
-    const config = useMemo(() => {
-        const configs = {
-            agent: {
-                title: 'Agent Bookings',
-                apiUrl: `${type}/list/${UserData?.id}`,
-                exportRoute: 'export-agentBooking',
-                exportPermission: 'Export Agent Bookings',
-                deleteEndpoint: (data) => {
-                    return (data.is_deleted
-                        ? `restore/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
-                        : `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`)
-                },
-            },
-            sponsor: {
-                title: 'Sponsor Bookings',
-                apiUrl: `sponsor/list/${UserData?.id}`,
-                exportRoute: 'export-sponsorBooking',
-                exportPermission: 'Export Sponsor Bookings',
-                deleteEndpoint: (data) => data.is_deleted
-                    ? `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`
-                    : `disable/${type}/${data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id}`,
-            },
-            accreditation: {
-                title: 'Accreditation Bookings',
-                apiUrl: `accreditation/list/${UserData?.id}`,
-                exportRoute: 'export-accreditationBooking',
-                exportPermission: 'Export Accreditation Bookings',
-                deleteEndpoint: (data) => data.is_deleted
-                    ? `accreditation-restore-booking/${data?.token || data?.order_id}`
-                    : `accreditation-delete-booking/${data?.token || data?.order_id}`,
-            },
-            corporate: {
-                title: 'Corporate Bookings',
-                apiUrl: `corporate-bookings/${UserData?.id}`,
-                exportRoute: 'export-corporateBooking',
-                exportPermission: 'Export Corporate Bookings',
-                deleteEndpoint: (data) => data.is_deleted
-                    ? `restore-corporate-booking/${data?.id || data?.order_id}`
-                    : `delete-corporate-booking/${data?.id || data?.order_id}`,
-            },
-        };
+    // Backend pagination state
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(15);
+    const [searchText, setSearchText] = useState("");
+    const [sortField, setSortField] = useState(null);
+    const [sortOrder, setSortOrder] = useState(null);
 
-        return configs[type] || configs.agent;
+    // Simplified configuration - dynamic based on type
+    const config = useMemo(() => {
+        const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
+        const token = (data) => data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id;
+        
+        return {
+            title: `${typeCapitalized} Bookings`,
+            apiUrl: `bookings/${type}/${UserData?.id}`,
+            exportRoute: `export-${type}Booking`,
+            exportPermission: `Export ${typeCapitalized} Bookings`,
+            deleteEndpoint: (data) => data.is_deleted
+                ? `restore/${type}/${token(data)}`
+                : `disable/${type}/${token(data)}`,
+        };
     }, [type, UserData?.id]);
 
     const HandleSendTicket = useCallback(async (record) => {
@@ -89,23 +66,47 @@ const BookingList = memo(({ type = 'agent' }) => {
 
     // TanStack Query for bookings
     const {
-        data: bookings = [],
+        data: bookingsData = { bookings: [], pagination: null },
         isLoading,
         error,
         refetch,
     } = useQuery({
-        queryKey: ['bookings', type, dateRange, UserData?.id],
+        queryKey: ['bookings', type, dateRange, UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
         queryFn: async () => {
-            let queryParams = '';
-            if (dateRange && dateRange.startDate && dateRange.endDate) {
-                queryParams = `?date=${dateRange.startDate},${dateRange.endDate}`;
-            }
-            const url = `${config.apiUrl}${queryParams}`;
+            const params = new URLSearchParams();
 
+            // Pagination params
+            params.set("page", currentPage.toString());
+            params.set("per_page", pageSize.toString());
+
+            // Search param
+            if (searchText) {
+                params.set("search", searchText);
+            }
+
+            // Sorting params
+            if (sortField && sortOrder) {
+                params.set("sort_by", sortField);
+                params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+            }
+
+            // Date range params
+            if (dateRange && dateRange.startDate && dateRange.endDate) {
+                params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+            }
+
+            const url = `${config.apiUrl}?${params.toString()}`;
             const response = await api.get(url);
 
             if (response.status && response.bookings) {
-                return response.bookings;
+                // Extract pagination data from response
+                const paginationData = response.pagination || {
+                    current_page: currentPage,
+                    per_page: pageSize,
+                    total: response.bookings.length,
+                    last_page: 1,
+                };
+                return { bookings: response.bookings, pagination: paginationData };
             } else {
                 throw new Error(response?.message || 'Failed to fetch bookings');
             }
@@ -114,6 +115,10 @@ const BookingList = memo(({ type = 'agent' }) => {
         staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
     });
+
+    // Extract bookings and pagination from query data
+    const bookings = useMemo(() => bookingsData.bookings || [], [bookingsData.bookings]);
+    const pagination = bookingsData.pagination;
 
     // Toggle booking status mutation
     const toggleBookingMutation = useMutation({
@@ -182,12 +187,34 @@ const BookingList = memo(({ type = 'agent' }) => {
         showTicketOptionsModal(hasMultiple);
     }, [showTicketOptionsModal]);
 
-
+    // Handle date range change
     const handleDateRangeChange = useCallback((dates) => {
+        setCurrentPage(1); // Reset to first page on date change
         setDateRange(dates ? {
             startDate: dates[0].format('YYYY-MM-DD'),
             endDate: dates[1].format('YYYY-MM-DD')
         } : null);
+    }, []);
+
+    // Handle pagination change (for backend pagination)
+    const handlePaginationChange = useCallback((page, newPageSize) => {
+        setCurrentPage(page);
+        if (newPageSize !== pageSize) {
+            setPageSize(newPageSize);
+            setCurrentPage(1); // Reset to first page when page size changes
+        }
+    }, [pageSize]);
+
+    // Handle search change (for backend search)
+    const handleSearchChange = useCallback((value) => {
+        setSearchText(value);
+        setCurrentPage(1); // Reset to first page on search
+    }, []);
+
+    // Handle sort change (for backend sorting)
+    const handleSortChange = useCallback((field, order) => {
+        setSortField(field || null);
+        setSortOrder(order || null);
     }, []);
 
     const downloadTicket = () => {
@@ -528,6 +555,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 togglePending: toggleBookingMutation.isPending,
                 currentId: loadingId,
             },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         }),[isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
     
         // Columns for DataTable
@@ -552,6 +580,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 togglePending: toggleBookingMutation.isPending,
                 currentId: loadingId,
             },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
         }), [isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
 
     return (
@@ -614,7 +643,6 @@ const BookingList = memo(({ type = 'agent' }) => {
                 ticketData={ticketData}
                 ticketRefs={ticketRefs}
                 loading={loading}
-                isAccreditation={type === 'accreditation' ? true : false}
                 showTicketDetails={false}
                 downloadTicket={downloadTicket}
                 isMobile={isMobile}
@@ -634,7 +662,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                     size: isMobile ? "small" : "middle",
                 }}
                 extraHeaderContent={
-                    <PermissionChecker permission={["Add Agent Booking", "Create POS Bookings", "Add Sponsor Booking"]} matchType="OR">
+                    <PermissionChecker permission={["Add Agent Booking", "Add Sponsor Booking"]} matchType="OR">
                         <Tooltip title="Add Booking">
                             <Button
                                 type="primary"
@@ -647,9 +675,16 @@ const BookingList = memo(({ type = 'agent' }) => {
                 showDateRange={true}
                 showRefresh={true}
                 showTotal={true}
-
                 dateRange={dateRange}
                 onDateRangeChange={handleDateRangeChange}
+                // Backend pagination props
+                serverSide={true}
+                pagination={pagination}
+                onPaginationChange={handlePaginationChange}
+                onSearch={handleSearchChange}
+                onSortChange={handleSortChange}
+                searchValue={searchText}
+                // Loading and error
                 loading={isLoading || toggleBookingMutation.isPending}
                 error={error}
                 enableExport={true}

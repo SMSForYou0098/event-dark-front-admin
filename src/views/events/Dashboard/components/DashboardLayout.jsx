@@ -9,7 +9,6 @@ import { getBookingStats, getCncData, getDiscountData, getEventStats, getGateway
 import DashSkeleton from '../Admin/DashSkeleton';
 import { useDashboardData } from './useDashboardData';
 import OrganizerSummary from './OrganizerSummary';
-import { organizerSummary, organizerTickets } from './dummyData';
 import EventTicketsSummary from './EventTicketsSummary';
 import GatewayWiseSales from './GatewayWiseSales';
 
@@ -17,83 +16,8 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
     const { isMobile } = useMyContext();
     const [showToday, setShowToday] = useState(true);
     
-    const { bookingData, salesData, isLoading, error } = useDashboardData(userId);
- 
-    // TEMPORARY: Hardcoded gateway-wise sales data (API not yet developed)
-    // TODO: Uncomment when API endpoint 'gateway-wise-sales' is ready
-    const gatewayWiseSalesData = {
-        gatewayWise: [
-            {
-                label: "PhonePe",
-                today: { count: 0, amount: 0 },
-                yesterday: { count: 0, amount: 0 },
-                total: { count: 0, amount: 0 }
-            },
-            {
-                label: "Easebuzz",
-                today: { count: 17, amount: 18094 },
-                yesterday: { count: 33, amount: 42089 },
-                total: { count: 50, amount: 60183 }
-            },
-            {
-                label: "Razorpay",
-                today: { count: 20, amount: 12984 },
-                yesterday: { count: 19, amount: 16691 },
-                total: { count: 39, amount: 29675 }
-            },
-            {
-                label: "Cashfree",
-                today: { count: 4, amount: 5000 },
-                yesterday: { count: 13, amount: 10493 },
-                total: { count: 17, amount: 15493 }
-            }
-        ],
-        channelTotals: [
-            {
-                label: "POS",
-                today: { count: 0, amount: 0 },
-                yesterday: { count: 41, amount: 11039 },
-                total: { count: 41, amount: 11039 }
-            },
-            {
-                label: "Agent",
-                today: { count: 0, amount: 0 },
-                yesterday: { count: 232, amount: 5617 },
-                total: { count: 232, amount: 5617 }
-            },
-            {
-                label: "Sponsor",
-                today: { count: 86, amount: 223514 },
-                yesterday: { count: 1, amount: 2599 },
-                total: { count: 87, amount: 226113 }
-            },
-            {
-                label: "Online",
-                today: { count: 58, amount: 36078 },
-                yesterday: { count: 144, amount: 69273 },
-                total: { count: 202, amount: 105351 }
-            },
-            {
-                label: "Offline",
-                today: { count: 0, amount: 0 },
-                yesterday: { count: 273, amount: 16656 },
-                total: { count: 273, amount: 16656 }
-            }
-        ]
-    };
+    const { bookingData, salesData, isLoading, error, gatewayWiseSalesData, gatewayLoading, organizerSummary, organizerTickets } = useDashboardData(userId);
 
-    /* TODO: Replace hardcoded data with API call when backend is ready
-    const fetchGatewayWiseSales = async () => {
-        try {
-            const response = await apiClient.get(`gateway-wise-sales/${userId}`);
-            return response.data;
-        } catch (error) {
-            console.error('Failed to fetch gateway-wise sales:', error);
-            return null;
-        }
-    };
-    */
- 
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -243,10 +167,11 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 {/* Gateway Wise Sales Section */}
                 <Col xs={24}>
                     <GatewayWiseSales 
-                        gatewayData={gatewayWiseSalesData.gatewayWise}
-                        channelData={gatewayWiseSalesData.channelTotals}
+                        gatewayData={gatewayWiseSalesData?.gatewayWise ?? []}
+                        channelData={gatewayWiseSalesData?.channelTotals ?? []}
                         formatCurrency={formatCurrency}
                         showToday={showToday}
+                        loading={gatewayLoading}
                     />
                 </Col>
             </Row>
@@ -306,8 +231,8 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                     </Row>
                 </Col>
             </Row>
-            <OrganizerSummary organizerSummary={organizerSummary} />
-            <EventTicketsSummary organizerTickets={organizerTickets} isLoading={isLoading} />
+            <OrganizerSummary organizerSummary={organizerSummary?.data} />
+            <EventTicketsSummary organizerTickets={organizerTickets?.data} isLoading={isLoading} />
         </div>
     );
 };

@@ -36,7 +36,7 @@ const EventList = ({ isJunk = false }) => {
   } = useQuery({
     queryKey: ['eventList', UserData?.id , isJunk],
     queryFn: async () => {
-      const url = isJunk ? `event/junk/${UserData?.id}` : `event-list/${UserData?.id}`
+      const url = isJunk ? `event/junk/${UserData?.id}` : `event/list/${UserData?.id}`
       const response = await api.get(url);
 
       if (response.status && response.events) {

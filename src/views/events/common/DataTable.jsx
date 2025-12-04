@@ -1,5 +1,5 @@
 // components/common/DataTable.js
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
   Table,
   Input,
@@ -22,6 +22,7 @@ import Highlighter from "react-highlight-words";
 import dayjs from "dayjs";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
+import { debounce } from "utils/debounce";
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
@@ -45,19 +46,58 @@ const DataTable = ({
   exportRoute,
   ExportPermission = false,
   onRefresh,
+  // Backend pagination props
+  serverSide = false, // Enable server-side pagination/sorting/searching
+  pagination = null, // { current_page, per_page, total, last_page }
+  onPaginationChange, // (page, pageSize) => void
+  onSearch, // (searchText) => void - for server-side search
+  onSortChange, // (field, order) => void - for server-side sorting
+  searchValue = "", // Controlled search value for server-side
 }) => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
 
+  // For frontend filtering (when serverSide is false)
   const [filteredData, setFilteredData] = useState(data);
+  
+  // Local input value for immediate UI feedback
+  const [localSearchValue, setLocalSearchValue] = useState(searchValue);
+  
+  // Sync controlled search value for server-side mode
+  const displaySearchText = serverSide ? localSearchValue : searchText;
+  
+  // Sync localSearchValue when searchValue prop changes (e.g., on reset)
   useEffect(() => {
-    setFilteredData(data);
-  }, [data]);
+    if (serverSide) {
+      setLocalSearchValue(searchValue);
+    }
+  }, [searchValue, serverSide]);
+  
+  useEffect(() => {
+    if (!serverSide) {
+      setFilteredData(data);
+    }
+  }, [data, serverSide]);
 
-  // Update the search handler
-  const handleGlobalSearch = (value) => {
+  // Debounced search handler for server-side search (300ms delay)
+  const debouncedServerSearch = useMemo(
+    () => debounce((value) => {
+      onSearch?.(value);
+    }, 300),
+    [onSearch]
+  );
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedServerSearch.cancel();
+    };
+  }, [debouncedServerSearch]);
+
+  // Client-side filtering logic
+  const performClientSearch = useCallback((value) => {
     setSearchText(value);
 
     if (!value) {
@@ -67,12 +107,10 @@ const DataTable = ({
 
     const searchLower = value.toLowerCase();
     const filtered = data.filter((record) => {
-      // Search across all columns
       return columns.some((column) => {
         const dataIndex = column.dataIndex;
         if (!dataIndex) return false;
 
-        // Handle nested dataIndex (e.g., ['user', 'name'])
         let cellValue;
         if (Array.isArray(dataIndex)) {
           cellValue = dataIndex.reduce((obj, key) => obj?.[key], record);
@@ -80,13 +118,45 @@ const DataTable = ({
           cellValue = record[dataIndex];
         }
 
-        // Convert to string and search
         if (cellValue === null || cellValue === undefined) return false;
         return String(cellValue).toLowerCase().includes(searchLower);
       });
     });
 
     setFilteredData(filtered);
+  }, [data, columns]);
+
+  // Update the search handler - supports both client and server side
+  const handleGlobalSearch = (value) => {
+    if (serverSide) {
+      // Update local value immediately for UI feedback
+      setLocalSearchValue(value);
+      // Server-side search - delegate to parent with debounce
+      debouncedServerSearch(value);
+    } else {
+      // Client-side search (no debounce needed for local filtering)
+      performClientSearch(value);
+    }
+  };
+
+  // Handle table change for server-side sorting
+  const handleTableChange = (paginationConfig, filters, sorter) => {
+    if (serverSide) {
+      // Handle pagination change
+      if (onPaginationChange && paginationConfig) {
+        const { current, pageSize } = paginationConfig;
+        onPaginationChange(current, pageSize);
+      }
+      
+      // Handle sorting change
+      if (onSortChange && sorter) {
+        const { field, order } = sorter;
+        onSortChange(field, order); // order: 'ascend' | 'descend' | undefined
+      }
+    }
+    
+    // Call any existing onChange from tableProps
+    tableProps.onChange?.(paginationConfig, filters, sorter);
   };
 
 
@@ -265,7 +335,7 @@ const DataTable = ({
         <Input
           placeholder="Search across..."
           prefix={<SearchOutlined />}
-          value={searchText}
+          value={displaySearchText}
           onChange={(e) => handleGlobalSearch(e.target.value)}
           allowClear
           style={{ width: isTablet ? 200 : 250 }}
@@ -311,7 +381,7 @@ const DataTable = ({
           />
         </Tooltip>
       )}
-      {!filterDrawerVisible && extraHeaderContent}
+      {extraHeaderContent}
     </Space>
   );
 
@@ -353,7 +423,7 @@ const DataTable = ({
     <Card
       bordered={false}
       title={
-        <Flex flexDirection="column" gap={filteredData.length > 0 ? 16 : 0} flexWrap="nowrap">
+        <Flex flexDirection="column" gap={16} flexWrap="nowrap">
           <Flex justifyContent="space-between" alignItems="center" width="100%">
             <span className="font-weight-bold">{title}</span>
             <div className="action">
@@ -367,11 +437,9 @@ const DataTable = ({
                   />
                 </Space>
               </span>
-              {(!loading) && (
-                <span className="d-none d-sm-block">
-                  {renderDesktopHeaderControls()}
-                </span>
-              )}
+              <span className="d-none d-sm-block">
+                {renderDesktopHeaderControls()}
+              </span>
             </div>
           </Flex>
           <span className="d-block d-sm-none">
@@ -387,21 +455,38 @@ const DataTable = ({
         <div>
           <Table
             columns={enhancedColumns}
-            dataSource={filteredData}
+            dataSource={serverSide ? data : filteredData}
             loading={loading && { indicator: customLoadingIndicator }}
-            pagination={{
-              pageSize: isMobile ? 5 : 10,
-              // showSizeChanger: !isMobile,
-              // showQuickJumper: !isMobile,
-              showTotal: (total, range) =>
-                isMobile
-                  ? `${range[0]}-${range[1]}/${total}`
-                  : `Showing ${range[0]}-${range[1]} of ${total} items`,
-              size: isMobile ? "small" : "default",
-              simple: isSmallMobile,
-              responsive: true,
-              position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-            }}
+            pagination={
+              serverSide && pagination
+                ? {
+                    current: pagination.current_page,
+                    pageSize: pagination.per_page,
+                    total: pagination.total,
+                    showTotal: (total, range) =>
+                      isMobile
+                        ? `${range[0]}-${range[1]}/${total}`
+                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                    size: isMobile ? "small" : "default",
+                    simple: isSmallMobile,
+                    responsive: true,
+                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                    showSizeChanger: !isMobile,
+                    pageSizeOptions: ["1", "15", "20", "50", "100"],
+                  }
+                : {
+                    pageSize: isMobile ? 5 : 10,
+                    showTotal: (total, range) =>
+                      isMobile
+                        ? `${range[0]}-${range[1]}/${total}`
+                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                    size: isMobile ? "small" : "default",
+                    simple: isSmallMobile,
+                    responsive: true,
+                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                  }
+            }
+            onChange={handleTableChange}
             locale={{ emptyText }}
             scroll={{
               x: isMobile ? "max-content" : 1200,

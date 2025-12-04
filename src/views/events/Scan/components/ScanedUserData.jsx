@@ -57,7 +57,7 @@ const ScanedUserData = ({
   // Get ticket data based on type
   const ticket = isMasterBooking
     ? bookings?.tickets?.[0] // For master booking, get first ticket from array
-    : bookings?.ticket; // For regular booking, get single ticket
+    : bookings?.tickets ; // For regular booking, get single ticket
 
   // Get attendees data
   const attendeesList = isMasterBooking
@@ -66,18 +66,10 @@ const ScanedUserData = ({
 
   // Get customer name and phone
   const getCustomerInfo = () => {
-    if (isMasterBooking && attendeesList.length > 0) {
-      // For master booking, use first attendee's data
-      const firstAttendee = attendeesList[0];
-      return {
-        name: firstAttendee?.Name || 'N/A',
-        phone: firstAttendee?.Mo || firstAttendee?.Email || 'N/A'
-      };
-    }
     // For regular booking
     return {
-      name: bookings?.name || 'N/A',
-      phone: bookings?.number || 'N/A'
+      name: bookings?.user?.name || 'N/A',
+      phone: bookings?.user?.number || 'N/A'
     };
   };
 
@@ -142,11 +134,24 @@ const ScanedUserData = ({
       value: <Text strong>{eventData?.name || 'N/A'}</Text>,
     },
     {
-      label: <>
-        <TagOutlined className='text-primary mr-2' /> Ticket
-      </>,
-      value: <Tag color="purple">{ticket?.name || 'N/A'}</Tag>,
-    },
+      label: (
+        <>
+          <TagOutlined className="text-primary mr-2" /> Ticket
+        </>
+      ),
+      value: Array.isArray(ticket)
+        ? ticket.length > 0
+          ? ticket.map((t) => (
+            <Tag color="cyan" key={t.id} className="mb-1">
+              {t.name} - {t?.quantity}
+            </Tag>
+          ))
+          : "N/A"
+        : ticket?.name
+          ? <Tag color="purple">{ticket?.name}</Tag>
+          : "N/A",
+    }
+
 
   ];
 
@@ -237,6 +242,11 @@ const ScanedUserData = ({
     }
   };
 
+  const buttonsCount = [
+  isMasterBooking && attendeesList.length > 0,
+  true // verify button is always shown
+].filter(Boolean).length;
+
   return (
     <>
     <Drawer
@@ -255,30 +265,36 @@ const ScanedUserData = ({
         <CloseOutlined onClick={handleClose} />
       }
       footer={
-        <Space className='w-100' size="middle">
-           {isMasterBooking && attendeesList.length > 0 && (
-            <Button
-              type="default"
-              className='btn-tertiary'
-               onClick={() => attendeesPrintRef.current?.handlePrintAllAttendees()}
-              icon={<PrinterOutlined />}
-              size="large"
-              block={isMobile}
-            >
-              Print Attendees ({attendeesList.length})
-            </Button>
-          )}
-          <Button
-            type="primary"
-            onClick={handleVerify}
-            icon={loading?.verifying ? <LoadingOutlined spin /> : <CheckCircleOutlined />}
-            disabled={bookings?.is_scaned || loading?.verifying}
-            size="large"
-            block={isMobile}
-          >
-            {bookings?.is_scaned ? 'Already Verified' : 'Verify Ticket'}
-          </Button>
-        </Space>
+        <Space
+  className={`w-100 ${buttonsCount === 1 ? 'single-btn' : ''}`}
+  size="middle"
+  direction={isMobile ? 'vertical' : 'horizontal'}
+>
+  {isMasterBooking && attendeesList.length > 0 && (
+    <Button
+      type="default"
+      className='btn-tertiary w-100'
+      onClick={() => attendeesPrintRef.current?.handlePrintAllAttendees()}
+      icon={<PrinterOutlined />}
+      size="large"
+      block={isMobile || buttonsCount === 1}
+    >
+      Print Attendees ({attendeesList.length})
+    </Button>
+  )}
+
+  <Button
+    type="primary"
+    onClick={handleVerify}
+    icon={loading?.verifying ? <LoadingOutlined spin /> : <CheckCircleOutlined />}
+    disabled={bookings?.is_scaned || loading?.verifying}
+    size="large"
+    block={isMobile || buttonsCount === 1}
+  >
+    {bookings?.is_scaned ? 'Already Verified' : 'Verify Ticket'}
+  </Button>
+</Space>
+
       }
       footerStyle={{ textAlign: 'center', padding: '16px' }}
       styles={{

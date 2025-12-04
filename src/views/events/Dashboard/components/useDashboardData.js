@@ -2,52 +2,42 @@ import { useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 
 export const useDashboardData = (userId) => {
-    const fetchBookingData = async () => {
-        const response = await api.get(`bookingCount/${userId}`);
-        return response;
+    // Fetch all dashboard data in parallel for better performance
+    const fetchAllDashboardData = async () => {
+        const [bookingData, salesData, gatewayWiseSalesData, organizerSummary, organizerTickets] = await Promise.all([
+            api.get(`bookingCount/${userId}`),
+            api.get(`calculateSale/${userId}`),
+            api.get(`gateway-wise-sales/${userId}`).catch(() => null), // Graceful fallback if gateway API fails
+            api.get(`organizer/summary/${userId}`).catch(() => null),
+            api.get(`getDashboardOrgTicket`).catch(() => null) // Graceful fallback if gateway API fails
+        ]);
+
+        return {
+            bookingData,
+            salesData,
+            gatewayWiseSalesData,
+            organizerSummary,
+            organizerTickets
+        };
     };
 
-    const fetchSalesData = async () => {
-        const response = await api.get(`calculateSale/${userId}`);
-        return response;
-    };
-
-    // TODO: Uncomment when API endpoint is ready
-    // const fetchGatewayWiseSales = async () => {
-    //     const response = await api.get(`gateway-wise-sales/${userId}`);
-    //     return response;
-    // };
-
-    const { data: bookingData, error: bookingError, isLoading: isBookingLoading } = useQuery({
-        queryKey: ['bookingData', userId],
-        queryFn: () => fetchBookingData(userId),
+    const { data, error, isLoading } = useQuery({
+        queryKey: ['dashboardData', userId],
+        queryFn: fetchAllDashboardData,
         staleTime: 5 * 60 * 1000, // 5 minutes
         cacheTime: 30 * 60 * 1000, // 30 minutes
-        keepPreviousData: true
+        keepPreviousData: true,
+        enabled: !!userId // Only fetch when userId is available
     });
-
-    const { data: salesData, error: salesError, isLoading: salesLoading } = useQuery({
-        queryKey: ['salesData', userId],
-        queryFn: () => fetchSalesData(userId),
-        staleTime: 5 * 60 * 1000,
-        cacheTime: 30 * 60 * 1000,
-        keepPreviousData: true
-    });
-
-    // TODO: Uncomment when API endpoint is ready
-    // const { data: gatewayWiseSalesData, error: gatewayError, isLoading: gatewayLoading } = useQuery({
-    //     queryKey: ['gatewayWiseSales', userId],
-    //     queryFn: () => fetchGatewayWiseSales(userId),
-    //     staleTime: 5 * 60 * 1000,
-    //     cacheTime: 30 * 60 * 1000,
-    //     keepPreviousData: true
-    // });
 
     return {
-            bookingData: bookingData,
-            salesData: salesData,
-            // gatewayWiseSalesData: gatewayWiseSalesData, // Uncomment when API is ready
-            isLoading: isBookingLoading || salesLoading,
-            error: bookingError || salesError,
+        bookingData: data?.bookingData,
+        salesData: data?.salesData,
+        gatewayWiseSalesData: data?.gatewayWiseSalesData,
+        gatewayLoading: isLoading,
+        organizerSummary: data?.organizerSummary,
+        organizerTickets: data?.organizerTickets,
+        isLoading,
+        error
     };
 };

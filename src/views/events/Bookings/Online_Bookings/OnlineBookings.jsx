@@ -1,5 +1,5 @@
-import React, { memo, useState, useCallback } from "react";
-import { Button, message, Space, Tag, Modal, Switch, Tooltip, Spin } from "antd";
+import React, { memo, useState, useCallback, useMemo } from "react";
+import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CheckCircle, Send, Ticket, XCircle, AlertCircle } from "lucide-react";
@@ -31,25 +31,50 @@ const OnlineBookings = memo(() => {
   const [showGatewayReport, setShowGatewayReport] = useState(false);
   const queryClient = useQueryClient();
 
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
   // Fetch bookings using TanStack Query
   const {
-    data: bookings = [],
+    data: bookingsData = { bookings: [], pagination: null },
     isLoading,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["onlineBookings", UserData?.id, dateRange],
+    queryKey: ["onlineBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder],
     queryFn: async () => {
-      const queryParams = dateRange
-        ? `?date=${dateRange.startDate},${dateRange.endDate}`
-        : "";
-      const url = `master-bookings/${UserData?.id}${queryParams}`;
+      const params = new URLSearchParams();
 
+      // Pagination params
+      params.set("page", currentPage.toString());
+      params.set("per_page", pageSize.toString());
+
+      // Search param
+      if (searchText) {
+        params.set("search", searchText);
+      }
+
+      // Sorting params
+      if (sortField && sortOrder) {
+        params.set("sort_by", sortField);
+        params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+      }
+
+      // Date range params
+      if (dateRange) {
+        params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+      }
+
+      const url = `bookings/online/${UserData?.id}?${params.toString()}`;
       const res = await api.get(url);
 
       if (res.status) {
-        let data = res.bookings;
+        let data = res.bookings || [];
         const filteredBookings = data.filter(
           (booking) =>
             booking.bookings &&
@@ -59,13 +84,24 @@ const OnlineBookings = memo(() => {
         const normalBooking = data.filter((booking) => !booking.bookings);
         const allBookings = [...filteredBookings, ...normalBooking];
 
-        allBookings.sort((a, b) => {
-          const dateA = new Date(a.created_at);
-          const dateB = new Date(b.created_at);
-          return dateB.getTime() - dateA.getTime();
-        });
+        // Only sort on frontend if no server-side sorting
+        if (!sortField) {
+          allBookings.sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return dateB.getTime() - dateA.getTime();
+          });
+        }
 
-        return allBookings;
+        // Extract pagination data from response
+        const paginationData = res.pagination || {
+          current_page: currentPage,
+          per_page: pageSize,
+          total: allBookings.length,
+          last_page: 1,
+        };
+
+        return { bookings: allBookings, pagination: paginationData };
       } else {
         throw new Error(res?.message || "Failed to fetch bookings");
       }
@@ -73,6 +109,10 @@ const OnlineBookings = memo(() => {
     enabled: !!UserData?.id,
     refetchOnWindowFocus: false,
   });
+
+  // Extract bookings and pagination from query data
+  const bookings = useMemo(() => bookingsData.bookings || [], [bookingsData.bookings]);
+  const pagination = bookingsData.pagination;
 
   // Delete/Restore booking mutation
   const deleteMutation = useMutation({
@@ -185,7 +225,9 @@ const OnlineBookings = memo(() => {
     setShow(false);
   }, []);
 
-  const handleDateRangeChange = (dates) => {
+  // Handle date range change
+  const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1); // Reset to first page on date change
     if (dates) {
       setDateRange({
         startDate: dates[0].format("YYYY-MM-DD"),
@@ -194,7 +236,28 @@ const OnlineBookings = memo(() => {
     } else {
       setDateRange(null);
     }
-  };
+  }, []);
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
+  }, []);
 
   const columns = [
     {
@@ -452,6 +515,14 @@ const OnlineBookings = memo(() => {
         error={isError ? error : null}
         enableSearch={true}
         showSearch={true}
+        // Backend pagination props
+        serverSide={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        onSearch={handleSearchChange}
+        onSortChange={handleSortChange}
+        searchValue={searchText}
+        // Export functionality
         enableExport={true}
         exportRoute="export-onlineBooking"
         ExportPermission={UserPermissions?.includes("Export Online Bookings")}
@@ -473,14 +544,4 @@ const OnlineBookings = memo(() => {
 OnlineBookings.displayName = "OnlineBookings";
 
 // ✅ Wrap with withAccess HOC for permission guard
-export default withAccess({
-  requiredPermissions: ["View Total Bookings"],
-  mode: "all",
-  redirectTo: "/dashboard",
-  whenDenied: (
-    <div style={{ padding: "24px", textAlign: "center" }}>
-      <h3>Access Denied</h3>
-      <p>You don't have permission to view Online Bookings.</p>
-    </div>
-  ),
-})(OnlineBookings);
+export default OnlineBookings;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Typography, Row, Col, Badge, Tag } from 'antd';
+import { Card, Typography, Row, Col, Tag } from 'antd';
 // previously used table arrows removed
 import CountUp from 'react-countup';
 import { Users } from 'lucide-react';
@@ -20,16 +20,7 @@ const GatewayWiseSales = ({ gatewayData = [], channelData = [], formatCurrency, 
         return acc;
     }, { todayCount: 0, todayAmount: 0, yesterdayCount: 0, yesterdayAmount: 0, totalCount: 0, totalAmount: 0 });
 
-    // Calculate totals for channel data
-    const channelTotals = channelData.reduce((acc, item) => {
-        acc.todayCount += item.today.count;
-        acc.todayAmount += item.today.amount;
-        acc.yesterdayCount += item.yesterday.count;
-        acc.yesterdayAmount += item.yesterday.amount;
-        acc.totalCount += item.total.count;
-        acc.totalAmount += item.total.amount;
-        return acc;
-    }, { todayCount: 0, todayAmount: 0, yesterdayCount: 0, yesterdayAmount: 0, totalCount: 0, totalAmount: 0 });
+    // Channel totals are available if needed; currently not rendered in UI
 
     // We now render data as SalesCard grid; totals calculated above are used for the summary card
 
@@ -37,11 +28,10 @@ const GatewayWiseSales = ({ gatewayData = [], channelData = [], formatCurrency, 
         <Row gutter={[16, 16]}>
             {/* Payment Gateway Summary rendered as cards */}
             <Col xs={24}>
-                <Card
-                    title={<Title level={5} style={{ margin: 0 }}>Payment Gateway Wise Sales</Title>}
-                    bordered={false}
-                    style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-                >
+                <div style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: 16 }}>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <Title level={5} style={{ margin: 0 }}>Payment Gateway Wise Sales</Title>
+                    </div>
                     <Row gutter={[16, 16]}>
                         {gatewayData && gatewayData.length > 0 ? (
                             gatewayData.map((g) => (
@@ -86,16 +76,15 @@ const GatewayWiseSales = ({ gatewayData = [], channelData = [], formatCurrency, 
                             />
                         </Col>
                     </Row>
-                </Card>
+                </div>
             </Col>
 
             {/* Channel Summary rendered as cards */}
             <Col xs={24}>
-                <Card
-                    title={<Title level={5} style={{ margin: 0 }}>Channel Wise Sales</Title>}
-                    bordered={false}
-                    style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-                >
+                <div style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: 16, }}>
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <Title level={5} style={{ margin: 0 }}>Channel Wise Sales</Title>
+                    </div>
                     <Row gutter={[16, 16]}>
                         {channelData && channelData.length > 0 ? (
                             channelData.map((c) => (
@@ -123,7 +112,7 @@ const GatewayWiseSales = ({ gatewayData = [], channelData = [], formatCurrency, 
                         )}
 
                         {/* Total cards for Today & Yesterday */}
-                        <Col xs={24} sm={12} md={8} lg={6} xl={4}>
+                        {/* <Col xs={24} sm={12} md={8} lg={6} xl={4}>
                             <SalesCard
                                 title="Total"
                                 value={channelTotals.todayAmount}
@@ -138,9 +127,9 @@ const GatewayWiseSales = ({ gatewayData = [], channelData = [], formatCurrency, 
                                 subtitle={`${channelTotals.yesterdayCount} bookings yesterday`}
                                 badgeLabel="Yesterday"
                             />
-                        </Col>
+                        </Col> */}
                     </Row>
-                </Card>
+                </div>
             </Col>
         </Row>
     );
