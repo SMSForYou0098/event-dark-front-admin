@@ -324,4 +324,5 @@ const POSPrintModal = ({
     );
 };
 
+
 export default POSPrintModal;
