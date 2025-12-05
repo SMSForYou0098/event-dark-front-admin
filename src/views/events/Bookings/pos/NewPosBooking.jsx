@@ -225,8 +225,6 @@ const POS = memo(() => {
         grandTotal={grandTotal}
       />
 
-
-
       <Row gutter={ROW_GUTTER}>
         <Col span={24}>
           <PosEvents handleButtonClick={handleButtonClick} />

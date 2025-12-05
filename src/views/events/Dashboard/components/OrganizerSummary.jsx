@@ -107,7 +107,6 @@ const MetricTile = ({ label, value, color }) => (
 );
 
 const OrganizerSummary = ({ organizerSummary = [] }) => {
-  console.log('OO',organizerSummary)
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const screens = useBreakpoint();
   const isMobile = !screens.md;

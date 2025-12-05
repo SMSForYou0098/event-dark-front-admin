@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useMemo } from "react";
+import React, { memo, useState, useCallback, useMemo, useRef } from "react";
 import {
   Button,
   Tag,
@@ -19,6 +19,7 @@ import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import POSPrintModal from "./POSPrintModal";
+import POSPrinterManager from "./POSPrinterManager";
 import { useMyContext } from "Context/MyContextProvider";
 import { useNavigate } from "react-router-dom";
 import { ExpandDataTable } from "views/events/common/ExpandDataTable";
@@ -34,6 +35,7 @@ const PosBooking = memo(() => {
   const [dateRange, setDateRange] = useState(null);
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const printerRef = useRef(null);
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -288,7 +290,7 @@ const PosBooking = memo(() => {
       grandTotal: grandTotal.toFixed(2),
     };
   }, [selectedBooking]);
-  
+
 
   // Define columns for nested table (related bookings)
   const expandedRowColumns = useMemo(() => [
@@ -499,11 +501,15 @@ const PosBooking = memo(() => {
 
   return (
     <>
+      {/* Always render POSPrinterManager to maintain connection state */}
+      <POSPrinterManager ref={printerRef} />
+      
       {showPrintModel && printModalData && (
         <POSPrintModal
           showPrintModel={showPrintModel}
           closePrintModel={closePrintModel}
           {...printModalData}
+          printerRef={printerRef}
         />
       )}
 
@@ -545,6 +551,7 @@ const PosBooking = memo(() => {
         enableExport={true}
         type={'pos'}
       />
+      
     </>
   );
 
