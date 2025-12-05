@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Col, Form, Input, message, Radio, Row, Select, Space, Spin, Switch } from 'antd';
+import { Alert, Button, Card, Col, Form, Input, message, Modal, Radio, Row, Select, Space, Spin, Switch } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import apiClient from "auth/FetchInterceptor";
@@ -72,6 +72,18 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     // UI state
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [convenienceFeeType, setConvenienceFeeType] = useState('percentage');
+
+    // OTP verification state (for own profile edit)
+    const [otpModalVisible, setOtpModalVisible] = useState(false);
+    const [otpValue, setOtpValue] = useState('');
+    const [otpLoading, setOtpLoading] = useState(false);
+    const [pendingFormValues, setPendingFormValues] = useState(null);
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpSending, setOtpSending] = useState(false);
+
+    // Track original email and phone for comparison
+    const originalEmail = useRef(null);
+    const originalNumber = useRef(null);
 
     // Track if form has been initialized
     const didInit = useRef(false);
@@ -255,6 +267,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 setConvenienceFeeType(formData.convenienceFeeType);
             }
 
+            // Store original email and phone for OTP verification check
+            originalEmail.current = formData.email || fetchedData.user.email;
+            originalNumber.current = formData.number || fetchedData.user.number;
+
             // Also set form fields for Ant Design Form
             form.setFieldsValue(formData);
 
@@ -357,42 +373,165 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         }
     });
 
+    // Check if user is editing their own profile (compare as strings to handle type mismatch)
+    const isEditingOwnProfile = mode === 'edit' && String(id) === String(UserData?.id);
+
+    // Check if email or phone number has changed
+    const hasEmailOrPhoneChanged = useCallback((values) => {
+        if (!isEditingOwnProfile) return false;
+        
+        const currentEmail = values.email?.trim()?.toLowerCase();
+        const currentNumber = values.number?.trim();
+        const origEmail = originalEmail.current?.trim()?.toLowerCase();
+        const origNumber = originalNumber.current?.trim();
+        
+        const emailChanged = origEmail && currentEmail !== origEmail;
+        const phoneChanged = origNumber && currentNumber !== origNumber;
+        
+        return emailChanged || phoneChanged;
+    }, [isEditingOwnProfile]);
+
+    // Send OTP for verification
+    const sendOtp = async (values) => {
+        setOtpSending(true);
+        try {
+            // Determine what changed (normalize for comparison)
+            const currentEmail = values.email?.trim()?.toLowerCase();
+            const currentNumber = values.number?.trim();
+            const origEmail = originalEmail.current?.trim()?.toLowerCase();
+            const origNumber = originalNumber.current?.trim();
+            
+            const emailChanged = origEmail && currentEmail !== origEmail;
+            const phoneChanged = origNumber && currentNumber !== origNumber;
+            
+            const payload = {
+                user_id: id,
+                email: emailChanged ? values.email : null,
+                number: phoneChanged ? values.number : null,
+                type: emailChanged && phoneChanged ? 'both' : emailChanged ? 'email' : 'phone',
+            };
+            
+            // Call OTP send API
+            const response = await apiClient.post('send-profile-otp', payload);
+            
+            if (response?.status) {
+                message.success('OTP sent successfully');
+                setOtpSent(true);
+                return true;
+            } else {
+                message.error(response?.message || 'Failed to send OTP');
+                return false;
+            }
+        } catch (error) {
+            message.error(error?.response?.data?.message || 'Failed to send OTP');
+            return false;
+        } finally {
+            setOtpSending(false);
+        }
+    };
+
+    // Verify OTP and save
+    const verifyOtpAndSave = async () => {
+        if (!otpValue || otpValue.length < 4) {
+            message.error('Please enter a valid OTP');
+            return;
+        }
+        
+        setOtpLoading(true);
+        try {
+            // Verify OTP
+            const verifyResponse = await apiClient.post('verify-profile-otp', {
+                user_id: id,
+                otp: otpValue,
+            });
+            
+            if (!verifyResponse?.status) {
+                message.error(verifyResponse?.message || 'Invalid OTP');
+                return;
+            }
+            
+            // OTP verified, proceed with save
+            await saveUserProfile(pendingFormValues);
+            
+            // Close modal and reset state
+            setOtpModalVisible(false);
+            setOtpValue('');
+            setOtpSent(false);
+            setPendingFormValues(null);
+            
+        } catch (error) {
+            message.error(error?.response?.data?.message || 'OTP verification failed');
+        } finally {
+            setOtpLoading(false);
+        }
+    };
+
+    // Save user profile (actual API call)
+    const saveUserProfile = async (values) => {
+        const mergedValues = {
+            ...values,
+            roleId: values.roleId ?? formState.roleId,
+            roleName: values.roleName ?? formState.roleName,
+            convenienceFeeType: values.convenienceFeeType ?? formState.convenienceFeeType,
+            convenienceFee: values.convenienceFee ?? formState.convenienceFee,
+            reportingUser: reportingUserId,
+        };
+        const apiData = mapFormToApi(mergedValues);
+        const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
+        const response = await axios.post(url, apiData, {
+            headers: {
+                'Authorization': 'Bearer ' + authToken,
+            }
+        });
+
+        if (response.data?.status) {
+            if (id === UserData?.id) {
+                dispatch(updateUser(response.data.user));
+                navigate(-1);
+            }
+            message.success(`User ${mode === "create" ? "created" : "updated"}`);
+
+            if (mode === "create") {
+                navigate(-1);
+            }
+        }
+    };
 
     // Form submit handler
     const onFinish = async (values) => {
         setIsSubmitting(true);
         try {
-            const mergedValues = {
-                ...values,
-                roleId: values.roleId ?? formState.roleId,
-                roleName: values.roleName ?? formState.roleName,
-                convenienceFeeType: values.convenienceFeeType ?? formState.convenienceFeeType,
-                convenienceFee: values.convenienceFee ?? formState.convenienceFee,
-                reportingUser: reportingUserId,
-            };
-            const apiData = mapFormToApi(mergedValues);
-            const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
-            const response = await axios.post(url, apiData, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                }
-            });
-
-            if (response.data?.status) {
-                if (id === UserData?.id) {
-                    dispatch(updateUser(response.data.user));
-                    navigate(-1);
-                }
-                message.success(`User ${mode === "create" ? "created" : "updated"}`);
-
-                if (mode === "create") {
-                    navigate(-1);
-                }
+            // Check if editing own profile and email/phone changed
+            if (hasEmailOrPhoneChanged(values)) {
+                // Store values and show OTP modal
+                setPendingFormValues(values);
+                setOtpModalVisible(true);
+                
+                // Send OTP
+                await sendOtp(values);
+            } else {
+                // No OTP required, save directly
+                await saveUserProfile(values);
             }
         } catch (error) {
             message.error(`Error: ${error.response?.data?.error || error.response?.data?.message || 'Something went wrong!'}`);
         } finally {
             setIsSubmitting(false);
+        }
+    };
+
+    // Handle OTP modal cancel
+    const handleOtpModalCancel = () => {
+        setOtpModalVisible(false);
+        setOtpValue('');
+        setOtpSent(false);
+        setPendingFormValues(null);
+    };
+
+    // Resend OTP
+    const handleResendOtp = async () => {
+        if (pendingFormValues) {
+            await sendOtp(pendingFormValues);
         }
     };
 
@@ -904,6 +1043,70 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     )}
                 </Col>
             </Row>
+
+            {/* OTP Verification Modal */}
+            <Modal
+                title="Verify OTP"
+                open={otpModalVisible}
+                onCancel={handleOtpModalCancel}
+                footer={null}
+                maskClosable={false}
+                destroyOnClose
+            >
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <Alert
+                        message="Verification Required"
+                        description="You've changed your email or phone number. Please verify with OTP to save changes."
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 24 }}
+                    />
+                    
+                    {otpSent ? (
+                        <>
+                            <p style={{ marginBottom: 16 }}>
+                                Enter the OTP sent to your {pendingFormValues?.email !== originalEmail.current && pendingFormValues?.number !== originalNumber.current 
+                                    ? 'email and phone' 
+                                    : pendingFormValues?.email !== originalEmail.current 
+                                        ? 'email' 
+                                        : 'phone'}
+                            </p>
+                            <Input.OTP
+                                length={6}
+                                value={otpValue}
+                                onChange={setOtpValue}
+                                style={{ marginBottom: 16 }}
+                            />
+                            <div style={{ marginTop: 24 }}>
+                                <Space>
+                                    <Button onClick={handleOtpModalCancel}>
+                                        Cancel
+                                    </Button>
+                                    <Button 
+                                        type="link" 
+                                        onClick={handleResendOtp}
+                                        loading={otpSending}
+                                    >
+                                        Resend OTP
+                                    </Button>
+                                    <Button 
+                                        type="primary" 
+                                        onClick={verifyOtpAndSave}
+                                        loading={otpLoading}
+                                        disabled={!otpValue || otpValue.length < 6}
+                                    >
+                                        Verify & Save
+                                    </Button>
+                                </Space>
+                            </div>
+                        </>
+                    ) : (
+                        <div style={{ padding: '20px 0' }}>
+                            <Spin tip="Sending OTP..." />
+                        </div>
+                    )}
+                </div>
+            </Modal>
         </Form>
     );
 };

@@ -63,11 +63,15 @@ const StadiumBuilder = ({
   onAssignTicket,
   selectedEvent,
   isMobile = false,
+  mode = 'full', // 'full' (with ticket assignment) | 'layout' (layout only)
 }) => {
   // Responsive breakpoints
   const screens = useBreakpoint();
   const isCompact = isMobile || !screens.lg;
   const isTablet = screens.md && !screens.lg;
+  
+  // Derived: whether to show ticket assignment options
+  const showTicketAssignment = mode === 'full' && !!onAssignTicket;
 
   // ============================================
   // NAVIGATION STATE (Folder-style drill-down)
@@ -444,7 +448,7 @@ const StadiumBuilder = ({
                 onEdit={(updates) => updateStand(item.id, updates)}
                 onDelete={() => deleteStand(item.id)}
                 onStatusChange={(status) => updateStand(item.id, { status })}
-                onAssignTicket={() => onAssignTicket?.('stand', item, item.id)}
+                onAssignTicket={showTicketAssignment ? () => onAssignTicket?.('stand', item, item.id) : undefined}
                 onEditGeometry={() => setEditingStandId(item.id)}
                 isMobile={isMobile}
               />
@@ -463,7 +467,7 @@ const StadiumBuilder = ({
                 onEdit={(updates) => updateTier(item.id, updates)}
                 onDelete={() => deleteTier(item.id)}
                 onStatusChange={(status) => updateTier(item.id, { status })}
-                onAssignTicket={() => onAssignTicket?.('tier', item, selectedStand?.id, item.id)}
+                onAssignTicket={showTicketAssignment ? () => onAssignTicket?.('tier', item, selectedStand?.id, item.id) : undefined}
                 isMobile={isMobile}
               />
             );
@@ -481,7 +485,7 @@ const StadiumBuilder = ({
                 onEdit={(updates) => updateSection(item.id, updates)}
                 onDelete={() => deleteSection(item.id)}
                 onStatusChange={(status) => updateSection(item.id, { status })}
-                onAssignTicket={() => onAssignTicket?.('section', item, selectedStand?.id, selectedTier?.id, item.id)}
+                onAssignTicket={showTicketAssignment ? () => onAssignTicket?.('section', item, selectedStand?.id, selectedTier?.id, item.id) : undefined}
                 onEditGeometry={() => setEditingSectionId(item.id)}
                 editGeometryTooltip="Configure Aisles"
                 isMobile={isMobile}
@@ -501,7 +505,7 @@ const StadiumBuilder = ({
                 onEdit={(updates) => updateRow(item.id, updates)}
                 onDelete={() => deleteRow(item.id)}
                 onStatusChange={(status) => updateRow(item.id, { status })}
-                onAssignTicket={() => onAssignTicket?.('row', item, selectedStand?.id, selectedTier?.id, selectedSection?.id, item.id)}
+                onAssignTicket={showTicketAssignment ? () => onAssignTicket?.('row', item, selectedStand?.id, selectedTier?.id, selectedSection?.id, item.id) : undefined}
                 isMobile={isMobile}
               />
             );

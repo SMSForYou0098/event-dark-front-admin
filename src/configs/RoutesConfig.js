@@ -132,6 +132,42 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/seating_module/StadiumV2/StadiumAdmin')),
         meta: {}
     },
+    
+    // ==================== STADIUM V2 - NEW SEPARATED ROUTES ====================
+    // Layout Builder Only (Admin) - No ticket assignment
+    {
+        key: 'layout-list',
+        path: `/layouts`,
+        component: React.lazy(() => import('views/events/seating_module/StadiumV2/pages/LayoutBuilder')),
+        meta: {
+            // permissions: ['Manage Layouts'],
+        }
+    },
+    {
+        key: 'layout-create',
+        path: `/layouts/new`,
+        component: React.lazy(() => import('views/events/seating_module/StadiumV2/pages/LayoutBuilder')),
+        meta: {
+            // permissions: ['Create Layout'],
+        }
+    },
+    {
+        key: 'layout-edit',
+        path: `/layouts/:layoutId`,
+        component: React.lazy(() => import('views/events/seating_module/StadiumV2/pages/LayoutBuilder')),
+        meta: {
+            // permissions: ['Edit Layout'],
+        }
+    },
+    // Event Seating Manager (Organizer) - Select layout + assign tickets
+    {
+        key: 'event-seating',
+        path: `/events/:eventId/seating`,
+        component: React.lazy(() => import('views/events/seating_module/StadiumV2/pages/EventSeatingManager')),
+        meta: {
+            // permissions: ['Manage Event Seating'],
+        }
+    },
     {
         key: 'user-booking',
         path: `/user-booking`,

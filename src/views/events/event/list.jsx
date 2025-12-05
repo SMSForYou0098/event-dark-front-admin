@@ -26,21 +26,59 @@ const EventList = ({ isJunk = false }) => {
   const [dateRange, setDateRange] = useState(null);
   const queryClient = useQueryClient();
 
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
   // Fetch events using TanStack Query
   const {
-    data: events = [],
+    data: eventsData = { events: [], pagination: null },
     isLoading,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['eventList', UserData?.id , isJunk],
+    queryKey: ['eventList', UserData?.id, isJunk, currentPage, pageSize, searchText, sortField, sortOrder, dateRange],
     queryFn: async () => {
-      const url = isJunk ? `event/junk/${UserData?.id}` : `event/list/${UserData?.id}`
+      const params = new URLSearchParams();
+
+      // Pagination params
+      params.set("page", currentPage.toString());
+      params.set("per_page", pageSize.toString());
+
+      // Search param
+      if (searchText) {
+        params.set("search", searchText);
+      }
+
+      // Sorting params
+      if (sortField && sortOrder) {
+        params.set("sort_by", sortField);
+        params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+      }
+
+      // Date range params
+      if (dateRange && dateRange.startDate && dateRange.endDate) {
+        params.set("start_date", dateRange.startDate);
+        params.set("end_date", dateRange.endDate);
+      }
+
+      const baseUrl = isJunk ? `event/junk/${UserData?.id}` : `events/`;
+      const url = `${baseUrl}?${params.toString()}`;
       const response = await api.get(url);
 
       if (response.status && response.events) {
-        return response.events;
+        // Extract pagination data from response
+        const paginationData = response.pagination || {
+          current_page: currentPage,
+          per_page: pageSize,
+          total: response.events.length,
+          last_page: 1,
+        };
+        return { events: response.events, pagination: paginationData };
       } else {
         throw new Error(response?.message || 'Failed to fetch events');
       }
@@ -49,6 +87,10 @@ const EventList = ({ isJunk = false }) => {
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Extract events and pagination from query data
+  const events = useMemo(() => eventsData.events || [], [eventsData.events]);
+  const pagination = eventsData.pagination;
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -112,6 +154,7 @@ const EventList = ({ isJunk = false }) => {
   );
 
   const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1); // Reset to first page on date change
     if (dates) {
       setDateRange({
         startDate: dates[0].format('YYYY-MM-DD'),
@@ -120,6 +163,27 @@ const EventList = ({ isJunk = false }) => {
     } else {
       setDateRange(null);
     }
+  }, []);
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
   }, []);
 
   const hasEditPermission = usePermission('Edit Event');
@@ -513,6 +577,14 @@ const EventList = ({ isJunk = false }) => {
       showAddButton={false}
       dateRange={dateRange}
       onDateRangeChange={handleDateRangeChange}
+      // Backend pagination props
+      serverSide={true}
+      pagination={pagination}
+      onPaginationChange={handlePaginationChange}
+      onSearch={handleSearchChange}
+      onSortChange={handleSortChange}
+      searchValue={searchText}
+      // Export functionality
       enableExport={true}
       exportRoute="export-events"
       ExportPermission={usePermission('Export Events')}

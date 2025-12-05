@@ -761,7 +761,7 @@ const handleMouseUp = useCallback((e) => {
       const uniqueCurrent = selectedSeats.filter(s => !newIds.includes(s.id));
       const toAdd = selectedInRect.filter(s => !selectedSeats.some(cur => cur.id === s.id));
       
-      onSelectionChange([...uniqueCurrent, ...toAdd]);
+      onSelectionChange?.([...uniqueCurrent, ...toAdd]);
       
       setIsSelecting(false);
       setSelectionStart(null);
@@ -780,10 +780,10 @@ const handleMouseUp = useCallback((e) => {
         
         if (isSelected) {
             // Deselect: Remove from array
-            onSelectionChange(selectedSeats.filter(s => s.id !== seat.id));
+            onSelectionChange?.(selectedSeats.filter(s => s.id !== seat.id));
         } else {
             // Select: Add to array
-            onSelectionChange([...selectedSeats, seat]);
+            onSelectionChange?.([...selectedSeats, seat]);
         }
         
         if (onSeatClick) onSeatClick(seat);
@@ -883,9 +883,9 @@ const handleMouseUp = useCallback((e) => {
         const isSelected = selectedSeats.some(s => s.id === seat.id);
         
         if (isSelected) {
-          onSelectionChange(selectedSeats.filter(s => s.id !== seat.id));
+          onSelectionChange?.(selectedSeats.filter(s => s.id !== seat.id));
         } else {
-          onSelectionChange([...selectedSeats, seat]);
+          onSelectionChange?.([...selectedSeats, seat]);
         }
         
         if (onSeatClick) onSeatClick(seat);

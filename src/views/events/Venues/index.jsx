@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Button, Image, message, Modal, Space, Tooltip } from 'antd';
 import { User, Trash2, Pencil, Eye } from 'lucide-react';
 import { useMyContext } from '../../../Context/MyContextProvider';
@@ -15,17 +15,50 @@ const Venues = () => {
   const [modalMode, setModalMode] = useState('create');
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [error, setError] = useState(null);
-const [mapModalVisible, setMapModalVisible] = useState(false);
-const [selectedMapUrl, setSelectedMapUrl] = useState('');
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [selectedMapUrl, setSelectedMapUrl] = useState('');
 
-  // Fetch organizers with React Query
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
+  // Fetch venues with React Query
   const fetchVenue = async () => {
-    const url = `/venue-list/${UserData?.id}`;
+    const params = new URLSearchParams();
+
+    // Pagination params
+    params.set("page", currentPage.toString());
+    params.set("per_page", pageSize.toString());
+
+    // Search param
+    if (searchText) {
+      params.set("search", searchText);
+    }
+
+    // Sorting params
+    if (sortField && sortOrder) {
+      params.set("sort_by", sortField);
+      params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+    }
+
+    const url = `/venue-list/${UserData?.id}?${params.toString()}`;
     const response = await api.get(url);
     if (!response.status) {
-      throw new Error('Failed to fetch organizers');
+      throw new Error('Failed to fetch venues');
     }
-    return response.data || [];
+    
+    // Extract pagination data from response
+    const paginationData = response.pagination || {
+      current_page: currentPage,
+      per_page: pageSize,
+      total: response.data?.length || 0,
+      last_page: 1,
+    };
+    
+    return { venues: response.data || [], pagination: paginationData };
   };
   const handleViewMap = (record) => {
   if (record.aembeded_code) {
@@ -43,21 +76,46 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
 };
 
   const {
-    data: venues = [],
+    data: venuesData = { venues: [], pagination: null },
     isLoading: loading,
-    error: organizersError,
+    error: venuesError,
     refetch
   } = useQuery({
     queryFn: fetchVenue,
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
-    queryKey: ['venue', UserData?.id],
+    queryKey: ['venue', UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
     onError: (err) => {
-      setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
-      message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");
+      setError(err.response?.data?.error || err.message || "Failed to fetch venues");
+      message.error(err.response?.data?.error || err.message || "Failed to fetch venues");
     }
   });
+
+  // Extract venues and pagination from query data
+  const venues = useMemo(() => venuesData.venues || [], [venuesData.venues]);
+  const pagination = venuesData.pagination;
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
+  }, []);
   const columns = [
     {
       title: '#',
@@ -280,6 +338,13 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
         ExportPermission={UserPermissions?.includes("Export Venues")}
         authToken={authToken}
         loading={loading}
+        // Backend pagination props
+        serverSide={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        onSearch={handleSearchChange}
+        onSortChange={handleSortChange}
+        searchValue={searchText}
         extraHeaderContent={
           <PermissionChecker permission="Create Venue">
           <Tooltip title="Create Venue">
@@ -291,7 +356,7 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
           </Tooltip>
            </PermissionChecker>
         }
-        error={organizersError || error}
+        error={venuesError || error}
         tableProps={{
           scroll: { x: 1200 },
           size: "middle",
