@@ -223,6 +223,7 @@ const POS = memo(() => {
         totalTax={totalTax}
         discount={discount}
         grandTotal={grandTotal}
+        autoPrint={true}
       />
 
       <Row gutter={ROW_GUTTER}>

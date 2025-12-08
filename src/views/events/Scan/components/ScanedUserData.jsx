@@ -60,9 +60,25 @@ const ScanedUserData = ({
     : bookings?.tickets ; // For regular booking, get single ticket
 
   // Get attendees data
+  // TEMPORARY: Add test attendees for testing
+  const tempAttendees = [
+    {
+      id: 1,
+      Name: "Test Attendee 1",
+      Email: "test1@example.com",
+      Mo: 9633699632
+    },
+    {
+      id: 2,
+      Name: "Upal Patel",
+      Email: "upalbhai@gmail.com",
+      Mo: 9327239654
+    }
+  ];
+  
   const attendeesList = isMasterBooking
-    ? bookings?.attendees || []
-    : attendees;
+    ? tempAttendees.length > 0 ? tempAttendees : (bookings?.attendees || [])
+    : tempAttendees.length > 0 ? tempAttendees : attendees;
 
   // Get customer name and phone
   const getCustomerInfo = () => {
@@ -270,7 +286,8 @@ const ScanedUserData = ({
   size="middle"
   direction={isMobile ? 'vertical' : 'horizontal'}
 >
-  {isMasterBooking && attendeesList.length > 0 && (
+  {/* {isMasterBooking && attendeesList.length > 0 && ( */}
+  {true && attendeesList.length > 0 && (
     <Button
       type="default"
       className='btn-tertiary w-100'
@@ -326,7 +343,7 @@ const ScanedUserData = ({
           </Descriptions> */}
 
           {/* Attendees List - Enhanced for Master Bookings */}
-          {(showAttendeee || isMasterBooking) && Boolean(attendeesList?.length) && (
+          {(showAttendeee || isMasterBooking) && Boolean(attendeesList?.length) && ( 
             <>
               <Divider orientation="left" className='mt-0'>
                 <TeamOutlined /> Attendees ({attendeesList.length})
@@ -366,7 +383,8 @@ const ScanedUserData = ({
         </>
       )}
     </Drawer>
-     {isMasterBooking && attendeesList.length > 0 && (
+     {/* {isMasterBooking && attendeesList.length > 0 && ( */}
+     {true && attendeesList.length > 0 && (
       <AttendeesPrint
         ref={attendeesPrintRef}
         attendeesList={attendeesList}

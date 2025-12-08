@@ -477,9 +477,9 @@ const NewAgentBooking = memo(({ type }) => {
     setCurrentStep(0); // Reset to step 0
 
     const response = await fetchCategoryData(evnt?.category);
-
+    console.log('eee',response)
     if (response.status) {
-      const attendeeRequired = response?.categoryData?.attendy_required === 1;
+      const attendeeRequired = response?.categoryData?.attendy_required === true;
       setIsAttendeeRequire(attendeeRequired);
 
       if (attendeeRequired) {

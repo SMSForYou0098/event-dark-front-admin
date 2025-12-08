@@ -53,7 +53,7 @@ const TickeScanFeilds = ({
             <span>Auto Check</span>
           </Space>
           <Space>
-            {categoryData?.categoryData?.attendy_required === 1 &&
+            {categoryData?.categoryData?.attendy_required !== 1 &&
               <CustomFieldsSettings customFieldsData={categoryData?.customFieldsData} setSelectedFields={setSelectedFields} eventId={eventId} />
             }
             {userRole === "Admin" && (

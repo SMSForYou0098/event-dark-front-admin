@@ -1,4 +1,18 @@
 /* POSPrintModal.css */
+
+/* Make unselected Radio.Button text transparent/blank in printer config */
+.ant-card .ant-radio-button-wrapper:not(.ant-radio-button-wrapper-checked) span,
+.ant-card .ant-radio-button-wrapper:not(.ant-radio-button-wrapper-checked) svg {
+    color: transparent !important;
+    opacity: 0 !important;
+}
+
+.ant-card .ant-radio-button-wrapper-checked span,
+.ant-card .ant-radio-button-wrapper-checked svg {
+    color: inherit !important;
+    opacity: 1 !important;
+}
+
 .pos-print-body {
   background-color: white;
   border-radius: 16px;

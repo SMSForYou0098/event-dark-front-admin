@@ -1,193 +1,42 @@
-/* AttendeesPrint.css */
-
-/* Modal content styling - white background with black text */
-.attendees-modal-content {
-  background-color: white;
-  color: black;
+/* Mobile modal positioning */
+.attendees-print-modal-mobile {
+  top: 20px !important;
+  margin: 0 auto;
+  max-width: 95vw;
 }
 
-.attendees-modal-content .attendee-info-text {
-  color: #666;
-}
-
-.attendees-modal-content .attendee-info-value {
-  color: black;
-  font-weight: bold;
-}
-
-.attendees-modal-content .attendee-card {
-  background-color: white;
-  border: 1px solid #d9d9d9;
-}
-
-.attendees-modal-content .attendee-card-text {
-  color: black;
-}
-
-/* Print body - hidden by default, only visible during print */
-.attendees-print-body {
-  display: none;
-}
-
-/* Attendee badge styles - only for print */
-.attendee-badge {
-  width: 3in;
-  height: 2in;
-  page-break-after: auto;
-  page-break-inside: avoid;
-  break-inside: avoid;
-  background: white;
-  border: 3px solid black;
-  box-sizing: border-box;
-  padding: 10px;
-  font-family: Arial, sans-serif;
+.attendees-print-modal-mobile .ant-modal-content {
+  max-height: calc(100vh - 40px);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
 }
 
-.attendee-badge:last-child {
-  page-break-after: always;
-}
-
-.attendee-badge * {
-  color: black !important;
-}
-
-.badge-header {
-  text-align: center;
-  border-bottom: 3px solid #B51515;
-  padding-bottom: 6px;
-  margin-bottom: 10px;
-}
-
-.badge-title {
-  font-size: 12pt;
-  font-weight: bold;
-  margin: 0;
-  color: #B51515 !important;
-}
-
-.badge-content {
+.attendees-print-modal-mobile .ant-modal-body {
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
-
-.badge-label {
-  font-size: 8pt;
-  font-weight: bold;
-  margin: 0 0 2px 0;
-  display: block;
+/* Desktop modal positioning */
+.attendees-print-modal {
+  top: 50px !important;
 }
 
-.badge-value {
-  font-size: 10pt;
-  margin: 0;
-  display: block;
-}
-
-.badge-name {
-  font-size: 12pt;
-  font-weight: bold;
-}
-
-.badge-email {
-  font-size: 7pt;
-  word-break: break-all;
-}
-
-.badge-footer {
-  text-align: center;
-  border-top: 2px solid black;
-  padding-top: 6px;
-  margin-top: 8px;
-}
-
-.badge-footer-text {
-  font-size: 7pt;
-  font-weight: bold;
-  margin: 0;
-}
-
-/* Print Styles */
-@media print {
-  @page {
-    size: 3in 2in;
-    margin: 0;
+/* Mobile footer button adjustments */
+@media (max-width: 768px) {
+  .attendees-print-modal-mobile .ant-modal-footer {
+    padding: 12px !important;
   }
   
-  body {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-    margin: 0;
-    padding: 0;
-  }
-  
-  /* Hide everything except attendees print content */
-  body.printing-attendees * {
-    visibility: hidden !important;
-  }
-  
-  /* Show only the print content */
-  body.printing-attendees .attendees-print-body,
-  body.printing-attendees .attendees-print-body * {
-    visibility: visible !important;
-  }
-  
-  .attendees-print-body {
-    position: absolute;
-    left: 0;
-    top: 0;
-    display: block !important;
+  .attendees-print-modal-mobile .ant-modal-footer .ant-space {
     width: 100%;
   }
   
-  .attendee-badge {
-    visibility: visible !important;
-    display: flex !important;
-    flex-direction: column;
-  }
-  
-  .badge-header,
-  .badge-content,
-  .badge-footer {
-    visibility: visible !important;
-    display: block !important;
-  }
-  
-.badge-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-.badge-label {
-  font-size: 8pt;
-  font-weight: bold;
-  margin-right: 4px;
-  white-space: nowrap;
-}
-
-.badge-value {
-  font-size: 10pt;
-  font-weight: normal;
-  flex: 1;
-  text-align: right;
-  word-break: break-all;
-}
-
-.badge-name {
-  font-size: 11pt;
-  font-weight: bold;
-}
-
-  
-  .badge-title,
-  .badge-label,
-  .badge-value,
-  .badge-footer-text {
-    visibility: visible !important;
-    display: block !important;
+  .attendees-print-modal-mobile .ant-modal-footer .ant-space-item {
+    flex: 1 1 calc(50% - 4px);
+    min-width: calc(50% - 4px);
   }
 }
+
+
+
