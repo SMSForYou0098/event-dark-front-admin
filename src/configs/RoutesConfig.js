@@ -844,6 +844,23 @@ export const protectedRoutes = [
         }
     },
     // ==================== Agreement ====================
+    // add routes for onboarding
+    {
+        key: 'onboarding-agreement',
+        path: `onboard/organizer`,
+        component: React.lazy(() => import('views/events/Onboarding/Organizer/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
+    {
+        key: 'organizer-agreement',
+        path: `/agreements/organizer`,
+        component: React.lazy(() => import('views/events/Agreement/Organizer/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
     {
         key: 'new-booking',
         path: `/agreements/partner`,

@@ -250,7 +250,7 @@ const SytemVariables = () => {
           </Button>,
         ]}
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical" onFinish={handleSubmit} >
           <Form.Item
             label="Key"
             name="key"

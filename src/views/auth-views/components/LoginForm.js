@@ -3,7 +3,7 @@ import { Button, Form, Input, Alert } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { API_BASE_URL } from 'constants/ApiConstant';
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig';
 
@@ -13,15 +13,46 @@ const LoginForm = ({
   extra = null,                 // any extra JSX you were injecting
 }) => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
   const [message, setMessage] = useState('');
+  const [alertType, setAlertType] = useState('error');
+
+  // Handle email verification query params
+  useEffect(() => {
+    const setParam = searchParams.get('set');
+    if (setParam) {
+      switch (setParam) {
+        case 'email-verification-pending':
+          setMessage('Email verification is pending. Please check your inbox and verify your email.');
+          setAlertType('warning');
+          setShowMessage(true);
+          break;
+        case 'email-verification-failed':
+          setMessage('Email verification failed. Please try again or contact support.');
+          setAlertType('error');
+          setShowMessage(true);
+          break;
+        case 'email-verified-success':
+          setMessage('Email verified successfully! You can now sign in.');
+          setAlertType('success');
+          setShowMessage(true);
+          break;
+        default:
+          break;
+      }
+      // Clear the URL query params
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const onLogin = async (values) => {
     const { data } = values; // "data" = email or mobile (same as your working file)
     if (!data) {
       setMessage('Please enter your email or mobile number.');
+      setAlertType('error');
       setShowMessage(true);
       return;
     }
@@ -48,12 +79,14 @@ const LoginForm = ({
       // If API returns { status:false } => go to sign-up with prefilled data
       const status = err?.response?.data?.status;
       const apiMsg = err?.response?.data?.message || err?.response?.data?.error;
-
+      //  && apiMsg !== "Oops! We couldn't verify your login information"
+      // Don't navigate if it's a verification error - just show the error
       if (status === false) {
         navigate(`${AUTH_PREFIX_PATH}/register-1`, { state: { data } });
       }
 
       setMessage(apiMsg || 'Something went wrong. Please try again.');
+      setAlertType('error');
       setShowMessage(true);
     } finally {
       setLoading(false);
@@ -82,7 +115,7 @@ const LoginForm = ({
           marginBottom: showMessage ? 20 : 0,
         }}
       >
-        <Alert type="error" showIcon message={message} style={{ visibility: showMessage ? 'visible' : 'hidden' }} />
+        <Alert type={alertType} showIcon message={message} style={{ visibility: showMessage ? 'visible' : 'hidden' }} />
       </motion.div>
     }
 

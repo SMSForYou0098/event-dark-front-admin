@@ -598,9 +598,9 @@ const mediaNav = {
 
 const agreementsSubmenu = [
   {
-    key: 'user-agreements',
-    path: 'agreements/user',
-    title: 'User Agreements',
+    key: 'organizer-agreements',
+    path: 'agreements/organizer',
+    title: 'Organizer Agreements',
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
@@ -648,6 +648,37 @@ const promotionNav = {
   roles:['Admin']
 };
 
+const onboardSubmenu = [
+  {
+    key: 'onboard-organizer',
+    path: 'onboard/organizer',
+    title: 'Organizer',
+    icon: TeamOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'onboard-partner',
+    path: 'onboard/partner',
+    title: 'Partner',
+    icon: UsergroupAddOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  }
+];
+
+const onboardNav = {
+  key: 'onboard',
+  path: 'onboard',
+  title: 'Onboard',
+  icon: IdcardOutlined,
+  breadcrumb: false,
+  submenu: onboardSubmenu,
+  roles: ['Admin']
+};
+
 
 // Final Navigation Config
 const navigationConfig = [
@@ -667,6 +698,7 @@ const navigationConfig = [
     roles: ["Admin"]
   },
   promotionNav,
+  onboardNav,
   agreementsNav,
   salesOperationsNav,
   financialManagementNav,

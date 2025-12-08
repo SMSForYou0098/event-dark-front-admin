@@ -1,4 +1,4 @@
-import React, { memo, useEffect, useState, useMemo } from 'react';
+import React, { memo, useEffect, useState, useMemo, useRef } from 'react';
 import { 
   Card, 
   Row, 
@@ -16,8 +16,7 @@ import {
 } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useMyContext } from '../../../../Context/MyContextProvider';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import JoditEditor from 'jodit-react';
 import DOMPurify from 'dompurify';
 import {
   useEmailConfig,
@@ -32,6 +31,8 @@ const MailSettings = memo(() => {
   const { UserData } = useMyContext();
   const [form] = Form.useForm();
   const [templateForm] = Form.useForm();
+  const editor = useRef(null);
+  const [bodyContent, setBodyContent] = useState('');
 
   // Only essential states
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -40,6 +41,20 @@ const MailSettings = memo(() => {
   const [templateId, setTemplateId] = useState('');
   const [templatePreview, setTemplatePreview] = useState('');
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
+
+  // Jodit Config
+  const joditConfig = useMemo(() => ({
+    readonly: false,
+    autofocus: false,
+    uploader: { insertImageAsBase64URI: true, url: '' },
+    buttons: [
+      'source', '|', 'bold', 'italic', 'underline', 'strikethrough', '|',
+      'ul', 'ol', '|', 'font', 'fontsize', 'brush', 'paragraph', '|',
+      'image', 'table', 'link', '|', 'align', 'undo', 'redo', '|',
+      'hr', 'eraser', 'fullsize', 'preview'
+    ],
+    height: 300,
+  }), []);
 
   // Tanstack Query Hooks
   const { data: emailConfig, isLoading: isLoadingConfig } = useEmailConfig();
@@ -120,6 +135,7 @@ const MailSettings = memo(() => {
     setShowTemplateModal(false);
     setEditState(false);
     setTemplateId('');
+    setBodyContent('');
     templateForm.resetFields();
   };
 
@@ -132,11 +148,16 @@ const MailSettings = memo(() => {
     try {
       const values = await templateForm.validateFields();
       
+      if (!bodyContent || bodyContent.trim() === '' || bodyContent === '<p><br></p>') {
+        message.error('Please enter body content');
+        return;
+      }
+
       const payload = {
         user_id: UserData?.id,
         template_name: values.template_name,
         subject: values.subject,
-        body: values.body,
+        body: bodyContent,
       };
 
       if (editState) {
@@ -154,10 +175,10 @@ const MailSettings = memo(() => {
   const handleEdit = (record) => {
     setEditState(true);
     setTemplateId(record?.id);
+    setBodyContent(record?.body || '');
     templateForm.setFieldsValue({
       template_name: record?.template_id,
       subject: record?.subject,
-      body: record?.body,
     });
     setShowTemplateModal(true);
   };
@@ -323,7 +344,7 @@ const MailSettings = memo(() => {
               : 'Save'}
           </Button>,
         ]}
-        width={800}
+        width={1000}
       >
         <Form form={templateForm} layout="vertical">
           <Form.Item
@@ -348,12 +369,15 @@ const MailSettings = memo(() => {
           </Form.Item>
           <Form.Item
             label="Body"
-            name="body"
-            rules={[{ required: true, message: 'Please enter body content' }]}
+            required
           >
-            <ReactQuill
-              theme="snow"
-              style={{ height: '300px', marginBottom: '50px' }}
+            <JoditEditor
+              ref={editor}
+              value={bodyContent}
+              config={joditConfig}
+              tabIndex={1}
+              onBlur={(newContent) => setBodyContent(newContent)}
+              onChange={() => {}}
             />
           </Form.Item>
         </Form>

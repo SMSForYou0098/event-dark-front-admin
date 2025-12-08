@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { connect } from 'react-redux'
-import { LockOutlined, MailOutlined, UserOutlined, PhoneOutlined, HomeOutlined, BankOutlined, EnvironmentOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Alert, Typography, Row, Col } from "antd";
+import { MailOutlined, UserOutlined, PhoneOutlined, BankOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Alert, Row, Col } from "antd";
 import { signUp, showAuthMessage, showLoading, hideAuthMessage } from '../../../store/slices/authSlice';
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from "framer-motion"
 import axios from 'axios';
 import { API_BASE_URL, AUTH_PREFIX_PATH } from 'configs/AppConfig';
-
-const { Text } = Typography;
-
 const rules = {
 	name: [
 		{
@@ -45,14 +42,14 @@ const rules = {
 			message: 'Please enter a valid email!'
 		}
 	],
-	company: [
+	organisation: [
 		{
 			required: true,
-			message: 'Please input your company name'
+			message: 'Please input your organisation name'
 		},
 		{
 			min: 2,
-			message: 'Company name must be at least 2 characters'
+			message: 'organisation name must be at least 2 characters'
 		}
 	],
 	city: [
@@ -119,40 +116,40 @@ export const RegisterForm = (props) => {
 		}
 	}, [token, allowRedirect, navigate, redirect, showMessage, hideAuthMessage]);
 
-	const handleLogin = async (phoneNumber) => {
-		if (!phoneNumber) {
-			setError('Please enter your email or mobile number.');
-			return;
-		}
-		try {
-			setFormLoading(true);
-			const response = await axios.post(`${API_BASE_URL}verify-user`, { data: phoneNumber });
-			if (response.data.status) {
-				const isPassReq = response.data?.pass_req;
-				const path = '/';
+	// const handleLogin = async (phoneNumber) => {
+	// 	if (!phoneNumber) {
+	// 		setError('Please enter your email or mobile number.');
+	// 		return;
+	// 	}
+	// 	try {
+	// 		setFormLoading(true);
+	// 		const response = await axios.post(`${API_BASE_URL}verify-user`, { data: phoneNumber });
+	// 		if (response.data.status) {
+	// 			const isPassReq = response.data?.pass_req;
+	// 			const path = '/';
 
-				if (isPassReq === true) {
-					const session_id = response.data.session_id;
-					const auth_session = response.data.auth_session;
-					const info = {
-						data: phoneNumber,
-						password_required: isPassReq,
-						session_id,
-						auth_session
-					};
-					navigate(`${AUTH_PREFIX_PATH}/verify-password`, { state: { info } });
-				} else {
-					navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data: phoneNumber, path } });
-				}
-				setFormLoading(false);
-			} else {
-				setFormLoading(false);
-			}
-		} catch (err) {
-			setError(err.response?.data?.message || err.response?.data?.error || 'Something went wrong');
-			setFormLoading(false);
-		}
-	};
+	// 			if (isPassReq === true) {
+	// 				const session_id = response.data.session_id;
+	// 				const auth_session = response.data.auth_session;
+	// 				const info = {
+	// 					data: phoneNumber,
+	// 					password_required: isPassReq,
+	// 					session_id,
+	// 					auth_session
+	// 				};
+	// 				navigate(`${AUTH_PREFIX_PATH}/verify-password`, { state: { info } });
+	// 			} else {
+	// 				navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data: phoneNumber, path } });
+	// 			}
+	// 			setFormLoading(false);
+	// 		} else {
+	// 			setFormLoading(false);
+	// 		}
+	// 	} catch (err) {
+	// 		setError(err.response?.data?.message || err.response?.data?.error || 'Something went wrong');
+	// 		setFormLoading(false);
+	// 	}
+	// };
 
 	const handleSignup = async (values) => {
 		try {
@@ -161,17 +158,26 @@ export const RegisterForm = (props) => {
 				email: values.email,
 				number: values.number,
 				name: values.name,
-				company: values.company,
+				organisation: values.organisation,
 				city: values.city,
 				password: values.number, // Using phone number as password
-				role_id: 4
 			};
 
-			const response = await axios.post(`${API_BASE_URL}create-user`, formData);
+			const response = await axios.post(
+				`${API_BASE_URL}create-user?`,
+				formData,
+				{
+					headers: {
+						"X-Unique-Request": "org_form_1",   // your custom header
+						"X-Custom-Token": "abc123",            // you can add anything
+					}
+				}
+			); 
 
 			if (response.data.status) {
-				const phoneNumber = response.data.user?.number;
-				handleLogin(phoneNumber);
+				// const phoneNumber = response.data.user?.number;
+				// handleLogin(phoneNumber);
+				navigate(`auth/login?set=email-verification-pending`);
 			}
 			setFormLoading(false);
 		} catch (err) {
@@ -272,14 +278,14 @@ export const RegisterForm = (props) => {
 
 					<Col xs={24} sm={12}>
 						<Form.Item
-							name="company"
-							label="Company Name"
-							rules={rules.company}
+							name="organisation"
+							label="Organisation"
+							rules={rules.organisation}
 							hasFeedback
 						>
 							<Input
 								prefix={<BankOutlined className="text-primary" />}
-								placeholder="Enter your company name"
+								placeholder="Enter your organisation name"
 								size="large"
 							/>
 						</Form.Item>
