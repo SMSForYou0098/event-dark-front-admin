@@ -13,6 +13,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ORGANIZER_ALLOWED_ROLES } from '../constants';
 import { RoleSelect } from 'utils/CommonInputs';
+import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
 
 const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const navigate = useNavigate();
@@ -89,6 +90,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const didInit = useRef(false);
     const isInitializing = useRef(false);
 
+    // Signature state (for Organizers with agreementStatus = false)
+    const [signatureType, setSignatureType] = useState('type');
+    const [selectedFont, setSelectedFont] = useState(SIGNATURE_FONTS[0]);
+    const [typedSignature, setTypedSignature] = useState('');
+    const [uploadedSignature, setUploadedSignature] = useState(null);
+    const [signaturePreview, setSignaturePreview] = useState(null);
+    const canvasRef = useRef(null);
+
     // Fetch user data in edit mode
     const { data: fetchedData, isLoading: loading } = useQuery({
         queryKey: ["user", id],
@@ -129,6 +138,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             return (res?.role || []).slice().reverse();
         },
         staleTime: 5 * 60 * 1000,
+        enabled: UserData?.activity_status === true, // ⬅️ run only when active
     });
 
     // Filter roles based on user permissions
@@ -466,6 +476,28 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         }
     };
 
+    // Get signature data based on type
+    const getSignatureData = useCallback(async () => {
+        // Only include signature for Organizers with inactive agreement
+        if (formState.roleName !== 'Organizer' || formState.agreementStatus) {
+            return null;
+        }
+
+        if (signatureType === 'draw' && canvasRef.current) {
+            return { type: 'draw', data: canvasRef.current.toDataURL() };
+        } else if (signatureType === 'type' && typedSignature) {
+            return { 
+                type: 'type', 
+                text: typedSignature, 
+                font: selectedFont.name, 
+                fontStyle: selectedFont.style 
+            };
+        } else if (signatureType === 'upload' && uploadedSignature) {
+            return { type: 'upload', file: uploadedSignature };
+        }
+        return null;
+    }, [formState.roleName, formState.agreementStatus, signatureType, typedSignature, selectedFont, uploadedSignature]);
+
     // Save user profile (actual API call)
     const saveUserProfile = async (values) => {
         const mergedValues = {
@@ -476,13 +508,63 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             convenienceFee: values.convenienceFee ?? formState.convenienceFee,
             reportingUser: reportingUserId,
         };
-        const apiData = mapFormToApi(mergedValues);
+        
+        // Get signature data
+        const signatureData = await getSignatureData();
+        
         const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
-        const response = await axios.post(url, apiData, {
-            headers: {
-                'Authorization': 'Bearer ' + authToken,
+        let response;
+        
+        // If signature exists, use FormData; otherwise use JSON
+        if (signatureData) {
+            const formData = new FormData();
+            const apiData = mapFormToApi(mergedValues);
+            
+            // Append all form fields to FormData
+            Object.keys(apiData).forEach(key => {
+                const value = apiData[key];
+                if (value !== null && value !== undefined) {
+                    if (Array.isArray(value)) {
+                        // Handle arrays (event_ids, ticket_ids, gate_ids)
+                        formData.append(key, JSON.stringify(value));
+                    } else if (typeof value === 'object') {
+                        formData.append(key, JSON.stringify(value));
+                    } else {
+                        formData.append(key, value);
+                    }
+                }
+            });
+            
+            // Append signature data
+            formData.append('signature_type', signatureData.type);
+            
+            if (signatureData.type === 'type') {
+                formData.append('signature_text', signatureData.text);
+                formData.append('signature_font', signatureData.font);
+                formData.append('signature_font_style', signatureData.fontStyle);
+            } else if (signatureData.type === 'draw') {
+                // Base64 data for draw
+                formData.append('signature_image', signatureData.data);
+            } else if (signatureData.type === 'upload' && signatureData.file) {
+                // File object for upload
+                formData.append('signature_image', signatureData.file);
             }
-        });
+            
+            response = await axios.post(url, formData, {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken,
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+        } else {
+            // No signature - use regular JSON payload
+            const apiData = mapFormToApi(mergedValues);
+            response = await axios.post(url, apiData, {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken,
+                }
+            });
+        }
 
         if (response.data?.status) {
             if (id === UserData?.id) {
@@ -1043,6 +1125,36 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     )}
                 </Col>
             </Row>
+
+            {/* Signature Section - Only for Organizers with inactive agreement */}
+            {formState.roleName === 'Organizer' && !formState.agreementStatus && (
+                <Row gutter={16}>
+                    <Col xs={24}>
+                        <Card title="Admin Signature" className="mb-4">
+                            <SignatureInput
+                                signatureType={signatureType}
+                                onSignatureTypeChange={setSignatureType}
+                                selectedFont={selectedFont}
+                                onFontChange={setSelectedFont}
+                                typedSignature={typedSignature}
+                                onTypedSignatureChange={setTypedSignature}
+                                uploadedSignature={uploadedSignature}
+                                onUploadedSignatureChange={setUploadedSignature}
+                                signaturePreview={signaturePreview}
+                                onSignaturePreviewChange={setSignaturePreview}
+                                canvasRef={canvasRef}
+                                onClearCanvas={() => {
+                                    const canvas = canvasRef.current;
+                                    if (canvas) {
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                    }
+                                }}
+                            />
+                        </Card>
+                    </Col>
+                </Row>
+            )}
 
             {/* OTP Verification Modal */}
             <Modal

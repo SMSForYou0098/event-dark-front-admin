@@ -66,7 +66,7 @@ const EventList = ({ isJunk = false }) => {
         params.set("end_date", dateRange.endDate);
       }
 
-      const baseUrl = isJunk ? `event/junk/${UserData?.id}` : `events/`;
+      const baseUrl = isJunk ? `event/junk/${UserData?.id}` : `events/list/${UserData?.id}`;
       const url = `${baseUrl}?${params.toString()}`;
       const response = await api.get(url);
 

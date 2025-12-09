@@ -1,14 +1,14 @@
 import React, { useState, useRef, forwardRef, useImperativeHandle, useCallback, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { Modal, Space, message, Radio } from 'antd';
-import { UserOutlined, UsbOutlined } from '@ant-design/icons';
-import { Bluetooth } from 'lucide-react';
+import { Modal, Space, message } from 'antd';
+import { UserOutlined } from '@ant-design/icons';
 import { usePrinter } from '../../../../Context/PrinterContext';
 import AttendeeCard from './AttendeeCard';
 import PrintOptionsSection from './PrintOptionsSection';
 import FontStyleSelector, { FONT_STYLE_OPTIONS } from './FontStyleSelector';
 import ActionButtons from './ActionButtons';
 import './AttendeesPrint.css';
+import ConnectionModeSelector from 'views/events/Bookings/pos/components/ConnectionModeSelector';
 
 // LocalStorage helpers
 const FIELD_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
@@ -52,9 +52,9 @@ const DIMENSION_OPTIONS = [
     { label: '2" × 3"', value: '2x3', width: 2, height: 3 }, // 51mm × 76mm
     { label: '1" × 2"', value: '1x2', width: 1, height: 2 }, // 25mm × 51mm
     { label: '2" × 2"', value: '2x2', width: 2, height: 2 }, // 51mm × 51mm
-    { label: '1" × 3"', value: '1x3', width: 1, height: 3 }, // 25mm × 76mm
+    // { label: '1" × 3"', value: '1x3', width: 1, height: 3 }, // 25mm × 76mm
     { label: '3" × 2"', value: '3x2', width: 3, height: 2 }, // 76mm × 51mm
-    { label: '4" × 2"', value: '4x2', width: 4, height: 2 }, // 102mm × 51mm (max width)
+    // { label: '4" × 2"', value: '4x2', width: 4, height: 2 }, // 102mm × 51mm (max width)
 ];
 
 // Default field configuration
@@ -552,31 +552,12 @@ const AttendeesPrint = forwardRef(({
         {/* Modal body content */}
         <div>
           {/* Connection Mode Selector for PC */}
-          {!isMobile && !isConnected && (
-            <div 
-              className="mb-3 p-3 rounded"
-              style={{
-                background: '#f5f5f5',
-                border: '1px solid #d9d9d9'
-              }}
-            >
-              <div style={{ marginBottom: '8px', fontWeight: '500', color: '#000' }}>Connection Mode:</div>
-              <Radio.Group
-                value={connectionMode}
-                onChange={(e) => setConnectionMode(e.target.value)}
-                buttonStyle="solid"
-              >
-                <Radio.Button value="usb">
-                  <UsbOutlined style={{ marginRight: '4px' }} />
-                  USB
-                </Radio.Button>
-                <Radio.Button value="ble">
-                  <Bluetooth size={14} style={{ marginRight: '4px', display: 'inline-block' }} />
-                  Bluetooth
-                </Radio.Button>
-              </Radio.Group>
-            </div>
-          )}
+          <ConnectionModeSelector
+            connectionMode={connectionMode}
+            setConnectionMode={setConnectionMode}
+            isMobile={isMobile}
+            isConnected={isConnected}
+          />
 
           <div 
             className="mb-4 p-3 rounded"

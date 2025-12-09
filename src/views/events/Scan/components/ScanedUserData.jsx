@@ -50,7 +50,6 @@ const ScanedUserData = ({
 
   const { bookings, is_master } = ticketData;
   const eventData = ticketData?.event || event;
-
   // Determine if this is a master booking or regular booking
   const isMasterBooking = is_master === true;
 
@@ -60,25 +59,9 @@ const ScanedUserData = ({
     : bookings?.tickets ; // For regular booking, get single ticket
 
   // Get attendees data
-  // TEMPORARY: Add test attendees for testing
-  const tempAttendees = [
-    {
-      id: 1,
-      Name: "Test Attendee 1",
-      Email: "test1@example.com",
-      Mo: 9633699632
-    },
-    {
-      id: 2,
-      Name: "Upal Patel",
-      Email: "upalbhai@gmail.com",
-      Mo: 9327239654
-    }
-  ];
-  
   const attendeesList = isMasterBooking
-    ? tempAttendees.length > 0 ? tempAttendees : (bookings?.attendees || [])
-    : tempAttendees.length > 0 ? tempAttendees : attendees;
+    ? bookings?.attendees || []
+    : attendees;
 
   // Get customer name and phone
   const getCustomerInfo = () => {
@@ -182,10 +165,10 @@ const ScanedUserData = ({
     >
       <div className="d-flex gap-3">
         <Space size="small" className="w-100">
-          {attendee?.Photo && (
+          {attendee?.photo && (
             <Image
-              src={attendee.Photo}
-              alt={attendee.Name}
+              src={attendee.photo}
+              alt={attendee.name}
               width={80}
               height={80}
               style={{ objectFit: 'cover', borderRadius: '8px' }}
@@ -196,29 +179,29 @@ const ScanedUserData = ({
             <Space direction="vertical" size="small" className="w-100">
               <div>
                 <UserOutlined className="mr-2" />
-                <Text strong>{attendee?.Name || `Attendee ${idx + 1}`}</Text>
+                <Text strong>{attendee?.name || `Attendee ${idx + 1}`}</Text>
                 {/* {attendee?.mr_/mrs/_ms && (
                 <Tag size="small" className="ml-2">{attendee['mr_/mrs/_ms']}</Tag>
               )} */}
               </div>
 
-              {attendee?.Email && (
+              {attendee?.email && (
                 <div>
                   <MailOutlined className="mr-2" />
-                  <Text copyable>{attendee.Email}</Text>
+                  <Text copyable>{attendee.email}</Text>
                 </div>
               )}
 
-              {attendee?.Mo && (
+              {attendee?.number && (
                 <div>
                   <PhoneOutlined className="mr-2" />
-                  <Text copyable>{attendee.Mo}</Text>
+                  <Text copyable>{attendee.number}</Text>
                 </div>
               )}
 
-              {attendee?.Gender && (
+              {attendee?.gender && (
                 <div>
-                  <Tag color="blue">{attendee.Gender}</Tag>
+                  <Tag color="blue">{attendee.gender}</Tag>
                 </div>
               )}
             </Space>
@@ -286,8 +269,8 @@ const ScanedUserData = ({
   size="middle"
   direction={isMobile ? 'vertical' : 'horizontal'}
 >
-  {/* {isMasterBooking && attendeesList.length > 0 && ( */}
-  {true && attendeesList.length > 0 && (
+  { attendeesList.length > 0 && (
+  // {true && attendeesList.length > 0 && (
     <Button
       type="default"
       className='btn-tertiary w-100'
@@ -349,7 +332,7 @@ const ScanedUserData = ({
                 <TeamOutlined /> Attendees ({attendeesList.length})
               </Divider>
 
-              {isMasterBooking ? (
+              {attendeesList.length > 0 ? (
                 // Rich attendee cards for master bookings
                 <div>
                   {renderAttendeesSection()}
@@ -383,8 +366,8 @@ const ScanedUserData = ({
         </>
       )}
     </Drawer>
-     {/* {isMasterBooking && attendeesList.length > 0 && ( */}
-     {true && attendeesList.length > 0 && (
+     {attendeesList.length > 0 && (
+    //  {true && attendeesList.length > 0 && (
       <AttendeesPrint
         ref={attendeesPrintRef}
         attendeesList={attendeesList}

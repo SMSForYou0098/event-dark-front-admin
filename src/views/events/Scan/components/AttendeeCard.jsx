@@ -21,9 +21,9 @@ const AttendeeCard = ({ attendee, primaryColor = '#B51515' }) => {
       }}
     >
       <Space size="small" align="start" className="w-100">
-        {attendee?.Photo ? (
+        {attendee?.photo ? (
           <Avatar
-            src={attendee.Photo}
+            src={attendee.photo}
             size={56}
             shape="square"
             className="flex-shrink-0"
@@ -49,18 +49,18 @@ const AttendeeCard = ({ attendee, primaryColor = '#B51515' }) => {
 
         <div className="flex-grow-1" style={{ minWidth: 0 }}>
           <div className="fw-bold mb-2 text-white" style={{ fontSize: '15px' }}>
-            {attendee?.Name || 'N/A'}
+            {attendee?.name || 'N/A'}
           </div>
-          {attendee?.Mo && (
+          {attendee?.number && (
             <div className="small mb-2 text-white-50 d-flex align-items-center">
               <PhoneOutlined className="me-2" style={{ color: primaryColor }} />
-              <span>{attendee.Mo}</span>
+              <span>{attendee.number}</span>
             </div>
           )}
-          {attendee?.Email && (
+          {attendee?.email && (
             <div className="small text-white-50 text-break d-flex align-items-center">
               <MailOutlined className="me-2" style={{ color: primaryColor }} />
-              <span>{attendee.Email}</span>
+              <span>{attendee.email}</span>
             </div>
           )}
         </div>

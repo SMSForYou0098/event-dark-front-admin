@@ -13,30 +13,16 @@ import {
   Switch,
   Row,
   Col,
-  Tabs,
-  Select,
-  Upload,
-  Typography,
   message,
 } from 'antd';
-import { EditOutlined, DeleteOutlined, PlusOutlined, CheckOutlined, CloseOutlined, UploadOutlined, FontSizeOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, PlusOutlined, CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import {
   useGetAllOrganizerAgreements,
   useCreateOrganizerAgreement,
   useUpdateOrganizerAgreement,
   useDeleteOrganizerAgreement,
 } from './useOrganizerAgreement';
-
-const { Text } = Typography;
-const { Option } = Select;
-
-const SIGNATURE_FONTS = [
-  { name: 'Brush Script', style: 'Brush Script MT, cursive' },
-  { name: 'Lucida Handwriting', style: 'Lucida Handwriting, cursive' },
-  { name: 'Snell Roundhand', style: 'Snell Roundhand, cursive' },
-  { name: 'Zapfino', style: 'Zapfino, cursive' },
-  { name: 'Edwardian Script', style: 'Edwardian Script ITC, cursive' }
-];
+import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
 
 const OrganizerAgreement = () => {
   // ========================= STATE =========================
@@ -50,7 +36,6 @@ const OrganizerAgreement = () => {
   const [typedSignature, setTypedSignature] = useState('');
   const [uploadedSignature, setUploadedSignature] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState(null); // For image preview
-  const [isDrawing, setIsDrawing] = useState(false);
 
   const [form] = Form.useForm();
   const editor = useRef(null);
@@ -110,56 +95,11 @@ const OrganizerAgreement = () => {
   }, [form]);
 
   // ========================= SIGNATURE HANDLERS =========================
-  const startDrawing = (e) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    setIsDrawing(true);
-  };
-
-  const draw = (e) => {
-    if (!isDrawing) return;
-    const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const ctx = canvas.getContext('2d');
-    ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-  };
-
-  const stopDrawing = () => setIsDrawing(false);
-
   const clearCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-  };
-
-  const handleImageUpload = (info) => {
-    // File is already handled in beforeUpload
-  };
-
-  const beforeUpload = (file) => {
-    const isImage = file.type.startsWith('image/');
-    if (!isImage) {
-      message.error('Only image files allowed!');
-      return false;
-    }
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      message.error('Image must be smaller than 2MB!');
-      return false;
-    }
-    // Store the actual file object for FormData
-    setUploadedSignature(file);
-    // Create preview URL
-    setSignaturePreview(URL.createObjectURL(file));
-    return false; // Prevent auto upload
   };
 
   const getSignatureData = useCallback(async () => {
@@ -392,107 +332,20 @@ const OrganizerAgreement = () => {
 
           {/* Signature Section */}
           <Form.Item label="Admin Signature">
-            <Tabs activeKey={signatureType} onChange={setSignatureType}>
-              <Tabs.TabPane tab={<><EditOutlined /> Draw Signature</>} key="draw">
-                <div className="text-center">
-                  <div className="d-inline-block">
-                    <canvas
-                      ref={canvasRef}
-                      width={600}
-                      height={200}
-                      onMouseDown={startDrawing}
-                      onMouseMove={draw}
-                      onMouseUp={stopDrawing}
-                      onMouseLeave={stopDrawing}
-                      className="border border-2 rounded"
-                      style={{ cursor: 'crosshair', touchAction: 'none', maxWidth: '100%', background: 'white' }}
-                    />
-                  </div>
-                  <div className="mt-3">
-                    <Button onClick={clearCanvas} danger>Clear Signature</Button>
-                  </div>
-                  <Text type="secondary" className="d-block mt-2">
-                    Draw your signature using mouse/touchpad
-                  </Text>
-                </div>
-              </Tabs.TabPane>
-
-              <Tabs.TabPane tab={<><FontSizeOutlined /> Type Signature</>} key="type">
-                <Row gutter={16}>
-                  <Col xs={24} md={12}>
-                    <Form.Item label="Select Font Style">
-                      <Select
-                        value={selectedFont.name}
-                        onChange={(val) => setSelectedFont(SIGNATURE_FONTS.find(f => f.name === val))}
-                      >
-                        {SIGNATURE_FONTS.map(font => (
-                          <Option key={font.name} value={font.name}>
-                            <span style={{ fontFamily: font.style, fontSize: '20px' }}>{font.name}</span>
-                          </Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item label="Type Your Signature">
-                      <Input
-                        value={typedSignature}
-                        onChange={(e) => setTypedSignature(e.target.value)}
-                        placeholder="Enter your name"
-                        maxLength={50}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24}>
-                    <div className="border border-2 rounded p-4 text-center" style={{ background: 'white' }}>
-                      <Text type="secondary" className="d-block mb-3">Signature Preview:</Text>
-                      {typedSignature ? (
-                        <div style={{ fontFamily: selectedFont.style, fontSize: '32px', color: '#000' }}>
-                          {typedSignature}
-                        </div>
-                      ) : (
-                        <Text type="secondary">Type your name above to preview</Text>
-                      )}
-                    </div>
-                  </Col>
-                </Row>
-              </Tabs.TabPane>
-
-              <Tabs.TabPane tab={<><UploadOutlined /> Upload Signature</>} key="upload">
-                <div className="text-center">
-                  <Upload
-                    accept="image/jpeg,image/png,image/jpg"
-                    beforeUpload={beforeUpload}
-                    onChange={handleImageUpload}
-                    showUploadList={false}
-                    maxCount={1}
-                  >
-                    <Button icon={<UploadOutlined />} type="dashed">
-                      Click to Upload Signature
-                    </Button>
-                  </Upload>
-                  <div className="mt-3">
-                    <Text type="secondary" className="d-block">
-                      <strong>Accepted formats:</strong> JPG, PNG (Max 2MB)
-                    </Text>
-                    <Text type="secondary" className="d-block">
-                      <strong>Recommended:</strong> White background, 600×200px
-                    </Text>
-                  </div>
-                  {signaturePreview && (
-                    <div className="border border-2 rounded p-3 mt-4 d-inline-block bg-white">
-                      <Text strong className="d-block mb-2">Uploaded Signature:</Text>
-                      <img
-                        src={signaturePreview}
-                        alt="Signature"
-                        className="img-fluid"
-                        style={{ maxHeight: '150px', maxWidth: '100%' }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </Tabs.TabPane>
-            </Tabs>
+            <SignatureInput
+              signatureType={signatureType}
+              onSignatureTypeChange={setSignatureType}
+              selectedFont={selectedFont}
+              onFontChange={setSelectedFont}
+              typedSignature={typedSignature}
+              onTypedSignatureChange={setTypedSignature}
+              uploadedSignature={uploadedSignature}
+              onUploadedSignatureChange={setUploadedSignature}
+              signaturePreview={signaturePreview}
+              onSignaturePreviewChange={setSignaturePreview}
+              canvasRef={canvasRef}
+              onClearCanvas={clearCanvas}
+            />
           </Form.Item>
         </Form>
       </Modal>

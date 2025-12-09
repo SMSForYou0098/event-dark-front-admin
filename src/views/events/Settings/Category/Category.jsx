@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -17,54 +17,39 @@ import {
   message,
 } from "antd";
 import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import axios from "axios";
-import { useMyContext } from "../../../../Context/MyContextProvider";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from 'auth/FetchInterceptor';
 import AssignFields from "./AssignFields";
 import SelectedOptionView from "./SelectedOptionView";
 
 const Category = () => {
-  const { api, authToken } = useMyContext();
+  const queryClient = useQueryClient();
 
   // ========================= STATE =========================
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [fields, setFields] = useState({ show: false, ids: [], names: [] });
-  const [submitting, setSubmitting] = useState(false);
 
   const [form] = Form.useForm();
 
   // ========================= FETCH CATEGORIES =========================
-  const fetchCategories = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${api}category`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      if (res.data.status) setData(res.data.categoryData);
-    } catch (err) {
-      notification.error({ message: "Failed to fetch categories" });
-    } finally {
-      setLoading(false);
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await api.get('category');
+      return res.categoryData || [];
     }
-  }, [api, authToken]);
+  });
 
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  // ========================= FORM SUBMIT =========================
-  const handleSubmit = useCallback(async () => {
-    try {
-      const values = await form.validateFields();
-      setSubmitting(true);
-
+  // ========================= MUTATIONS =========================
+  const saveMutation = useMutation({
+    mutationFn: async (values) => {
       const formData = new FormData();
       formData.append("title", values.title);
-      formData.append("status", values.status ? 1 : 0);
-      formData.append("attendy_required", values.attendyRequired ? 1 : 0);
-      formData.append("photo_required", values.photoRequired ? 1 : 0);
+      // Send as boolean as requested
+      formData.append("status", values.status);
+      formData.append("attendy_required", values.attendyRequired);
+      formData.append("photo_required", values.photoRequired);
       
       // Handle image upload properly
       if (values.image?.fileList?.length > 0) {
@@ -75,39 +60,69 @@ const Category = () => {
       }
 
       const url = editRecord
-        ? `${api}category-update/${editRecord.id}`
-        : `${api}category-store`;
+        ? `category-update/${editRecord.id}`
+        : `category-store`;
 
-      const res = await axios.post(url, formData, {
+      const res = await api.post(url, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${authToken}`,
         },
       });
 
-      if (res.data.status) {
-        // attach fields
-        await axios.post(
-          `${api}catrgoty-fields-store`,
-          { category_id: res.data.categoryData?.id, custom_fields_id: fields.ids || [] },
-          { headers: { Authorization: `Bearer ${authToken}` } }
-        );
-
-        notification.success({ message: res.data.message || "Category saved" });
-        fetchCategories();
+      // Attach fields if successful and we have a category ID
+      if (res.status) {
+        const categoryId = res.categoryData?.id;
+        if (categoryId) {
+          await api.post(
+            `catrgoty-fields-store`,
+            { category_id: categoryId, custom_fields_id: fields.ids || [] }
+          );
+        }
+      }
+      return res;
+    },
+    onSuccess: (data) => {
+      if (data.status) {
+        notification.success({ message: data.message || "Category saved" });
+        queryClient.invalidateQueries(['categories']);
         handleModalClose();
       } else {
-        notification.error({ message: res.data.message || "Failed to save" });
+        notification.error({ message: data.message || "Failed to save" });
       }
+    },
+    onError: (err) => {
+      notification.error({ message: err.message || "Error saving category" });
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await api.delete(`category-destroy/${id}`);
+    },
+    onSuccess: () => {
+      notification.success({ message: "Category deleted successfully" });
+      queryClient.invalidateQueries(['categories']);
+    },
+    onError: () => {
+      notification.error({ message: "Failed to delete category" });
+    }
+  });
+
+  // ========================= HANDLERS =========================
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      saveMutation.mutate(values);
     } catch (err) {
       if (err?.errorFields) return; // form validation error
-      notification.error({ message: err.message || "Error saving category" });
-    } finally {
-      setSubmitting(false);
+      console.error(err);
     }
-  }, [form, api, authToken, editRecord, fields.ids, fetchCategories]);
+  };
 
-  // ========================= MODAL HANDLERS =========================
+  const handleDelete = (id) => {
+    deleteMutation.mutate(id);
+  };
+
   const handleModalClose = useCallback(() => {
     setModalVisible(false);
     setEditRecord(null);
@@ -122,23 +137,6 @@ const Category = () => {
     setModalVisible(true);
   }, [form]);
 
-  // ========================= DELETE =========================
-  const handleDelete = useCallback(
-    async (id) => {
-      try {
-        await axios.delete(`${api}category-destroy/${id}`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
-        notification.success({ message: "Category deleted successfully" });
-        fetchCategories();
-      } catch {
-        notification.error({ message: "Failed to delete category" });
-      }
-    },
-    [api, authToken, fetchCategories]
-  );
-
-  // ========================= EDIT =========================
   const handleEdit = useCallback(
     (record) => {
       setEditRecord(record);
@@ -158,9 +156,9 @@ const Category = () => {
       // Set form values including image if exists
       const formValues = {
         title: record.title,
-        attendyRequired: record.attendy_required === 1,
-        photoRequired: record.photo_required === 1,
-        status: record.status === 1,
+        attendyRequired: record.attendy_required,
+        photoRequired: record.photo_required,
+        status: record.status,
       };
 
       // If editing and there's an existing image, create a file list array
@@ -198,7 +196,7 @@ const Category = () => {
         dataIndex: "attendy_required",
         align: "center",
         render: (val) =>
-          val === 1 ? (
+          val ? (
             <CheckOutlined style={{ color: "green" }} />
           ) : (
             <CloseOutlined style={{ color: "red" }} />
@@ -225,7 +223,7 @@ const Category = () => {
         ),
       },
     ],
-    [handleEdit, handleDelete]
+    [handleEdit, handleDelete] // Dependencies for useCallback inside columns
   );
 
   // ========================= UPLOAD NORMALIZATION =========================
@@ -250,10 +248,10 @@ const Category = () => {
         </Button>
       }
     >
-      <Spin spinning={loading}>
+      <Spin spinning={isLoading}>
         <Table
           rowKey="id"
-          dataSource={data}
+          dataSource={categories}
           columns={columns}
           pagination={{ pageSize: 10 }}
         />
@@ -266,7 +264,7 @@ const Category = () => {
         onOk={handleSubmit}
         okText="Save"
         width={600}
-        confirmLoading={submitting}
+        confirmLoading={saveMutation.isPending}
         destroyOnClose
       >
         <Form

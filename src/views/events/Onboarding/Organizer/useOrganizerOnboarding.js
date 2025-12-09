@@ -12,7 +12,7 @@ const getAllOrganizerOnboarding = async () => {
 
 // Approve organizer onboarding
 const approveOrganizerOnboarding = async ({ id, payload }) => {
-    const response = await api.post(`onboarding/org/approve/${id}`, payload);
+    const response = await api.post(`onboarding/org/action/${id}`, payload);
     return response;
 };
 

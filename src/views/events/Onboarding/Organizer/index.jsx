@@ -14,6 +14,7 @@ import {
 } from 'antd';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import DOMPurify from 'dompurify';
+import SignatureDisplay from 'components/shared-components/SignatureDisplay';
 import {
   useGetAllOrganizerOnboarding,
   useApproveOrganizerOnboarding,
@@ -38,7 +39,7 @@ const OrganizerOnboarding = () => {
 
   const rejectMutation = useRejectOrganizerOnboarding();
 
-  // Get the first active agreement for display
+  // Get the selected agreement
   const selectedAgreement = useMemo(() => {
     if (selectedAgreementId) {
       return agreements.find((a) => a.id === selectedAgreementId);
@@ -69,6 +70,100 @@ const OrganizerOnboarding = () => {
       .replace(/:ORG_Name/g, `<strong>${selectedRecord.organisation || ''}</strong>`);
   }, [selectedAgreement, selectedRecord]);
 
+  // Helper function to generate signature HTML
+  const generateSignatureHTML = (signatureData, label) => {
+    if (!signatureData) return '';
+
+    const {
+      signature_type,
+      signature_text,
+      signature_font_style,
+      signature_image,
+      signatory_name,
+      signing_date,
+      updated_at
+    } = signatureData;
+
+    let signatureContent = '';
+
+    // Type signature
+    if (signature_type === 'type' && signature_text) {
+      signatureContent = `
+        <div style="font-family: ${signature_font_style || 'cursive'}; font-size: 32px; margin-bottom: 8px; color: #000; line-height: 1.2;">
+          ${signature_text}
+        </div>
+      `;
+    }
+
+    // Draw or Upload signature
+    if ((signature_type === 'draw' || signature_type === 'upload') && signature_image) {
+      const imgSrc = signature_image.startsWith('data:') || signature_image.startsWith('http')
+        ? signature_image
+        : signature_image;
+      
+      signatureContent = `
+        <div style="margin-bottom: 8px; display: inline-block; background-color: #fff;">
+          <img 
+            src="${imgSrc}" 
+            alt="Signature" 
+            style="max-width: 250px; max-height: 100px; display: block; border: 1px solid #d9d9d9; border-radius: 4px; padding: 8px; background-color: #fff;"
+          />
+        </div>
+      `;
+    }
+
+    const signatoryHTML = signatory_name 
+      ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">${signatory_name}</div>` 
+      : '';
+
+    const dateHTML = (signing_date || updated_at)
+      ? `<div style="font-size: 11px; color: #666; margin-top: 2px;">
+          Signed on: ${new Date(signing_date || updated_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          })}
+        </div>`
+      : '';
+
+    return `
+      <div style="text-align: right;">
+        <div style="font-weight: 600; display: block; margin-bottom: 8px;">${label}</div>
+        ${signatureContent}
+        ${signatoryHTML}
+        ${dateHTML}
+      </div>
+    `;
+  };
+
+  // Generate complete email HTML
+  const generateEmailHTML = useMemo(() => {
+    if (!selectedAgreement || !selectedRecord) return '';
+
+    const adminSignatureHTML = generateSignatureHTML(agreements[0], 'Admin Signature:');
+    const organizerSignatureHTML = generateSignatureHTML(
+      selectedRecord?.organizer_signature,
+      'Organizer Signature:'
+    );
+
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background-color: #ffffff;">
+        <div style="margin-bottom: 16px; padding: 20px; background-color: #f9f9f9; border-radius: 5px;">
+          ${processedContent}
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; margin-top: 32px; border-top: 1px solid #f0f0f0; padding-top: 16px;">
+          <div style="flex: 1; padding-right: 20px;">
+            ${adminSignatureHTML}
+          </div>
+          <div style="flex: 1; padding-left: 20px;">
+            ${organizerSignatureHTML}
+          </div>
+        </div>
+      </div>
+    `;
+  }, [selectedAgreement, selectedRecord, processedContent, agreements]);
+
   // ========================= MODAL HANDLERS =========================
   const handleModalClose = useCallback(() => {
     setApproveModalVisible(false);
@@ -87,15 +182,31 @@ const OrganizerOnboarding = () => {
     if (!agreementAccepted || !selectedAgreementId) {
       return;
     }
+
     approveMutation.mutate({
       id: selectedRecord?.id,
-      payload: { agreement_id: selectedAgreementId },
+      payload: {
+        agreement_id: selectedAgreementId,
+        action: 'approve',
+        email_html_content: generateEmailHTML, // Complete HTML with signatures
+        agreement_title: selectedAgreement?.title,
+        organizer_email: selectedRecord?.email,
+        organizer_name: selectedRecord?.name,
+        organization_name: selectedRecord?.organisation,
+      },
     });
-  }, [agreementAccepted, approveMutation, selectedRecord, selectedAgreementId]);
+  }, [
+    agreementAccepted,
+    approveMutation,
+    selectedRecord,
+    selectedAgreementId,
+    generateEmailHTML,
+    selectedAgreement,
+  ]);
 
   const handleAgreementChange = useCallback((value) => {
     setSelectedAgreementId(value);
-    setAgreementAccepted(false); // Reset checkbox when agreement changes
+    setAgreementAccepted(false);
   }, []);
 
   const handleReject = useCallback(
@@ -151,11 +262,7 @@ const OrganizerOnboarding = () => {
                 title="Reject this request?"
                 onConfirm={() => handleReject(record.id)}
               >
-                <Button
-                  danger
-                  size="small"
-                  icon={<CloseOutlined />}
-                />
+                <Button danger size="small" icon={<CloseOutlined />} />
               </Popconfirm>
             </Tooltip>
           </Space>
@@ -217,7 +324,7 @@ const OrganizerOnboarding = () => {
               <>
                 <Card
                   style={{ marginBottom: 16 }}
-                  styles={{ body: { maxHeight: 400, overflowY: 'auto' } }}
+                  styles={{ body: { maxHeight: 400, overflowY: 'auto', position: 'relative' } }}
                 >
                   <Typography.Paragraph>
                     <div
@@ -226,6 +333,21 @@ const OrganizerOnboarding = () => {
                       }}
                     />
                   </Typography.Paragraph>
+
+                  <div className="d-flex justify-content-between">
+                    <SignatureDisplay
+                      signatureData={agreements[0]}
+                      label="Admin Signature:"
+                      align="right"
+                      showBorder={false}
+                    />
+                    <SignatureDisplay
+                      signatureData={selectedRecord?.organizer_signature}
+                      label="Organizer Signature:"
+                      align="right"
+                      showBorder={false}
+                    />
+                  </div>
                 </Card>
                 <Checkbox
                   checked={agreementAccepted}
@@ -237,7 +359,9 @@ const OrganizerOnboarding = () => {
             )}
           </>
         ) : (
-          <Typography.Text type="warning">No agreement found. Please create an agreement first.</Typography.Text>
+          <Typography.Text type="warning">
+            No agreement found. Please create an agreement first.
+          </Typography.Text>
         )}
       </Modal>
     </Card>
