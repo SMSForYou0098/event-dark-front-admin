@@ -14,7 +14,7 @@ import {
 } from 'antd';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import DOMPurify from 'dompurify';
-import SignatureDisplay from 'components/shared-components/SignatureDisplay';
+import AgreementPdfViewer from 'components/shared-components/AgreementPdfViewer';
 import {
   useGetAllOrganizerOnboarding,
   useApproveOrganizerOnboarding,
@@ -100,7 +100,7 @@ const OrganizerOnboarding = () => {
       const imgSrc = signature_image.startsWith('data:') || signature_image.startsWith('http')
         ? signature_image
         : signature_image;
-      
+
       signatureContent = `
         <div style="margin-bottom: 8px; display: inline-block; background-color: #fff;">
           <img 
@@ -112,17 +112,17 @@ const OrganizerOnboarding = () => {
       `;
     }
 
-    const signatoryHTML = signatory_name 
-      ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">${signatory_name}</div>` 
+    const signatoryHTML = signatory_name
+      ? `<div style="font-size: 12px; color: #666; margin-top: 4px;">${signatory_name}</div>`
       : '';
 
     const dateHTML = (signing_date || updated_at)
       ? `<div style="font-size: 11px; color: #666; margin-top: 2px;">
           Signed on: ${new Date(signing_date || updated_at).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          })}
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })}
         </div>`
       : '';
 
@@ -290,20 +290,28 @@ const OrganizerOnboarding = () => {
         open={approveModalVisible}
         title="Approve Organizer - Agreement"
         onCancel={handleModalClose}
-        width={800}
+        width={1000}
         footer={[
           <Button key="cancel" onClick={handleModalClose}>
             Cancel
           </Button>,
-          <Button
-            key="approve"
-            type="primary"
-            loading={isSubmitting}
-            disabled={!agreementAccepted || !selectedAgreementId}
-            onClick={handleApproveConfirm}
+          <Popconfirm
+            title="Approve Agreement"
+            description="Are you sure you want to approve this agreement?"
+            onConfirm={handleApproveConfirm}
+            okText="Yes"
+            cancelText="No"
+            placement="bottomright"
+            okButtonProps={{ loading: isSubmitting }}
           >
-            Approve
-          </Button>,
+            <Button
+              key="approve"
+              type="primary"
+              disabled={!selectedAgreementId}
+            >
+              Approve
+            </Button>
+          </Popconfirm>,
         ]}
         destroyOnClose
       >
@@ -322,39 +330,14 @@ const OrganizerOnboarding = () => {
 
             {selectedAgreement && (
               <>
-                <Card
-                  style={{ marginBottom: 16 }}
-                  styles={{ body: { maxHeight: 400, overflowY: 'auto', position: 'relative' } }}
-                >
-                  <Typography.Paragraph>
-                    <div
-                      dangerouslySetInnerHTML={{
-                        __html: DOMPurify.sanitize(processedContent),
-                      }}
-                    />
-                  </Typography.Paragraph>
-
-                  <div className="d-flex justify-content-between">
-                    <SignatureDisplay
-                      signatureData={agreements[0]}
-                      label="Admin Signature:"
-                      align="right"
-                      showBorder={false}
-                    />
-                    <SignatureDisplay
-                      signatureData={selectedRecord?.organizer_signature}
-                      label="Organizer Signature:"
-                      align="right"
-                      showBorder={false}
-                    />
-                  </div>
-                </Card>
-                <Checkbox
-                  checked={agreementAccepted}
-                  onChange={(e) => setAgreementAccepted(e.target.checked)}
-                >
-                  I confirm that the organizer has accepted this agreement
-                </Checkbox>
+                <div style={{ marginBottom: 16 }}>
+                  <AgreementPdfViewer
+                    content={DOMPurify.sanitize(processedContent)}
+                    adminSignature={selectedAgreement}
+                    organizerSignature={selectedRecord?.organizer_signature}
+                    title={selectedAgreement?.title}
+                  />
+                </div>
               </>
             )}
           </>

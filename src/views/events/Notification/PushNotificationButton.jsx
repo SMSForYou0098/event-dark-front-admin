@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import { Button, Spin } from "antd";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faBullhorn } from "@fortawesome/free-solid-svg-icons";
+import { Button } from "antd";
+import { NotificationOutlined } from "@ant-design/icons";
 import PushNotificationModal from "./PushNotificationModal";
 
 const PushNotificationButton = () => {
@@ -22,7 +21,7 @@ const PushNotificationButton = () => {
         type="primary"
         loading={isLoading}
         onClick={() => setShowModal(true)}
-        icon={<FontAwesomeIcon icon={faBullhorn} />}
+        icon={<NotificationOutlined />}
       >
         Push Notification
       </Button>

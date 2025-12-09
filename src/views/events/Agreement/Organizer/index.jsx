@@ -61,10 +61,21 @@ const OrganizerAgreement = () => {
     uploader: { insertImageAsBase64URI: true, url: '' },
     buttons: [
       'source', '|', 'bold', 'italic', 'underline', 'strikethrough', '|',
-      'ul', 'ol', '|', 'font', 'fontsize', 'brush', 'paragraph', '|',
+      'ul', 'ol', '|', 'font', 'fontsize', '|',
+      'brush', '|',
+      'paragraph', '|',
       'image', 'video', 'table', 'link', '|', 'align', 'undo', 'redo', '|',
       'hr', 'eraser', 'fullsize', 'preview'
     ],
+    controls: {
+      fontsize: {
+        list: [
+          '8', '9', '10', '11', '12', '14', '16', '18', '20', '22', '24', '26', '28', '30', '32', '34', '36', '48', '60', '72', '96'
+        ]
+      }
+    },
+    colorPickerDefaultTab: 'color',
+    showBrowserColorPicker: true,
     height: 400,
   }), []);
 
