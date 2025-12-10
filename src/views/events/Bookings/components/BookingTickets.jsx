@@ -170,16 +170,16 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
                 bookingBlocked={isBookingBlocked}
               />
             </Space>
-             {record?.fast_filling === 1 && (
-                <Tag icon={<RiseOutlined />} color="green" className='mt-1 p-0 px-2' style={{lineHeight: 2}}>
-                  Fast Filling
-                </Tag>
-              )}
-               {bookingStatus && (
-                <Tag icon={bookingStatus.icon} color={bookingStatus.color} className='mt-1 p-0 px-2' style={{lineHeight: 2}}>
-                  {bookingStatus.label}
-                </Tag>
-              )}
+            {record?.fast_filling === 1 && (
+              <Tag icon={<RiseOutlined />} color="green" className='mt-1 p-0 px-2' style={{ lineHeight: 2 }}>
+                Fast Filling
+              </Tag>
+            )}
+            {bookingStatus && (
+              <Tag icon={bookingStatus.icon} color={bookingStatus.color} className='mt-1 p-0 px-2' style={{ lineHeight: 2 }}>
+                {bookingStatus.label}
+              </Tag>
+            )}
           </Space>
         );
       },
@@ -227,7 +227,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
   ];
 
   return (
-    <div>
+    <div className=''>
       <Table
         dataSource={filteredTickets}
         columns={columns}
@@ -238,6 +238,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
         onRow={(record) => ({
           style: {
             pointerEvents: rowIsDisabled(record) ? 'none' : 'auto',
+
           },
         })}
       />

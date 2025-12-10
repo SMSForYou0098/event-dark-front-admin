@@ -16,7 +16,7 @@ const OrderCalculation = (props) => {
     grandTotal,
   } = calcTicketTotals(selectedTickets, discount);
 
-  
+
   return (
     <>
       <div className="d-flex justify-content-between mb-2">
@@ -43,7 +43,7 @@ const OrderCalculation = (props) => {
         <h6>State GST (SGST) @ 9%</h6>
         <h6 className="text-success">{ticketCurrency}{stateGST}</h6>
       </div>
-     
+
 
       <DiscoutFIeldGroup {...props} />
 

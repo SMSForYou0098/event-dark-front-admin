@@ -155,6 +155,27 @@
 }
 
 /* Centered modal */
-.ant-modal-centered {
+/* .ant-modal-centered {
   top: 50px !important;
+} */
+
+.transparent-modal .ant-modal-content {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.transparent-modal .ant-modal-body {
+    background: transparent !important;
+        box-shadow: none !important;
+
+}
+
+.transparent-modal .ant-modal-header {
+    background: transparent !important;
+    border-bottom: none !important;
+}
+
+.transparent-modal .ant-modal-footer {
+    background: transparent !important;
+    border-top: none !important;
 }

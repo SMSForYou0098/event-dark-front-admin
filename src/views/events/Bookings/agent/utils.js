@@ -80,21 +80,21 @@ export const BookingStats = ({type , id }) => {
       value: bookingStats.bookings || 0,
     },
     {
-      title: "Amount",
-      value: bookingStats.amount,
-      prefix: "₹",
-      valueStyle: { color: "var(--primary-color)" },
-    },
-    {
       title: "Discount",
       value: bookingStats.discount,
       prefix: "₹",
       valueStyle: { color: "#1890ff" },
     },
+    {
+      title: "Amount",
+      value: bookingStats.amount,
+      prefix: "₹",
+      valueStyle: { color: "var(--primary-color)" },
+    },
   ];
 
   return (
-    <Flex justify="space-around" wrap="wrap" gap={16} style={{ marginBottom: 16 }}>
+    <div className="d-flex justify-content-between mb-3">
     {stats.map((item, index) => (
       <Statistic
         key={index}
@@ -105,7 +105,7 @@ export const BookingStats = ({type , id }) => {
       />
     ))}
 
-  </Flex>
+  </div>
   )
 }
 

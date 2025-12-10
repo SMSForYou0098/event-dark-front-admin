@@ -93,7 +93,7 @@ export const generateESCPOSNativeQR = async (event, bookingData, totalTax, disco
         const name = (booking?.ticket?.name || 'N/A').substring(0, 16).padEnd(18);
         const amount = Number(booking.amount) || 0;
         const quantity = Number(booking.quantity) || 0;
-        const price = `Rs${(amount * quantity).toFixed(2)}`;
+        const price = `₹${(amount * quantity).toFixed(2)}`;
         addString(qty + name + price);
         addBytes(LF);
     });
@@ -107,25 +107,34 @@ export const generateESCPOSNativeQR = async (event, bookingData, totalTax, disco
     const safeDiscount = isNaN(parseFloat(discount)) ? 0 : parseFloat(discount);
     const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
 
-    addString(`TOTAL TAX     Rs${safeTax.toFixed(2)}`);
-    addBytes(LF);
-    addString(`DISCOUNT      Rs${safeDiscount.toFixed(2)}`);
-    addBytes(LF);
-    addBytes(ESC, 0x21, 0x30); // Double size
-    addString(`TOTAL  Rs${safeGrandTotal.toFixed(2)}`);
-    addBytes(LF);
-    addBytes(ESC, 0x21, 0x00);
-    addBytes(LF);
+    addString(`TOTAL TAX     ₹${safeTax.toFixed(2)}`);
+addBytes(LF);
+addString(`DISCOUNT      ₹${safeDiscount.toFixed(2)}`);
+addBytes(LF);
 
-    // Footer - Center aligned
-    addBytes(ESC, 0x61, 0x01);
-    addString('Thank You for Payment');
-    addBytes(LF);
-    addString('www.getyourticket.in');
-    addBytes(LF);
+// TOTAL in normal size
+addBytes(ESC, 0x21, 0x00);
+addString(`TOTAL  ₹${safeGrandTotal.toFixed(2)}`);
+addBytes(LF);
 
-    addBytes(LF, LF, LF);
-    addBytes(GS, 0x56, 0x00); // Cut paper
+// Footer - Center aligned
+addBytes(ESC, 0x61, 0x01);
+addBytes(LF, LF); // EXTRA SPACE
+addString('Thank You for Payment');
+addBytes(LF, LF); // EXTRA SPACE
+
+// URL big size
+addBytes(ESC, 0x21, 0x77); 
+addString('www.getyourticket.in');
+addBytes(LF);
+
+// Reset back to normal
+addBytes(ESC, 0x21, 0x00);
+
+addBytes(LF, LF, LF);
+addBytes(GS, 0x56, 0x00); // Cut paper
+addBytes(LF, LF); // EXTRA SPACE
+
 
     return new Uint8Array(bytes);
 };
@@ -195,7 +204,7 @@ export const generateESCPOSBitmapQR = async (event, bookingData, totalTax, disco
         const name = (booking?.ticket?.name || 'N/A').substring(0, 16).padEnd(18);
         const amount = Number(booking.amount) || 0;
         const quantity = Number(booking.quantity) || 0;
-        const price = `Rs${(amount * quantity).toFixed(2)}`;
+        const price = `₹${(amount * quantity).toFixed(2)}`;
         addString(qty + name + price);
         addBytes(LF);
     });
@@ -209,25 +218,34 @@ export const generateESCPOSBitmapQR = async (event, bookingData, totalTax, disco
     const safeDiscount = isNaN(parseFloat(discount)) ? 0 : parseFloat(discount);
     const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
 
-    addString(`TOTAL TAX     Rs${safeTax.toFixed(2)}`);
-    addBytes(LF);
-    addString(`DISCOUNT      Rs${safeDiscount.toFixed(2)}`);
-    addBytes(LF);
-    addBytes(ESC, 0x21, 0x30);
-    addString(`TOTAL  Rs${safeGrandTotal.toFixed(2)}`);
-    addBytes(LF);
-    addBytes(ESC, 0x21, 0x00);
-    addBytes(LF);
+    addString(`TOTAL TAX     ₹${safeTax.toFixed(2)}`);
+addBytes(LF);
+addString(`DISCOUNT      ₹${safeDiscount.toFixed(2)}`);
+addBytes(LF);
 
-    // Footer
-    addBytes(ESC, 0x61, 0x01);
-    addString('Thank You for Payment');
-    addBytes(LF);
-    addString('www.getyourticket.in');
-    addBytes(LF);
+// TOTAL in normal size
+addBytes(ESC, 0x21, 0x00);
+addString(`TOTAL  ₹${safeGrandTotal.toFixed(2)}`);
+addBytes(LF);
 
-    addBytes(LF, LF, LF);
-    addBytes(GS, 0x56, 0x00);
+// Footer - Center aligned
+addBytes(ESC, 0x61, 0x01);
+addBytes(LF, LF); // EXTRA SPACE
+addString('Thank You for Payment');
+addBytes(LF, LF); // EXTRA SPACE
+
+// URL big size
+addBytes(ESC, 0x21, 0x77); 
+addString('www.getyourticket.in');
+addBytes(LF);
+
+// Reset back to normal
+addBytes(ESC, 0x21, 0x00);
+
+addBytes(LF, LF, LF);
+addBytes(LF, LF); // EXTRA SPACE
+addBytes(GS, 0x56, 0x00); // Cut paper
+addBytes(LF, LF); // EXTRA SPACE
 
     return new Uint8Array(bytes);
 };
@@ -273,7 +291,7 @@ export const generateTSPL = async (event, bookingData, totalTax, discount, grand
         const name = booking?.ticket?.name || 'N/A';
         const amount = Number(booking.amount) || 0;
         const quantity = Number(booking.quantity) || 0;
-        const price = `Rs${(amount * quantity).toFixed(2)}`;
+        const price = `₹${(amount * quantity).toFixed(2)}`;
         
         lines.push(`TEXT 20, ${yPos}, "2", 0, 1, 1, "${qty} x ${name}"`);
         yPos += 30;
@@ -288,11 +306,11 @@ export const generateTSPL = async (event, bookingData, totalTax, discount, grand
     const safeDiscount = isNaN(parseFloat(discount)) ? 0 : parseFloat(discount);
     const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
 
-    lines.push(`TEXT 20, ${yPos}, "2", 0, 1, 1, "TOTAL TAX: Rs${safeTax.toFixed(2)}"`);
+    lines.push(`TEXT 20, ${yPos}, "2", 0, 1, 1, "TOTAL TAX: ₹${safeTax.toFixed(2)}"`);
     yPos += 30;
-    lines.push(`TEXT 20, ${yPos}, "2", 0, 1, 1, "DISCOUNT: Rs${safeDiscount.toFixed(2)}"`);
+    lines.push(`TEXT 20, ${yPos}, "2", 0, 1, 1, "DISCOUNT: ₹${safeDiscount.toFixed(2)}"`);
     yPos += 30;
-    lines.push(`TEXT 20, ${yPos}, "3", 0, 1, 1, "TOTAL: Rs${safeGrandTotal.toFixed(2)}"`);
+    lines.push(`TEXT 20, ${yPos}, "3", 0, 1, 1, "TOTAL: ₹${safeGrandTotal.toFixed(2)}"`);
     yPos += 50;
 
     // Footer

@@ -30,14 +30,14 @@ const POSAttendeeModal = (props) => {
     if ((number?.length === 10 || number?.length === 12) && /^\d+$/.test(number)) {
       setIsLoadingUser(true);
       setError("");
-      
+
       try {
         const response = await axios.get(`${api}pos/ex-user/${number}`, {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
         });
-        
+
         if (response.data.status) {
           const userData = response.data.data;
           setName(userData.name || "");
@@ -176,7 +176,7 @@ const POSAttendeeModal = (props) => {
           </div>
         )}
 
-        {(userRole === 'Admin' || userRole === 'Organizer') && (
+        {/* {(userRole === 'Admin' || userRole === 'Organizer') && (
           <Form.Item
             name="payment"
             label="Payment Method"
@@ -193,7 +193,7 @@ const POSAttendeeModal = (props) => {
               </Space>
             </Radio.Group>
           </Form.Item>
-        )}
+        )} */}
 
         <Form.Item style={{ marginBottom: 0 }}>
           <Space style={{ width: '100%', justifyContent: 'center' }} size="middle">

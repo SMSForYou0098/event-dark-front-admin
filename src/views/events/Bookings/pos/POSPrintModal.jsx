@@ -1,11 +1,11 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { Drawer, Table, message, Space, Tag } from 'antd';
-import { PrinterOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { Drawer, Table, message, Space, Tag, Button, Modal, Spin } from 'antd';
+import { PrinterOutlined, CheckCircleOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useReactToPrint } from 'react-to-print';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import { usePrinter } from '../../../../Context/PrinterContext';
 import './POSPrintModal.css';
-
+import printLoader from '../../../../assets/event/stock/print_loader.gif'
 // Subcomponents
 import PrinterConfigCard from './components/PrinterConfigCard';
 import ConnectedStatusCard from './components/ConnectedStatusCard';
@@ -15,12 +15,13 @@ import PrintFooter from './components/PrintFooter';
 // Utils
 import { generateQRCodeDataURL } from './utils/qrCodeUtils';
 import { generateESCPOSNativeQR, generateESCPOSBitmapQR, generateTSPL } from './utils/printerCommands';
+import Loader from 'utils/Loader';
 
 // Helper function to detect if device is mobile
 const isMobileDevice = () => {
     if (typeof window === 'undefined') return false;
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           window.innerWidth <= 768;
+        window.innerWidth <= 768;
 };
 
 const POSPrintModal = ({
@@ -86,10 +87,10 @@ const POSPrintModal = ({
     const handleConnectAndPrint = useCallback(async () => {
         try {
             setConnectionError(null);
-            
+
             if (!isConnected) {
                 message.loading({ content: 'Connecting to printer...', key: 'connect' });
-                
+
                 let success = false;
                 try {
                     if (connectionMode === 'usb') {
@@ -101,17 +102,7 @@ const POSPrintModal = ({
                     console.error('Connection error:', err);
                     setConnectionError(err.message || 'Failed to connect to printer');
                 }
-                
-                if (!success) {
-                    message.error({ 
-                        content: 'Failed to connect to printer. Please try again or use browser print.', 
-                        key: 'connect',
-                        duration: 5
-                    });
-                    setConnectionError('Connection failed. Please check your printer connection and try again.');
-                    return;
-                }
-                
+
                 message.success({ content: 'Printer connected!', key: 'connect', duration: 1 });
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
@@ -127,12 +118,12 @@ const POSPrintModal = ({
             } else {
                 commandBytes = await generateESCPOSBitmapQR(event, bookingData, totalTax, discount, grandTotal, formatDateTime);
             }
-            
+
             await sendRawBytes(commandBytes);
-            
+
             message.success({ content: 'Print sent successfully!', key: 'print' });
             setConnectionError(null);
-            
+
             // Auto-close drawer after successful print
             setTimeout(() => {
                 closePrintModel();
@@ -140,11 +131,6 @@ const POSPrintModal = ({
         } catch (err) {
             console.error('Print error:', err);
             const errorMsg = err.message || 'Failed to print';
-            message.error({ 
-                content: `Print failed: ${errorMsg}. Please try again or use browser print.`, 
-                key: 'print',
-                duration: 5
-            });
             setConnectionError(errorMsg);
         } finally {
             setIsPrinting(false);
@@ -160,7 +146,6 @@ const POSPrintModal = ({
                     setHasAutoPrinted(true);
                 } catch (error) {
                     console.error('Auto-print failed:', error);
-                    // Don't automatically open browser print - let user decide
                     setConnectionError('Auto-print failed. Please try connecting manually or use browser print.');
                     setHasAutoPrinted(true);
                 }
@@ -328,64 +313,90 @@ const POSPrintModal = ({
         message.info('Printer disconnected');
     };
 
-    return (
-        <Drawer
-            title={
-                <Space>
-                    <PrinterOutlined />
-                    <span>Print Invoice</span>
-                    {isConnected && <Tag color="success" icon={<CheckCircleOutlined />}>Connected</Tag>}
-                </Space>
-            }
-            placement="bottom"
-            open={showPrintModel}
-            onClose={closePrintModel}
-            height="auto"
-            styles={{
-                body: { paddingBottom: 80 }
-            }}
-            footer={
-                <PrintFooter
-                    onClose={closePrintModel}
-                    onBrowserPrint={handleBrowserPrint}
-                    onThermalPrint={handleConnectAndPrint}
-                    onDisconnect={handleDisconnect}
-                    isConnected={isConnected}
-                    isPrinting={isPrinting}
-                    printerType={printerType}
-                />
-            }
-        >
-            {/* Printer Configuration Card - Only show when not connected */}
-            {!isConnected ? (
-                <PrinterConfigCard
-                    connectionMode={connectionMode}
-                    setConnectionMode={setConnectionMode}
-                    printerType={printerType}
-                    setPrinterType={setPrinterType}
-                    isMobile={isMobile}
-                    isConnected={isConnected}
-                />
-            ) : (
-                // <ConnectedStatusCard
-                //     connectionMode={connectionMode}
-                //     printerType={printerType}
-                //     isConnected={isConnected}
-                // />
-            <InvoicePreview
-                printRef={printRef}
-                event={event}
-                qrCodeDataURL={qrCodeDataURL}
-                formatDateTime={formatDateTime}
-                bookingData={bookingData}
-                ticketColumns={ticketColumns}
-                ticketData={ticketData}
-                summaryColumns={summaryColumns}
-                summaryData={summaryData}
-            />
-            )}
+    // Custom loading icon
 
-        </Drawer>
+    return (
+        <>
+            {/* Loading Modal */}
+            <Modal
+                open={isPrinting}
+                footer={null}
+                closable={false}
+                centered
+                width={300}
+                className="transparent-modal"
+                maskStyle={{ backgroundColor: "rgba(0,0,0,0)" }} // optional (transparent/blur)
+            >
+                <Loader width={160} imgUrl={printLoader} />
+
+            </Modal>
+
+
+            {/* Main Drawer */}
+            <Drawer
+                title={
+                    <Space>
+                        <PrinterOutlined />
+                        <span>Print Invoice</span>
+                        {isConnected && <Tag color="success" icon={<CheckCircleOutlined />}>Connected</Tag>}
+                    </Space>
+                }
+                placement="bottom"
+                open={showPrintModel}
+                onClose={closePrintModel}
+                height="auto"
+                styles={{
+                    body: { paddingBottom: 80 }
+                }}
+                extra={
+                    isConnected && (
+                        <Button
+                            danger
+                            onClick={handleDisconnect}
+                            icon={<CloseOutlined />}
+                            size="large"
+                        >
+                            Disconnect
+                        </Button>
+                    )
+                }
+                footer={
+                    <PrintFooter
+                        onClose={closePrintModel}
+                        onBrowserPrint={handleBrowserPrint}
+                        onThermalPrint={handleConnectAndPrint}
+                        onDisconnect={handleDisconnect}
+                        isConnected={isConnected}
+                        isPrinting={isPrinting}
+                        printerType={printerType}
+                    />
+                }
+            >
+                {/* Printer Configuration Card - Only show when not connected */}
+                {!isConnected ? (
+                    <PrinterConfigCard
+                        connectionMode={connectionMode}
+                        setConnectionMode={setConnectionMode}
+                        printerType={printerType}
+                        setPrinterType={setPrinterType}
+                        isMobile={isMobile}
+                        isConnected={isConnected}
+                    />
+                ) : (
+                    <InvoicePreview
+                        printRef={printRef}
+                        event={event}
+                        qrCodeDataURL={qrCodeDataURL}
+                        formatDateTime={formatDateTime}
+                        bookingData={bookingData}
+                        ticketColumns={ticketColumns}
+                        ticketData={ticketData}
+                        summaryColumns={summaryColumns}
+                        summaryData={summaryData}
+                    />
+                )}
+            </Drawer>
+        </>
     );
 };
 

@@ -1,6 +1,6 @@
 import React, { useState, memo, Fragment, useEffect, useCallback } from "react";
-import { Button, Row, Col, Card, Space, Typography, message } from "antd";
-import { CalendarOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import { Button, Row, Col, Card, Space, Typography, message, Drawer } from "antd";
+import { CalendarOutlined, ArrowRightOutlined, CloseCircleOutlined } from "@ant-design/icons";
 import axios from "axios";
 import POSAttendeeModal from "./POSAttendeeModal";
 import POSPrintModal from "./POSPrintModal";
@@ -15,6 +15,7 @@ import { BookingStats, handleDiscountChange } from "../agent/utils";
 import BookingLayout from "views/events/seating_module/theatre_booking/Bookinglayout";
 import SeatingModuleSummary from "../agent/components/SeatingModuleSummary";
 import { ROW_GUTTER } from "constants/ThemeConstant";
+import ErrorDrawer from "./components/ErrorDrawer";
 
 const { Title, Text } = Typography;
 
@@ -36,14 +37,12 @@ const POS = memo(() => {
   const [seatingModule, setSeatingModule] = useState(false);
   const [selectedTickets, setSelectedTickets] = useState([]);
 
-
   const [number, setNumber] = useState('');
   const [name, setName] = useState('');
   const [bookingData, setBookingData] = useState([]);
 
   const [isAmusment, setIsAmusment] = useState(false);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
-
 
   // disc state 
   const [discount, setDiscount] = useState(0);
@@ -53,7 +52,8 @@ const POS = memo(() => {
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [showAttendeeModel, setShowAttendeeModel] = useState(false);
   const [method, setMethod] = useState('Cash');
-  // const [tickets, setTickets] = useState([]);
+  const [showErrorDrawer, setShowErrorDrawer] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const {
     grandTotal,
@@ -103,8 +103,6 @@ const POS = memo(() => {
             message.warning(res.data.message || "Something went wrong. Please try again.");
         }
 
-        // Stop further success flow if it’s a warning/error
-        //setIsBookingInProgress(false);
         return;
       }
       if (res.data.status) {
@@ -135,7 +133,6 @@ const POS = memo(() => {
     });
   }, [discountValue, discountType, selectedTickets]);
 
-
   useEffect(() => {
     setDisableChoice(false);
     if (discountValue) {
@@ -143,11 +140,9 @@ const POS = memo(() => {
     }
   }, [discountValue, discountType]);
 
-
   const handleButtonClick = useCallback((evnt, tkts) => {
     setEvent(evnt)
     setSeatingModule(evnt?.event_controls?.ticket_system);
-    // setTickets(tkts)
   }, []);
 
   const closePrintModel = () => {
@@ -164,8 +159,6 @@ const POS = memo(() => {
     setDisableChoice(false);
   };
 
-
-
   const handleClose = useCallback((skip) => {
     setShowAttendeeModel(false);
     if (skip) {
@@ -174,16 +167,20 @@ const POS = memo(() => {
   }, [StorePOSBooking]);
 
   const handleBooking = useCallback(() => {
-    // console.log(selectedTickets)
     const hasValidTicket = selectedTickets.some(ticket => Number(ticket?.quantity) > 0);
 
     if (!hasValidTicket) {
-      message.error('Please select at least one ticket');
+      setErrorMessage('Please select at least one ticket');
+      setShowErrorDrawer(true);
+
+      // Auto close after 3 seconds
+      setTimeout(() => {
+        setShowErrorDrawer(false);
+      }, 3000);
     } else {
       setShowAttendeeModel(true);
     }
   }, [selectedTickets]);
-
 
   // Utility function to calculate total tax + convenience fee from booking array
   const calculateTotalTax = (bookings) => {
@@ -197,8 +194,6 @@ const POS = memo(() => {
   };
 
   const totalTax = calculateTotalTax(bookingData)
-
-
 
   return (
     <Fragment>
@@ -224,6 +219,12 @@ const POS = memo(() => {
         discount={discount}
         grandTotal={grandTotal}
         autoPrint={true}
+      />
+
+      <ErrorDrawer
+        visible={showErrorDrawer}
+        message={errorMessage}
+        onClose={() => setShowErrorDrawer(false)}
       />
 
       <Row gutter={ROW_GUTTER}>
@@ -260,7 +261,6 @@ const POS = memo(() => {
             </Card>
           </Col>
         )}
-
 
         <Col xs={24} lg={8}>
           <Card bordered={false}>

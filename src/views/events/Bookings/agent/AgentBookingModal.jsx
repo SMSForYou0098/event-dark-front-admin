@@ -3,7 +3,7 @@ import { Modal, Form, Input, Button, Upload, Row, Col, Typography, Space, Radio,
 import { MailOutlined, WhatsAppOutlined, MessageOutlined, UploadOutlined, FileImageOutlined, FileTextOutlined, FileOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import api from 'auth/FetchInterceptor';
-
+import confirm_loader from '../../../../assets/event/stock/booking_confirm.gif'
 const { Title, Text } = Typography;
 
 // Handle document open function
@@ -230,7 +230,7 @@ const AgentBookingModal = (props) => {
     if (confirm) {
       return (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
-          <Image src={loader} width={150} preview={false} style={{ marginBottom: 16 }} />
+          <Image src={confirm_loader} width={150} preview={false} style={{ marginBottom: 16 }} />
           <Title level={3}>Booking Confirmed</Title>
           <Text type="secondary" style={{ display: 'block', margin: '20px 0' }}>
             Ticket sent on Email/WhatsApp/SMS.

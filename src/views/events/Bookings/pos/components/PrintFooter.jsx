@@ -12,26 +12,16 @@ const PrintFooter = ({
     printerType
 }) => {
     return (
-        <Space>
-            <Button onClick={onClose} icon={<CloseOutlined />}>
-                Close
-            </Button>
-            
-            {isConnected && (
-                <Button danger onClick={onDisconnect}>
-                    Disconnect
-                </Button>
-            )}
-            
+        <Space className='w-100 d-flex justify-content-between'>
             <Button
                 className='border-0'
                 type="primary"
                 onClick={onBrowserPrint}
                 icon={<PrinterOutlined />}
             >
-                Print Invoice
+                Print
             </Button>
-            
+
             <Button
                 type="default"
                 onClick={onThermalPrint}
@@ -39,7 +29,7 @@ const PrintFooter = ({
                 loading={isPrinting}
                 disabled={!printerType}
             >
-                {isConnected ? 'Send to Thermal' : 'Thermal Print'}
+                Thermal Print
             </Button>
         </Space>
     );
