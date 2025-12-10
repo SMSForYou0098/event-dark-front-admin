@@ -129,7 +129,7 @@ const htmlStyles = {
   },
 };
 
-const SignatureBlock = ({ signatureData, label }) => {
+const SignatureBlock = ({ signatureData, label , adminName }) => {
   if (!signatureData) return null;
 
   const {
@@ -168,7 +168,7 @@ const SignatureBlock = ({ signatureData, label }) => {
         <Image src={signature_image} style={styles.signatureImage} />
       )}
 
-      {signatory_name && <Text style={styles.signatoryName}>{signatory_name}</Text>}
+      {signatory_name && <Text style={styles.signatoryName}>{adminName ?? signatory_name}</Text>}
 
       {(signing_date || updated_at) && (
         <Text style={styles.signatureDate}>
@@ -179,7 +179,7 @@ const SignatureBlock = ({ signatureData, label }) => {
   );
 };
 
-const AgreementPdfDocument = ({ content, adminSignature, organizerSignature, title }) => {
+const AgreementPdfDocument = ({ content, adminSignature, organizerSignature, title , org }) => {
   // Clean HTML content for PDF rendering
   const cleanContent = (html) => {
     if (!html) return '';
@@ -203,8 +203,8 @@ const AgreementPdfDocument = ({ content, adminSignature, organizerSignature, tit
         {/* Signatures - Fixed on every page */}
         {(adminSignature || organizerSignature) && (
           <View style={styles.signatureSection} fixed>
-            <SignatureBlock signatureData={adminSignature} label="Admin Signature:" />
-            <SignatureBlock signatureData={organizerSignature} label="Organizer Signature:" />
+            <SignatureBlock signatureData={adminSignature} label="For, Trava Get Your Ticket Pvt. Ltd." adminName={'Janak Rana'}/>
+            <SignatureBlock signatureData={organizerSignature} label={`For ${org?.organisation}`} />
           </View>
         )}
 

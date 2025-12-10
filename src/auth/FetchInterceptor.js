@@ -129,7 +129,7 @@ api.interceptors.response.use(
         error?.response?.data?.error ||
         error?.response?.data ||
         'An error occurred';
-      message.error(`Error ${status}: ${serverMsg}`);
+      message.error(`${serverMsg}`);
     }
 
     return Promise.reject(error);

@@ -1,14 +1,16 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Button, Card, Modal, Form, Input, message, Spin } from 'antd';
-import { ArrowLeftOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
+import { Button, Card, Modal, Form, Input, message, Spin, Row, Col, Space, Avatar } from 'antd';
+import { ArrowLeftOutlined, ArrowRightOutlined, BankOutlined, LockOutlined, MailOutlined, PhoneOutlined, UserOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import AgreementPdfViewer from 'components/shared-components/AgreementPdfViewer';
-import   { useAgreementPreview, useVerifyUser } from './useAgreement';
+import { useAgreementPreview, useVerifyUser } from './useAgreement';
+import { getBackgroundWithOpacity } from '../common/CustomUtil';
+import { PRIMARY } from 'utils/consts';
 
 const PreviewAgreement = () => {
     const navigate = useNavigate();
     const { id } = useParams();
-    
+
     const [authModalVisible, setAuthModalVisible] = useState(true); // Show modal immediately
     const [agreementData, setAgreementData] = useState(null);
     const [form] = Form.useForm();
@@ -22,23 +24,15 @@ const PreviewAgreement = () => {
     const { mutate: verifyUser, isPending: isVerifying } = useVerifyUser({
         onSuccess: async (response) => {
             if (response.status) {
-                message.success('User verified successfully');
                 // After verification, fetch the agreement preview
                 const { data: previewData } = await fetchPreview();
+                message.success('User verified successfully');
                 if (previewData?.status) {
                     setAgreementData(previewData.data);
                     setAuthModalVisible(false);
                     form.resetFields();
-                } else {
-                    message.error(previewData?.message || 'Failed to load agreement');
-                }
-            } else {
-                message.error(response.message || 'User verification failed');
+                } 
             }
-        },
-        onError: (error) => {
-            console.error('Error verifying user:', error);
-            message.error(error.response?.data?.message || 'Failed to verify user. Please check your credentials.');
         }
     });
 
@@ -67,7 +61,7 @@ const PreviewAgreement = () => {
     const formattedAdminSignature = useMemo(() => {
         console.log(agreementData);
         if (!agreementData?.agreement) return null;
-        
+
         const adminSig = agreementData.agreement;
         return {
             signature_type: adminSig.signature_type,
@@ -81,7 +75,7 @@ const PreviewAgreement = () => {
     // Transform organizer signature from API response
     const formattedOrganizerSignature = useMemo(() => {
         if (!agreementData?.organizer_signature) return null;
-        
+
         const orgSig = agreementData.organizer_signature;
         return {
             signature_type: orgSig.signature_type,
@@ -153,16 +147,72 @@ const PreviewAgreement = () => {
 
             {/* Agreement Document */}
             {agreementData && (
-                <>
+                <Row gutter={[16, 16]}>
+                    <Col md={18} xs={24}>
                         <Card className="shadow-sm" bodyStyle={{ padding: '20px' }}>
-                            <AgreementPdfViewer 
+                            <AgreementPdfViewer
+                                auto={true}
+                                showDownload={true}
+                                showPrint={true}
+                                defaultScale={0.8}
                                 content={agreementContent}
                                 title={agreementData.agreement?.title || 'Partner Agreement'}
                                 adminSignature={formattedAdminSignature}
+                                org={agreementData.user}
                                 organizerSignature={formattedOrganizerSignature}
                             />
                         </Card>
-                </>
+                    </Col>
+                    <Col md={6} xs={24}>
+                        <Card title="Organizer Details" className="shadow-sm" bodyStyle={{ padding: 20 }}>
+                            <Space direction="vertical" size="large" className="w-100">
+
+                                {[
+                                    {
+                                        label: "Name",
+                                        value: agreementData.user?.name,
+                                        icon: <UserOutlined />
+                                    },
+                                    {
+                                        label: "Organization",
+                                        value: agreementData.user?.organisation,
+                                        icon: <BankOutlined />
+                                    },
+                                    {
+                                        label: "Email",
+                                        value: agreementData.user?.email,
+                                        icon: <MailOutlined />
+                                    },
+                                    {
+                                        label: "Phone",
+                                        value: agreementData.user?.number,
+                                        icon: <PhoneOutlined />
+                                    }
+                                ].map((item, index) => (
+                                    <div key={index} className="d-flex align-items-center gap-2">
+
+                                        <Avatar
+                                            icon={item.icon}
+                                            style={{
+                                                color: PRIMARY,
+                                                backgroundColor: getBackgroundWithOpacity(PRIMARY, 0.15)
+                                            }}
+                                        />
+
+                                        <strong className="ml-2">{item.label}:</strong>
+                                        <span>{item.value || "N/A"}</span>
+
+                                    </div>
+                                ))}
+
+                            </Space>
+                        </Card>
+                        <div className="d-flex justify-content-end w-100">
+                            <Button icon={<ArrowRightOutlined />} type='primary' onClick={() => navigate('/dashboard')}>Dashboard</Button>
+                        </div>
+                    </Col>
+
+                </Row>
             )}
         </div>
     );

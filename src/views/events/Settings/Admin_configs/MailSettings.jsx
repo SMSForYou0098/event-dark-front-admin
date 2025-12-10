@@ -26,6 +26,7 @@ import {
   useUpdateEmailTemplate,
   useDeleteEmailTemplate
 } from '../hooks/useSettings';
+import { joditConfig } from 'utils/consts';
 
 const MailSettings = memo(() => {
   const { UserData } = useMyContext();
@@ -41,20 +42,6 @@ const MailSettings = memo(() => {
   const [templateId, setTemplateId] = useState('');
   const [templatePreview, setTemplatePreview] = useState('');
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
-
-  // Jodit Config
-  const joditConfig = useMemo(() => ({
-    readonly: false,
-    autofocus: false,
-    uploader: { insertImageAsBase64URI: true, url: '' },
-    buttons: [
-      'source', '|', 'bold', 'italic', 'underline', 'strikethrough', '|',
-      'ul', 'ol', '|', 'font', 'fontsize', 'brush', 'paragraph', '|',
-      'image', 'table', 'link', '|', 'align', 'undo', 'redo', '|',
-      'hr', 'eraser', 'fullsize', 'preview'
-    ],
-    height: 300,
-  }), []);
 
   // Tanstack Query Hooks
   const { data: emailConfig, isLoading: isLoadingConfig } = useEmailConfig();

@@ -875,4 +875,12 @@ export const protectedRoutes = [
             permissions: ['View Live Users'],
         }
     },
+    {
+        key: 'content-master',
+        path: `/event-content`,
+        component: React.lazy(() => import('views/events/EventContent/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
 ]

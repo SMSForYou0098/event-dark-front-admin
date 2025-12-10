@@ -8,6 +8,7 @@ import {
   uploadFieldsConfig,
   formFieldMapping,
 } from './constants';
+import { joditConfig } from 'utils/consts';
 
 const { Title } = Typography;
 
@@ -157,6 +158,7 @@ const FooterSettingComp = ({ footerSettings, socialMediaData, onSave, isSaving }
           <Form.Item label="Footer Address">
             <JoditEditor
               value={footerAddress}
+              config={joditConfig}
               onChange={(newContent) => setFooterAddress(newContent)}
               tabIndex={1}
             />
@@ -189,6 +191,7 @@ const FooterSettingComp = ({ footerSettings, socialMediaData, onSave, isSaving }
           <Form.Item label="Site Credit">
             <JoditEditor
               value={siteCredit}
+              config={joditConfig}
               onChange={(newContent) => setSiteCredit(newContent)}
               tabIndex={2}
             />

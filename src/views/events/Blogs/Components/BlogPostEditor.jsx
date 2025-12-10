@@ -1,10 +1,11 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import JoditEditor from 'jodit-react';
 import {
   Button, Form, Card, Row, Col, Alert, Switch, Input, Upload, Image, message
 } from 'antd';
 import { DeleteOutlined, UploadOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
 import MetaFields from './MetaFields';
+import { joditConfig } from 'utils/consts';
 
 
 const BlogPostEditor = ({
@@ -115,22 +116,6 @@ const BlogPostEditor = ({
   };
 
 
-  // ✅ Memoize config to prevent re-renders
-  const config = useMemo(() => ({
-    readonly: false,
-    autofocus: false,
-    uploader: { insertImageAsBase64URI: true, url: '' },
-    image: { edit: true, resize: true, width: '100%', height: 'auto' },
-    buttons: [
-      'source','|','bold','italic','underline','strikethrough','|',
-      'ul','ol','|','font','fontsize','brush','paragraph','|',
-      'image','video','table','link','|','align','undo','redo','|',
-      'hr','eraser','fullsize','preview'
-    ],
-    height: 500,
-  }), []);
-
-
   const uploadProps = {
     beforeUpload: (file) => {
       const isImage = file.type.startsWith('image/');
@@ -233,7 +218,7 @@ const BlogPostEditor = ({
                 <JoditEditor
                   ref={editor}
                   value={content}
-                  config={config}
+                  config={joditConfig}
                   tabIndex={1}
                   onBlur={(newContent) => setContent(newContent)} // ✅ Only use onBlur
                   onChange={(newContent) => {}} // ✅ Leave onChange empty

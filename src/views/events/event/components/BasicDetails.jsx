@@ -1,12 +1,10 @@
 // BasicDetailsStep.jsx
 import React, { useEffect, useMemo } from 'react';
-import { Form, Input, Select, Row, Col, Typography, Card, Space, Button, Alert, Empty } from 'antd';
+import { Form, Input, Select, Row, Col} from 'antd';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
-import { CompassOutlined, EnvironmentOutlined, HomeOutlined, PlusOutlined } from '@ant-design/icons';
-import { useEventCategories, useVenues } from '../hooks/useEventOptions';
+import { useEventCategories } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
-import { useNavigate } from 'react-router-dom';
 import { VanueList } from './CONSTANTS';
 
 const { TextArea } = Input;

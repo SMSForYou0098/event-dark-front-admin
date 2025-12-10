@@ -287,6 +287,15 @@ const eventManagementSubmenu = [
     permissions: ["View Artists"]
   },
   {
+    key: 'content-master',
+    path: 'event-content',
+    title: 'Content Master',
+    icon: BookOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin"]
+  },
+  {
     key: 'fields',
     path: 'fields',
     title: 'Custom Fields',
