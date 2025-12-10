@@ -956,6 +956,33 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
                         </Row>
                     </Card>
+                                {/* Signature Section - Only for Organizers with inactive agreement */}
+            {formState.roleName === 'Organizer' && !formState.agreementStatus && (
+                    <Col xs={24}>
+                        <Card title="Admin Signature" className="mb-4">
+                            <SignatureInput
+                                signatureType={signatureType}
+                                onSignatureTypeChange={setSignatureType}
+                                selectedFont={selectedFont}
+                                onFontChange={setSelectedFont}
+                                typedSignature={typedSignature}
+                                onTypedSignatureChange={setTypedSignature}
+                                uploadedSignature={uploadedSignature}
+                                onUploadedSignatureChange={setUploadedSignature}
+                                signaturePreview={signaturePreview}
+                                onSignaturePreviewChange={setSignaturePreview}
+                                canvasRef={canvasRef}
+                                onClearCanvas={() => {
+                                    const canvas = canvasRef.current;
+                                    if (canvas) {
+                                        const ctx = canvas.getContext('2d');
+                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                    }
+                                }}
+                            />
+                        </Card>
+                    </Col>
+            )}
                 </Col>
 
                 {/* Right Column */}
@@ -995,7 +1022,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     )}
 
                     {/* Banking Details (Admin + Organizer role) */}
-                    {userRole === 'Admin' && formState.roleName === 'Organizer' && (
+                    {(userRole === 'Admin' || formState.roleName === 'Organizer') && (
                         <Card title="Banking Details" style={{ marginBottom: 16 }}>
                             <Row gutter={[16, 16]}>
                                 <Col xs={24} md={12}>
@@ -1126,35 +1153,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 </Col>
             </Row>
 
-            {/* Signature Section - Only for Organizers with inactive agreement */}
-            {formState.roleName === 'Organizer' && !formState.agreementStatus && (
-                <Row gutter={16}>
-                    <Col xs={24}>
-                        <Card title="Admin Signature" className="mb-4">
-                            <SignatureInput
-                                signatureType={signatureType}
-                                onSignatureTypeChange={setSignatureType}
-                                selectedFont={selectedFont}
-                                onFontChange={setSelectedFont}
-                                typedSignature={typedSignature}
-                                onTypedSignatureChange={setTypedSignature}
-                                uploadedSignature={uploadedSignature}
-                                onUploadedSignatureChange={setUploadedSignature}
-                                signaturePreview={signaturePreview}
-                                onSignaturePreviewChange={setSignaturePreview}
-                                canvasRef={canvasRef}
-                                onClearCanvas={() => {
-                                    const canvas = canvasRef.current;
-                                    if (canvas) {
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                    }
-                                }}
-                            />
-                        </Card>
-                    </Col>
-                </Row>
-            )}
+
 
             {/* OTP Verification Modal */}
             <Modal

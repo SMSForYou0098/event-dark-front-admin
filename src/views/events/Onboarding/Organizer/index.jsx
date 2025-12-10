@@ -179,7 +179,7 @@ const OrganizerOnboarding = () => {
   }, []);
 
   const handleApproveConfirm = useCallback(() => {
-    if (!agreementAccepted || !selectedAgreementId) {
+    if ( !selectedAgreementId) {
       return;
     }
 

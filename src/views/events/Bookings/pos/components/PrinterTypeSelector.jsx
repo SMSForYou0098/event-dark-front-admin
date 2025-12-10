@@ -15,11 +15,11 @@ const PrinterTypeSelector = ({ printerType, setPrinterType, isConnected }) => {
             title: 'ESC/POS (Legacy)',
             description: 'Bitmap QR - Old thermal printers'
         },
-        {
-            value: 'tspl',
-            title: 'TSPL',
-            description: 'TSC label printers only'
-        }
+        // {
+        //     value: 'tspl',
+        //     title: 'TSPL',
+        //     description: 'TSC label printers only'
+        // }
     ];
 
     return (

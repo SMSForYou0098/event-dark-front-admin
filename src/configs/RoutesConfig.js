@@ -39,6 +39,11 @@ export const publicRoutes = [
         path: `${AUTH_PREFIX_PATH}/forgot-password`,
         component: React.lazy(() => import('views/auth-views/authentication/forgot-password')),
     },
+    // {
+    //     key: 'agreement/preview/:id',
+    //     path: `${AUTH_PREFIX_PATH}/agreement/preview/:id`,
+    //     component: React.lazy(() => import('views/events/Agreement/PreviewAgreement')),
+    // },
 
     // Error Pages
     {
@@ -857,14 +862,6 @@ export const protectedRoutes = [
         key: 'organizer-agreement',
         path: `/agreements/organizer`,
         component: React.lazy(() => import('views/events/Agreement/Organizer/index')),
-        meta: {
-            roles: ['admin'],
-        }
-    },
-    {
-        key: 'new-booking',
-        path: `/agreements/partner`,
-        component: React.lazy(() => import('views/events/Agreement/AgreementCreator')),
         meta: {
             roles: ['admin'],
         }

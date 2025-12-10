@@ -7,6 +7,7 @@ import PublicRoute from './PublicRoute';
 import AppRoute from './AppRoute';
 import { useMyContext } from 'Context/MyContextProvider';
 import { lowerCase } from 'lodash';
+import PreviewAgreement from 'views/events/Agreement/PreviewAgreement';
 
 const Routes = () => {
  const {userRole , UserData} = useMyContext()
@@ -58,6 +59,8 @@ const Routes = () => {
 						/ >
 					)
 				})}
+			</Route>
+			<Route path="/agreement/preview/:id" element={<PreviewAgreement />}>
 			</Route>
 		</RouterRoutes>
 	)

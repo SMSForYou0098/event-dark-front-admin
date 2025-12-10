@@ -16,16 +16,19 @@ const PrinterConfigCard = ({
     return (
         <Card 
             size="small" 
-            style={{ marginBottom: '16px', background: '#f8f9fa' }}
+            style={{ marginBottom: '16px'}}
             bodyStyle={{ padding: '12px' }}
         >
             <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                {
+                    !isConnected &&
                 <ConnectionModeSelector
                     connectionMode={connectionMode}
                     setConnectionMode={setConnectionMode}
                     isMobile={isMobile}
                     isConnected={isConnected}
                 />
+                }
                 
                 {!isMobile && connectionMode && <Divider style={{ margin: '8px 0' }} />}
                 

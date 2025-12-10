@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { Modal, Table, message, Space, Tag } from 'antd';
+import { Drawer, Table, message, Space, Tag } from 'antd';
 import { PrinterOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useReactToPrint } from 'react-to-print';
 import { useMyContext } from '../../../../Context/MyContextProvider';
@@ -132,6 +132,11 @@ const POSPrintModal = ({
             
             message.success({ content: 'Print sent successfully!', key: 'print' });
             setConnectionError(null);
+            
+            // Auto-close drawer after successful print
+            setTimeout(() => {
+                closePrintModel();
+            }, 1000);
         } catch (err) {
             console.error('Print error:', err);
             const errorMsg = err.message || 'Failed to print';
@@ -144,7 +149,7 @@ const POSPrintModal = ({
         } finally {
             setIsPrinting(false);
         }
-    }, [isConnected, connectionMode, printerType, connectUSB, connectBluetooth, event, bookingData, totalTax, discount, grandTotal, formatDateTime, sendRawBytes]);
+    }, [isConnected, connectionMode, printerType, connectUSB, connectBluetooth, event, bookingData, totalTax, discount, grandTotal, formatDateTime, sendRawBytes, closePrintModel]);
 
     // Auto-print effect - removed automatic browser print fallback
     useEffect(() => {
@@ -324,7 +329,7 @@ const POSPrintModal = ({
     };
 
     return (
-        <Modal
+        <Drawer
             title={
                 <Space>
                     <PrinterOutlined />
@@ -332,9 +337,13 @@ const POSPrintModal = ({
                     {isConnected && <Tag color="success" icon={<CheckCircleOutlined />}>Connected</Tag>}
                 </Space>
             }
+            placement="bottom"
             open={showPrintModel}
-            onCancel={closePrintModel}
-            width={480}
+            onClose={closePrintModel}
+            height="auto"
+            styles={{
+                body: { paddingBottom: 80 }
+            }}
             footer={
                 <PrintFooter
                     onClose={closePrintModel}
@@ -347,44 +356,22 @@ const POSPrintModal = ({
                 />
             }
         >
-            {/* Connection Error Message */}
-            {connectionError && (
-                <div 
-                    style={{ 
-                        marginBottom: '16px', 
-                        padding: '12px', 
-                        background: '#fff2e8', 
-                        border: '1px solid #ffbb96',
-                        borderRadius: '4px'
-                    }}
-                >
-                    <div style={{ color: '#d4380d', fontWeight: '500', marginBottom: '4px' }}>
-                        Connection Issue
-                    </div>
-                    <div style={{ color: '#666', fontSize: '12px' }}>
-                        {connectionError}
-                    </div>
-                </div>
-            )}
-
-            {/* Printer Configuration Card */}
-            <PrinterConfigCard
-                connectionMode={connectionMode}
-                setConnectionMode={setConnectionMode}
-                printerType={printerType}
-                setPrinterType={setPrinterType}
-                isMobile={isMobile}
-                isConnected={isConnected}
-            />
-
-            {/* Connected Printer Info */}
-            <ConnectedStatusCard
-                connectionMode={connectionMode}
-                printerType={printerType}
-                isConnected={isConnected}
-            />
-
-            {/* Invoice Preview */}
+            {/* Printer Configuration Card - Only show when not connected */}
+            {!isConnected ? (
+                <PrinterConfigCard
+                    connectionMode={connectionMode}
+                    setConnectionMode={setConnectionMode}
+                    printerType={printerType}
+                    setPrinterType={setPrinterType}
+                    isMobile={isMobile}
+                    isConnected={isConnected}
+                />
+            ) : (
+                // <ConnectedStatusCard
+                //     connectionMode={connectionMode}
+                //     printerType={printerType}
+                //     isConnected={isConnected}
+                // />
             <InvoicePreview
                 printRef={printRef}
                 event={event}
@@ -396,7 +383,9 @@ const POSPrintModal = ({
                 summaryColumns={summaryColumns}
                 summaryData={summaryData}
             />
-        </Modal>
+            )}
+
+        </Drawer>
     );
 };
 
