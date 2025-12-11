@@ -6,7 +6,7 @@ import { signUp, showAuthMessage, showLoading, hideAuthMessage } from '../../../
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from "framer-motion"
 import axios from 'axios';
-import { API_BASE_URL, AUTH_PREFIX_PATH } from 'configs/AppConfig';
+import { API_BASE_URL } from 'configs/AppConfig';
 const rules = {
 	name: [
 		{

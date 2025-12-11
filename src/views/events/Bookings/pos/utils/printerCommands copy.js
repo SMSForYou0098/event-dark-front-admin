@@ -5,7 +5,7 @@ import { generateQRCodeImage, imageToRasterBytes } from './qrCodeUtils';
 // If you still see a wrong glyph, try changing RUPEE_BYTE to 0xA8. Final fallback: set rupeeSymbolFallback to 'Rs '.
 const RUPEE_BYTE = 0xB9; 
 const rupeeSymbol = String.fromCharCode(RUPEE_BYTE);
-const rupeeSymbolFallback = 'Rs '; // set to 'Rs ' if the printer still cannot render ₹
+const rupeeSymbolFallback = rupeeSymbol; // set to 'Rs ' if the printer still cannot render ₹
 const formatCurrency = (value) => `${rupeeSymbolFallback}${value.toFixed(2)}`;
 
 /**

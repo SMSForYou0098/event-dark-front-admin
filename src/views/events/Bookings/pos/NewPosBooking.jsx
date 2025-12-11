@@ -1,6 +1,6 @@
 import React, { useState, memo, Fragment, useEffect, useCallback } from "react";
 import { Button, Row, Col, Card, Space, Typography, message, Drawer } from "antd";
-import { CalendarOutlined, ArrowRightOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { CalendarOutlined, ArrowRightOutlined, CloseCircleOutlined, SettingOutlined } from "@ant-design/icons";
 import axios from "axios";
 import POSAttendeeModal from "./POSAttendeeModal";
 import POSPrintModal from "./POSPrintModal";
@@ -35,6 +35,7 @@ const POS = memo(() => {
   const [isCheckOut, setIsCheckOut] = useState(true);
   const [event, setEvent] = useState([]);
   const [seatingModule, setSeatingModule] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
   const [selectedTickets, setSelectedTickets] = useState([]);
 
   const [number, setNumber] = useState('');
@@ -61,9 +62,7 @@ const POS = memo(() => {
 
   const StorePOSBooking = useCallback(async () => {
     setShowAttendeeModel(false);
-    console.log(selectedTickets)
     const validTickets = selectedTickets?.filter(ticket => ticket?.quantity > 0);
-    console.log(validTickets)
 
     if (validTickets[0]?.quantity === undefined) {
       ErrorAlert('Please Select A Ticket');
@@ -211,6 +210,8 @@ const POS = memo(() => {
 
       <POSPrintModal
         showPrintModel={showPrintModel}
+        showConfig={showConfig}
+        setShowConfig={setShowConfig}
         closePrintModel={closePrintModel}
         event={event}
         bookingData={bookingData}
@@ -231,36 +232,43 @@ const POS = memo(() => {
         <Col span={24}>
           <PosEvents handleButtonClick={handleButtonClick} />
         </Col>
-        {seatingModule ? (
-          <Col xs={24} lg={16}>
-            <BookingLayout
-              eventId={event?.id}
-              setSelectedTkts={setSelectedTickets}
-              layoutId={event?.layout_id}
-            />
-          </Col>
-        ) : (
-          <Col xs={24} lg={16}>
-            <Card
-              bordered={false}
-              title={event?.name}
-              extra={event?.date_range && (
-                <Space>
-                  <CalendarOutlined className="text-primary" />
-                  <Text>{formatDateRange(event?.date_range)}</Text>
-                </Space>
-              )}
-            >
-              <BookingTickets
-                event={event}
-                selectedTickets={selectedTickets}
-                setSelectedTickets={setSelectedTickets}
-                getCurrencySymbol={getCurrencySymbol}
-                type={'pos'}
-              />
-            </Card>
-          </Col>
-        )}
+
+        <Col xs={24} lg={16}>
+          <Card
+            bordered={false}
+            title={event?.name}
+            extra={event?.date_range && (
+              <Space>
+                {/* add setting button */}
+                <Button
+                  size="small"
+                  className="mr-2"
+                  icon={<SettingOutlined />}
+                  onClick={() => setShowConfig(true)}
+                />
+                <CalendarOutlined className="text-primary" />
+                <Text>{formatDateRange(event?.date_range)}</Text>
+              </Space>
+            )}
+          >
+            <Col xs={24} lg={24}>
+              {seatingModule ? (
+                <BookingLayout
+                  eventId={event?.id}
+                  setSelectedTkts={setSelectedTickets}
+                  layoutId={event?.layout_id}
+                />
+              ) : (
+                <BookingTickets
+                  event={event}
+                  selectedTickets={selectedTickets}
+                  setSelectedTickets={setSelectedTickets}
+                  getCurrencySymbol={getCurrencySymbol}
+                  type={'pos'}
+                />)}
+            </Col>
+          </Card>
+        </Col>
 
         <Col xs={24} lg={8}>
           <Card bordered={false}>

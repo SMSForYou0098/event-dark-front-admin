@@ -90,7 +90,8 @@
 .ant-drawer-body span,
 .ant-drawer-body div,
 .ant-drawer-body label {
-    color: var(--text-white) !important;
+    /* color: var(--text-white) !important; */
+    color: var(--text-white);
 }
 
 /* Drawer content headings */

@@ -1,16 +1,21 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { Drawer, Table, message, Space, Tag, Button, Modal, Spin } from 'antd';
-import { PrinterOutlined, CheckCircleOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
+import { Drawer, message, Space, Tag, Button, Modal } from 'antd';
+import { PrinterOutlined, CheckCircleOutlined, SaveOutlined } from '@ant-design/icons';
 import { useReactToPrint } from 'react-to-print';
+import { useSelector, useDispatch } from 'react-redux';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import { usePrinter } from '../../../../Context/PrinterContext';
+import {
+    selectConnectionMode,
+    selectPrinterType,
+    selectAutoPrint,
+    setPrinterConfig,
+} from '../../../../store/slices/printerSlice';
 import './POSPrintModal.css';
 import printLoader from '../../../../assets/event/stock/print_loader.gif'
 // Subcomponents
 import PrinterConfigCard from './components/PrinterConfigCard';
-import ConnectedStatusCard from './components/ConnectedStatusCard';
 import InvoicePreview from './components/InvoicePreview';
-import PrintFooter from './components/PrintFooter';
 
 // Utils
 import { generateQRCodeDataURL } from './utils/qrCodeUtils';
@@ -33,11 +38,18 @@ const POSPrintModal = ({
     totalTax,
     discount,
     grandTotal,
-    autoPrint = false,
+    showConfig,
+    setShowConfig,
     printerRef: externalPrinterRef
 }) => {
     const { formatDateTime } = useMyContext();
+    const dispatch = useDispatch();
     const printRef = useRef(null);
+
+    // Get saved printer config from Redux
+    const savedConnectionMode = useSelector(selectConnectionMode);
+    const savedPrinterType = useSelector(selectPrinterType);
+    const savedAutoPrint = useSelector(selectAutoPrint);
 
     const {
         connectionMode,
@@ -47,15 +59,68 @@ const POSPrintModal = ({
         connectBluetooth,
         disconnect,
         sendRawBytes,
+        deviceName,
+        status: printerStatus,
     } = usePrinter();
 
     const [isPrinting, setIsPrinting] = useState(false);
     const [isMobile, setIsMobile] = useState(isMobileDevice());
     const [hasAutoPrinted, setHasAutoPrinted] = useState(false);
+    const [isAutoPrintEnabled, setIsAutoPrintEnabled] = useState(savedAutoPrint);
     const [qrCodeDataURL, setQrCodeDataURL] = useState('');
-    const [printerType, setPrinterType] = useState('escpos-native');
+    const [printerType, setPrinterType] = useState(savedPrinterType);
     const [connectionError, setConnectionError] = useState(null);
     const modeInitializedRef = useRef(false);
+
+    // Initialize connection mode from Redux on mount
+    useEffect(() => {
+        if (savedConnectionMode && !modeInitializedRef.current) {
+            setConnectionMode(savedConnectionMode);
+        }
+    }, [savedConnectionMode, setConnectionMode]);
+
+    // Save printer config handler and connect to printer
+    const handleSavePrintSettings = useCallback(async () => {
+        // Save config to Redux
+        dispatch(setPrinterConfig({
+            connectionMode,
+            printerType,
+            autoPrint: isAutoPrintEnabled,
+        }));
+
+        // Browser mode doesn't need connection
+        if (connectionMode === 'browser') {
+            message.success('Printer settings saved successfully!');
+            setShowConfig(false);
+            return;
+        }
+
+        // Connect to thermal printer if not already connected
+        if (!isConnected) {
+            message.loading({ content: 'Connecting to printer...', key: 'connect' });
+            try {
+                let success = false;
+                if (connectionMode === 'usb') {
+                    success = await connectUSB();
+                } else {
+                    success = await connectBluetooth();
+                }
+
+                if (success) {
+                    message.success({ content: 'Printer connected & settings saved!', key: 'connect' });
+                } else {
+                    message.warning({ content: 'Settings saved but printer connection failed', key: 'connect' });
+                }
+            } catch (err) {
+                console.error('Connection error:', err);
+                message.error({ content: `Settings saved but connection failed: ${err.message}`, key: 'connect' });
+            }
+        } else {
+            message.success('Printer settings saved successfully!');
+        }
+
+        setShowConfig(false);
+    }, [dispatch, connectionMode, printerType, isAutoPrintEnabled, setShowConfig, isConnected, connectUSB, connectBluetooth]);
 
     // Browser print handler
     const handleBrowserPrint = useReactToPrint({
@@ -83,24 +148,32 @@ const POSPrintModal = ({
         }
     }, [showPrintModel, bookingData]);
 
-    // Connect and Print
+    // Connect and Print (handles browser, USB, and Bluetooth modes)
     const handleConnectAndPrint = useCallback(async () => {
         try {
             setConnectionError(null);
 
+            // Browser print mode - use native browser print dialog
+            if (connectionMode === 'browser') {
+                handleBrowserPrint();
+                return;
+            }
+
+            // Thermal printer modes (USB/Bluetooth)
             if (!isConnected) {
                 message.loading({ content: 'Connecting to printer...', key: 'connect' });
 
-                let success = false;
                 try {
                     if (connectionMode === 'usb') {
-                        success = await connectUSB();
+                        await connectUSB();
                     } else {
-                        success = await connectBluetooth();
+                        await connectBluetooth();
                     }
                 } catch (err) {
                     console.error('Connection error:', err);
                     setConnectionError(err.message || 'Failed to connect to printer');
+                    message.error({ content: err.message || 'Failed to connect to printer', key: 'connect' });
+                    return;
                 }
 
                 message.success({ content: 'Printer connected!', key: 'connect', duration: 1 });
@@ -135,11 +208,11 @@ const POSPrintModal = ({
         } finally {
             setIsPrinting(false);
         }
-    }, [isConnected, connectionMode, printerType, connectUSB, connectBluetooth, event, bookingData, totalTax, discount, grandTotal, formatDateTime, sendRawBytes, closePrintModel]);
+    }, [isConnected, connectionMode, printerType, connectUSB, connectBluetooth, event, bookingData, totalTax, discount, grandTotal, formatDateTime, sendRawBytes, closePrintModel, handleBrowserPrint]);
 
     // Auto-print effect - removed automatic browser print fallback
     useEffect(() => {
-        if (autoPrint && showPrintModel && bookingData?.length > 0 && !hasAutoPrinted) {
+        if (isAutoPrintEnabled && showPrintModel && bookingData?.length > 0 && !hasAutoPrinted) {
             const timer = setTimeout(async () => {
                 try {
                     await handleConnectAndPrint();
@@ -152,7 +225,7 @@ const POSPrintModal = ({
             }, 800);
             return () => clearTimeout(timer);
         }
-    }, [autoPrint, showPrintModel, bookingData, hasAutoPrinted, handleConnectAndPrint]);
+    }, [isAutoPrintEnabled, showPrintModel, bookingData, hasAutoPrinted, handleConnectAndPrint]);
 
     useEffect(() => {
         if (!showPrintModel) {
@@ -169,151 +242,20 @@ const POSPrintModal = ({
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Initialize connection mode - use saved config from Redux, only fallback to mobile detection if first time
     useEffect(() => {
         if (!modeInitializedRef.current) {
-            if (isMobile) {
-                setConnectionMode('ble');
-            } else {
-                setConnectionMode('usb');
-            }
+            // Use saved connection mode from Redux
+            setConnectionMode(savedConnectionMode);
             modeInitializedRef.current = true;
-        } else if (isMobile) {
-            setConnectionMode('ble');
         }
-    }, [isMobile, setConnectionMode]);
-
-    const formatSeatNames = (eventSeatStatus) => {
-        if (!eventSeatStatus || !Array.isArray(eventSeatStatus) || eventSeatStatus.length === 0) {
-            return '-';
-        }
-
-        const seatsBySection = eventSeatStatus.reduce((acc, seat) => {
-            const sectionName = seat.section?.name || 'Unknown Section';
-            if (!acc[sectionName]) {
-                acc[sectionName] = [];
-            }
-            acc[sectionName].push(seat.seat_name);
-            return acc;
-        }, {});
-
-        const sections = Object.keys(seatsBySection);
-
-        if (sections.length === 1) {
-            return seatsBySection[sections[0]].join(', ');
-        }
-
-        return sections
-            .map(sectionName => `${sectionName}: ${seatsBySection[sectionName].join(', ')}`)
-            .join(' | ');
-    };
-
-    const hasSeatingData = useMemo(() => {
-        return bookingData?.some(booking =>
-            booking?.event_seat_status &&
-            Array.isArray(booking.event_seat_status) &&
-            booking.event_seat_status.length > 0
-        );
-    }, [bookingData]);
-
-    const ticketColumns = useMemo(() => {
-        const columns = [
-            {
-                title: 'Qty',
-                dataIndex: 'quantity',
-                key: 'quantity',
-                width: '15%',
-                align: 'center',
-            },
-            {
-                title: 'Ticket Name',
-                dataIndex: 'ticketName',
-                key: 'ticketName',
-                width: '50%',
-                align: 'left',
-            },
-        ];
-
-        if (hasSeatingData) {
-            columns.push({
-                title: 'Seat',
-                dataIndex: 'seat',
-                key: 'seat',
-                width: '50%',
-                align: 'left',
-                render: (text) => (
-                    <span style={{ fontWeight: 'bold', fontSize: '16px' }}>
-                        {text}
-                    </span>
-                ),
-            });
-        }
-
-        columns.push({
-            title: 'Price',
-            dataIndex: 'price',
-            key: 'price',
-            width: '35%',
-            align: 'right',
-        });
-
-        return columns;
-    }, [hasSeatingData]);
-
-    const ticketData = useMemo(() => {
-        return bookingData?.map((booking, index) => ({
-            key: index,
-            quantity: booking.quantity || 0,
-            seat: formatSeatNames(booking?.event_seat_status),
-            ticketName: booking?.ticket?.name || 'N/A',
-            price: `₹${(Number(booking.amount) * Number(booking.quantity)).toFixed(2) || '0.00'}`,
-        }));
-    }, [bookingData]);
-
-    const summaryColumns = useMemo(() => [
-        {
-            dataIndex: 'label',
-            key: 'label',
-            align: 'right',
-        },
-        {
-            dataIndex: 'value',
-            key: 'value',
-            align: 'right',
-            width: '40%',
-        },
-    ], []);
-
-    const summaryData = useMemo(() => {
-        const safeTax = isNaN(parseFloat(totalTax)) ? 0 : parseFloat(totalTax);
-        const safeDiscount = isNaN(parseFloat(discount)) ? 0 : parseFloat(discount);
-        const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
-
-        return [
-            {
-                key: '1',
-                label: 'TOTAL TAX',
-                value: `₹${safeTax.toFixed(2)}`,
-            },
-            {
-                key: '2',
-                label: 'DISCOUNT',
-                value: `₹${safeDiscount.toFixed(2)}`,
-            },
-            {
-                key: '3',
-                label: <strong>TOTAL</strong>,
-                value: <strong>₹{safeGrandTotal.toFixed(2)}</strong>,
-            },
-        ];
-    }, [totalTax, discount, grandTotal]);
+    }, [savedConnectionMode, setConnectionMode]);
 
     const handleDisconnect = async () => {
         await disconnect();
         setConnectionError(null);
         message.info('Printer disconnected');
     };
-
-    // Custom loading icon
 
     return (
         <>
@@ -325,7 +267,6 @@ const POSPrintModal = ({
                 centered
                 width={300}
                 className="transparent-modal"
-                maskStyle={{ backgroundColor: "rgba(0,0,0,0)" }} // optional (transparent/blur)
             >
                 <Loader width={160} imgUrl={printLoader} />
 
@@ -337,64 +278,68 @@ const POSPrintModal = ({
                 title={
                     <Space>
                         <PrinterOutlined />
-                        <span>Print Invoice</span>
+                        <span>Print Configuration</span>
                         {isConnected && <Tag color="success" icon={<CheckCircleOutlined />}>Connected</Tag>}
                     </Space>
                 }
-                placement="bottom"
-                open={showPrintModel}
-                onClose={closePrintModel}
+                placement={isMobile ? 'bottom' : "right"}
+                open={showConfig}
+                onClose={()=> setShowConfig(false)}
                 height="auto"
+                width={500}
                 styles={{
                     body: { paddingBottom: 80 }
                 }}
-                extra={
-                    isConnected && (
-                        <Button
-                            danger
-                            onClick={handleDisconnect}
-                            icon={<CloseOutlined />}
-                            size="large"
-                        >
-                            Disconnect
-                        </Button>
-                    )
-                }
                 footer={
-                    <PrintFooter
-                        onClose={closePrintModel}
-                        onBrowserPrint={handleBrowserPrint}
-                        onThermalPrint={handleConnectAndPrint}
-                        onDisconnect={handleDisconnect}
-                        isConnected={isConnected}
-                        isPrinting={isPrinting}
-                        printerType={printerType}
-                    />
+                    <Button icon={<SaveOutlined />} className='w-100' type="primary" onClick={handleSavePrintSettings}>
+                        Save Settings
+                    </Button>
                 }
             >
-                {/* Printer Configuration Card - Only show when not connected */}
-                {!isConnected ? (
-                    <PrinterConfigCard
-                        connectionMode={connectionMode}
-                        setConnectionMode={setConnectionMode}
-                        printerType={printerType}
-                        setPrinterType={setPrinterType}
-                        isMobile={isMobile}
-                        isConnected={isConnected}
-                    />
-                ) : (
-                    <InvoicePreview
-                        printRef={printRef}
-                        event={event}
-                        qrCodeDataURL={qrCodeDataURL}
-                        formatDateTime={formatDateTime}
-                        bookingData={bookingData}
-                        ticketColumns={ticketColumns}
-                        ticketData={ticketData}
-                        summaryColumns={summaryColumns}
-                        summaryData={summaryData}
-                    />
-                )}
+                {/* Printer Configuration Card - Always show config */}
+                <PrinterConfigCard
+                    connectionMode={connectionMode}
+                    setConnectionMode={setConnectionMode}
+                    printerType={printerType}
+                    setPrinterType={setPrinterType}
+                    isMobile={isMobile}
+                    isConnected={isConnected}
+                    isAutoPrintEnabled={isAutoPrintEnabled}
+                    setIsAutoPrintEnabled={setIsAutoPrintEnabled}
+                    deviceName={deviceName}
+                    status={printerStatus}
+                    onDisconnect={handleDisconnect}
+                />
+            </Drawer>
+            
+            <Drawer
+                title={
+                    <Space>
+                        <PrinterOutlined />
+                        <span>Print Invoice</span>
+                    </Space>
+                }
+                placement={isMobile ? 'bottom' : "right"}
+                open={showPrintModel}
+                onClose={closePrintModel}
+                closable
+                height="85vh"
+                footer={
+                    <Button icon={<PrinterOutlined />} className='w-100' type="primary" onClick={handleConnectAndPrint} loading={isPrinting}>
+                        Print
+                    </Button>
+                }
+            >
+                <InvoicePreview
+                    printRef={printRef}
+                    event={event}
+                    qrCodeDataURL={qrCodeDataURL}
+                    formatDateTime={formatDateTime}
+                    bookingData={bookingData}
+                    totalTax={totalTax}
+                    discount={discount}
+                    grandTotal={grandTotal}
+                />
             </Drawer>
         </>
     );

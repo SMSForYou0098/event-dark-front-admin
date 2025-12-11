@@ -24,7 +24,7 @@ const PrinterTypeSelector = ({ printerType, setPrinterType, isConnected }) => {
 
     return (
         <div className="mb-3">
-            <div className="mb-2 fw-semibold" style={{ fontSize: '13px', color: '#262626' }}>
+            <div className="mb-2 fw-semibold">
                 Printer Type:
             </div>
             <Radio.Group 
@@ -37,7 +37,7 @@ const PrinterTypeSelector = ({ printerType, setPrinterType, isConnected }) => {
                             <div style={{ marginLeft: '4px' }}>
                                 <div 
                                     className="fw-semibold" 
-                                    style={{ fontSize: '13px', color: '#262626', lineHeight: '1.4' }}
+                                    style={{ fontSize: '13px', lineHeight: '1.4' }}
                                 >
                                     {option.title}
                                 </div>

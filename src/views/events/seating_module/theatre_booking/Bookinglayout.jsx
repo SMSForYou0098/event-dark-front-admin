@@ -173,8 +173,6 @@ const BookingLayout = (props) => {
     }
     return (
         <div className="booking-layout">
-            <Card bodyStyle={{ padding: 0 }}>
-
                 <Row gutter={16}>
                     {/* Left Side - Canvas */}
                     <Col xs={24} span={24}>
@@ -205,8 +203,6 @@ const BookingLayout = (props) => {
                         <BookingLegend sections={sections} />
                     </Col> */}
                 </Row>
-            </Card>
-
 
         </div>
     );

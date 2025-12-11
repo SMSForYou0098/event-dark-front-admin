@@ -3,6 +3,8 @@ import { createSlice } from '@reduxjs/toolkit';
 const initialState = {
     // Connection preferences (persisted)
     connectionMode: 'ble', // 'usb' or 'ble' - default to bluetooth for mobile compatibility
+    printerType: 'escpos-native', // 'escpos-native', 'escpos-bitmap', 'tspl'
+    autoPrint: false, // Auto print when modal opens
     lastConnectedDevice: null, // Store device name for reconnection
     
     // Connection state (runtime - not persisted but synced with context)
@@ -17,6 +19,19 @@ const printerSlice = createSlice({
     reducers: {
         setConnectionMode: (state, action) => {
             state.connectionMode = action.payload;
+        },
+        setPrinterType: (state, action) => {
+            state.printerType = action.payload;
+        },
+        setAutoPrint: (state, action) => {
+            state.autoPrint = action.payload;
+        },
+        // Save all printer config at once
+        setPrinterConfig: (state, action) => {
+            const { connectionMode, printerType, autoPrint } = action.payload;
+            if (connectionMode !== undefined) state.connectionMode = connectionMode;
+            if (printerType !== undefined) state.printerType = printerType;
+            if (autoPrint !== undefined) state.autoPrint = autoPrint;
         },
         setConnected: (state, action) => {
             state.isConnected = action.payload.isConnected;
@@ -44,6 +59,9 @@ const printerSlice = createSlice({
 
 export const {
     setConnectionMode,
+    setPrinterType,
+    setAutoPrint,
+    setPrinterConfig,
     setConnected,
     setDisconnected,
     setStatus,
@@ -53,6 +71,8 @@ export const {
 // Selectors
 export const selectPrinterState = (state) => state.printer;
 export const selectConnectionMode = (state) => state.printer?.connectionMode || 'ble';
+export const selectPrinterType = (state) => state.printer?.printerType || 'escpos-native';
+export const selectAutoPrint = (state) => state.printer?.autoPrint || false;
 export const selectIsConnected = (state) => state.printer?.isConnected || false;
 export const selectPrinterStatus = (state) => state.printer?.status || 'Not Connected';
 export const selectDeviceName = (state) => state.printer?.deviceName || '';

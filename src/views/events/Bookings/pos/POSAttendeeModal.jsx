@@ -208,11 +208,6 @@ const POSAttendeeModal = (props) => {
             <Button
               type="default"
               size="large"
-              style={{
-                background: '#52c41a',
-                color: '#fff',
-                borderColor: '#52c41a'
-              }}
               onClick={() => handleClose(true)}
             >
               Skip

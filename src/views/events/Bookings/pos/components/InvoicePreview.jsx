@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Table } from 'antd';
 
 const InvoicePreview = ({
@@ -7,11 +7,136 @@ const InvoicePreview = ({
     qrCodeDataURL,
     formatDateTime,
     bookingData,
-    ticketColumns,
-    ticketData,
-    summaryColumns,
-    summaryData
+    totalTax,
+    discount,
+    grandTotal,
 }) => {
+
+    const hasSeatingData = useMemo(() => {
+        return bookingData?.some(booking =>
+            booking?.event_seat_status &&
+            Array.isArray(booking.event_seat_status) &&
+            booking.event_seat_status.length > 0
+        );
+    }, [bookingData]);
+
+    const ticketColumns = useMemo(() => {
+        const columns = [
+            {
+                title: 'Qty',
+                dataIndex: 'quantity',
+                key: 'quantity',
+                width: '15%',
+                align: 'center',
+            },
+            {
+                title: 'Ticket Name',
+                dataIndex: 'ticketName',
+                key: 'ticketName',
+                width: '50%',
+                align: 'left',
+            },
+        ];
+
+        if (hasSeatingData) {
+            columns.push({
+                title: 'Seat',
+                dataIndex: 'seat',
+                key: 'seat',
+                width: '50%',
+                align: 'left',
+                render: (text) => (
+                    <span style={{ fontWeight: 'bold', fontSize: '16px' }}>
+                        {text}
+                    </span>
+                ),
+            });
+        }
+
+        columns.push({
+            title: 'Price',
+            dataIndex: 'price',
+            key: 'price',
+            width: '35%',
+            align: 'right',
+        });
+
+        return columns;
+    }, [hasSeatingData]);
+
+    const summaryColumns = useMemo(() => [
+        {
+            dataIndex: 'label',
+            key: 'label',
+            align: 'right',
+        },
+        {
+            dataIndex: 'value',
+            key: 'value',
+            align: 'right',
+            width: '40%',
+        },
+    ], []);
+
+    const summaryData = useMemo(() => {
+        const safeTax = isNaN(parseFloat(totalTax)) ? 0 : parseFloat(totalTax);
+        const safeDiscount = isNaN(parseFloat(discount)) ? 0 : parseFloat(discount);
+        const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
+
+        return [
+            {
+                key: '1',
+                label: 'TOTAL TAX',
+                value: `₹${safeTax.toFixed(2)}`,
+            },
+            {
+                key: '2',
+                label: 'DISCOUNT',
+                value: `₹${safeDiscount.toFixed(2)}`,
+            },
+            {
+                key: '3',
+                label: <strong>TOTAL</strong>,
+                value: <strong>₹{safeGrandTotal.toFixed(2)}</strong>,
+            },
+        ];
+    }, [totalTax, discount, grandTotal]);
+
+    const formatSeatNames = (eventSeatStatus) => {
+        if (!eventSeatStatus || !Array.isArray(eventSeatStatus) || eventSeatStatus.length === 0) {
+            return '-';
+        }
+
+        const seatsBySection = eventSeatStatus.reduce((acc, seat) => {
+            const sectionName = seat.section?.name || 'Unknown Section';
+            if (!acc[sectionName]) {
+                acc[sectionName] = [];
+            }
+            acc[sectionName].push(seat.seat_name);
+            return acc;
+        }, {});
+
+        const sections = Object.keys(seatsBySection);
+
+        if (sections.length === 1) {
+            return seatsBySection[sections[0]].join(', ');
+        }
+
+        return sections
+            .map(sectionName => `${sectionName}: ${seatsBySection[sectionName].join(', ')}`)
+            .join(' | ');
+    };
+
+    const ticketData = useMemo(() => {
+        return bookingData?.map((booking, index) => ({
+            key: index,
+            quantity: booking.quantity || 0,
+            seat: formatSeatNames(booking?.event_seat_status),
+            ticketName: booking?.ticket?.name || 'N/A',
+            price: `₹${(Number(booking.amount) * Number(booking.quantity)).toFixed(2) || '0.00'}`,
+        }));
+    }, [bookingData]);
+    
     return (
         <div 
             ref={printRef} 
