@@ -293,7 +293,8 @@ const eventManagementSubmenu = [
     icon: BookOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"]
+    // roles: ["Admin"]
+    permissions: ["View Content Master"],
   },
   {
     key: 'fields',

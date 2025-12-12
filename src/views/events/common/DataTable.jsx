@@ -61,20 +61,20 @@ const DataTable = ({
 
   // For frontend filtering (when serverSide is false)
   const [filteredData, setFilteredData] = useState(data);
-  
+
   // Local input value for immediate UI feedback
   const [localSearchValue, setLocalSearchValue] = useState(searchValue);
-  
+
   // Sync controlled search value for server-side mode
   const displaySearchText = serverSide ? localSearchValue : searchText;
-  
+
   // Sync localSearchValue when searchValue prop changes (e.g., on reset)
   useEffect(() => {
     if (serverSide) {
       setLocalSearchValue(searchValue);
     }
   }, [searchValue, serverSide]);
-  
+
   useEffect(() => {
     if (!serverSide) {
       setFilteredData(data);
@@ -147,14 +147,14 @@ const DataTable = ({
         const { current, pageSize } = paginationConfig;
         onPaginationChange(current, pageSize);
       }
-      
+
       // Handle sorting change
       if (onSortChange && sorter) {
         const { field, order } = sorter;
         onSortChange(field, order); // order: 'ascend' | 'descend' | undefined
       }
     }
-    
+
     // Call any existing onChange from tableProps
     tableProps.onChange?.(paginationConfig, filters, sorter);
   };
@@ -208,9 +208,15 @@ const DataTable = ({
 
     setExportLoading(true);
     try {
+      // Only include date parameter if dateRange has valid values
+      const requestBody = {};
+      if (dateRange?.startDate && dateRange?.endDate) {
+        requestBody.date = `${dateRange.startDate},${dateRange.endDate}`;
+      }
+
       const response = await api.post(
         exportRoute,
-        { date: `${dateRange.startDate},${dateRange.endDate}` },
+        requestBody,
         { responseType: "blob" }
       );
 
@@ -460,31 +466,31 @@ const DataTable = ({
             pagination={
               serverSide && pagination
                 ? {
-                    current: pagination.current_page,
-                    pageSize: pagination.per_page,
-                    total: pagination.total,
-                    showTotal: (total, range) =>
-                      isMobile
-                        ? `${range[0]}-${range[1]}/${total}`
-                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
-                    size: isMobile ? "small" : "default",
-                    simple: isSmallMobile,
-                    responsive: true,
-                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-                    showSizeChanger: !isMobile,
-                    pageSizeOptions: ["1", "15", "20", "50", "100"],
-                  }
+                  current: pagination.current_page,
+                  pageSize: pagination.per_page,
+                  total: pagination.total,
+                  showTotal: (total, range) =>
+                    isMobile
+                      ? `${range[0]}-${range[1]}/${total}`
+                      : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                  size: isMobile ? "small" : "default",
+                  simple: isSmallMobile,
+                  responsive: true,
+                  position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                  showSizeChanger: !isMobile,
+                  pageSizeOptions: ["1", "15", "20", "50", "100"],
+                }
                 : {
-                    pageSize: isMobile ? 5 : 10,
-                    showTotal: (total, range) =>
-                      isMobile
-                        ? `${range[0]}-${range[1]}/${total}`
-                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
-                    size: isMobile ? "small" : "default",
-                    simple: isSmallMobile,
-                    responsive: true,
-                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-                  }
+                  pageSize: isMobile ? 5 : 10,
+                  showTotal: (total, range) =>
+                    isMobile
+                      ? `${range[0]}-${range[1]}/${total}`
+                      : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                  size: isMobile ? "small" : "default",
+                  simple: isSmallMobile,
+                  responsive: true,
+                  position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                }
             }
             onChange={handleTableChange}
             locale={{ emptyText }}

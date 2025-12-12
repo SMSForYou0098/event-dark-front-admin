@@ -8,7 +8,7 @@ import api from 'auth/FetchInterceptor';
 const { Text } = Typography;
 
 const EventReports = memo(() => {
-  const { UserData } = useMyContext();
+  const { UserData, UserPermissions } = useMyContext();
   const [dateRange, setDateRange] = useState(null);
   const [type, setType] = useState('active');
 
@@ -296,7 +296,7 @@ const EventReports = memo(() => {
       showSearch={true}
       enableExport={true}
       exportRoute="export-event-reports"
-      ExportPermission={true}
+      ExportPermission={UserPermissions?.includes('Export Event Reports')}
       onRefresh={refetch}
       emptyText="No event reports found"
       extraHeaderContent={extraHeaderContent}

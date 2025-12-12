@@ -11,9 +11,10 @@ import {
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
 import { joditConfig } from 'utils/consts';
+import { User } from 'lucide-react';
 
 const ContentMaster = () => {
-    const { UserData } = useMyContext();
+    const { UserData,userRole } = useMyContext();
     const isUserOrganizer = UserData?.role?.toLowerCase() === 'organizer';
     
     // ========================= STATE =========================
@@ -26,7 +27,7 @@ const ContentMaster = () => {
     const editor = useRef(null);
 
     // ========================= TANSTACK QUERY HOOKS =========================
-    const { data: contentList = [], isLoading } = useGetAllContentMaster();
+    const { data: contentList = [], isLoading } = useGetAllContentMaster(UserData?.id,userRole);
 
     // ========================= FILTERED DATA =========================
     const filteredContentList = useMemo(() => {
@@ -107,6 +108,7 @@ const ContentMaster = () => {
             form.setFieldsValue({
                 title: record.title,
                 status: record.status === 1 || record.status === true,
+                org_id: String(record.user_id),
             });
             setModalVisible(true);
         },

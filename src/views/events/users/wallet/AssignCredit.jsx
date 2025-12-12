@@ -10,7 +10,7 @@ import Flex from 'components/shared-components/Flex';
 const { Option } = Select;
 
 const AssignCredit = ({ id }) => {
-  const { UserData, api, authToken, UserList, formatAmountWithCommas, handleWhatsappAlert } = useMyContext();
+  const { UserData, api, authToken, UserList, formatAmountWithCommas } = useMyContext();
 
   // States
   const [currentBalance, setCurrentBalance] = useState(0);
@@ -189,7 +189,7 @@ const AssignCredit = ({ id }) => {
       ctCredits: previewBalance,
       type: isDeduction ? 'debit' : 'credit'
     };
-    await handleWhatsappAlert(userId?.number || userData?.user?.number, values, template);
+    // await handleWhatsappAlert(userId?.number || userData?.user?.number, values, template);
   };
 
   const UpdateBalance = async () => {

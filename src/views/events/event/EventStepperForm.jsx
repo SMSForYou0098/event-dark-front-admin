@@ -43,6 +43,7 @@ import {
     toUploadFileList,
 } from './hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
+import { useGetAllContentMaster } from '../EventContent/useContentMaster';
 
 const { Step } = Steps;
 const { Title } = Typography;
@@ -61,7 +62,7 @@ const STEP_NAMES = {
 
 const EventStepperForm = () => {
     const navigate = useNavigate();
-    const { loader } = useMyContext()
+    const { loader, UserData, userRole } = useMyContext()
     const location = useLocation();
     const { id } = useParams();
     const isEdit = !!id;
@@ -128,9 +129,7 @@ const EventStepperForm = () => {
                 show_on_home: Number(controls?.show_on_home) || 0,
 
                 // storing instagram post id from url
-                insta_whts_url: detail?.insta_whts_url
-                    ? `https://www.instagram.com/p/${detail.insta_whts_url}/`
-                    : undefined,
+                insta_whts_url: detail?.insta_whts_url || '',
                 whts_note: detail?.whts_note || undefined,
                 booking_notice: detail?.booking_notice || undefined,
             });
@@ -235,7 +234,15 @@ const EventStepperForm = () => {
         }
     }, [isEdit, detail, form, current]);
 
+    const orgId = Form.useWatch('org_id', form);
+
+    const { data: contentList = [], isLoading: contentLoading } =
+        useGetAllContentMaster(orgId, 'Organizer');
     // Mutations
+
+
+    console.log('content list', contentList);
+
     const { mutateAsync: createEvent, isPending: creating } = useCreateEvent({
         onSuccess: (res) => {
             message.success(res?.message || 'Event created successfully!');
@@ -290,9 +297,9 @@ const EventStepperForm = () => {
     // Steps configuration
     const steps = useMemo(
         () => [
-            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} />, icon: <FormOutlined /> },
-            { title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} />, icon: <ControlOutlined /> },
-            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
+            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} contentList={contentList} contentLoading={contentLoading} form={form} />, icon: <FormOutlined /> },
+            { title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} contentList={contentList} contentLoading={contentLoading} />, icon: <ControlOutlined /> },
+            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} contentList={contentList} contentLoading={contentLoading} />, icon: <FieldTimeOutlined /> },
             {
                 title: 'Tickets',
                 content: (
@@ -307,6 +314,8 @@ const EventStepperForm = () => {
                         onDeleteTicket={handleDeleteTicket}
                         eventId={detail?.event_key}
                         eventName={detail?.name}
+                        contentList={contentList}
+                        contentLoading={contentLoading}
                     />
                 ),
                 icon: <TagsOutlined />,
@@ -316,7 +325,7 @@ const EventStepperForm = () => {
             { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
-        [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
+        [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail, contentList, contentLoading]
     );
 
     // Navigation handlers

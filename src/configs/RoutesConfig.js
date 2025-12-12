@@ -880,7 +880,8 @@ export const protectedRoutes = [
         path: `/event-content`,
         component: React.lazy(() => import('views/events/EventContent/index')),
         meta: {
-            roles: ['admin'],
+            // roles: ['admin'],
+            permissions: ['View Content Master'],
         }
     },
 ]

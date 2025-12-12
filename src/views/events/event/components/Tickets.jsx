@@ -4,11 +4,12 @@ import { ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
 import TicketManager from 'views/events/Tickets/TicketManager/TicketManager';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useNavigate } from 'react-router-dom';
+import ContentSelect from './ContentSelect';
 
 const { TextArea } = Input;
 const { Text } = Typography;
 
-const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
+const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, contentLoading }) => {
   const navigate = useNavigate();
   const form = Form.useFormInstance();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
@@ -116,18 +117,16 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
       {/* Terms & Conditions */}
       <Col span={24}>
         <Card title="Terms & Conditions">
-          <Form.Item
-            name="ticket_terms"
+          <ContentSelect
+            form={form}
+            fieldName="ticket_terms"
             label="Ticket Terms & Conditions"
-            rules={[{ required: true, message: 'Please enter ticket terms' }]}
-          >
-            <TextArea
-              rows={3}
-              placeholder="Enter ticket terms and conditions..."
-              showCount
-              maxLength={1000}
-            />
-          </Form.Item>
+            contentList={contentList}
+            loading={contentLoading}
+            placeholder="Select ticket terms"
+            rules={[{ required: true, message: "Please select ticket terms" }]}
+          />
+
         </Card>
       </Col>
 

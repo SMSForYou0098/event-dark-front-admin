@@ -35,7 +35,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         roleId: null,
         roleName: '',
         reportingUser: '',
-        status: 'Active',
+        status: true,
 
         // Role-specific fields
         agreementStatus: false,
@@ -389,15 +389,15 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     // Check if email or phone number has changed
     const hasEmailOrPhoneChanged = useCallback((values) => {
         if (!isEditingOwnProfile) return false;
-        
+
         const currentEmail = values.email?.trim()?.toLowerCase();
         const currentNumber = values.number?.trim();
         const origEmail = originalEmail.current?.trim()?.toLowerCase();
         const origNumber = originalNumber.current?.trim();
-        
+
         const emailChanged = origEmail && currentEmail !== origEmail;
         const phoneChanged = origNumber && currentNumber !== origNumber;
-        
+
         return emailChanged || phoneChanged;
     }, [isEditingOwnProfile]);
 
@@ -410,20 +410,20 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             const currentNumber = values.number?.trim();
             const origEmail = originalEmail.current?.trim()?.toLowerCase();
             const origNumber = originalNumber.current?.trim();
-            
+
             const emailChanged = origEmail && currentEmail !== origEmail;
             const phoneChanged = origNumber && currentNumber !== origNumber;
-            
+
             const payload = {
                 user_id: id,
                 email: emailChanged ? values.email : null,
                 number: phoneChanged ? values.number : null,
                 type: emailChanged && phoneChanged ? 'both' : emailChanged ? 'email' : 'phone',
             };
-            
+
             // Call OTP send API
             const response = await apiClient.post('send-profile-otp', payload);
-            
+
             if (response?.status) {
                 message.success('OTP sent successfully');
                 setOtpSent(true);
@@ -446,7 +446,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             message.error('Please enter a valid OTP');
             return;
         }
-        
+
         setOtpLoading(true);
         try {
             // Verify OTP
@@ -454,21 +454,21 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 user_id: id,
                 otp: otpValue,
             });
-            
+
             if (!verifyResponse?.status) {
                 message.error(verifyResponse?.message || 'Invalid OTP');
                 return;
             }
-            
+
             // OTP verified, proceed with save
             await saveUserProfile(pendingFormValues);
-            
+
             // Close modal and reset state
             setOtpModalVisible(false);
             setOtpValue('');
             setOtpSent(false);
             setPendingFormValues(null);
-            
+
         } catch (error) {
             message.error(error?.response?.data?.message || 'OTP verification failed');
         } finally {
@@ -486,11 +486,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         if (signatureType === 'draw' && canvasRef.current) {
             return { type: 'draw', data: canvasRef.current.toDataURL() };
         } else if (signatureType === 'type' && typedSignature) {
-            return { 
-                type: 'type', 
-                text: typedSignature, 
-                font: selectedFont.name, 
-                fontStyle: selectedFont.style 
+            return {
+                type: 'type',
+                text: typedSignature,
+                font: selectedFont.name,
+                fontStyle: selectedFont.style
             };
         } else if (signatureType === 'upload' && uploadedSignature) {
             return { type: 'upload', file: uploadedSignature };
@@ -508,18 +508,18 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             convenienceFee: values.convenienceFee ?? formState.convenienceFee,
             reportingUser: reportingUserId,
         };
-        
+
         // Get signature data
         const signatureData = await getSignatureData();
-        
+
         const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
         let response;
-        
+
         // If signature exists, use FormData; otherwise use JSON
         if (signatureData) {
             const formData = new FormData();
             const apiData = mapFormToApi(mergedValues);
-            
+
             // Append all form fields to FormData
             Object.keys(apiData).forEach(key => {
                 const value = apiData[key];
@@ -534,10 +534,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     }
                 }
             });
-            
+
             // Append signature data
             formData.append('signature_type', signatureData.type);
-            
+
             if (signatureData.type === 'type') {
                 formData.append('signature_text', signatureData.text);
                 formData.append('signature_font', signatureData.font);
@@ -549,7 +549,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 // File object for upload
                 formData.append('signature_image', signatureData.file);
             }
-            
+
             response = await axios.post(url, formData, {
                 headers: {
                     'Authorization': 'Bearer ' + authToken,
@@ -588,7 +588,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 // Store values and show OTP modal
                 setPendingFormValues(values);
                 setOtpModalVisible(true);
-                
+
                 // Send OTP
                 await sendOtp(values);
             } else {
@@ -631,7 +631,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             onFinish={onFinish}
             onFieldsChange={handleFormChange}
             initialValues={{
-                status: 'Active',
+                status: true,
                 paymentMethod: 'Cash',
                 authentication: false,
                 agreementStatus: false,
@@ -760,18 +760,22 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                         </Form.Item>
                                     </Col>
 
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Agreement Status"
-                                            name="agreementStatus"
-                                            valuePropName="checked"
-                                        >
-                                            <Switch
-                                                checkedChildren="Active"
-                                                unCheckedChildren="Inactive"
-                                            />
-                                        </Form.Item>
-                                    </Col>
+                                    {
+                                        userRole === 'Admin' && (
+                                            <Col xs={24} md={12}>
+                                                <Form.Item
+                                                    label="Agreement Status"
+                                                    name="agreementStatus"
+                                                    valuePropName="checked"
+                                                >
+                                                    <Switch
+                                                        checkedChildren="Active"
+                                                        unCheckedChildren="Inactive"
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                        )
+                                    }
                                     {
                                         userRole === 'Admin' && formState.roleName === 'Organizer' && (
 
@@ -912,15 +916,15 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                             {formState.roleName === 'Agent' && (
                                 <PermissionChecker role={['Admin', 'Organizer']}>
 
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Agent Discount"
-                                        name="agentDiscount"
-                                        valuePropName="checked"
-                                    >
-                                        <Switch />
-                                    </Form.Item>
-                                </Col>
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Agent Discount"
+                                            name="agentDiscount"
+                                            valuePropName="checked"
+                                        >
+                                            <Switch />
+                                        </Form.Item>
+                                    </Col>
                                 </PermissionChecker>
                             )}
 
@@ -956,33 +960,33 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
                         </Row>
                     </Card>
-                                {/* Signature Section - Only for Organizers with inactive agreement */}
-            {formState.roleName === 'Organizer' && !formState.agreementStatus && (
-                    <Col xs={24}>
-                        <Card title="Admin Signature" className="mb-4">
-                            <SignatureInput
-                                signatureType={signatureType}
-                                onSignatureTypeChange={setSignatureType}
-                                selectedFont={selectedFont}
-                                onFontChange={setSelectedFont}
-                                typedSignature={typedSignature}
-                                onTypedSignatureChange={setTypedSignature}
-                                uploadedSignature={uploadedSignature}
-                                onUploadedSignatureChange={setUploadedSignature}
-                                signaturePreview={signaturePreview}
-                                onSignaturePreviewChange={setSignaturePreview}
-                                canvasRef={canvasRef}
-                                onClearCanvas={() => {
-                                    const canvas = canvasRef.current;
-                                    if (canvas) {
-                                        const ctx = canvas.getContext('2d');
-                                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                                    }
-                                }}
-                            />
-                        </Card>
-                    </Col>
-            )}
+                    {/* Signature Section - Only for Organizers with inactive agreement */}
+                    {formState.roleName === 'Organizer' && !formState.agreementStatus && (
+                        <Col xs={24}>
+                            <Card title="Admin Signature" className="mb-4">
+                                <SignatureInput
+                                    signatureType={signatureType}
+                                    onSignatureTypeChange={setSignatureType}
+                                    selectedFont={selectedFont}
+                                    onFontChange={setSelectedFont}
+                                    typedSignature={typedSignature}
+                                    onTypedSignatureChange={setTypedSignature}
+                                    uploadedSignature={uploadedSignature}
+                                    onUploadedSignatureChange={setUploadedSignature}
+                                    signaturePreview={signaturePreview}
+                                    onSignaturePreviewChange={setSignaturePreview}
+                                    canvasRef={canvasRef}
+                                    onClearCanvas={() => {
+                                        const canvas = canvasRef.current;
+                                        if (canvas) {
+                                            const ctx = canvas.getContext('2d');
+                                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                        }
+                                    }}
+                                />
+                            </Card>
+                        </Col>
+                    )}
                 </Col>
 
                 {/* Right Column */}
@@ -1022,7 +1026,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     )}
 
                     {/* Banking Details (Admin + Organizer role) */}
-                    {(userRole === 'Admin' || formState.roleName === 'Organizer') && (
+                    {(formState.roleName === 'Organizer') && (
                         <Card title="Banking Details" style={{ marginBottom: 16 }}>
                             <Row gutter={[16, 16]}>
                                 <Col xs={24} md={12}>
@@ -1109,7 +1113,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             label="User Status"
                                             name="status"
                                             valuePropName="checked"
-                                            getValueFromEvent={(checked) => (checked ? 1 : 0)}
+
                                         >
                                             <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
                                         </Form.Item>
@@ -1172,14 +1176,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                         showIcon
                         style={{ marginBottom: 24 }}
                     />
-                    
+
                     {otpSent ? (
                         <>
                             <p style={{ marginBottom: 16 }}>
-                                Enter the OTP sent to your {pendingFormValues?.email !== originalEmail.current && pendingFormValues?.number !== originalNumber.current 
-                                    ? 'email and phone' 
-                                    : pendingFormValues?.email !== originalEmail.current 
-                                        ? 'email' 
+                                Enter the OTP sent to your {pendingFormValues?.email !== originalEmail.current && pendingFormValues?.number !== originalNumber.current
+                                    ? 'email and phone'
+                                    : pendingFormValues?.email !== originalEmail.current
+                                        ? 'email'
                                         : 'phone'}
                             </p>
                             <Input.OTP
@@ -1193,15 +1197,15 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                     <Button onClick={handleOtpModalCancel}>
                                         Cancel
                                     </Button>
-                                    <Button 
-                                        type="link" 
+                                    <Button
+                                        type="link"
                                         onClick={handleResendOtp}
                                         loading={otpSending}
                                     >
                                         Resend OTP
                                     </Button>
-                                    <Button 
-                                        type="primary" 
+                                    <Button
+                                        type="primary"
                                         onClick={verifyOtpAndSave}
                                         loading={otpLoading}
                                         disabled={!otpValue || otpValue.length < 6}

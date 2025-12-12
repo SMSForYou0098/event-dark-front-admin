@@ -15,7 +15,6 @@ import PermissionsTab from "./PermissionsTab";
 
 const ManageUser = ({ mode = "edit" }) => {
   const { HandleBack, userRole, UserPermissions, UserData } = useMyContext();
-  console.log('ppp',UserPermissions)
   const [activeTab, setActiveTab] = useState("1");
   const { id } = useParams()
   const [loading, setLoading] = useState(false);

@@ -5,7 +5,7 @@ import DataTable from '../common/DataTable';
 import api from 'auth/FetchInterceptor';
 
 const AgentReports = memo(() => {
-  const { UserData } = useMyContext();
+  const { UserData, UserPermissions } = useMyContext();
   const [dateRange, setDateRange] = useState(null);
 
   // Fetch agent reports using TanStack Query
@@ -183,7 +183,7 @@ const AgentReports = memo(() => {
       showSearch={true}
       enableExport={true}
       exportRoute="export-agent-reports"
-      ExportPermission={true}
+      ExportPermission={UserPermissions?.includes('Export Agent Reports')}
       onRefresh={refetch}
       emptyText="No agent reports found"
 

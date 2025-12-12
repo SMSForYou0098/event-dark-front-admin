@@ -44,7 +44,7 @@ export const mapApiToForm = (apiData) => {
         orgGstNumber: user.org_gst_no || '',
         
         // Status & Security
-        status: user.status ,
+        status: Boolean(user.status),
         authentication: user.authentication === 1,
         agreementStatus: user.agreement_status === 1,
         agentDiscount: user.agent_disc === 1,
@@ -81,7 +81,7 @@ export const mapFormToApi = (formData) => {
         // Role
         role_id: formData.roleId !== undefined && formData.roleId !== null ? Number(formData.roleId) : null,
         reporting_user: formData.reportingUser,
-        status: formData.status,
+        status: Boolean(formData.status),
         role_name: formData.roleName,
         
         // Banking

@@ -271,14 +271,17 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
                     colConfig={{ xs: 24, sm: 12, md: 6, lg: 4 }}
                     isMobile={isMobile}
                 />
-                <Button 
-                    type="primary" 
-                    icon={<PrinterOutlined />} 
-                    onClick={() => setShowPrintModal(true)}
-                    style={{ marginLeft: 'auto' }}
-                >
-                    Print Summary
-                </Button>
+                {
+                    type === 'pos' &&
+                    <Button
+                        type="primary"
+                        icon={<PrinterOutlined />}
+                        onClick={() => setShowPrintModal(true)}
+                        style={{ marginLeft: 'auto' }}
+                    >
+                        Print Summary
+                    </Button>
+                }
             </Row>
             {Array.isArray(counts.ticketSales) && counts.ticketSales.length > 0 && (
                 <EventCards data={counts.ticketSales} summaryData={counts}/>

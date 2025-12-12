@@ -5,7 +5,7 @@ import DataTable from '../common/DataTable';
 import api from 'auth/FetchInterceptor';
 
 const PosReports = memo(() => {
-  const { UserData } = useMyContext();
+  const { UserData, UserPermissions } = useMyContext();
   const [dateRange, setDateRange] = useState(null);
 
   // Fetch POS reports using TanStack Query
@@ -174,7 +174,7 @@ const PosReports = memo(() => {
       showSearch={true}
       enableExport={true}
       exportRoute="export-pos-reports"
-      ExportPermission={true}
+      ExportPermission={UserPermissions?.includes('Export POS Reports')}
       onRefresh={refetch}
       emptyText="No POS reports found"
     />

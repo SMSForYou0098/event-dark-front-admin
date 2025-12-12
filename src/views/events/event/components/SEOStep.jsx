@@ -1,11 +1,27 @@
 // SEOStep.jsx
 import React from 'react';
-import { Form, Input, Row, Col } from 'antd';
+import { Form, Input, Row, Col, Button } from 'antd';
+import api from 'auth/FetchInterceptor';
 
 const { TextArea } = Input;
 
+const generateSEO = async () => {
+    const response = await api.post("/generate-seo", {
+
+        date: "27/12/2025",
+        name: "DJ Party",
+        description: "DJ Party",
+        location: "Delhi",
+        city: "Delhi",
+        organisation: "Sunburn",
+        category: "Music",
+
+    });
+    console.log(response.data);
+}
 const SEOStep = () => (
     <Row gutter={[16, 0]}>
+        <Button onClick={generateSEO}>Generate SEO</Button>
         <Col xs={24}>
             <Form.Item
                 name="meta_title"

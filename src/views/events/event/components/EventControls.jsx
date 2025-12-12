@@ -4,6 +4,7 @@ import { Form, Input, Select, Switch, Card, Row, Col, Space } from 'antd';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { Eye } from 'lucide-react';
+import ContentSelect from './ContentSelect';
 
 const { TextArea } = Input;
 
@@ -11,10 +12,11 @@ const { TextArea } = Input;
 const toChecked = (v) => v === 1 || v === '1';
 const toNumber = (checked) => (checked ? 1 : 0);
 
-const EventControlsStep = ({ form, isEdit }) => {
+const EventControlsStep = ({ form, isEdit, contentList, contentLoading }) => {
   const instaUrl = Form.useWatch('insta_whts_url', form);
+
   return (
-    <Space direction="vertical" style={{ width: '100%' }}>
+    <Space direction="vertical" style={{ width: "100%" }}>
       {/* Top controls */}
       <Row gutter={ROW_GUTTER}>
         <Col xs={24} sm={12} lg={12}>
@@ -22,21 +24,23 @@ const EventControlsStep = ({ form, isEdit }) => {
             name="scan_detail"
             label="User Data While Scan"
             initialValue={null}
-            rules={[{ required: true, message: 'Please select user data option' }]}
+            rules={[
+              { required: true, message: "Please select user data option" },
+            ]}
           >
             <Select options={CONSTANTS.userDataOptions} />
           </Form.Item>
         </Col>
 
         <Col xs={24} sm={12} lg={12}>
-          <Form.Item
+          {/* <Form.Item
             name="insta_whts_url"
             label="Instagram URL"
             rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
           >
             <Input placeholder="https://www.instagram.com/p/DM2a-hmI9i4/t" />
-          </Form.Item>
-           {instaUrl ? (
+          </Form.Item> */}
+          {/* {instaUrl ? (
             <div style={{ display: 'flex', alignItems: 'center' }}>
               <Eye size={20} className="text-success" /> &nbsp;
               <a
@@ -48,7 +52,17 @@ const EventControlsStep = ({ form, isEdit }) => {
                 {instaUrl}
               </a>
             </div>
-          ) : null}
+          ) : null} */}
+          <ContentSelect
+            form={form}
+            fieldName="insta_whts_url" // form will store only the id
+            contentList={contentList}
+            loading={contentLoading}
+            extra="Please enter the Instagram post ID (not the full URL)."
+            label="Instagram URL"
+            placeholder="Select Instagram URL"
+            // rules={[{ required: false }, { type: "url", message: "Please enter a valid URL" }]}
+          />
         </Col>
       </Row>
 
@@ -56,12 +70,31 @@ const EventControlsStep = ({ form, isEdit }) => {
       <Card title="Event Settings" size="small">
         <Row gutter={ROW_GUTTER}>
           {[
-            { name: 'event_feature', label: 'High Demand', tooltip: 'Mark this event as high demand' },
-            { name: 'status', label: 'Event Status', tooltip: 'Enable or disable event', onLabels: ['Active', 'Inactive'] },
-            { name: 'house_full', label: 'House Full', tooltip: 'Mark event as sold out' },
-            { name: 'online_att_sug', label: 'Hide Online Attendee Suggestion' },
-            { name: 'offline_att_sug', label: 'Hide Agent Attendee Suggestion' },
-            { name: 'show_on_home', label: 'Display Event on Home Page' },
+            {
+              name: "event_feature",
+              label: "High Demand",
+              tooltip: "Mark this event as high demand",
+            },
+            {
+              name: "status",
+              label: "Event Status",
+              tooltip: "Enable or disable event",
+              onLabels: ["Active", "Inactive"],
+            },
+            {
+              name: "house_full",
+              label: "House Full",
+              tooltip: "Mark event as sold out",
+            },
+            {
+              name: "online_att_sug",
+              label: "Hide Online Attendee Suggestion",
+            },
+            {
+              name: "offline_att_sug",
+              label: "Hide Agent Attendee Suggestion",
+            },
+            { name: "show_on_home", label: "Display Event on Home Page" },
           ].map((f) => (
             <Col xs={24} sm={12} lg={8} key={f.name}>
               <Form.Item
@@ -75,8 +108,8 @@ const EventControlsStep = ({ form, isEdit }) => {
                 initialValue={0}
               >
                 <Switch
-                  checkedChildren={f.onLabels?.[0] || 'Yes'}
-                  unCheckedChildren={f.onLabels?.[1] || 'No'}
+                  checkedChildren={f.onLabels?.[0] || "Yes"}
+                  unCheckedChildren={f.onLabels?.[1] || "No"}
                 />
               </Form.Item>
             </Col>
@@ -85,7 +118,7 @@ const EventControlsStep = ({ form, isEdit }) => {
       </Card>
 
       {/* WhatsApp Note */}
-      <Form.Item
+      {/* <Form.Item
         name="whts_note"
         label="WhatsApp Note"
         tooltip="This note will be sent via WhatsApp to attendees"
@@ -96,8 +129,19 @@ const EventControlsStep = ({ form, isEdit }) => {
           showCount
           maxLength={200}
         />
-      </Form.Item>
-      <Form.Item
+      </Form.Item> */}
+
+      <ContentSelect
+        form={form}
+        fieldName="whts_note"
+        label="WhatsApp Note"
+        contentList={contentList} // pass your WhatsApp note list here
+        loading={contentLoading} // loading state you get from API
+        placeholder="Select WhatsApp note"
+        rules={[{ required: false }]} // no required rule unless you want it
+      />
+
+      {/* <Form.Item
         name="booking_notice"
         label="Booking Note"
         tooltip=""
@@ -108,7 +152,16 @@ const EventControlsStep = ({ form, isEdit }) => {
           showCount
           maxLength={200}
         />
-      </Form.Item>
+      </Form.Item> */}
+      <ContentSelect
+        form={form}
+        fieldName="booking_notice"
+        label="Booking Note"
+        contentList={contentList} // <-- you will pass this from parent
+        loading={contentLoading} // <-- loading state for Booking Notes
+        placeholder="Select booking note"
+        rules={[{ required: false }]} // or make required if needed
+      />
     </Space>
   );
 };

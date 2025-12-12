@@ -45,7 +45,7 @@ const Promocode = memo(() => {
       const method = editingId ? 'put' : 'post';
       const data = {
         ...values,
-        status: values.status ? 1 : 0,
+        status: values.status,
         ...(editingId && { id: editingId }),
       };
       return await apiClient[method](endpoint, data);
@@ -95,7 +95,7 @@ const Promocode = memo(() => {
         minimum_spend: record.minimum_spend,
         usage_limit: record.usage_limit,
         usage_per_user: record.usage_per_user,
-        status: record.status === 1,
+        status: Boolean(record.status),
       });
     }
     setIsModalOpen(true);
@@ -218,13 +218,13 @@ const Promocode = memo(() => {
         align: 'center',
         width: 100,
         filters: [
-          { text: 'Active', value: 1 },
-          { text: 'Inactive', value: 0 },
+          { text: 'Active', value: true },
+          { text: 'Inactive', value: false },
         ],
-        onFilter: (value, record) => record.status === value,
+        onFilter: (value, record) => Boolean(record.status) === value,
         render: (status) => (
-          <Tag color={status === 1 ? 'success' : 'error'}>
-            {status === 1 ? 'Active' : 'Inactive'}
+          <Tag color={status === true ? 'success' : 'error'}>
+            {status === true ? 'Active' : 'Inactive'}
           </Tag>
         ),
       },

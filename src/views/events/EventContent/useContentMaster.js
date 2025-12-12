@@ -5,15 +5,23 @@ import api from 'auth/FetchInterceptor';
 const CONTENT_MASTER_KEY = 'contentMaster';
 
 // ========================= GET ALL =========================
-export const useGetAllContentMaster = () => {
+export const useGetAllContentMaster = (id, role) => {
   return useQuery({
-    queryKey: [CONTENT_MASTER_KEY],
+    queryKey: [CONTENT_MASTER_KEY, id, role], // 👈 add id & role here
+    
+    enabled: !!id,  // optional: fetch only when id exists
+    
     queryFn: async () => {
-      const response = await api.get('/content-master');
+      const url = role === 'Admin'
+        ? '/content-master'
+        : `/content-master/user/${id}`;
+
+      const response = await api.get(url);
       return response.data?.data || response.data || [];
     },
   });
 };
+
 
 // ========================= CREATE =========================
 export const useCreateContentMaster = (options = {}) => {

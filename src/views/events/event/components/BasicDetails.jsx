@@ -6,10 +6,11 @@ import { useEventCategories } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
 import { VanueList } from './CONSTANTS';
+import { ContentSelect } from './ContentSelect';
 
 const { TextArea } = Input;
 
-const BasicDetailsStep = ({ form, isEdit }) => {
+const BasicDetailsStep = ({ form, isEdit, contentLoading, contentList }) => {
   const { UserData, } = useMyContext();
 
   // categories
@@ -110,7 +111,7 @@ const BasicDetailsStep = ({ form, isEdit }) => {
 
       <VanueList form={form} />
       {/* Description */}
-      <Col xs={24}>
+      {/* <Col xs={24}>
         <Form.Item
           name="description"
           label="Event Description"
@@ -121,7 +122,18 @@ const BasicDetailsStep = ({ form, isEdit }) => {
         >
           <TextArea rows={5} placeholder="Enter detailed event description..." showCount maxLength={500} />
         </Form.Item>
-      </Col>
+      </Col> */}
+
+<ContentSelect
+  form={form}
+  fieldName="description"
+  contentList={contentList}
+  loading={contentLoading}
+  label="Event Description"
+  placeholder="Select content for event description"
+  rules={[{ required: true, message: "Please select content for event description" }]}
+/>
+
 
     </Row>
   );
