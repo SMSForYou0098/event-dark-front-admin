@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { Form, Input, Row, Col, Switch, Card, Button, Modal, List, Typography, Tag } from 'antd';
+import { Form, Row, Col, Switch, Card, Button, Modal, List, Typography, Tag } from 'antd';
 import { ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
 import TicketManager from 'views/events/Tickets/TicketManager/TicketManager';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useNavigate } from 'react-router-dom';
 import ContentSelect from './ContentSelect';
-
-const { TextArea } = Input;
 const { Text } = Typography;
 
-const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, contentLoading }) => {
+const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, contentLoading, orgId }) => {
   const navigate = useNavigate();
   const form = Form.useFormInstance();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
@@ -120,9 +118,11 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
           <ContentSelect
             form={form}
             fieldName="ticket_terms"
+            contentType="description"
             label="Ticket Terms & Conditions"
             contentList={contentList}
             loading={contentLoading}
+            customOrgId={orgId}
             placeholder="Select ticket terms"
             rules={[{ required: true, message: "Please select ticket terms" }]}
           />

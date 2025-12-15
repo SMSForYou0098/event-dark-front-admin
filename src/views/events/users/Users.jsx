@@ -437,7 +437,7 @@ const Users = () => {
         },
       ]
       : []),
-      ...(userRole === "Admin"
+    ...(userRole === "Admin"
       ? [
         {
           title: "Approval Status",
@@ -588,7 +588,7 @@ const Users = () => {
                 className="text-center"
                 onClick={() => handleRoleSelect(key)}
               >
-                <div className="d-flex flex-column align-items-center gap-3 py-2">
+                <div className="d-flex flex-column align-items-center">
                   <div className="text-primary">
                     {icon}
                   </div>

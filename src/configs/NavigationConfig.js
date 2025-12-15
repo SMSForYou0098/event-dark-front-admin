@@ -1,4 +1,4 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined } from '@ant-design/icons';
 
 // Dashboard
 const dashboardNav = {
@@ -29,7 +29,7 @@ const userManagementSubmenu = [
     icon: TeamOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin'],
+    roles: ['Admin'],
     permissions: ["View Organizers"]
   },
 
@@ -129,7 +129,7 @@ const partnersClientsNav = {
   icon: CrownOutlined,
   breadcrumb: false,
   submenu: partnersClientsSubmenu,
-  permissions:["View Corporate Bookings","View Sponsor Bookings","View Complimentary Bookings"]
+  permissions: ["View Corporate Bookings", "View Sponsor Bookings", "View Complimentary Bookings"]
 };
 
 const userManagementNav = {
@@ -262,7 +262,7 @@ const eventManagementSubmenu = [
     icon: EnvironmentOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin", "Organizers"],
+    roles: ["Admin", "Organizer"],
     permissions: ["View Venues"]
   },
   // add one more for layouts use proper icon layout
@@ -354,7 +354,7 @@ const scanNav = {
   icon: ScanOutlined,
   breadcrumb: false,
   submenu: scanSubmenu,
-  roles: ["Admin", "Organizers","Scanner"]
+  roles: ["Admin", "Organizers", "Scanner"]
 
 }
 // Sales & Operations Submenu
@@ -429,7 +429,7 @@ const reportingNav = {
   icon: BarChartOutlined,
   breadcrumb: false,
   submenu: reportingSubmenu,
-  permissions: ["View Event Reports","View POS Reports","View Agent Reports"],
+  permissions: ["View Event Reports", "View POS Reports", "View Agent Reports"],
 };
 
 // Financial Management Submenu
@@ -441,7 +441,7 @@ const financialManagementSubmenu = [
     icon: WalletOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin","Wallet Agent"],
+    roles: ["Admin", "Wallet Agent"],
     permissions: ["View Wallet Agent"]
   },
   {
@@ -460,7 +460,7 @@ const financialManagementSubmenu = [
     icon: ShoppingOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin","Organizers"],
+    roles: ["Admin", "Organizers"],
     permissions: ["View Promocodes"]
   },
   {
@@ -533,7 +533,7 @@ const settingsSubmenu = [
     ],
     roles: ["Admin"]
   },
-  
+
   {
     key: 'settings-admin',
     path: 'settings/admin-settings',
@@ -591,7 +591,7 @@ const mediaSubmenu = [
     icon: BookOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
   }
 ];
 
@@ -614,7 +614,7 @@ const agreementsSubmenu = [
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
   },
   {
     key: 'partner-agreements',
@@ -623,7 +623,7 @@ const agreementsSubmenu = [
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
   }
 ];
 const agreementsNav = {
@@ -633,7 +633,7 @@ const agreementsNav = {
   icon: FileSearchOutlined,
   breadcrumb: false,
   submenu: agreementsSubmenu,
-  roles:['Admin']
+  roles: ['Admin']
 };
 
 const promotionSubMenu = [
@@ -644,7 +644,7 @@ const promotionSubMenu = [
     icon: TeamOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
   },
 ];
 
@@ -655,7 +655,7 @@ const promotionNav = {
   icon: GiftOutlined,
   breadcrumb: false,
   submenu: promotionSubMenu,
-  roles:['Admin']
+  roles: ['Admin']
 };
 
 const onboardSubmenu = [
@@ -698,7 +698,7 @@ const navigationConfig = [
   scanNav,
   userManagementNav,
   reportingNav,
-    {
+  {
     key: 'live-users',
     path: 'live-users',
     title: 'Live Users',

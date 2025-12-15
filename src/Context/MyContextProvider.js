@@ -146,7 +146,6 @@ export const MyContextProvider = ({ children }) => {
     const cachedData = loadLocationFromCache();
 
     if (cachedData) {
-      console.log('✅ Location data loaded from cache');
       setLocationData({
         ...cachedData,
         isInitialized: true,

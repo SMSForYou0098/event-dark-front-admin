@@ -1,0 +1,59 @@
+a.jodit-status-bar-link {
+    display: none !important;
+}
+
+/* Make Jodit editor background transparent */
+.jodit-container,
+.jodit-workplace,
+.jodit-wysiwyg,
+.jodit-area,
+.jodit-editor,
+.jodit-container .jodit-workplace {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Also make the content area transparent */
+.jodit-wysiwyg_mode {
+    background: transparent !important;
+}
+
+/* If using iframe mode */
+.jodit-wysiwyg iframe {
+    background: transparent !important;
+}
+
+
+.jodit-toolbar__box {
+    border-bottom: none !important;
+}
+
+/* Or if that doesn't work, try these */
+.jodit-toolbar-editor-collection {
+    border: none !important;
+}
+
+.jodit-ui-group {
+    border: none !important;
+}
+
+/* Hide any separator between toolbar rows */
+.jodit-toolbar__box:not(:last-child) {
+    border-bottom: none !important;
+}
+
+.jodit-separator {
+    display: none !important;
+}
+.jodit-container .jodit-toolbar__box,
+.jodit-container .jodit-toolbar-editor-collection,
+.jodit-container .jodit-ui-group {
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Remove all internal toolbar borders */
+.jodit-toolbar__box * {
+    border-top: none !important;
+    border-bottom: none !important;
+}

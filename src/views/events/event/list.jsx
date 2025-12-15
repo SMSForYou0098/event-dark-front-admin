@@ -19,6 +19,7 @@ import { ArchiveRestore, Ticket } from 'lucide-react';
 import api from 'auth/FetchInterceptor';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { USERSITE_URL } from 'utils/consts';
+import EmptyEventsState from './components/EmptyEventsState';
 
 const EventList = ({ isJunk = false }) => {
   const navigate = useNavigate();
@@ -272,7 +273,7 @@ const EventList = ({ isJunk = false }) => {
     });
   }, [restoreMutation, refetch]);
 
-
+  const canExportEvents = usePermission('Export Events');
   const columns = useMemo(
     () => [
       {
@@ -351,7 +352,7 @@ const EventList = ({ isJunk = false }) => {
                 isButton: true,
                 onClick: () => handleRestoreEvent(row),
                 type: 'default',
-                loadig : restoreMutation.isPending,
+                loadig: restoreMutation.isPending,
                 icon: <UndoOutlined />,
               },
               {
@@ -359,7 +360,7 @@ const EventList = ({ isJunk = false }) => {
                 isButton: true,
                 onClick: () => handlePermanentDelete(row),
                 type: 'primary',
-                loading : permanentDeleteMutation.isPending,
+                loading: permanentDeleteMutation.isPending,
                 danger: true,
                 icon: <DeleteOutlined />,
               },
@@ -566,6 +567,10 @@ const EventList = ({ isJunk = false }) => {
     ]
   );
 
+  if (!events || events.length === 0) {
+    return <EmptyEventsState />
+  }
+
   return (
     <DataTable
       title={isJunk ? 'Junk Events' : "Events"}
@@ -587,7 +592,7 @@ const EventList = ({ isJunk = false }) => {
       // Export functionality
       enableExport={true}
       exportRoute="export-events"
-      ExportPermission={usePermission('Export Events')}
+      ExportPermission={canExportEvents}
       extraHeaderContent={
         isJunk ?
           <Tooltip title="Back To Events">

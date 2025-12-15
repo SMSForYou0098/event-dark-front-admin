@@ -10,14 +10,14 @@ import VenueModal from './VaneModal';
 import PermissionChecker from 'layouts/PermissionChecker';
 
 const Venues = () => {
-  const { api: apiUrl, UserPermissions, authToken, UserData , isMobile } = useMyContext();
+  const { api: apiUrl, UserPermissions, authToken, UserData, isMobile, userRole } = useMyContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [error, setError] = useState(null);
   const [mapModalVisible, setMapModalVisible] = useState(false);
   const [selectedMapUrl, setSelectedMapUrl] = useState('');
-
+  const isAdmin = userRole === 'Admin';
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
@@ -44,12 +44,12 @@ const Venues = () => {
       params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
     }
 
-    const url = `/venue-list/${UserData?.id}?${params.toString()}`;
+    const url = `/venues?${params.toString()}`;
     const response = await api.get(url);
     if (!response.status) {
       throw new Error('Failed to fetch venues');
     }
-    
+
     // Extract pagination data from response
     const paginationData = response.pagination || {
       current_page: currentPage,
@@ -57,23 +57,23 @@ const Venues = () => {
       total: response.data?.length || 0,
       last_page: 1,
     };
-    
+
     return { venues: response.data || [], pagination: paginationData };
   };
   const handleViewMap = (record) => {
-  if (record.aembeded_code) {
-    // Extract src URL from iframe string
-    const srcMatch = record.aembeded_code.match(/src="([^"]+)"/);
-    if (srcMatch && srcMatch[1]) {
-      setSelectedMapUrl(srcMatch[1]);
-      setMapModalVisible(true);
+    if (record.aembeded_code) {
+      // Extract src URL from iframe string
+      const srcMatch = record.aembeded_code.match(/src="([^"]+)"/);
+      if (srcMatch && srcMatch[1]) {
+        setSelectedMapUrl(srcMatch[1]);
+        setMapModalVisible(true);
+      } else {
+        message.error('Invalid map code');
+      }
     } else {
-      message.error('Invalid map code');
+      message.warning('No map available for this location');
     }
-  } else {
-    message.warning('No map available for this location');
-  }
-};
+  };
 
   const {
     data: venuesData = { venues: [], pagination: null },
@@ -127,7 +127,7 @@ const Venues = () => {
       title: 'Thumb',
       dataIndex: 'thumbnail',
       key: 'thumbnail',
-       width: 80,
+      width: 80,
       render: (thumbnail) => thumbnail ? <Image src={thumbnail} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       searchable: false,
     },
@@ -144,19 +144,19 @@ const Venues = () => {
         </div>
       )
     },
-    {
+    ...(isAdmin ? [{
       title: 'Organisation',
-      dataIndex: 'organisation',
+      dataIndex: ['user', 'organisation'],
       key: 'organisation',
-      sorter: (a, b) => a.organisation?.localeCompare(b.organisation),
+      sorter: (a, b) => a.user?.organisation?.localeCompare(b.user?.organisation),
       searchable: true,
       render: (organisation) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
           <User size={16} className="text-primary" />
-          <span>{organisation}</span>
+          <span>{organisation || 'N/A'}</span>
         </div>
       )
-    },
+    }] : []),
     {
       title: 'Address',
       dataIndex: 'address',
@@ -184,31 +184,36 @@ const Venues = () => {
       fixed: "right",
       width: 150,
       render: (_, record) => {
-        const isDisabled = record?.is_deleted || record?.status === "1";
+        const isDeleted = record?.is_deleted || record?.status === "1";
+        // Check if user owns this venue (admin can access all, others only their org's venues)
+        const isOwnVenue = isAdmin || String(record?.org_id) === String(UserData?.id);
+        const isDisabled = isDeleted || !isOwnVenue;
 
         const actions = [
           {
-            permission: "View Location",
+            permission: null,
             tooltip: "View Location",
             icon: <Eye size={14} />,
             onClick: () => handleViewMap(record),
             type: "default",
+            disabled: false, // View is always allowed
           },
           {
             permission: "Update Venue",
-            tooltip: "Update Venue",
+            tooltip: isOwnVenue ? "Update Venue" : "You can only edit your own venues",
             icon: <Pencil size={14} />,
             onClick: () => handleEdit(record),
             type: "default",
+            disabled: isDisabled,
           },
           {
             permission: "Delete Venue",
-            tooltip: "Delete Venue",
+            tooltip: isOwnVenue ? "Delete Venue" : "You can only delete your own venues",
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(record.id),
             type: "primary",
             danger: true,
-            // loading: deleteUserMutation.isPending,
+            disabled: isDisabled,
           },
         ];
 
@@ -217,18 +222,18 @@ const Venues = () => {
             <Space>
               {actions.map((action, index) => (
                 <PermissionChecker key={index} permission={action.permission}>
-                <Tooltip title={action.tooltip}>
-                  <Button
-                    size="small"
-                    type={action.type}
-                    danger={action.danger}
-                    icon={action.icon}
-                    onClick={action.onClick}
-                    disabled={isDisabled}
-                    loading={action.loading}
-                  />
-                </Tooltip>
-                 </PermissionChecker>
+                  <Tooltip title={action.tooltip}>
+                    <Button
+                      size="small"
+                      type={action.type}
+                      danger={action.danger}
+                      icon={action.icon}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      loading={action.loading}
+                    />
+                  </Tooltip>
+                </PermissionChecker>
               ))}
             </Space>
           </div>
@@ -271,7 +276,7 @@ const Venues = () => {
         DeleteMethod.mutate(id);
       }
     });
-  }, [loading,DeleteMethod]);
+  }, [loading, DeleteMethod]);
 
   const handleCreate = () => {
     setModalMode('create');
@@ -290,37 +295,37 @@ const Venues = () => {
     setSelectedVenue(null);
     refetch()
   };
-  
+
   return (
     <>
-     <Modal
-      title="Location Map"
-      open={mapModalVisible}
-      onCancel={() => {
-        setMapModalVisible(false);
-        setSelectedMapUrl('');
-      }}
-      footer={null}
-      width={900}
-      centered
-      destroyOnClose
-      styles={{
-        body: { padding: 0 }
-      }}
-    >
-      <div style={{ width: '100%', height: '500px' }}>
-        <iframe
-          src={selectedMapUrl}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen=""
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          title="Google Map Location"
-        />
-      </div>
-    </Modal>
+      <Modal
+        title="Location Map"
+        open={mapModalVisible}
+        onCancel={() => {
+          setMapModalVisible(false);
+          setSelectedMapUrl('');
+        }}
+        footer={null}
+        width={900}
+        centered
+        destroyOnClose
+        styles={{
+          body: { padding: 0 }
+        }}
+      >
+        <div style={{ width: '100%', height: '500px' }}>
+          <iframe
+            src={selectedMapUrl}
+            width="100%"
+            height="100%"
+            style={{ border: 0 }}
+            allowFullScreen=""
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Google Map Location"
+          />
+        </div>
+      </Modal>
       <VenueModal
         open={isModalOpen}
         onCancel={handleModalClose}
@@ -347,14 +352,14 @@ const Venues = () => {
         searchValue={searchText}
         extraHeaderContent={
           <PermissionChecker permission="Create Venue">
-          <Tooltip title="Create Venue">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-            />
-          </Tooltip>
-           </PermissionChecker>
+            <Tooltip title="Create Venue">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+              />
+            </Tooltip>
+          </PermissionChecker>
         }
         error={venuesError || error}
         tableProps={{

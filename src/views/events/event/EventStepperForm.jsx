@@ -234,14 +234,8 @@ const EventStepperForm = () => {
         }
     }, [isEdit, detail, form, current]);
 
-    const orgId = Form.useWatch('org_id', form);
-
-    const { data: contentList = [], isLoading: contentLoading } =
-        useGetAllContentMaster(orgId, 'Organizer');
-    // Mutations
 
 
-    console.log('content list', contentList);
 
     const { mutateAsync: createEvent, isPending: creating } = useCreateEvent({
         onSuccess: (res) => {
@@ -293,13 +287,14 @@ const EventStepperForm = () => {
         const values = form.getFieldsValue();
         return { ...values, tickets };
     }, [form, tickets]);
-
+    const orgId = detail?.user_id;
+    console.log(detail)
     // Steps configuration
     const steps = useMemo(
         () => [
-            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} contentList={contentList} contentLoading={contentLoading} form={form} />, icon: <FormOutlined /> },
-            { title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} contentList={contentList} contentLoading={contentLoading} />, icon: <ControlOutlined /> },
-            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} contentList={contentList} contentLoading={contentLoading} />, icon: <FieldTimeOutlined /> },
+            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} />, icon: <FormOutlined /> },
+            { title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} orgId={orgId} />, icon: <ControlOutlined /> },
+            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
             {
                 title: 'Tickets',
                 content: (
@@ -308,14 +303,13 @@ const EventStepperForm = () => {
                         layouts={layouts}
                         eventLayoutId={eventLayoutId}
                         form={form}
+                        orgId={orgId}
                         embedCode={embedCode}
                         onEmbedChange={handleEmbedChange}
                         onAddTicket={handleAddTicket}
                         onDeleteTicket={handleDeleteTicket}
                         eventId={detail?.event_key}
                         eventName={detail?.name}
-                        contentList={contentList}
-                        contentLoading={contentLoading}
                     />
                 ),
                 icon: <TagsOutlined />,
@@ -325,7 +319,7 @@ const EventStepperForm = () => {
             { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
-        [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail, contentList, contentLoading]
+        [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
     );
 
     // Navigation handlers

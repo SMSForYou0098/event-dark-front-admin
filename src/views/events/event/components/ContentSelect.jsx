@@ -1,31 +1,54 @@
-import React from "react";
+import React, { useState } from "react";
 import { Col, Form, Select, Button, Card } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import DOMPurify from "dompurify";
-import { useNavigate } from "react-router-dom";
+import ContentFormModal from "views/events/EventContent/ContentFormModal";
+import { useGetAllContentMaster } from "views/events/EventContent/useContentMaster";
 
 export const ContentSelect = ({
   form,
   fieldName = "description",
   label = "Select Content",
-  contentList = [],
-  loading = false,
   placeholder = `Select ${label.toLowerCase()}`,
   rules = [{ required: true, message: `Please select ${label.toLowerCase()}` }],
   allowAdd = true,
   extra = '',
+  contentType = null, // 'note' or 'description' - filters the list and sets default type for new content
+  customOrgId = null,
 }) => {
-  const navigate = useNavigate();
+  const [modalVisible, setModalVisible] = useState(false);
+  const orgId = Form.useWatch('org_id', form) || customOrgId;
 
   // selected value will be the id
   const selectedId = Form.useWatch(fieldName, form);
+  const { data: contentList = [], isLoading: contentLoading } = useGetAllContentMaster(orgId, 'Organizer');
+  // Filter content list by type if contentType is provided
+  const filteredContentList = contentType
+    ? (contentList || []).filter((item) => item.type === contentType)
+    : contentList || [];
 
   // lookup selected item to render preview
-  const selectedItem = (contentList || []).find((it) => String(it.id) === String(selectedId));
+  const selectedItem = filteredContentList.find((it) => String(it.id) === String(selectedId));
 
   const handleSelectChange = (value) => {
     // store only the id in the form
     form.setFieldsValue({ [fieldName]: value });
+  };
+
+  const handleAddContent = () => {
+    setModalVisible(true);
+  };
+
+  const handleModalClose = () => {
+    setModalVisible(false);
+  };
+
+  const handleModalSuccess = (data) => {
+    setModalVisible(false);
+    // Auto-select the newly created content
+    if (data?.data?.id) {
+      form.setFieldsValue({ [fieldName]: String(data.data.id) });
+    }
   };
 
   return (
@@ -34,12 +57,12 @@ export const ContentSelect = ({
         <Form.Item name={fieldName} label={label} rules={rules}>
           <Select
             placeholder={placeholder}
-            loading={loading}
-            disabled={loading} // ⬅ prevents render issues when list is empty
+            loading={contentLoading}
+            disabled={contentLoading} // ⬅ prevents render issues when list is empty
             extra={extra}
 
             // options appear only when contentList is ready
-            options={(contentList || []).map((item) => ({
+            options={filteredContentList.map((item) => ({
               label: item.title,
               value: String(item.id),
             }))}
@@ -49,7 +72,7 @@ export const ContentSelect = ({
 
             // avoid mismatch: only set value when loading is done & item exists
             value={
-              !loading && selectedId
+              !contentLoading && selectedId
                 ? String(selectedId)
                 : undefined
             }
@@ -63,10 +86,10 @@ export const ContentSelect = ({
                       size="small"
                       type="link"
                       icon={<PlusOutlined />}
-                      onClick={() => navigate("/event-content")}
-                      disabled={loading}
+                      onClick={handleAddContent}
+                      disabled={contentLoading}
                     >
-                      Add Content
+                      Add New {contentType === 'description' ? 'Description' : 'Note'}
                     </Button>
                   </div>
                 )}
@@ -100,6 +123,15 @@ export const ContentSelect = ({
           )}
         </Card>
       </Col>
+
+      {/* Content Creation Modal */}
+      <ContentFormModal
+        open={modalVisible}
+        onClose={handleModalClose}
+        onSuccess={handleModalSuccess}
+        defaultType={contentType}
+        organizerId={orgId}
+      />
     </>
   );
 };

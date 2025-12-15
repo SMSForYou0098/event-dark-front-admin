@@ -280,6 +280,8 @@ const RolePermission = ({ isUser = false }) => {
         'POS',
         'Agent',
         'Role',
+        'Layout',
+        'Venue',
         'Permission',
         'Uncategorized',
     ];

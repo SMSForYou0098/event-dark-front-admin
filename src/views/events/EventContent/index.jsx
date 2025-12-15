@@ -1,33 +1,23 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
-import JoditEditor from 'jodit-react';
-import { Button, Card, Form, Input, Modal, Table, Space, Popconfirm, Spin, Row, Col, message } from 'antd';
+import React, { useState, useMemo, useCallback } from 'react';
+import { Button, Card, Input, Table, Space, Popconfirm, Spin } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import {
     useGetAllContentMaster,
-    useCreateContentMaster,
-    useUpdateContentMaster,
     useDeleteContentMaster,
 } from './useContentMaster';
 import { useMyContext } from 'Context/MyContextProvider';
-import { OrganisationList } from 'utils/CommonInputs';
-import { joditConfig } from 'utils/consts';
-import { User } from 'lucide-react';
+import ContentFormModal from './ContentFormModal';
 
 const ContentMaster = () => {
-    const { UserData,userRole } = useMyContext();
-    const isUserOrganizer = UserData?.role?.toLowerCase() === 'organizer';
-    
+    const { UserData, userRole } = useMyContext();
+
     // ========================= STATE =========================
     const [modalVisible, setModalVisible] = useState(false);
     const [editRecord, setEditRecord] = useState(null);
-    const [content, setContent] = useState('');
     const [searchText, setSearchText] = useState('');
 
-    const [form] = Form.useForm();
-    const editor = useRef(null);
-
     // ========================= TANSTACK QUERY HOOKS =========================
-    const { data: contentList = [], isLoading } = useGetAllContentMaster(UserData?.id,userRole);
+    const { data: contentList = [], isLoading } = useGetAllContentMaster(UserData?.id, userRole);
 
     // ========================= FILTERED DATA =========================
     const filteredContentList = useMemo(() => {
@@ -37,60 +27,23 @@ const ContentMaster = () => {
         );
     }, [contentList, searchText]);
 
-    const createMutation = useCreateContentMaster({
-        onSuccess: () => handleModalClose(),
-    });
-
-    const updateMutation = useUpdateContentMaster({
-        onSuccess: () => handleModalClose(),
-    });
-
     const deleteMutation = useDeleteContentMaster();
-
-    // ========================= JODIT CONFIG =========================
- 
 
     // ========================= MODAL HANDLERS =========================
     const handleModalClose = useCallback(() => {
         setModalVisible(false);
         setEditRecord(null);
-        setContent('');
-        form.resetFields();
-    }, [form]);
+    }, []);
 
     const handleModalOpen = useCallback(() => {
-        form.resetFields();
         setEditRecord(null);
-        setContent('');
         setModalVisible(true);
-    }, [form]);
+    }, []);
 
-    // ========================= FORM SUBMIT =========================
-    const handleSubmit = useCallback(async () => {
-        try {
-            const values = await form.validateFields();
-
-            if (!content || content.trim() === '' || content === '<p><br></p>') {
-                message.error('Please enter content');
-                return;
-            }
-
-            const payload = {
-                user_id: isUserOrganizer ? UserData?.id : values.org_id,
-                title: values.title,
-                content: content,
-                status: values.status ? 1 : 0,
-            };
-
-            if (editRecord) {
-                updateMutation.mutate({ id: editRecord.id, payload });
-            } else {
-                createMutation.mutate(payload);
-            }
-        } catch (err) {
-            // Form validation error - handled by antd
-        }
-    }, [form, content, editRecord, createMutation, updateMutation, isUserOrganizer, UserData?.id]);
+    const handleModalSuccess = useCallback(() => {
+        setModalVisible(false);
+        setEditRecord(null);
+    }, []);
 
     // ========================= DELETE =========================
     const handleDelete = useCallback(
@@ -101,19 +54,10 @@ const ContentMaster = () => {
     );
 
     // ========================= EDIT =========================
-    const handleEdit = useCallback(
-        (record) => {
-            setEditRecord(record);
-            setContent(record.content || '');
-            form.setFieldsValue({
-                title: record.title,
-                status: record.status === 1 || record.status === true,
-                org_id: String(record.user_id),
-            });
-            setModalVisible(true);
-        },
-        [form]
-    );
+    const handleEdit = useCallback((record) => {
+        setEditRecord(record);
+        setModalVisible(true);
+    }, []);
 
     // ========================= TABLE COLUMNS =========================
     const columns = useMemo(
@@ -127,6 +71,19 @@ const ContentMaster = () => {
                 title: 'Title',
                 dataIndex: 'title',
                 sorter: (a, b) => (a.title || '').localeCompare(b.title || ''),
+            },
+            {
+                title: 'Type',
+                dataIndex: 'type',
+                width: 120,
+                render: (text) => (
+                    <span style={{ textTransform: 'capitalize' }}>{text || '-'}</span>
+                ),
+                filters: [
+                    { text: 'Note', value: 'note' },
+                    { text: 'Description', value: 'description' },
+                ],
+                onFilter: (value, record) => record.type === value,
             },
             {
                 title: 'Content',
@@ -164,7 +121,6 @@ const ContentMaster = () => {
         [handleEdit, handleDelete]
     );
 
-    const isSubmitting = createMutation.isPending || updateMutation.isPending;
     // ========================= RENDER =========================
     return (
         <Card
@@ -197,65 +153,12 @@ const ContentMaster = () => {
                 />
             </Spin>
 
-            <Modal
+            <ContentFormModal
                 open={modalVisible}
-                title={editRecord ? 'Edit Content' : 'New Content'}
-                onCancel={handleModalClose}
-                onOk={handleSubmit}
-                okText="Save"
-                width={900}
-                confirmLoading={isSubmitting}
-                destroyOnClose
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    initialValues={{ status: true }}
-                >
-                    <Row gutter={16}>
-                            {!isUserOrganizer && (
-                                <Col xs={24} md={12}>
-                                    <OrganisationList/>
-                                </Col>
-                            )}
-                        <Col span={12}>
-                            <Form.Item
-                                label="Title"
-                                name="title"
-                                rules={[{ required: true, message: 'Title is required' }]}
-                            >
-                                <Input placeholder="Enter content title" />
-                            </Form.Item>
-                        </Col>
-                    </Row>
-
-                    {/* <Row gutter={16}>
-                        <Col span={12}>
-                            <Form.Item
-                                label="Status"
-                                name="status"
-                                valuePropName="checked"
-                            >
-                                <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-                            </Form.Item>
-                        </Col>
-                    </Row> */}
-
-                    <Form.Item
-                        label="Content"
-                        required
-                    >
-                        <JoditEditor
-                            ref={editor}
-                            value={content}
-                            config={joditConfig}
-                            tabIndex={1}
-                            onBlur={(newContent) => setContent(newContent)}
-                            onChange={() => { }}
-                        />
-                    </Form.Item>
-                </Form>
-            </Modal>
+                onClose={handleModalClose}
+                editRecord={editRecord}
+                onSuccess={handleModalSuccess}
+            />
         </Card>
     );
 };

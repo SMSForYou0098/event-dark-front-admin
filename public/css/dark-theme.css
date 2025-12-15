@@ -1,4 +1,5 @@
 @import url('./custom.css');
+@import url('./jodit-custom.css');
 :root {
   /* Primary color scheme */
   --primary-color: #b51515;

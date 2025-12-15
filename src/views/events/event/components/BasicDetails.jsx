@@ -1,6 +1,6 @@
 // BasicDetailsStep.jsx
 import React, { useEffect, useMemo } from 'react';
-import { Form, Input, Select, Row, Col} from 'antd';
+import { Form, Input, Select, Row, Col } from 'antd';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useEventCategories } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
@@ -8,9 +8,7 @@ import { OrganisationList } from 'utils/CommonInputs';
 import { VanueList } from './CONSTANTS';
 import { ContentSelect } from './ContentSelect';
 
-const { TextArea } = Input;
-
-const BasicDetailsStep = ({ form, isEdit, contentLoading, contentList }) => {
+const BasicDetailsStep = ({ form, isEdit }) => {
   const { UserData, } = useMyContext();
 
   // categories
@@ -124,16 +122,14 @@ const BasicDetailsStep = ({ form, isEdit, contentLoading, contentList }) => {
         </Form.Item>
       </Col> */}
 
-<ContentSelect
-  form={form}
-  fieldName="description"
-  contentList={contentList}
-  loading={contentLoading}
-  label="Event Description"
-  placeholder="Select content for event description"
-  rules={[{ required: true, message: "Please select content for event description" }]}
-/>
-
+      <ContentSelect
+        form={form}
+        fieldName="description"
+        contentType="description"
+        label="Event Description"
+        placeholder="Select content for event description"
+        rules={[{ required: true, message: "Please select content for event description" }]}
+      />
 
     </Row>
   );

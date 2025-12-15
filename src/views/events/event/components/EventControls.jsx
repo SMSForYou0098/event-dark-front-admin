@@ -1,20 +1,16 @@
 // EventControlsStep.jsx
 import React from 'react';
-import { Form, Input, Select, Switch, Card, Row, Col, Space } from 'antd';
+import { Form, Select, Switch, Card, Row, Col, Space } from 'antd';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
-import { Eye } from 'lucide-react';
 import ContentSelect from './ContentSelect';
-
-const { TextArea } = Input;
 
 // helpers — accept "1"/1 => true, "0"/0/undefined => false
 const toChecked = (v) => v === 1 || v === '1';
 const toNumber = (checked) => (checked ? 1 : 0);
 
-const EventControlsStep = ({ form, isEdit, contentList, contentLoading }) => {
-  const instaUrl = Form.useWatch('insta_whts_url', form);
-
+const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
+  console.log(orgId)
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       {/* Top controls */}
@@ -57,11 +53,13 @@ const EventControlsStep = ({ form, isEdit, contentList, contentLoading }) => {
             form={form}
             fieldName="insta_whts_url" // form will store only the id
             contentList={contentList}
+            contentType="note"
             loading={contentLoading}
+            customOrgId={orgId}
             extra="Please enter the Instagram post ID (not the full URL)."
             label="Instagram URL"
             placeholder="Select Instagram URL"
-            // rules={[{ required: false }, { type: "url", message: "Please enter a valid URL" }]}
+          // rules={[{ required: false }, { type: "url", message: "Please enter a valid URL" }]}
           />
         </Col>
       </Row>
@@ -135,6 +133,8 @@ const EventControlsStep = ({ form, isEdit, contentList, contentLoading }) => {
         form={form}
         fieldName="whts_note"
         label="WhatsApp Note"
+        contentType="note"
+        customOrgId={orgId}
         contentList={contentList} // pass your WhatsApp note list here
         loading={contentLoading} // loading state you get from API
         placeholder="Select WhatsApp note"
@@ -157,6 +157,8 @@ const EventControlsStep = ({ form, isEdit, contentList, contentLoading }) => {
         form={form}
         fieldName="booking_notice"
         label="Booking Note"
+        contentType="description"
+        customOrgId={orgId}
         contentList={contentList} // <-- you will pass this from parent
         loading={contentLoading} // <-- loading state for Booking Notes
         placeholder="Select booking note"
