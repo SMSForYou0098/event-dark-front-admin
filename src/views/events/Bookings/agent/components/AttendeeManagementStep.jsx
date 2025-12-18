@@ -367,7 +367,7 @@ const validateAttendees = useCallback(() => {
                           size="small"
                           type="primary"
                           icon={<UserAddOutlined />}
-                          onClick={() => handleOpenAttendeeModal(ticket.id)}
+                          onClick={() => handleOpenAttendeeModal(ticket?.id)}
                           disabled={currentCount >= requiredCount}
                         >
                           Add
@@ -375,7 +375,7 @@ const validateAttendees = useCallback(() => {
                         <Button
                           size="small"
                           icon={<TeamOutlined />}
-                          onClick={() => handleShowSuggestions(ticket.id)}
+                          onClick={() => handleShowSuggestions(ticket?.id)}
                           // disabled={eventID}
                         >
                           Select
@@ -389,8 +389,8 @@ const validateAttendees = useCallback(() => {
                 {currentTicketAttendees.length > 0 && (
                   <SelectedAttendees
                     attendees={currentTicketAttendees}
-                    onRemove={(index) => handleRemoveAttendee(ticket.id, index)}
-                    onEdit={(index) => handleEditAttendee(ticket.id, index)}
+                    onRemove={(index) => handleRemoveAttendee(ticket?.id, index)}
+                    onEdit={(index) => handleEditAttendee(ticket?.id, index)}
                     categoryFields={categoryFields}
                   />
                 )}

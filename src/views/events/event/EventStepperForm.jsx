@@ -103,6 +103,11 @@ const EventStepperForm = () => {
 
         const patch = {};
 
+        // Always set org_id if available (needed for ContentSelect components in all steps)
+        if (detail?.user_id) {
+            patch.org_id = String(detail.user_id);
+        }
+
         // Step 0: Basic Details
         if (current === 0) {
             Object.assign(patch, {
@@ -287,8 +292,8 @@ const EventStepperForm = () => {
         const values = form.getFieldsValue();
         return { ...values, tickets };
     }, [form, tickets]);
-    const orgId = detail?.user_id;
-    console.log(detail)
+    // Get orgId from detail or form (form is more reliable as it's set in all steps)
+    const orgId = detail?.user_id || form.getFieldValue('org_id');
     // Steps configuration
     const steps = useMemo(
         () => [
@@ -316,7 +321,7 @@ const EventStepperForm = () => {
             },
             { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} />, icon: <EnvironmentOutlined /> },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
-            { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
+            { title: 'SEO', content: <SEOStep form={form} eventKey={id} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
         [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]

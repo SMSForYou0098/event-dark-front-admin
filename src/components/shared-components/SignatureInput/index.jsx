@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, Button, Input, Select, Upload, Row, Col, Typography, message } from 'antd';
 import { EditOutlined, FontSizeOutlined, UploadOutlined } from '@ant-design/icons';
 
@@ -33,6 +33,22 @@ const SignatureInput = ({
     onClearCanvas,
 }) => {
     const [isDrawing, setIsDrawing] = useState(false);
+
+    // Load existing signature on canvas when editing
+    useEffect(() => {
+        if (signatureType === 'draw' && signaturePreview && canvasRef?.current) {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+
+            img.src = signaturePreview;
+        }
+    }, [signatureType, signaturePreview, canvasRef]);
 
     // Drawing handlers
     const startDrawing = (e) => {
@@ -114,11 +130,11 @@ const SignatureInput = ({
                             onMouseUp={stopDrawing}
                             onMouseLeave={stopDrawing}
                             className="border border-2 rounded"
-                            style={{ 
-                                cursor: 'crosshair', 
-                                touchAction: 'none', 
-                                maxWidth: '100%', 
-                                background: 'white' 
+                            style={{
+                                cursor: 'crosshair',
+                                touchAction: 'none',
+                                maxWidth: '100%',
+                                background: 'white'
                             }}
                         />
                     </div>
@@ -174,10 +190,10 @@ const SignatureInput = ({
                         <div className="border border-2 rounded p-4 text-center" style={{ background: 'white' }}>
                             <Text type="secondary" className="d-block mb-3 text-black">Signature Preview:</Text>
                             {typedSignature ? (
-                                <div style={{ 
-                                    fontFamily: selectedFont.style, 
-                                    fontSize: '32px', 
-                                    color: '#000' 
+                                <div style={{
+                                    fontFamily: selectedFont.style,
+                                    fontSize: '32px',
+                                    color: '#000'
                                 }}>
                                     {typedSignature}
                                 </div>

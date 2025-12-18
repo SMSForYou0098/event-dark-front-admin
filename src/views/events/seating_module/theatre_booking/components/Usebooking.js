@@ -71,6 +71,7 @@ const useBooking = (options = {}) => {
   const SEAT_MESSAGE_KEY = 'seat-selection-message';
 
   const handleSeatClick = useCallback((seat, sectionId, rowId) => {
+    console.log('seat',seat,'row')
     // Check if seat can be selected
     const validation = canSelectSeat(seat);
     if (!validation.valid) {

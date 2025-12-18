@@ -4,12 +4,13 @@ import api from 'auth/FetchInterceptor';
 export const useDashboardData = (userId) => {
     // Fetch all dashboard data in parallel for better performance
     const fetchAllDashboardData = async () => {
-        const [bookingData, salesData, gatewayWiseSalesData, organizerSummary, organizerTickets] = await Promise.all([
+        const [bookingData, salesData, gatewayWiseSalesData, organizerSummary, organizerTickets, userStats] = await Promise.all([
             api.get(`bookingCount/${userId}`),
             api.get(`calculateSale/${userId}`),
             api.get(`gateway-wise-sales/${userId}`).catch(() => null), // Graceful fallback if gateway API fails
             api.get(`organizer/summary/${userId}`).catch(() => null),
-            api.get(`getDashboardOrgTicket`).catch(() => null) // Graceful fallback if gateway API fails
+            api.get(`getDashboardOrgTicket`).catch(() => null), // Graceful fallback if gateway API fails
+            api.get(`user-stats`).catch(() => null) // Graceful fallback if gateway API fails
         ]);
 
         return {
@@ -17,7 +18,8 @@ export const useDashboardData = (userId) => {
             salesData,
             gatewayWiseSalesData,
             organizerSummary,
-            organizerTickets
+            organizerTickets,
+            userStats
         };
     };
 
@@ -37,6 +39,7 @@ export const useDashboardData = (userId) => {
         gatewayLoading: isLoading,
         organizerSummary: data?.organizerSummary,
         organizerTickets: data?.organizerTickets,
+        userStats: data?.userStats,
         isLoading,
         error
     };

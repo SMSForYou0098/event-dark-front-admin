@@ -4,6 +4,7 @@ import { PlusOutlined } from "@ant-design/icons";
 import DOMPurify from "dompurify";
 import ContentFormModal from "views/events/EventContent/ContentFormModal";
 import { useGetAllContentMaster } from "views/events/EventContent/useContentMaster";
+import { useMyContext } from "Context/MyContextProvider";
 
 export const ContentSelect = ({
   form,
@@ -17,18 +18,28 @@ export const ContentSelect = ({
   customOrgId = null,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const orgId = Form.useWatch('org_id', form) || customOrgId;
-
+  const {userRole, UserData} = useMyContext();
+  // Prioritize customOrgId if provided, otherwise use org_id from form
+  const formOrgId = Form.useWatch('org_id', form);
+  if(userRole ==='Organizer'){
+    orgId=UserData?.id 
+  }
+  const orgId = customOrgId || formOrgId;
   // selected value will be the id
   const selectedId = Form.useWatch(fieldName, form);
   const { data: contentList = [], isLoading: contentLoading } = useGetAllContentMaster(orgId, 'Organizer');
   // Filter content list by type if contentType is provided
+  // Include items without type field (for backward compatibility with existing content)
   const filteredContentList = contentType
-    ? (contentList || []).filter((item) => item.type === contentType)
+    ? (contentList || []).filter((item) => !item.type || item.type === contentType)
     : contentList || [];
 
-  // lookup selected item to render preview
-  const selectedItem = filteredContentList.find((it) => String(it.id) === String(selectedId));
+  // lookup selected item to render preview - ALWAYS use unfiltered list
+  // This ensures we can find the selected item even if it doesn't have a type field
+  const selectedItem = React.useMemo(() => {
+    if (!selectedId || !contentList?.length) return null;
+    return (contentList || []).find((it) => String(it.id) === String(selectedId)) || null;
+  }, [selectedId, contentList]);
 
   const handleSelectChange = (value) => {
     // store only the id in the form
@@ -70,12 +81,8 @@ export const ContentSelect = ({
             onChange={handleSelectChange}
             optionLabelProp="label"
 
-            // avoid mismatch: only set value when loading is done & item exists
-            value={
-              !contentLoading && selectedId
-                ? String(selectedId)
-                : undefined
-            }
+            // Set value if selectedId exists (preserve selection even during loading)
+            value={selectedId ? String(selectedId) : undefined}
 
             dropdownRender={(menu) => (
               <>
@@ -111,9 +118,10 @@ export const ContentSelect = ({
       {/* Preview Card */}
       <Col xs={24}>
         <Card size="small" title={`${label} Preview`} bordered>
-          {selectedItem?.content ? (
+          {contentLoading ? (
+            <div style={{ color: "#888" }}>Loading...</div>
+          ) : selectedItem?.content ? (
             <div
-
               dangerouslySetInnerHTML={{
                 __html: DOMPurify ? DOMPurify.sanitize(selectedItem.content) : selectedItem.content,
               }}

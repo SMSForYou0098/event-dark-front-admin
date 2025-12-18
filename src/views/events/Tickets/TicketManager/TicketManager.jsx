@@ -214,13 +214,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 ? JSON.parse(ticket.promocode_ids)
                 : [],
             sale: hasSaleData,
-            sold_out: ticket.sold_out === 1,
-            allow_pos: ticket.allow_pos === 1,
-            allow_agent: ticket.allow_agent === 1,
-            booking_not_open: ticket.booking_not_open === 1,
-            fast_filling: ticket.fast_filling === 1,
-            modify_access_area: ticket.modify_access_area === 1,
-            status: ticket.status === 1,
+            sold_out: ticket.sold_out,
+            allow_pos: ticket.allow_pos,
+            allow_agent: ticket.allow_agent,
+            booking_not_open: ticket.booking_not_open,
+            fast_filling: ticket.fast_filling,
+            modify_access_area: ticket.modify_access_area,
+            status: ticket.status,
             sale_dates: saleDates,
             sale_price: ticket.sale_price || null,
         });
@@ -461,7 +461,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             title: 'Sale',
             key: 'sale',
             render: (_, record) => (
-                record.sale === 1 ? (
+                record.sale ? (
                     <Tag color="green">
                         {getCurrencySymbol(record.currency)}{record.sale_price}
                     </Tag>
@@ -474,13 +474,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             title: 'Active',
             key: 'status',
             render: (_, record) => (
-                record.status === 0 ? (
-                    <Tag color="red">
-                        <CloseOutlined className='m-0'/>
+                record.status ? (
+                    <Tag color="green">
+                        <CheckOutlined className='m-0' />
                     </Tag>
                 ) : (
-                    <Tag color="green">
-                        <CheckOutlined className='m-0'/>
+                    <Tag color="red">
+                        <CloseOutlined className='m-0' />
                     </Tag>
                 )
             ),
@@ -490,9 +490,9 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             key: null,
             render: (_, record) => (
                 <Space size="small">
-                    {record.sold_out === 1 && <Tag color="red">Sold Out</Tag>}
-                    {record.fast_filling === 1 && <Tag color="orange">Fast Filling</Tag>}
-                    {record.booking_not_open === 1 && <Tag color="blue">Not Open</Tag>}
+                    {record.sold_out && <Tag color="red">Sold Out</Tag>}
+                    {record.fast_filling && <Tag color="orange">Fast Filling</Tag>}
+                    {record.booking_not_open && <Tag color="blue">Not Open</Tag>}
                 </Space>
             )
         },
@@ -512,14 +512,14 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                     </Tooltip>
                     <PermissionChecker permissions="Delete Ticket">
 
-                    <Tooltip title="Delete">
-                        <Button
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={() => handleDelete(record.id)}
-                            size="small"
-                        />
-                    </Tooltip>
+                        <Tooltip title="Delete">
+                            <Button
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => handleDelete(record.id)}
+                                size="small"
+                            />
+                        </Tooltip>
                     </PermissionChecker>
                 </Space>
             ),
@@ -545,49 +545,49 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
     }, [saleValue]);
 
-const switchesConfig = [
-    { label: 'Sale', name: 'sale' },
-    { 
-        label: 'Sold Out', 
-        name: 'sold_out',
-        onChange: (checked) => {
-            if (checked) {
-                form.setFieldsValue({
-                    booking_not_open: false,
-                    fast_filling: false
-                });
+    const switchesConfig = [
+        { label: 'Sale', name: 'sale' },
+        {
+            label: 'Sold Out',
+            name: 'sold_out',
+            onChange: (checked) => {
+                if (checked) {
+                    form.setFieldsValue({
+                        booking_not_open: false,
+                        fast_filling: false
+                    });
+                }
             }
-        }
-    },
-    { 
-        label: 'Not Open', 
-        name: 'booking_not_open',
-        onChange: (checked) => {
-            if (checked) {
-                form.setFieldsValue({
-                    sold_out: false,
-                    fast_filling: false
-                });
+        },
+        {
+            label: 'Not Open',
+            name: 'booking_not_open',
+            onChange: (checked) => {
+                if (checked) {
+                    form.setFieldsValue({
+                        sold_out: false,
+                        fast_filling: false
+                    });
+                }
             }
-        }
-    },
-    { 
-        label: 'Fast Filling', 
-        name: 'fast_filling',
-        onChange: (checked) => {
-            if (checked) {
-                form.setFieldsValue({
-                    sold_out: false,
-                    booking_not_open: false
-                });
+        },
+        {
+            label: 'Fast Filling',
+            name: 'fast_filling',
+            onChange: (checked) => {
+                if (checked) {
+                    form.setFieldsValue({
+                        sold_out: false,
+                        booking_not_open: false
+                    });
+                }
             }
-        }
-    },
-    { label: 'Modify Area', name: 'modify_access_area' },
-    { label: 'Active', name: 'status' },
-    { label: 'Allow Agent', name: 'allow_agent' },
-    { label: 'Allow POS', name: 'allow_pos' },
-];
+        },
+        { label: 'Modify Area', name: 'modify_access_area' },
+        { label: 'Active', name: 'status' },
+        { label: 'Allow Agent', name: 'allow_agent' },
+        { label: 'Allow POS', name: 'allow_pos' },
+    ];
 
     return (
         <>
@@ -699,40 +699,40 @@ const switchesConfig = [
                                     </Form.Item>
                                 </Col>
 
-                                                                {/* Read-only Sold / Remaining display when editing */}
-                                                                {editingTicket && (
-                                                                    <>
-                                                                        <Col xs={24} md={4}>
-                                                                            <Form.Item label="Sold">
-                                                                                <div style={{ padding: '6px 12px' }}>
-                                                                                    {(() => {
-                                                                                        const rec = editingTicket;
-                                                                                        const soldExplicit = rec.sold_count ?? rec.sold_tickets ?? rec.sold ?? null;
-                                                                                        if (soldExplicit !== null && soldExplicit !== undefined) return soldExplicit;
-                                                                                        const total = Number(rec.ticket_quantity ?? rec.ticket_qty ?? 0);
-                                                                                        const remaining = Number(rec.remaining_count ?? rec.remaining_quantity ?? rec.remaining_qty ?? 0);
-                                                                                        return Number.isFinite(total) && Number.isFinite(remaining) ? Math.max(0, total - remaining) : '-';
-                                                                                    })()}
-                                                                                </div>
-                                                                            </Form.Item>
-                                                                        </Col>
+                                {/* Read-only Sold / Remaining display when editing */}
+                                {editingTicket && (
+                                    <>
+                                        <Col xs={24} md={4}>
+                                            <Form.Item label="Sold">
+                                                <div style={{ padding: '6px 12px' }}>
+                                                    {(() => {
+                                                        const rec = editingTicket;
+                                                        const soldExplicit = rec.sold_count ?? rec.sold_tickets ?? rec.sold ?? null;
+                                                        if (soldExplicit !== null && soldExplicit !== undefined) return soldExplicit;
+                                                        const total = Number(rec.ticket_quantity ?? rec.ticket_qty ?? 0);
+                                                        const remaining = Number(rec.remaining_count ?? rec.remaining_quantity ?? rec.remaining_qty ?? 0);
+                                                        return Number.isFinite(total) && Number.isFinite(remaining) ? Math.max(0, total - remaining) : '-';
+                                                    })()}
+                                                </div>
+                                            </Form.Item>
+                                        </Col>
 
-                                                                        <Col xs={24} md={4}>
-                                                                            <Form.Item label="Remaining">
-                                                                                <div style={{ padding: '6px 12px' }}>
-                                                                                    {(() => {
-                                                                                        const rec = editingTicket;
-                                                                                        const remainingExplicit = rec.remaining_count ?? rec.remaining_quantity ?? rec.remaining_qty;
-                                                                                        if (remainingExplicit !== undefined && remainingExplicit !== null) return remainingExplicit;
-                                                                                        const avail = Number(rec.available_quantity ?? rec.available_qty ?? rec.ticket_quantity ?? 0);
-                                                                                        const sold = Number(rec.sold_count ?? rec.sold_tickets ?? rec.sold ?? 0);
-                                                                                        return Number.isFinite(avail) && Number.isFinite(sold) ? Math.max(0, avail - sold) : '-';
-                                                                                    })()}
-                                                                                </div>
-                                                                            </Form.Item>
-                                                                        </Col>
-                                                                    </>
-                                                                )}
+                                        <Col xs={24} md={4}>
+                                            <Form.Item label="Remaining">
+                                                <div style={{ padding: '6px 12px' }}>
+                                                    {(() => {
+                                                        const rec = editingTicket;
+                                                        const remainingExplicit = rec.remaining_count ?? rec.remaining_quantity ?? rec.remaining_qty;
+                                                        if (remainingExplicit !== undefined && remainingExplicit !== null) return remainingExplicit;
+                                                        const avail = Number(rec.available_quantity ?? rec.available_qty ?? rec.ticket_quantity ?? 0);
+                                                        const sold = Number(rec.sold_count ?? rec.sold_tickets ?? rec.sold ?? 0);
+                                                        return Number.isFinite(avail) && Number.isFinite(sold) ? Math.max(0, avail - sold) : '-';
+                                                    })()}
+                                                </div>
+                                            </Form.Item>
+                                        </Col>
+                                    </>
+                                )}
 
                                 <Col xs={24} md={8}>
                                     <Form.Item
@@ -851,19 +851,19 @@ const switchesConfig = [
                                                 showIcon
                                             />
                                         </Col>
-                                            <Col xs={24} md={12}>
-                                                <Form.Item
-                                                    label="Sale Period"
-                                                    name="sale_dates"
-                                                    rules={[{ required: saleEnabled, message: 'Select sale dates' }]}
-                                                >
-                                                    <RangePicker
-                                                        style={{ width: '100%' }}
-                                                        format="YYYY-MM-DD"
-                                                        placeholder={['Start Date', 'End Date']}
-                                                    />
-                                                </Form.Item>
-                                            </Col>
+                                        <Col xs={24} md={12}>
+                                            <Form.Item
+                                                label="Sale Period"
+                                                name="sale_dates"
+                                                rules={[{ required: saleEnabled, message: 'Select sale dates' }]}
+                                            >
+                                                <RangePicker
+                                                    style={{ width: '100%' }}
+                                                    format="YYYY-MM-DD"
+                                                    placeholder={['Start Date', 'End Date']}
+                                                />
+                                            </Form.Item>
+                                        </Col>
 
                                         <Col xs={24} md={12}>
                                             <Form.Item

@@ -37,31 +37,31 @@ export const getAgentPOSSalesStats = (data = {}, userRole) => {
 
 export const getBookingTicketStats = (data = {}) => [
     {
-      title: 'Total Booking',
-      value: data.bookings?.total || 0,
-      icon: <ShoppingOutlined />,
-      color: '#1890ff'
+        title: 'Total Booking',
+        value: data.bookings?.total || 0,
+        icon: <ShoppingOutlined />,
+        color: '#1890ff'
     },
-    
+
     {
-      title: 'Total Tickets',
-      value: data.tickets?.total || 0,
-      icon: <Ticket />,
-      color: '#722ed1'
-    },
-    {
-      title: 'Today Booking',
-      value: data.bookings?.today || 0,
-      icon: <CalendarOutlined />,
-      color: '#52c41a'
+        title: 'Total Tickets',
+        value: data.tickets?.total || 0,
+        icon: <Ticket />,
+        color: '#722ed1'
     },
     {
-      title: 'Today Tickets',
-      value: data.tickets?.today || 0,
-      icon: <Ticket />,
-      color: '#fa8c16'
+        title: 'Today Booking',
+        value: data.bookings?.today || 0,
+        icon: <CalendarOutlined />,
+        color: '#52c41a'
+    },
+    {
+        title: 'Today Tickets',
+        value: data.tickets?.today || 0,
+        icon: <Ticket />,
+        color: '#fa8c16'
     }
-  ];
+];
 
 export const getPOSPaymentStats = (data = {}) => [
     {
@@ -131,67 +131,109 @@ export const getEventStats = (data = {}) => [
     }
 ];
 
-export const getBookingStats = (data = {}) => [
-    {
-        title: 'Online Bookings',
-        value: data.onlineBookings || 0,
-        icon: <ShoppingOutlined />,
-        color: '#1890ff',
-    },
-    {
-        title: 'Online Tickets',
-        value: data.onlineBookingsTicket || 0,
-        icon: <LineChartOutlined />,
-        color: '#52c41a',
-    },
-    {
-        title: 'Offline Bookings',
-        value: data.offlineBookings || 0,
-        icon: <ShopOutlined />,
-        color: '#722ed1',
-    },
-    {
-        title: 'Offline Tickets',
-        value: data.offlineBookingsTicket || 0,
-        icon: <LineChartOutlined />,
-        color: '#fa8c16',
-    }
-];
+export const getBookingStats = (data = {}) => {
+    // Calculate offline as sum of agent and pos
+    const offlineBookings = (data.agent?.bookings || 0) + (data.pos?.bookings || 0);
+    const offlineTickets = (data.agent?.tickets || 0) + (data.pos?.tickets || 0);
+
+    return [
+        {
+            title: 'Online Bookings',
+            value: data.online?.bookings || 0,
+            icon: <ShoppingOutlined />,
+            color: '#1890ff',
+        },
+        {
+            title: 'Online Tickets',
+            value: data.online?.tickets || 0,
+            icon: <LineChartOutlined />,
+            color: '#52c41a',
+        },
+        {
+            title: 'Offline Bookings',
+            value: offlineBookings,
+            icon: <ShopOutlined />,
+            color: '#722ed1',
+        },
+        {
+            title: 'Offline Tickets',
+            value: offlineTickets,
+            icon: <LineChartOutlined />,
+            color: '#fa8c16',
+        },
+        {
+            title: 'Sponsor Bookings',
+            value: data.sponsor?.bookings || 0,
+            icon: <TrophyOutlined />,
+            color: '#eb2f96',
+        },
+        {
+            title: 'Sponsor Tickets',
+            value: data.sponsor?.tickets || 0,
+            icon: <LineChartOutlined />,
+            color: '#f759ab',
+        },
+        {
+            title: 'Agent Bookings',
+            value: data.agent?.bookings || 0,
+            icon: <IdcardOutlined />,
+            color: '#faad14',
+        },
+        {
+            title: 'Agent Tickets',
+            value: data.agent?.tickets || 0,
+            icon: <LineChartOutlined />,
+            color: '#ffc53d',
+        },
+        {
+            title: 'POS Bookings',
+            value: data.pos?.bookings || 0,
+            icon: <ShopOutlined />,
+            color: '#13c2c2',
+        },
+        {
+            title: 'POS Tickets',
+            value: data.pos?.tickets || 0,
+            icon: <LineChartOutlined />,
+            color: '#36cfc9',
+        }
+    ];
+};
 
 export const getUserStats = (data = {}) => [
     {
         title: 'Total Users',
-        value: data.userCount || 0,
+        value: data.users || 0,
         icon: <UserOutlined />,
         color: '#1890ff'
     },
     {
         title: 'Agents',
-        value: data.agentCount || 0,
+        value: data.agents || 0,
         icon: <IdcardOutlined />,
         color: '#52c41a'
     },
     {
         title: 'Sponsors',
-        value: data.sponsorCount || 0,
+        value: data.sponsors || 0,
         icon: <TrophyOutlined />,
         color: '#faad14'
     },
     {
         title: 'POS',
-        value: data.posCount || 0,
+        value: data.pos || 0,
         icon: <ShopOutlined />,
         color: '#722ed1'
     },
     {
         title: 'Organizers',
-        value: data.organizerCount || 0,
+        value: data.organizers || 0,
         icon: <TeamOutlined />,
         color: '#eb2f96'
     },
     {
         title: 'Scanners',
-        value: data.scannerCount || 0,
+        value: data.scanners || 0,
         icon: <ScanOutlined />,
         color: '#13c2c2'
     }

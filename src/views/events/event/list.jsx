@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Button, Dropdown, message, Modal, Space, Tag, Tooltip } from 'antd';
+import { Button, Dropdown, message, Modal, Space, Spin, Tag, Tooltip } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataTable from '../common/DataTable';
 import usePermission from 'utils/hooks/usePermission';
@@ -566,6 +566,14 @@ const EventList = ({ isJunk = false }) => {
       deleteMutation.isPending,
     ]
   );
+
+  if (isLoading) {
+  return (
+    <div className="text-center py-5">
+      <Spin size="large" />
+    </div>
+  );
+}
 
   if (!events || events.length === 0) {
     return <EmptyEventsState />

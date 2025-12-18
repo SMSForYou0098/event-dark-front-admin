@@ -143,7 +143,7 @@ const VerifyPassword = memo(() => {
 
   // Memoized back handler
   const handleBack = useCallback(() => {
-    navigate(`auth/sign-in`);
+    navigate(`${AUTH_PREFIX_PATH}/sign-in`);
   }, [navigate]);
 
   // Memoized password change handler
@@ -156,7 +156,7 @@ const VerifyPassword = memo(() => {
   );
 
   const handleForgotPassword = useCallback(() => {
-    navigate(`auth/forgot-password`);
+    navigate(`${AUTH_PREFIX_PATH}/forgot-password`);
   }, [navigate]);
   return (
     <div>

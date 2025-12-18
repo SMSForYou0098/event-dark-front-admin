@@ -1,8 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Card, Row, Col, Form, Input, Button, message } from "antd";
 import { MailOutlined } from '@ant-design/icons';
 import { useSelector } from 'react-redux';
+import { useMutation } from '@tanstack/react-query';
 import CustomAuthLayout from 'layouts/CustomAuthLayout';
+import api from 'auth/FetchInterceptor';
 
 const backgroundStyle = {
 	backgroundImage: 'url(/img/others/img-17.jpg)',
@@ -12,16 +14,29 @@ const backgroundStyle = {
 
 const ForgotPassword = () => {
 	const [form] = Form.useForm();
-	const [loading, setLoading] = useState(false);
 
 	const theme = useSelector(state => state.theme.currentTheme)
 
-	const onSend = values => {
-		setLoading(true)
-		setTimeout(() => {
-			setLoading(false)
-			message.success('New password has send to your email!');
-		}, 1500);
+	// TanStack Query mutation for forgot password
+	const { mutate: sendResetLink, isPending: loading } = useMutation({
+		mutationFn: async (values) => {
+			const response = await api.post('/forgot-password', values);
+			return response;
+		},
+		onSuccess: (response) => {
+			message.success(response?.message || 'Password reset link has been sent to your email!');
+			form.resetFields();
+		},
+		onError: (error) => {
+			const errorMessage = error?.response?.data?.message ||
+				error?.response?.data?.error ||
+				'Failed to send reset link. Please try again.';
+			message.error(errorMessage);
+		},
+	});
+
+	const onSend = (values) => {
+		sendResetLink(values);
 	};
 
 	return (
@@ -56,4 +71,3 @@ const ForgotPassword = () => {
 }
 
 export default ForgotPassword
-

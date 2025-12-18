@@ -66,27 +66,10 @@ export const MyContextProvider = ({ children }) => {
       if (response.data.status) {
         let data = response.data.users;
         let organizer = response.data?.organizers
-        setUserList(data);
+        // setUserList(data);
         // setOrganizerList(response?.data?.organizers || [])
-        setUserList(data);
+        // setUserList(data);
         // setOrganizerList(response?.data?.organizers || []);
-        const filterOrganizerList = (data, UserRole) => {
-          if (UserRole === "Admin") {
-            // Include both Admin and Organizer
-            return data.filter(
-              (item) =>
-                item.role_name &&
-                (item.role_name.toLowerCase() === "admin" ||
-                  item.role_name.toLowerCase() === "organizer")
-            );
-          } else {
-            // Only include Organizer
-            return data.filter(
-              (item) =>
-                item.role_name && item.role_name.toLowerCase() === "organizer"
-            );
-          }
-        };
         setOrganizerList(organizer);
         return data;
       } else {
@@ -182,7 +165,7 @@ export const MyContextProvider = ({ children }) => {
     initializeLocationData();
     const fetchData = async () => {
       if (UserData && Object.keys(UserData)?.length > 0) {
-        await GetUsersList();
+        // await GetUsersList();
         GetSystemVars()
       }
     };
@@ -752,7 +735,7 @@ export const MyContextProvider = ({ children }) => {
     formatDateRange,
     UserData,
     userRole,
-    UserList,
+    // UserList,
     OrganizerList,
     GetUsersList,
     UserPermissions,

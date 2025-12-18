@@ -3,7 +3,7 @@ import { generateQRCodeImage, imageToRasterBytes } from './qrCodeUtils';
 // Try to render the Indian rupee symbol when the printer supports the India code page (ESC t 0x42).
 // Some printers map ₹ to 0xA8, others to 0xB9. Defaulting to 0xB9 (common on Epson India code page).
 // If you still see a wrong glyph, try changing RUPEE_BYTE to 0xA8. Final fallback: set rupeeSymbolFallback to 'Rs '.
-const RUPEE_BYTE = 0xB9; 
+const RUPEE_BYTE = 0xB9;
 const rupeeSymbol = String.fromCharCode(RUPEE_BYTE);
 const rupeeSymbolFallback = 'Rs '; // set to 'Rs ' if the printer still cannot render ₹
 const formatCurrency = (value) => `${rupeeSymbolFallback}${value.toFixed(2)}`;
@@ -119,32 +119,32 @@ export const generateESCPOSNativeQR = async (event, bookingData, totalTax, disco
     const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
 
     addString(`TOTAL TAX     ${formatCurrency(safeTax)}`);
-addBytes(LF);
-addString(`DISCOUNT      ${formatCurrency(safeDiscount)}`);
-addBytes(LF);
+    addBytes(LF);
+    addString(`DISCOUNT      ${formatCurrency(safeDiscount)}`);
+    addBytes(LF);
 
-// TOTAL in normal size
-addBytes(ESC, 0x21, 0x00);
-addString(`TOTAL  ${formatCurrency(safeGrandTotal)}`);
-addBytes(LF);
+    // TOTAL in normal size
+    addBytes(ESC, 0x21, 0x00);
+    addString(`TOTAL  ${formatCurrency(safeGrandTotal)}`);
+    addBytes(LF);
 
-// Footer - Center aligned
-addBytes(ESC, 0x61, 0x01);
-addBytes(LF, LF); // EXTRA SPACE
-addString('Thank You for Payment');
-addBytes(LF, LF); // EXTRA SPACE
+    // Footer - Center aligned
+    addBytes(ESC, 0x61, 0x01);
+    addBytes(LF, LF); // EXTRA SPACE
+    addString('Thank You for Payment');
+    addBytes(LF, LF); // EXTRA SPACE
 
-// URL big size
-addBytes(ESC, 0x21, 0x77); 
-addString('www.getyourticket.in');
-addBytes(LF);
+    // URL big size
+    addBytes(ESC, 0x21, 0x77);
+    addString('www.getyourticket.in');
+    addBytes(LF);
 
-// Reset back to normal
-addBytes(ESC, 0x21, 0x00);
+    // Reset back to normal
+    addBytes(ESC, 0x21, 0x00);
 
-addBytes(LF, LF, LF);
-addBytes(GS, 0x56, 0x00); // Cut paper
-addBytes(LF, LF); // EXTRA SPACE
+    addBytes(LF, LF, LF);
+    addBytes(GS, 0x56, 0x00); // Cut paper
+    addBytes(LF, LF); // EXTRA SPACE
 
 
     return new Uint8Array(bytes);
@@ -233,33 +233,33 @@ export const generateESCPOSBitmapQR = async (event, bookingData, totalTax, disco
     const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
 
     addString(`TOTAL TAX     ${formatCurrency(safeTax)}`);
-addBytes(LF);
+    addBytes(LF);
     addString(`DISCOUNT      ${formatCurrency(safeDiscount)}`);
-addBytes(LF);
+    addBytes(LF);
 
-// TOTAL in normal size
-addBytes(ESC, 0x21, 0x00);
-addString(`TOTAL  ${formatCurrency(safeGrandTotal)}`);
-addBytes(LF);
+    // TOTAL in normal size
+    addBytes(ESC, 0x21, 0x00);
+    addString(`TOTAL  ${formatCurrency(safeGrandTotal)}`);
+    addBytes(LF);
 
-// Footer - Center aligned
-addBytes(ESC, 0x61, 0x01);
-addBytes(LF, LF); // EXTRA SPACE
-addString('Thank You for Payment');
-addBytes(LF, LF); // EXTRA SPACE
+    // Footer - Center aligned
+    addBytes(ESC, 0x61, 0x01);
+    addBytes(LF, LF); // EXTRA SPACE
+    addString('Thank You for Payment');
+    addBytes(LF, LF); // EXTRA SPACE
 
-// URL big size
-addBytes(ESC, 0x21, 0x77); 
-addString('www.getyourticket.in');
-addBytes(LF);
+    // URL big size
+    addBytes(ESC, 0x21, 0x77);
+    addString('www.getyourticket.in');
+    addBytes(LF);
 
-// Reset back to normal
-addBytes(ESC, 0x21, 0x00);
+    // Reset back to normal
+    addBytes(ESC, 0x21, 0x00);
 
-addBytes(LF, LF, LF);
-addBytes(LF, LF); // EXTRA SPACE
-addBytes(GS, 0x56, 0x00); // Cut paper
-addBytes(LF, LF); // EXTRA SPACE
+    addBytes(LF, LF, LF);
+    addBytes(LF, LF); // EXTRA SPACE
+    addBytes(GS, 0x56, 0x00); // Cut paper
+    addBytes(LF, LF); // EXTRA SPACE
 
     return new Uint8Array(bytes);
 };
@@ -306,7 +306,7 @@ export const generateTSPL = async (event, bookingData, totalTax, discount, grand
         const amount = Number(booking.amount) || 0;
         const quantity = Number(booking.quantity) || 0;
         const price = formatCurrency(amount * quantity);
-        
+
         lines.push(`TEXT 20, ${yPos}, "2", 0, 1, 1, "${qty} x ${name}"`);
         yPos += 30;
         lines.push(`TEXT 400, ${yPos - 30}, "2", 0, 1, 1, "${price}"`);
@@ -339,3 +339,598 @@ export const generateTSPL = async (event, bookingData, totalTax, discount, grand
     return new TextEncoder().encode(tsplString);
 };
 
+export const generateTSPLFromExcel = async (
+    row,
+    selectedFields = [],
+    labelSize = "2x2"
+) => {
+    const lines = [];
+
+    // Label size configurations (in mm)
+    const SIZE_CONFIG = {
+        "2x2": {
+            width: "50.8 mm",
+            height: "50.8 mm",
+            gap: "2 mm",
+            nameFont: "7",      // Larger font for names
+            nameScaleX: 2,      // Bold effect (horizontal scale)
+            nameScaleY: 2,      // Bold effect (vertical scale)
+            otherFont: "3",     // Smaller font for other fields
+            otherScaleX: 1,
+            otherScaleY: 1,
+            lineGap: 50,
+            startX: 30,
+            startY: 40,
+        },
+        "2x1": {
+            width: "50.8 mm",
+            height: "25.4 mm",
+            gap: "2 mm",
+            nameFont: "5",
+            nameScaleX: 2,
+            nameScaleY: 2,
+            otherFont: "2",
+            otherScaleX: 1,
+            otherScaleY: 1,
+            lineGap: 40,
+            startX: 25,
+            startY: 30,
+        },
+        "3x2": {
+            width: "76.2 mm",
+            height: "50.8 mm",
+            gap: "3 mm",
+            nameFont: "8",      // Even bigger for 3x2
+            nameScaleX: 3,
+            nameScaleY: 3,
+            otherFont: "4",
+            otherScaleX: 1,
+            otherScaleY: 1,
+            lineGap: 65,
+            startX: 40,
+            startY: 45,
+        },
+    };
+
+    const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+    // Printer setup
+    lines.push(`SIZE ${cfg.width}, ${cfg.height}`);
+    lines.push(`GAP ${cfg.gap}, 0 mm`);
+    lines.push("DIRECTION 1");
+    lines.push("CLS");
+
+    let y = cfg.startY;
+    let namesCombined = false;
+
+    // Combine firstName and surname on the same line
+    const firstNameIndex = selectedFields.indexOf('firstName');
+    const surnameIndex = selectedFields.indexOf('surname');
+
+    selectedFields.forEach((field) => {
+        const value = row[field];
+        if (!value) return;
+
+        // Skip surname if we're combining it with firstName
+        if (field === 'surname' && firstNameIndex !== -1 && !namesCombined) {
+            return;
+        }
+
+        // If this is firstName and surname exists, combine them
+        if (field === 'firstName' && surnameIndex !== -1) {
+            const fullName = `${row.firstName || ''} ${row.surname || ''}`.trim();
+            lines.push(
+                `TEXT ${cfg.startX},${y},"${cfg.nameFont}",0,${cfg.nameScaleX},${cfg.nameScaleY},"${fullName}"`
+            );
+            namesCombined = true;
+            y += cfg.lineGap;
+            return;
+        }
+
+        // For other fields or if names aren't being combined
+        const isNameField = field === 'firstName' || field === 'surname';
+        const font = isNameField ? cfg.nameFont : cfg.otherFont;
+        const scaleX = isNameField ? cfg.nameScaleX : cfg.otherScaleX;
+        const scaleY = isNameField ? cfg.nameScaleY : cfg.otherScaleY;
+
+        lines.push(
+            `TEXT ${cfg.startX},${y},"${font}",0,${scaleX},${scaleY},"${value}"`
+        );
+
+        y += cfg.lineGap;
+    });
+
+    lines.push("PRINT 1,1");
+
+    return new TextEncoder().encode(lines.join("\r\n"));
+};
+
+/**
+ * Generate ZPL from Excel data for label printing
+ * Works with Zebra label printers (ZD, ZT, ZM series)
+ */
+export const generateZPLFromExcel = async (
+    row,
+    selectedFields = [],
+    labelSize = "2x2"
+) => {
+    const lines = [];
+
+    // Label size configurations (in dots, 203 DPI)
+    const SIZE_CONFIG = {
+        "2x2": {
+            width: 406,    // 2 inches = 406 dots
+            height: 406,
+            nameFontSize: 50,    // Larger for names
+            otherFontSize: 25,   // Smaller for other fields
+            lineGap: 60,
+            startX: 20,
+            startY: 30,
+        },
+        "2x1": {
+            width: 406,
+            height: 203,   // 1 inch = 203 dots
+            nameFontSize: 35,
+            otherFontSize: 20,
+            lineGap: 45,
+            startX: 20,
+            startY: 25,
+        },
+        "3x2": {
+            width: 609,    // 3 inches = 609 dots
+            height: 406,
+            nameFontSize: 60,
+            otherFontSize: 30,
+            lineGap: 70,
+            startX: 30,
+            startY: 40,
+        },
+    };
+
+    const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+    // Start format
+    lines.push('^XA');           // Start format
+    lines.push('^PON');          // Print orientation Normal (fixes 90-degree rotation)
+    lines.push('^LH0,0');        // Label home position
+
+    let y = cfg.startY;
+    let namesCombined = false;
+
+    // Combine firstName and surname on the same line
+    const firstNameIndex = selectedFields.indexOf('firstName');
+    const surnameIndex = selectedFields.indexOf('surname');
+
+    selectedFields.forEach((field, index) => {
+        const value = row[field];
+        if (!value) return;
+
+        // Skip surname if we're combining it with firstName
+        if (field === 'surname' && firstNameIndex !== -1 && !namesCombined) {
+            return;
+        }
+
+        // If this is firstName and surname exists, combine them
+        if (field === 'firstName' && surnameIndex !== -1) {
+            const fullName = `${row.firstName || ''} ${row.surname || ''}`.trim();
+            // ^FO = Field Origin, ^A0B = Font 0 Bold, ^FD = Field Data, ^FS = Field Separator
+            lines.push(`^FO${cfg.startX},${y}^A0B,${cfg.nameFontSize},${cfg.nameFontSize}^FD${fullName}^FS`);
+            namesCombined = true;
+            y += cfg.lineGap;
+            return;
+        }
+
+        // For other fields or if names aren't being combined
+        const isNameField = field === 'firstName' || field === 'surname';
+        const fontSize = isNameField ? cfg.nameFontSize : cfg.otherFontSize;
+        const fontStyle = isNameField ? 'B' : 'N'; // B = Bold, N = Normal
+
+        lines.push(`^FO${cfg.startX},${y}^A0${fontStyle},${fontSize},${fontSize}^FD${value}^FS`);
+        y += cfg.lineGap;
+    });
+
+    lines.push('^XZ');  // End format
+
+    return new TextEncoder().encode(lines.join('\n'));
+};
+
+/**
+ * Generate CPCL from Excel data for label printing
+ * Works with Citizen, Intermec label printers
+ */
+export const generateCPCLFromExcel = async (
+    row,
+    selectedFields = [],
+    labelSize = "2x2"
+) => {
+    const lines = [];
+
+    // Label size configurations (in dots, 203 DPI)
+    const SIZE_CONFIG = {
+        "2x2": {
+            width: 406,
+            height: 406,
+            nameFont: "7",       // Larger font for names
+            otherFont: "3",      // Smaller font for other fields
+            lineGap: 45,
+            startX: 30,
+            startY: 40,
+        },
+        "2x1": {
+            width: 406,
+            height: 203,
+            nameFont: "5",
+            otherFont: "2",
+            lineGap: 35,
+            startX: 25,
+            startY: 30,
+        },
+        "3x2": {
+            width: 609,
+            height: 406,
+            nameFont: "8",
+            otherFont: "4",
+            lineGap: 50,
+            startX: 40,
+            startY: 45,
+        },
+    };
+
+    const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+    // Start format
+    lines.push(`! 0 200 200 ${cfg.height} 1`);
+    lines.push(`PAGE-WIDTH ${cfg.width}`);
+    lines.push('LEFT');
+    lines.push('');
+
+    let y = cfg.startY;
+    let namesCombined = false;
+
+    // Combine firstName and surname on the same line
+    const firstNameIndex = selectedFields.indexOf('firstName');
+    const surnameIndex = selectedFields.indexOf('surname');
+
+    selectedFields.forEach((field) => {
+        const value = row[field];
+        if (!value) return;
+
+        // Skip surname if we're combining it with firstName
+        if (field === 'surname' && firstNameIndex !== -1 && !namesCombined) {
+            return;
+        }
+
+        // If this is firstName and surname exists, combine them
+        if (field === 'firstName' && surnameIndex !== -1) {
+            const fullName = `${row.firstName || ''} ${row.surname || ''}`.trim();
+            lines.push('SETBOLD 2'); // Bold for names
+            lines.push(`TEXT ${cfg.nameFont} 0 ${cfg.startX} ${y} ${fullName}`);
+            lines.push('SETBOLD 0'); // Reset bold
+            namesCombined = true;
+            y += cfg.lineGap;
+            return;
+        }
+
+        // For other fields or if names aren't being combined
+        const isNameField = field === 'firstName' || field === 'surname';
+        const fontNum = isNameField ? cfg.nameFont : cfg.otherFont;
+
+        // TEXT font size x y text
+        // For bold effect, we can use SETBOLD command before text
+        if (isNameField) {
+            lines.push('SETBOLD 2'); // Bold for names
+        }
+        lines.push(`TEXT ${fontNum} 0 ${cfg.startX} ${y} ${value}`);
+        if (isNameField) {
+            lines.push('SETBOLD 0'); // Reset bold
+        }
+
+        y += cfg.lineGap;
+    });
+
+    lines.push('PRINT');
+    lines.push('');
+
+    return new TextEncoder().encode(lines.join('\r\n'));
+};
+
+/**
+ * Generate ZPL (Zebra Programming Language) commands for Zebra label printers
+ * Works with Zebra ZD, ZT, ZM series printers
+ */
+export const generateZPL = async (event, bookingData, totalTax, discount, grandTotal, formatDateTime) => {
+    const lines = [];
+    const token = bookingData?.[0]?.token || '';
+
+    // ZPL format start
+    lines.push('^XA'); // Start format
+
+    // Set label home position
+    lines.push('^LH0,0');
+
+    // Event Name - centered, large font
+    lines.push('^FO200,30^A0N,40,40^FD' + (event?.name || 'Event Ticket') + '^FS');
+
+    // QR Code - ZPL native QR command
+    if (token) {
+        // ^BQN,2,6 = QR Code, Normal orientation, Model 2, Magnification 6
+        lines.push('^FO150,80^BQN,2,6^FDMA,' + token + '^FS');
+    }
+
+    // Date/Time
+    const dateTime = formatDateTime?.(bookingData?.[0]?.created_at) || bookingData?.[0]?.created_at || '';
+    lines.push('^FO100,320^A0N,25,25^FD' + dateTime + '^FS');
+
+    // Separator line
+    let yPos = 360;
+    lines.push('^FO20,' + yPos + '^GB550,2,2^FS'); // Graphic box (line)
+    yPos += 20;
+
+    // Ticket details header
+    lines.push('^FO20,' + yPos + '^A0N,20,20^FDQty  Ticket Name          Price^FS');
+    yPos += 30;
+    lines.push('^FO20,' + yPos + '^GB550,2,2^FS');
+    yPos += 20;
+
+    // Ticket items
+    bookingData?.forEach((booking) => {
+        const qty = booking.quantity || 0;
+        const name = (booking?.ticket?.name || 'N/A').substring(0, 20);
+        const amount = Number(booking.amount) || 0;
+        const quantity = Number(booking.quantity) || 0;
+        const price = formatCurrency(amount * quantity);
+
+        lines.push('^FO20,' + yPos + '^A0N,20,20^FD' + qty + '  ' + name + '^FS');
+        lines.push('^FO400,' + yPos + '^A0N,20,20^FD' + price + '^FS');
+        yPos += 30;
+    });
+
+    // Separator
+    lines.push('^FO20,' + yPos + '^GB550,2,2^FS');
+    yPos += 30;
+
+    // Summary
+    const safeTax = isNaN(parseFloat(totalTax)) ? 0 : parseFloat(totalTax);
+    const safeDiscount = isNaN(parseFloat(discount)) ? 0 : parseFloat(discount);
+    const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
+
+    lines.push('^FO20,' + yPos + '^A0N,20,20^FDTOTAL TAX:     ' + formatCurrency(safeTax) + '^FS');
+    yPos += 30;
+    lines.push('^FO20,' + yPos + '^A0N,20,20^FDDISCOUNT:      ' + formatCurrency(safeDiscount) + '^FS');
+    yPos += 30;
+    lines.push('^FO20,' + yPos + '^A0N,30,30^FDTOTAL:  ' + formatCurrency(safeGrandTotal) + '^FS');
+    yPos += 50;
+
+    // Footer
+    lines.push('^FO150,' + yPos + '^A0N,20,20^FDThank You for Payment^FS');
+    yPos += 30;
+    lines.push('^FO120,' + yPos + '^A0N,25,25^FDwww.getyourticket.in^FS');
+
+    // End format and print
+    lines.push('^XZ');
+
+    const zplString = lines.join('\n');
+    return new TextEncoder().encode(zplString);
+};
+
+/**
+ * Generate ZPL from Excel data for label printing
+ */
+// export const generateZPLFromExcel = async (
+//     row,
+//     selectedFields = [],
+//     labelSize = "2x2"
+// ) => {
+//     const lines = [];
+
+//     // Label size configurations (in dots, 203 DPI)
+//     const SIZE_CONFIG = {
+//         "2x2": {
+//             width: 406,    // 2 inches = 406 dots
+//             height: 406,
+//             font: "0",     // Font A
+//             fontSize: 30,
+//             lineGap: 40,
+//             startX: 30,
+//             startY: 40,
+//         },
+//         "2x1": {
+//             width: 406,
+//             height: 203,   // 1 inch = 203 dots
+//             font: "0",
+//             fontSize: 25,
+//             lineGap: 35,
+//             startX: 25,
+//             startY: 30,
+//         },
+//         "3x2": {
+//             width: 609,    // 3 inches = 609 dots
+//             height: 406,
+//             font: "0",
+//             fontSize: 40,
+//             lineGap: 50,
+//             startX: 40,
+//             startY: 45,
+//         },
+//     };
+
+//     const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+//     // Start format
+//     lines.push('^XA');
+//     lines.push('^LH0,0');
+
+//     let y = cfg.startY;
+
+//     selectedFields.forEach((field) => {
+//         const value = row[field];
+//         if (!value) return;
+
+//         lines.push(`^FO${cfg.startX},${y}^A${cfg.font}N,${cfg.fontSize},${cfg.fontSize}^FD${value}^FS`);
+//         y += cfg.lineGap;
+//     });
+
+//     lines.push('^XZ');
+
+//     return new TextEncoder().encode(lines.join('\n'));
+// };
+
+/**
+ * Generate CPCL (Comtec Printer Control Language) commands
+ * Works with Citizen, Intermec, and other CPCL-compatible printers
+ */
+export const generateCPCL = async (event, bookingData, totalTax, discount, grandTotal, formatDateTime) => {
+    const lines = [];
+    const token = bookingData?.[0]?.token || '';
+
+    // CPCL format start - label height in dots (assume 203 DPI, 4" height = 812 dots)
+    lines.push('! 0 200 200 812 1');
+    lines.push('PAGE-WIDTH 576'); // 576 dots = ~72mm at 203 DPI
+    lines.push('');
+
+    // Event Name - centered, large font
+    lines.push('SETMAG 2 2');
+    lines.push('CENTER');
+    lines.push('TEXT 7 0 288 30 ' + (event?.name || 'Event Ticket'));
+    lines.push('SETMAG 1 1');
+    lines.push('');
+
+    // QR Code - CPCL barcode command
+    if (token) {
+        // BARCODE-QR x y M U E size "data"
+        // M = model (M for model 2), U = unit size, E = error correction (M = 15%)
+        lines.push('BARCODE-QR 150 80 M 2 M 6');
+        lines.push('MA,' + token);
+        lines.push('ENDQR');
+        lines.push('');
+    }
+
+    // Date/Time
+    const dateTime = formatDateTime?.(bookingData?.[0]?.created_at) || bookingData?.[0]?.created_at || '';
+    lines.push('CENTER');
+    lines.push('TEXT 4 0 288 320 ' + dateTime);
+    lines.push('LEFT');
+    lines.push('');
+
+    // Separator line
+    let yPos = 360;
+    lines.push('LINE 20 ' + yPos + ' 556 ' + yPos + ' 2');
+    yPos += 20;
+
+    // Ticket details header
+    lines.push('TEXT 4 0 20 ' + yPos + ' Qty  Ticket Name          Price');
+    yPos += 30;
+    lines.push('LINE 20 ' + yPos + ' 556 ' + yPos + ' 2');
+    yPos += 20;
+
+    // Ticket items
+    bookingData?.forEach((booking) => {
+        const qty = booking.quantity || 0;
+        const name = (booking?.ticket?.name || 'N/A').substring(0, 20);
+        const amount = Number(booking.amount) || 0;
+        const quantity = Number(booking.quantity) || 0;
+        const price = formatCurrency(amount * quantity);
+
+        lines.push('TEXT 4 0 20 ' + yPos + ' ' + qty + '  ' + name);
+        lines.push('TEXT 4 0 400 ' + yPos + ' ' + price);
+        yPos += 30;
+    });
+
+    // Separator
+    lines.push('LINE 20 ' + yPos + ' 556 ' + yPos + ' 2');
+    yPos += 30;
+
+    // Summary
+    const safeTax = isNaN(parseFloat(totalTax)) ? 0 : parseFloat(totalTax);
+    const safeDiscount = isNaN(parseFloat(discount)) ? 0 : parseFloat(discount);
+    const safeGrandTotal = isNaN(parseFloat(grandTotal)) ? 0 : parseFloat(grandTotal);
+
+    lines.push('TEXT 4 0 20 ' + yPos + ' TOTAL TAX:     ' + formatCurrency(safeTax));
+    yPos += 30;
+    lines.push('TEXT 4 0 20 ' + yPos + ' DISCOUNT:      ' + formatCurrency(safeDiscount));
+    yPos += 30;
+    lines.push('SETMAG 1 2');
+    lines.push('TEXT 7 0 20 ' + yPos + ' TOTAL:  ' + formatCurrency(safeGrandTotal));
+    lines.push('SETMAG 1 1');
+    yPos += 50;
+
+    // Footer
+    lines.push('CENTER');
+    lines.push('TEXT 4 0 288 ' + yPos + ' Thank You for Payment');
+    yPos += 30;
+    lines.push('SETMAG 1 2');
+    lines.push('TEXT 7 0 288 ' + yPos + ' www.getyourticket.in');
+    lines.push('SETMAG 1 1');
+
+    // Print command
+    lines.push('PRINT');
+    lines.push('');
+
+    const cpclString = lines.join('\r\n');
+    return new TextEncoder().encode(cpclString);
+};
+
+/**
+ * Generate CPCL from Excel data for label printing
+ */
+// export const generateCPCLFromExcel = async (
+//     row,
+//     selectedFields = [],
+//     labelSize = "2x2"
+// ) => {
+//     const lines = [];
+
+//     // Label size configurations (in dots, 203 DPI)
+//     const SIZE_CONFIG = {
+//         "2x2": {
+//             width: 406,
+//             height: 406,
+//             font: "4",
+//             fontSize: 0,   // CPCL font size (0 = default)
+//             lineGap: 40,
+//             startX: 30,
+//             startY: 40,
+//         },
+//         "2x1": {
+//             width: 406,
+//             height: 203,
+//             font: "4",
+//             fontSize: 0,
+//             lineGap: 35,
+//             startX: 25,
+//             startY: 30,
+//         },
+//         "3x2": {
+//             width: 609,
+//             height: 406,
+//             font: "7",
+//             fontSize: 0,
+//             lineGap: 50,
+//             startX: 40,
+//             startY: 45,
+//         },
+//     };
+
+//     const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+//     // Start format
+//     lines.push(`! 0 200 200 ${cfg.height} 1`);
+//     lines.push(`PAGE-WIDTH ${cfg.width}`);
+//     lines.push('LEFT');
+//     lines.push('');
+
+//     let y = cfg.startY;
+
+//     selectedFields.forEach((field) => {
+//         const value = row[field];
+//         if (!value) return;
+
+//         lines.push(`TEXT ${cfg.font} ${cfg.fontSize} ${cfg.startX} ${y} ${value}`);
+//         y += cfg.lineGap;
+//     });
+
+//     lines.push('PRINT');
+//     lines.push('');
+
+//     return new TextEncoder().encode(lines.join('\r\n'));
+// };

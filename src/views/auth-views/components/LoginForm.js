@@ -1,123 +1,158 @@
-import React, { useEffect, useState } from 'react';
-import { Button, Form, Input, Alert } from 'antd';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Button, Form, Input, Alert, message } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
 import { API_BASE_URL } from 'constants/ApiConstant';
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig';
 
-const LoginForm = ({
-  showForgetPassword = false,   // kept for API-compat with your props
-  otherSignIn = false,          // turn off social here by default
-  extra = null,                 // any extra JSX you were injecting
-}) => {
+// Validation patterns
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^[0-9]{6,15}$/;
+
+// Verification status configurations
+const VERIFICATION_STATUS = {
+  'email-verification-pending': {
+    message: 'Email verification is pending. Please check your inbox and verify your email.',
+    type: 'warning',
+    showResend: false,
+  },
+  'email-verification-failed': {
+    message: 'Email verification failed. Please try again or contact support.',
+    type: 'error',
+    showResend: false,
+  },
+  'email-verified-success': {
+    message: 'Email verified successfully! You can now sign in.',
+    type: 'success',
+    showResend: false,
+  },
+  'verification-expired': {
+    message: 'Email verification expired. Please resend the verification email.',
+    type: 'error',
+    showResend: true,
+  },
+};
+
+const LoginForm = ({ extra = null }) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [loading, setLoading] = useState(false);
-  const [showMessage, setShowMessage] = useState(false);
-  const [message, setMessage] = useState('');
-  const [alertType, setAlertType] = useState('error');
+  const [alert, setAlert] = useState({ show: false, message: '', type: 'error' });
+  const [showResendButton, setShowResendButton] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
+
+  // Resend verification mutation
+  const resendVerificationMutation = useMutation({
+    mutationFn: async (email) => {
+      const response = await axios.post(`${API_BASE_URL}resend-verification`, { email });
+      return response.data;
+    },
+    onSuccess: () => {
+      message.success('Verification email sent successfully!');
+      setShowResendButton(false);
+      navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data: userEmail } });
+    },
+    onError: (err) => {
+      const errorMsg = err?.response?.data?.message || err?.response?.data?.error || 'Failed to resend verification email.';
+      message.error(errorMsg);
+    },
+  });
 
   // Handle email verification query params
   useEffect(() => {
     const setParam = searchParams.get('set');
-    if (setParam) {
-      switch (setParam) {
-        case 'email-verification-pending':
-          setMessage('Email verification is pending. Please check your inbox and verify your email.');
-          setAlertType('warning');
-          setShowMessage(true);
-          break;
-        case 'email-verification-failed':
-          setMessage('Email verification failed. Please try again or contact support.');
-          setAlertType('error');
-          setShowMessage(true);
-          break;
-        case 'email-verified-success':
-          setMessage('Email verified successfully! You can now sign in.');
-          setAlertType('success');
-          setShowMessage(true);
-          break;
-        default:
-          break;
-      }
-      // Clear the URL query params
+    const config = VERIFICATION_STATUS[setParam];
+
+    if (config) {
+      setAlert({ show: true, message: config.message, type: config.type });
+      setShowResendButton(config.showResend);
       setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 
-  const onLogin = async (values) => {
-    const { data } = values; // "data" = email or mobile (same as your working file)
-    if (!data) {
-      setMessage('Please enter your email or mobile number.');
-      setAlertType('error');
-      setShowMessage(true);
-      return;
+  // Auto-hide alert after 3 seconds
+  useEffect(() => {
+    if (alert.show) {
+      const timer = setTimeout(() => setAlert(prev => ({ ...prev, show: false })), 3000);
+      return () => clearTimeout(timer);
     }
+  }, [alert.show]);
+
+  // Handle login
+  const onLogin = async (values) => {
+    const { data } = values;
+
+    setUserEmail(data);
 
     try {
       setLoading(true);
       const response = await axios.post(`${API_BASE_URL}verify-user`, { data });
 
       if (response?.data?.status) {
-        const isPassReq = response?.data?.pass_req;
-        if (isPassReq === true) {
-          const session_id = response?.data?.session_id;
-          const auth_session = response?.data?.auth_session;
-          const info = { data, password_required: isPassReq, session_id, auth_session };
+        const { pass_req, session_id, auth_session } = response.data;
+
+        if (pass_req) {
+          const info = { data, password_required: pass_req, session_id, auth_session };
           navigate(`${AUTH_PREFIX_PATH}/verify-password`, { state: { info } });
         } else {
           navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data } });
         }
-      } else {
-        // Non-true status but no thrown error – mirror original behavior (just stop loading)
-		// navigate(`${AUTH_PREFIX_PATH}/register-1`, { state: { data } });
       }
     } catch (err) {
-      // If API returns { status:false } => go to sign-up with prefilled data
-      const status = err?.response?.data?.status;
+      const meta = err?.response?.data?.meta === 404;
       const apiMsg = err?.response?.data?.message || err?.response?.data?.error;
-      //  && apiMsg !== "Oops! We couldn't verify your login information"
-      // Don't navigate if it's a verification error - just show the error
-      if (status === false) {
-        navigate(`${AUTH_PREFIX_PATH}/register-1`, { state: { data } });
+
+      if (meta) {
+        navigate(`${AUTH_PREFIX_PATH}/register`, { state: { data } });
       }
 
-      setMessage(apiMsg || 'Something went wrong. Please try again.');
-      setAlertType('error');
-      setShowMessage(true);
+      setAlert({
+        show: true,
+        message: apiMsg || 'Something went wrong. Please try again.',
+        type: 'error',
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // auto-hide alert like your original pattern
-  useEffect(() => {
-    if (showMessage) {
-      const t = setTimeout(() => setShowMessage(false), 3000);
-      return () => clearTimeout(t);
-    }
-  }, [showMessage]);
-
-  // simple validator: allow email OR digits (mobile)
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  const phoneRegex = /^[0-9]{6,15}$/; // adjust if you want stricter
+  // Form validation rules
+  const validationRules = useMemo(() => [
+    { required: true, message: 'Please enter your email or mobile number.' },
+    {
+      validator: (_, value) => {
+        if (!value) return Promise.resolve();
+        const trimmedValue = String(value).trim();
+        if (EMAIL_REGEX.test(trimmedValue) || PHONE_REGEX.test(trimmedValue)) {
+          return Promise.resolve();
+        }
+        return Promise.reject(new Error('Enter a valid email or mobile number'));
+      },
+    },
+  ], []);
 
   return (
     <>
-    {showMessage && 
-      <motion.div
-        initial={{ opacity: 0, marginBottom: 0 }}
-        animate={{
-          opacity: showMessage ? 1 : 0,
-          marginBottom: showMessage ? 20 : 0,
-        }}
-      >
-        <Alert type={alertType} showIcon message={message} style={{ visibility: showMessage ? 'visible' : 'hidden' }} />
-      </motion.div>
-    }
+      {alert.show && (
+        <motion.div
+          initial={{ opacity: 0, marginBottom: 0 }}
+          animate={{
+            opacity: alert.show ? 1 : 0,
+            marginBottom: alert.show ? 20 : 0,
+          }}
+        >
+          <Alert
+            type={alert.type}
+            showIcon
+            message={alert.message}
+            style={{ visibility: alert.show ? 'visible' : 'hidden' }}
+          />
+        </motion.div>
+      )}
 
       <Form
         layout="vertical"
@@ -128,17 +163,7 @@ const LoginForm = ({
         <Form.Item
           name="data"
           label="Email or mobile number"
-          rules={[
-            { required: true, message: 'Please enter your email or mobile number.' },
-            {
-              validator: (_, value) => {
-                if (!value) return Promise.resolve();
-                const v = String(value).trim();
-                if (emailRegex.test(v) || phoneRegex.test(v)) return Promise.resolve();
-                return Promise.reject(new Error('Enter a valid email or mobile number'));
-              },
-            },
-          ]}
+          rules={validationRules}
         >
           <Input
             size="large"
@@ -147,14 +172,26 @@ const LoginForm = ({
           />
         </Form.Item>
 
-        {/* Password field removed to mirror the verify-first flow.
-            If pass is required, we navigate to /verify-password exactly like your working component. */}
-
         <Form.Item>
           <Button type="primary" htmlType="submit" block size="large" loading={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </Button>
         </Form.Item>
+
+        {showResendButton && (
+          <Form.Item>
+            <Button
+              type="default"
+              block
+              size="large"
+              loading={resendVerificationMutation.isPending}
+              onClick={() => resendVerificationMutation.mutate(userEmail)}
+              disabled={!userEmail}
+            >
+              Resend Verification Email
+            </Button>
+          </Form.Item>
+        )}
 
         {extra}
       </Form>

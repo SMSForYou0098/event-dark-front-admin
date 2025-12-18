@@ -315,8 +315,8 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
                                 }}
                               >
                                 <Space>
-                                  {attendee.Photo ? (
-                                    <Avatar src={attendee.Photo} size={48} shape="square" />
+                                  {attendee?.photo ? (
+                                    <Avatar src={attendee?.photo} size={48} shape="square" />
                                   ) : (
                                     <Avatar
                                       icon={<UserOutlined />}
@@ -327,16 +327,16 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
                                   )}
                                   <div>
                                     <Text strong style={{ display: 'block' }}>
-                                      {attendee.Name || 'N/A'}
+                                      {attendee?.name || 'N/A'}
                                     </Text>
                                     {/* {attendee.seatName && (
                                       <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
                                         🎫 {attendee.seatName}
                                       </Text>
                                     )} */}
-                                    {attendee.Mo && (
+                                    {attendee?.number && (
                                       <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                                        📱 {attendee.Mo}
+                                        📱 {attendee?.number}
                                       </Text>
                                     )}
                                   </div>

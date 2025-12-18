@@ -1,10 +1,11 @@
 import React from 'react';
 import { Radio, Space } from 'antd';
 
-const PrinterTypeSelector = ({ printerType, setPrinterType, isConnected }) => {
+const PrinterTypeSelector = ({ printerType, setPrinterType, isConnected, printerOptions }) => {
     if (isConnected) return null;
 
-    const printerOptions = [
+    // Default options for POS printers (ESC/POS)
+    const defaultPrinterOptions = [
         {
             value: 'escpos-native',
             title: 'ESC/POS (Modern)',
@@ -12,37 +13,35 @@ const PrinterTypeSelector = ({ printerType, setPrinterType, isConnected }) => {
         },
         {
             value: 'escpos-bitmap',
-            title: 'ESC/POS (Legacy)',
+            title: 'ESC/POS (Old)',
             description: 'Bitmap QR - Old thermal printers'
         },
-        // {
-        //     value: 'tspl',
-        //     title: 'TSPL',
-        //     description: 'TSC label printers only'
-        // }
     ];
+
+    // Use custom options if provided, otherwise use default
+    const options = printerOptions || defaultPrinterOptions;
 
     return (
         <div className="mb-3">
             <div className="mb-2 fw-semibold">
                 Printer Type:
             </div>
-            <Radio.Group 
-                value={printerType} 
+            <Radio.Group
+                value={printerType}
                 onChange={(e) => setPrinterType(e.target.value)}
             >
                 <Space direction="vertical" size={12}>
-                    {printerOptions.map((option) => (
+                    {options.map((option) => (
                         <Radio key={option.value} value={option.value}>
                             <div style={{ marginLeft: '4px' }}>
-                                <div 
-                                    className="fw-semibold" 
+                                <div
+                                    className="fw-semibold"
                                     style={{ fontSize: '13px', lineHeight: '1.4' }}
                                 >
                                     {option.title}
                                 </div>
-                                <div 
-                                    style={{ 
+                                <div
+                                    style={{
                                         fontSize: '11px',
                                         color: '#8c8c8c',
                                         lineHeight: '1.4',

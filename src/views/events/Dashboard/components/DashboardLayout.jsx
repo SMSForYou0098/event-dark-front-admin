@@ -15,9 +15,10 @@ import GatewayWiseSales from './GatewayWiseSales';
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
     const { isMobile } = useMyContext();
     const [showToday, setShowToday] = useState(true);
-    
-    const { bookingData, salesData, isLoading, error, gatewayWiseSalesData, gatewayLoading, organizerSummary, organizerTickets } = useDashboardData(userId);
 
+    const { bookingData, salesData, isLoading, error, gatewayWiseSalesData, gatewayLoading, organizerSummary, organizerTickets, userStats } = useDashboardData(userId);
+
+    console.log(userStats, 'userStats')
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -117,13 +118,13 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 <StatSection
                     title="Revenue Overview"
                     stats={getRevenueStats(salesData)}
-                    colConfig={{ 
-                        xs: 24, 
-                        sm: 12, 
-                        md: 8, 
-                        lg: 6, 
-                        xl: 4, 
-                        style: { flex: '1 1 20%', maxWidth: isMobile ? '100%' : '20%' } 
+                    colConfig={{
+                        xs: 24,
+                        sm: 12,
+                        md: 8,
+                        lg: 6,
+                        xl: 4,
+                        style: { flex: '1 1 20%', maxWidth: isMobile ? '100%' : '20%' }
                     }}
                     extraHeader={
                         <Switch
@@ -158,7 +159,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 {showUserManagement && (
                     <StatSection
                         title="User Management"
-                        stats={getUserStats(bookingData)}
+                        stats={getUserStats(userStats?.data)}
                         colConfig={{ xs: 24, sm: 12, lg: 4 }}
                         isMobile={isMobile}
                     />
@@ -166,7 +167,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
 
                 {/* Gateway Wise Sales Section */}
                 <Col xs={24}>
-                    <GatewayWiseSales 
+                    <GatewayWiseSales
                         gatewayData={gatewayWiseSalesData?.gatewayWise ?? []}
                         channelData={gatewayWiseSalesData?.channelTotals ?? []}
                         formatCurrency={formatCurrency}
@@ -189,13 +190,13 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                         type='area'
                     />
                 </Col>
-                {userRole==='Admin' && 
-                <Col xs={24} lg={12}>
-                    <PaymentGatewayTable
-                        data={getGatewayData(salesData.pgData)}
-                        columns={getGatewayColumns(formatCurrency)}
-                    />
-                </Col>
+                {userRole === 'Admin' &&
+                    <Col xs={24} lg={12}>
+                        <PaymentGatewayTable
+                            data={getGatewayData(salesData.pgData)}
+                            columns={getGatewayColumns(formatCurrency)}
+                        />
+                    </Col>
                 }
             </Row>
 

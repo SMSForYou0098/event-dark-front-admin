@@ -139,33 +139,33 @@ const AttendeeSuggestion = ({
                     >
                       <List.Item.Meta
                         avatar={
-                          attendee.Photo ? (
-                            <Avatar src={attendee.Photo} size={48} />
+                          attendee?.photo ? (
+                            <Avatar src={attendee?.photo} size={48} />
                           ) : (
                             <Avatar icon={<UserOutlined />} size={48} />
                           )
                         }
                         title={
                           <Space>
-                            <Text strong>{attendee.Name || 'N/A'}</Text>
+                            <Text strong>{attendee?.name || 'N/A'}</Text>
                             {isSelected && <CheckCircleFilled style={{ color: '#52c41a' }} />}
                           </Space>
                         }
                         description={
                           <Space direction="vertical" size={0}>
-                            {attendee.email && (
+                            {attendee?.email && (
                               <Text type="secondary" style={{ fontSize: '12px' }}>
-                                📧 {attendee.email}
+                                📧 {attendee?.email}
                               </Text>
                             )}
-                            {attendee.Mo && (
+                            {attendee?.number && (
                               <Text type="secondary" style={{ fontSize: '12px' }}>
-                                📱 {attendee.Mo}
+                                📱 {attendee?.number}
                               </Text>
                             )}
-                            {attendee.Company_Name && (
+                            {attendee?.company_name && (
                               <Text type="secondary" style={{ fontSize: '12px' }}>
-                                🏢 {attendee.Company_Name}
+                                🏢 {attendee?.company_name}
                               </Text>
                             )}
                           </Space>

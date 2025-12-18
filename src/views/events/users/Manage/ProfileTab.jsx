@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Col, Form, Input, message, Modal, Radio, Row, Select, Space, Spin, Switch } from 'antd';
+import { Alert, Button, Card, Col, Form, Input, message, Modal, Radio, Row, Select, Space, Spin, Switch, Tag } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from 'Context/MyContextProvider';
-import { Key } from 'lucide-react';
+import { CircleCheckBig, CircleX, Key, ScrollText } from 'lucide-react';
 import { mapApiToForm, mapFormToApi } from './dataMappers';
 import axios from 'axios';
 import { updateUser } from 'store/slices/authSlice';
@@ -36,6 +36,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         roleName: '',
         reportingUser: '',
         status: true,
+        email_verified_at: null,
+        agreement: null,
 
         // Role-specific fields
         agreementStatus: false,
@@ -158,10 +160,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // FIXED: Set initial reporting user and handle query params separately
     useEffect(() => {
-        if (mode === 'edit' && fetchedData?.user && initialReportingUser.current === null) {
-            initialReportingUser.current = fetchedData?.user?.reporting_user_id?.toString();
+        if (mode === 'edit' && fetchedData?.data && initialReportingUser.current === null) {
+            initialReportingUser.current = fetchedData?.data?.reporting_user_id?.toString();
         }
-    }, [mode, fetchedData?.user]);
+    }, [mode, fetchedData?.data]);
 
     // FIXED: Handle query params in separate effect for create mode
     useEffect(() => {
@@ -199,14 +201,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Get events from edit-user response (for edit mode, unchanged org)
     const eventsFromEditResponse = useMemo(() => {
-        if (mode !== 'edit' || !fetchedData?.user?.events) return [];
+        if (mode !== 'edit' || !fetchedData?.data?.events) return [];
 
-        return fetchedData.user.events.map(event => ({
+        return fetchedData.data.events.map(event => ({
             value: event.id,
             label: event.name,
             tickets: event.tickets || [],
         }));
-    }, [mode, fetchedData?.user?.events]);
+    }, [mode, fetchedData?.data?.events]);
 
 
     // ✅ SIMPLIFIED: Fetch events only when we have a valid reporting user
@@ -266,9 +268,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Initialize form with fetched data
     useEffect(() => {
-        if (mode === 'edit' && fetchedData?.user && !didInit.current && !isInitializing.current) {
+        if (mode === 'edit' && fetchedData?.data && !didInit.current && !isInitializing.current) {
             isInitializing.current = true;
-            const formData = mapApiToForm(fetchedData.user);
+            const formData = mapApiToForm(fetchedData.data);
 
             setFormState(prevState => ({ ...prevState, ...formData }));
 
@@ -278,8 +280,25 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             }
 
             // Store original email and phone for OTP verification check
-            originalEmail.current = formData.email || fetchedData.user.email;
-            originalNumber.current = formData.number || fetchedData.user.number;
+            originalEmail.current = formData.email || fetchedData.data.email;
+            originalNumber.current = formData.number || fetchedData.data.number;
+
+            // Initialize signature state from fetched data
+            if (formData.signatureType) {
+                setSignatureType(formData.signatureType);
+            }
+            if (formData.signatureText) {
+                setTypedSignature(formData.signatureText);
+            }
+            if (formData.signatureFont) {
+                const font = SIGNATURE_FONTS.find(f => f.name === formData.signatureFont);
+                if (font) {
+                    setSelectedFont(font);
+                }
+            }
+            if (formData.signatureImage) {
+                setSignaturePreview(formData.signatureImage);
+            }
 
             // Also set form fields for Ant Design Form
             form.setFieldsValue(formData);
@@ -291,7 +310,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 setSelectedRole(formData.roleName);
             }
         }
-    }, [mode, fetchedData?.user, form, setSelectedRole]);
+    }, [mode, fetchedData?.data, form, setSelectedRole]);
 
     // Sync form state with Ant Design Form
     const handleFormChange = useCallback((changedFields, allFields) => {
@@ -637,7 +656,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                 agreementStatus: false,
                 agentDiscount: false,
                 convenienceFeeType: 'percentage',
-                convenienceFee: ''
+                convenienceFee: '',
+                verifiedEmail: false
             }}
         >
             <Row gutter={[16, 16]}>
@@ -681,18 +701,53 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     {/* Basic Information */}
                     <Card title="Basic Information"
                         extra={
-                            editOtherUser &&
-                            <PermissionChecker permission={["Edit User", "Edit Profile"]}>
-                                <Flex justifyContent="end">
-                                    <Button className="mr-2" onClick={() => navigate(-1)}>
-                                        Discard
-                                    </Button>
-                                    <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                                        {mode === "create" ? "Create" : "Update"}
-                                    </Button>
-                                </Flex>
-                            </PermissionChecker>
+                            <Flex justifyContent="end" alignItems="center" gap="middle">
+                                {formState?.email_verified_at ? (
+                                    <Tag
+                                        color="success"
+                                        className="btn btn-secondary d-inline-flex align-items-center gap-2"
+                                    >
+                                        <CircleCheckBig size={14} />
+                                        Email Verified
+                                    </Tag>
+                                ) : (
+                                    <Tag
+                                        color="error"
+                                        className="btn btn-secondary d-inline-flex align-items-center gap-2"
+                                    >
+                                        <CircleX size={14} />
+                                        Email Not Verified
+                                    </Tag>
+                                )}
+                                {editOtherUser &&
+                                    <PermissionChecker permission={["Edit User", "Edit Profile"]}>
+                                        <Flex justifyContent="end">
+                                            <Button className="mr-2" onClick={() => navigate(-1)}>
+                                                Discard
+                                            </Button>
+                                            <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                                {mode === "create" ? "Create" : "Update"}
+                                            </Button>
+                                        </Flex>
+                                    </PermissionChecker>
+                                }
+
+                                {formState.agreement && (
+                                    <PermissionChecker role={["Admin", "Organizer"]}>
+                                        <Button
+                                            type="default"
+                                            onClick={() => navigate(`/agreement/preview/${formState.agreement}`)}
+                                            className="btn btn-secondary d-inline-flex align-items-center gap-2"
+                                            icon={<ScrollText size={16} />}
+                                        >
+                                            View Agreement
+                                        </Button>
+                                    </PermissionChecker>
+                                )}
+
+                            </Flex>
                         }
+
                     >
 
                         <Row gutter={[16, 16]}>
@@ -732,6 +787,22 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                 </Form.Item>
                             </Col>
 
+                            {/* Verified Email Checkbox - Only for Admin creating Organizer */}
+                            {mode === 'create' && userRole === 'Admin' && formState.roleName === 'Organizer' && (
+                                <Col xs={24} md={8}>
+                                    <Form.Item
+                                        label="Email Verification Required"
+                                        name="verifiedEmail"
+                                        valuePropName="checked"
+                                    >
+                                        <Switch
+                                            checkedChildren="Yes"
+                                            unCheckedChildren="No"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            )}
+
                             {formState.roleName === 'Organizer' && (
                                 <>
 
@@ -759,23 +830,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             <Input placeholder="GST Number" />
                                         </Form.Item>
                                     </Col>
-
-                                    {
-                                        userRole === 'Admin' && (
-                                            <Col xs={24} md={12}>
-                                                <Form.Item
-                                                    label="Agreement Status"
-                                                    name="agreementStatus"
-                                                    valuePropName="checked"
-                                                >
-                                                    <Switch
-                                                        checkedChildren="Active"
-                                                        unCheckedChildren="Inactive"
-                                                    />
-                                                </Form.Item>
-                                            </Col>
-                                        )
-                                    }
                                     {
                                         userRole === 'Admin' && formState.roleName === 'Organizer' && (
 
@@ -868,7 +922,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                         <Form.Item
                                             label="Assign Events"
                                             name="events"
-                                        //rules={[requiredIf(needsEvents, 'Please select at least one event')]}
                                         >
                                             <Select
                                                 mode={formState.roleName !== 'Scanner' && "multiple"}

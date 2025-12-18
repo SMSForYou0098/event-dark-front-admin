@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
 import EventStepperForm from 'views/events/event/EventStepperForm'
@@ -30,14 +30,20 @@ export const publicRoutes = [
         component: React.lazy(() => import('views/auth-views/authentication/verify-password')),
     },
     {
-        key: 'register-1',
-        path: `${AUTH_PREFIX_PATH}/register-1`,
+        key: 'register',
+        path: `${AUTH_PREFIX_PATH}/register`,
         component: React.lazy(() => import('views/auth-views/authentication/register-1')),
     },
     {
         key: 'forgot-password',
         path: `${AUTH_PREFIX_PATH}/forgot-password`,
         component: React.lazy(() => import('views/auth-views/authentication/forgot-password')),
+    },
+    {
+        key: 'reset-password',
+        path: `${AUTH_PREFIX_PATH}/reset-password`,
+        component: React.lazy(() => import('views/auth-views/authentication/forgot-password/reset-password')),
+
     },
     // {
     //     key: 'agreement/preview/:id',
@@ -137,7 +143,7 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/seating_module/StadiumV2/StadiumAdmin')),
         meta: {}
     },
-    
+
     // ==================== STADIUM V2 - NEW SEPARATED ROUTES ====================
     // Layout Builder Only (Admin) - No ticket assignment
     {
@@ -364,7 +370,7 @@ export const protectedRoutes = [
         key: 'events-junk',
         path: `/events/junk`,
         component: (props) => (
-            <EventList isJunk={true}/>
+            <EventList isJunk={true} />
         ),
         meta: {
             permissions: ['View Junk Events'],
@@ -559,7 +565,7 @@ export const protectedRoutes = [
             </React.Suspense>
         ),
         meta: {
-           // roles: ['admin', 'organizer', 'scanner'],
+            // roles: ['admin', 'organizer', 'scanner'],
             permissions: ['Scan By Camera'],
         }
     },
@@ -592,7 +598,7 @@ export const protectedRoutes = [
         path: `/promo-codes`,
         component: React.lazy(() => import('views/events/PromoCodes/index')),
         meta: {
-           // roles: ['admin', 'organizer'],
+            // roles: ['admin', 'organizer'],
             permissions: ['View Promo Codes'],
         }
     },
@@ -761,32 +767,6 @@ export const protectedRoutes = [
         }
     },
 
-    // ==================== AUTHENTICATION (Blank Layout) ====================
-    {
-        key: 'login-1',
-        path: `/login-1`,
-        component: React.lazy(() => import('views/auth-views/authentication/login-1')),
-        meta: {
-            blankLayout: true
-        }
-    },
-    {
-        key: 'register-1',
-        path: `/register-1`,
-        component: React.lazy(() => import('views/auth-views/authentication/register-1')),
-        meta: {
-            blankLayout: true
-        }
-    },
-    {
-        key: 'forgot-password',
-        path: `/forgot-password`,
-        component: React.lazy(() => import('views/auth-views/authentication/forgot-password')),
-        meta: {
-            blankLayout: true
-        }
-    },
-
     // ==================== Reports ====================
     {
         key: 'event-reports',
@@ -804,23 +784,6 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Reports/AgentReport')),
     },
 
-    // ==================== ERROR PAGES (Blank Layout) ====================
-    {
-        key: 'error-page-1',
-        path: `/error-page-1`,
-        component: React.lazy(() => import('views/auth-views/errors/error-page-1')),
-        meta: {
-            blankLayout: true
-        }
-    },
-    {
-        key: 'error-page-2',
-        path: `/error-page-2`,
-        component: React.lazy(() => import('views/auth-views/errors/error-page-2')),
-        meta: {
-            blankLayout: true
-        }
-    },
     // ==================== New Booking Page ====================
     {
         key: 'new-booking-agent',
@@ -882,6 +845,14 @@ export const protectedRoutes = [
         meta: {
             // roles: ['admin'],
             permissions: ['View Content Master'],
+        }
+    },
+    {
+        key: 'label-printing',
+        path: `/label-printing`,
+        component: React.lazy(() => import('views/events/label_printing/LabelPrinting')),
+        meta: {
+            roles: ['admin'],
         }
     },
 ]
