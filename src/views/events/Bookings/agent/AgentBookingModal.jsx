@@ -64,14 +64,14 @@ const getFileName = (doc) => {
   const filename = typeof doc === 'string'
     ? doc.split('/').pop()
     : (doc && typeof doc === 'object' && doc.name ? doc.name : "Document uploaded");
-  
+
   return filename.length > 22
     ? filename.slice(0, 10) + '...' + filename.slice(-9)
     : filename;
 };
 
 const AgentBookingModal = (props) => {
-  const { api: apiUrl, authToken, loader } = useMyContext();
+  const { loader } = useMyContext();
   const {
     showPrintModel,
     handleClose,
@@ -96,8 +96,6 @@ const AgentBookingModal = (props) => {
     designation,
     setDesignation,
     setConfirmed,
-    event,
-    selectedTickets,
     isAccreditation = false
   } = props;
 
@@ -524,7 +522,7 @@ const AgentBookingModal = (props) => {
                     loading={loading || disabled}
                     icon={loading && <LoadingOutlined />}
                   >
-                    {loading ? 'Sending Tickets' : 'Submit'}
+                    {loading ? 'Sending Tickets' : 'Submitsss'}
                   </Button>
                 </Form.Item>
               </Col>

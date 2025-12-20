@@ -19,6 +19,7 @@ import {
   useUpdateUser,
   useCorporateBooking,
   useAgentBooking,
+  useLockSeats,
 } from './useAgentBookingHooks';
 import BookingSummary from './components/BookingSummary';
 import { calcTicketTotals, distributeDiscount, getSubtotal } from 'utils/ticketCalculations';
@@ -71,6 +72,9 @@ const NewAgentBooking = memo(({ type }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [bookingResponse, setBookingResponse] = useState(null);
   const [ticketAttendees, setTicketAttendees] = useState({});
+
+  // Ref for BookingLayout to update seat status
+  const bookingLayoutRef = useRef(null);
 
   // Custom hooks
   const { data: existingAttendees = [], refetch: refetchAttendees } = useUserAttendees({
@@ -147,6 +151,7 @@ const NewAgentBooking = memo(({ type }) => {
   });
 
   const agentBookingMutation = useAgentBooking();
+  const lockSeatsMutation = useLockSeats();
 
   const [isBookingInProgress, setIsBookingInProgress] = useState(false);
   const lastBookingAttemptRef = useRef(0);
@@ -223,7 +228,8 @@ const NewAgentBooking = memo(({ type }) => {
       name: user?.name || name,
       payment_method: method,
       type: event?.event_type || 'daily',
-      tickets: ticketsPayload
+      tickets: ticketsPayload,
+      seating_module: seatingModule,
     };
     // console.log(bookingPayload)
     // return
@@ -256,6 +262,12 @@ const NewAgentBooking = memo(({ type }) => {
         }
         if (response.status) {
           message.success(response.message || 'Booking created successfully!');
+
+          // ✅ Mark seats as booked in UI (reduces API calls)
+          if (seatingModule && bookingLayoutRef.current) {
+            bookingLayoutRef.current.markSeatsAsBooked();
+          }
+
           setBookingResponse(response.bookings || null);
           setSavedAttendeeIds({});
           setSelectedTickets([]);
@@ -271,7 +283,19 @@ const NewAgentBooking = memo(({ type }) => {
       },
       onError: (error) => {
         console.error('❌ Booking error:', error);
-        message.error(error.message || 'Booking failed');
+
+        // ✅ Handle 409 conflict - seats no longer available
+        if (error?.meta === 409 || error?.response?.status === 409 || error?.status === 409) {
+          const unavailableSeatIds = error?.seats || error?.response?.data?.seats || [];
+          if (seatingModule && bookingLayoutRef.current && unavailableSeatIds.length > 0) {
+            bookingLayoutRef.current.markSeatIdsAsBooked(unavailableSeatIds);
+            message.error(error.message || error?.response?.data?.message || 'Some seats are no longer available');
+          } else {
+            message.error(error.message || 'Some seats are no longer available');
+          }
+        } else {
+          message.error(error.message || 'Booking failed');
+        }
 
         // ✅ Reset booking state on error
         setTimeout(() => {
@@ -279,7 +303,7 @@ const NewAgentBooking = memo(({ type }) => {
         }, 1000);
       }
     });
-  }, [isBookingInProgress, type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep]);
+  }, [isBookingInProgress, type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep, seatingModule]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastSubmitAttemptRef = useRef(0);
@@ -477,7 +501,7 @@ const NewAgentBooking = memo(({ type }) => {
     setCurrentStep(0); // Reset to step 0
 
     const response = await fetchCategoryData(evnt?.category);
-    console.log('eee',response)
+    console.log('eee', response)
     if (response.status) {
       const attendeeRequired = response?.categoryData?.attendy_required === true;
       setIsAttendeeRequire(attendeeRequired);
@@ -550,6 +574,31 @@ const NewAgentBooking = memo(({ type }) => {
     setShowPrintModel(true);
   }, [selectedTickets]);
 
+  // ✅ Lock seats API call
+  const handleLockSeats = useCallback(async () => {
+    // Extract seat IDs from selected tickets (just the seat_id values)
+    const seats = selectedTickets?.flatMap(ticket =>
+      (ticket.seats || []).map(seat => seat.seat_id)
+    ) || [];
+
+    if (seats.length === 0) {
+      // No seats to lock (non-seating module tickets)
+      return { success: true };
+    }
+
+    try {
+      const response = await lockSeatsMutation.mutateAsync({
+        event_id: eventID,
+        seats: seats
+      });
+      return { success: true, response };
+    } catch (error) {
+      console.error('Failed to lock seats:', error);
+      message.error(error?.message || 'Failed to lock seats');
+      return { success: false, error };
+    }
+  }, [selectedTickets, lockSeatsMutation, eventID]);
+
   //console.log(UserData?.id);
 
   return (
@@ -603,6 +652,7 @@ const NewAgentBooking = memo(({ type }) => {
                 {seatingModule ? (
                   <Col xs={24} lg={16}>
                     <BookingLayout
+                      ref={bookingLayoutRef}
                       eventId={event?.id}
                       setSelectedTkts={setSelectedTickets}
                       layoutId={event?.layout_id}
@@ -659,9 +709,10 @@ const NewAgentBooking = memo(({ type }) => {
                       currentStep={currentStep}
                       isAttendeeRequire={isAttendeeRequire}
                       selectedTickets={selectedTickets}
-                      isLoading={isLoading}
+                      isLoading={isLoading || lockSeatsMutation.isPending}
                       onNext={goToNextStep} // ✅ Pass navigation function
                       onCheckout={handleBooking} // ✅ Only used for final checkout
+                      onLockSeats={handleLockSeats} // ✅ Pass lock seats function
                       isMobile={isMobile}
                       discount={discount}
                     />

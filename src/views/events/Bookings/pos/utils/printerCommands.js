@@ -342,7 +342,10 @@ export const generateTSPL = async (event, bookingData, totalTax, discount, grand
 export const generateTSPLFromExcel = async (
     row,
     selectedFields = [],
-    labelSize = "2x2"
+    labelSize = "2x2",
+    fontSizeMultiplier = 1.0,  // Global font size multiplier
+    fieldFontSizes = {},       // Individual font sizes per field
+    lineGapMultiplier = 1.0    // Vertical spacing multiplier
 ) => {
     const lines = [];
 
@@ -359,6 +362,7 @@ export const generateTSPLFromExcel = async (
             otherScaleX: 1,
             otherScaleY: 1,
             lineGap: 50,
+            nameExtraGap: 0,    // Extra gap after name line
             startX: 30,
             startY: 40,
         },
@@ -373,6 +377,7 @@ export const generateTSPLFromExcel = async (
             otherScaleX: 1,
             otherScaleY: 1,
             lineGap: 40,
+            nameExtraGap: 0,
             startX: 25,
             startY: 30,
         },
@@ -386,13 +391,30 @@ export const generateTSPLFromExcel = async (
             otherFont: "4",
             otherScaleX: 1,
             otherScaleY: 1,
-            lineGap: 65,
+            lineGap: 70,        // Slightly more default spacing for 3x2
+            // Small extra gap after the big name line so
+            // visual white-space between name and phone looks
+            // similar to other gaps
+            nameExtraGap: 10,
             startX: 40,
             startY: 45,
         },
     };
 
     const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+    // Apply line gap multiplier for vertical spacing
+    const effectiveLineGap = Math.max(10, Math.round(cfg.lineGap * lineGapMultiplier));
+    const nameLineGap = Math.max(
+        10,
+        Math.round(effectiveLineGap + (cfg.nameExtraGap || 0))
+    );
+
+    // Apply font size multiplier
+    const adjustedNameScaleX = Math.max(1, Math.round(cfg.nameScaleX * fontSizeMultiplier));
+    const adjustedNameScaleY = Math.max(1, Math.round(cfg.nameScaleY * fontSizeMultiplier));
+    const adjustedOtherScaleX = Math.max(1, Math.round(cfg.otherScaleX * fontSizeMultiplier));
+    const adjustedOtherScaleY = Math.max(1, Math.round(cfg.otherScaleY * fontSizeMultiplier));
 
     // Printer setup
     lines.push(`SIZE ${cfg.width}, ${cfg.height}`);
@@ -403,41 +425,42 @@ export const generateTSPLFromExcel = async (
     let y = cfg.startY;
     let namesCombined = false;
 
-    // Combine firstName and surname on the same line
-    const firstNameIndex = selectedFields.indexOf('firstName');
-    const surnameIndex = selectedFields.indexOf('surname');
+    // Check if both firstName and surname are selected
+    const hasFirstName = selectedFields.includes('firstName');
+    const hasSurname = selectedFields.includes('surname');
 
     selectedFields.forEach((field) => {
         const value = row[field];
         if (!value) return;
 
-        // Skip surname if we're combining it with firstName
-        if (field === 'surname' && firstNameIndex !== -1 && !namesCombined) {
-            return;
-        }
+        // ❌ Always skip surname (it will be merged with firstName)
+        if (field === 'surname') return;
 
-        // If this is firstName and surname exists, combine them
-        if (field === 'firstName' && surnameIndex !== -1) {
+        // ✅ Combine firstName + surname into ONE line
+        if (field === 'firstName') {
             const fullName = `${row.firstName || ''} ${row.surname || ''}`.trim();
+
             lines.push(
-                `TEXT ${cfg.startX},${y},"${cfg.nameFont}",0,${cfg.nameScaleX},${cfg.nameScaleY},"${fullName}"`
+                `TEXT ${cfg.startX},${y},"${cfg.nameFont}",0,${adjustedNameScaleX},${adjustedNameScaleY},"${fullName}"`
             );
-            namesCombined = true;
-            y += cfg.lineGap;
+
+            // Use a slightly larger gap after the (taller) name line
+            y += nameLineGap;
             return;
         }
 
-        // For other fields or if names aren't being combined
-        const isNameField = field === 'firstName' || field === 'surname';
-        const font = isNameField ? cfg.nameFont : cfg.otherFont;
-        const scaleX = isNameField ? cfg.nameScaleX : cfg.otherScaleX;
-        const scaleY = isNameField ? cfg.nameScaleY : cfg.otherScaleY;
+        // ---- Other fields remain unchanged ----
+        const fieldMultiplier = fieldFontSizes[field] || 1.0;
+        const combinedMultiplier = fontSizeMultiplier * fieldMultiplier;
+
+        const scaleX = Math.max(1, Math.round(cfg.otherScaleX * combinedMultiplier));
+        const scaleY = Math.max(1, Math.round(cfg.otherScaleY * combinedMultiplier));
 
         lines.push(
-            `TEXT ${cfg.startX},${y},"${font}",0,${scaleX},${scaleY},"${value}"`
+            `TEXT ${cfg.startX},${y},"${cfg.otherFont}",0,${scaleX},${scaleY},"${value}"`
         );
 
-        y += cfg.lineGap;
+        y += effectiveLineGap;
     });
 
     lines.push("PRINT 1,1");
@@ -452,7 +475,10 @@ export const generateTSPLFromExcel = async (
 export const generateZPLFromExcel = async (
     row,
     selectedFields = [],
-    labelSize = "2x2"
+    labelSize = "2x2",
+    fontSizeMultiplier = 1.0,  // Global font size multiplier
+    fieldFontSizes = {},       // Individual font sizes per field
+    lineGapMultiplier = 1.0    // Vertical spacing multiplier
 ) => {
     const lines = [];
 
@@ -464,6 +490,7 @@ export const generateZPLFromExcel = async (
             nameFontSize: 50,    // Larger for names
             otherFontSize: 25,   // Smaller for other fields
             lineGap: 60,
+            nameExtraGap: 0,
             startX: 20,
             startY: 30,
         },
@@ -473,6 +500,7 @@ export const generateZPLFromExcel = async (
             nameFontSize: 35,
             otherFontSize: 20,
             lineGap: 45,
+            nameExtraGap: 0,
             startX: 20,
             startY: 25,
         },
@@ -482,12 +510,25 @@ export const generateZPLFromExcel = async (
             nameFontSize: 60,
             otherFontSize: 30,
             lineGap: 70,
+            // Extra gap after name so the visual
+            // spacing to the phone line matches
+            // the rest of the lines
+            nameExtraGap: 10,
             startX: 30,
             startY: 40,
         },
     };
 
     const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+    // Apply font size & line spacing multipliers
+    const adjustedNameFontSize = Math.max(10, Math.round(cfg.nameFontSize * fontSizeMultiplier));
+    const adjustedOtherFontSize = Math.max(10, Math.round(cfg.otherFontSize * fontSizeMultiplier));
+    const effectiveLineGap = Math.max(10, Math.round(cfg.lineGap * lineGapMultiplier));
+    const nameLineGap = Math.max(
+        10,
+        Math.round(effectiveLineGap + (cfg.nameExtraGap || 0))
+    );
 
     // Start format
     lines.push('^XA');           // Start format
@@ -497,36 +538,43 @@ export const generateZPLFromExcel = async (
     let y = cfg.startY;
     let namesCombined = false;
 
-    // Combine firstName and surname on the same line
-    const firstNameIndex = selectedFields.indexOf('firstName');
-    const surnameIndex = selectedFields.indexOf('surname');
+    // Check if both firstName and surname are selected
+    const hasFirstName = selectedFields.includes('firstName');
+    const hasSurname = selectedFields.includes('surname');
 
     selectedFields.forEach((field, index) => {
         const value = row[field];
         if (!value) return;
 
         // Skip surname if we're combining it with firstName
-        if (field === 'surname' && firstNameIndex !== -1 && !namesCombined) {
+        if (field === 'surname' && hasFirstName && !namesCombined) {
             return;
         }
 
         // If this is firstName and surname exists, combine them
-        if (field === 'firstName' && surnameIndex !== -1) {
+        if (field === 'firstName' && hasSurname) {
             const fullName = `${row.firstName || ''} ${row.surname || ''}`.trim();
             // ^FO = Field Origin, ^A0B = Font 0 Bold, ^FD = Field Data, ^FS = Field Separator
-            lines.push(`^FO${cfg.startX},${y}^A0B,${cfg.nameFontSize},${cfg.nameFontSize}^FD${fullName}^FS`);
+            lines.push(`^FO${cfg.startX},${y}^A0B,${adjustedNameFontSize},${adjustedNameFontSize}^FD${fullName}^FS`);
             namesCombined = true;
-            y += cfg.lineGap;
+            // Slightly larger gap after the taller name line
+            y += nameLineGap;
             return;
         }
 
         // For other fields or if names aren't being combined
         const isNameField = field === 'firstName' || field === 'surname';
-        const fontSize = isNameField ? cfg.nameFontSize : cfg.otherFontSize;
+
+        // Get field-specific font size or use default
+        const fieldMultiplier = fieldFontSizes[field] || (isNameField ? 1.5 : 1.0);
+        const combinedMultiplier = fontSizeMultiplier * fieldMultiplier;
+
+        const baseFontSize = isNameField ? cfg.nameFontSize : cfg.otherFontSize;
+        const fontSize = Math.max(10, Math.round(baseFontSize * combinedMultiplier));
         const fontStyle = isNameField ? 'B' : 'N'; // B = Bold, N = Normal
 
         lines.push(`^FO${cfg.startX},${y}^A0${fontStyle},${fontSize},${fontSize}^FD${value}^FS`);
-        y += cfg.lineGap;
+        y += effectiveLineGap;
     });
 
     lines.push('^XZ');  // End format
@@ -541,7 +589,10 @@ export const generateZPLFromExcel = async (
 export const generateCPCLFromExcel = async (
     row,
     selectedFields = [],
-    labelSize = "2x2"
+    labelSize = "2x2",
+    fontSizeMultiplier = 1.0,  // Global font size multiplier
+    fieldFontSizes = {},       // Individual font sizes per field
+    lineGapMultiplier = 1.0    // Vertical spacing multiplier
 ) => {
     const lines = [];
 
@@ -553,6 +604,7 @@ export const generateCPCLFromExcel = async (
             nameFont: "7",       // Larger font for names
             otherFont: "3",      // Smaller font for other fields
             lineGap: 45,
+            nameExtraGap: 0,
             startX: 30,
             startY: 40,
         },
@@ -562,6 +614,7 @@ export const generateCPCLFromExcel = async (
             nameFont: "5",
             otherFont: "2",
             lineGap: 35,
+            nameExtraGap: 0,
             startX: 25,
             startY: 30,
         },
@@ -571,12 +624,24 @@ export const generateCPCLFromExcel = async (
             nameFont: "8",
             otherFont: "4",
             lineGap: 50,
+            // Slightly larger white-space after name
+            // so the visual gap to phone matches others
+            nameExtraGap: 10,
             startX: 40,
             startY: 45,
         },
     };
 
     const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
+
+    // Apply font size & line spacing multipliers
+    const nameMag = Math.max(1, Math.round(2 * fontSizeMultiplier));
+    const otherMag = Math.max(1, Math.round(1 * fontSizeMultiplier));
+    const effectiveLineGap = Math.max(10, Math.round(cfg.lineGap * lineGapMultiplier));
+    const nameLineGap = Math.max(
+        10,
+        Math.round(effectiveLineGap + (cfg.nameExtraGap || 0))
+    );
 
     // Start format
     lines.push(`! 0 200 200 ${cfg.height} 1`);
@@ -587,45 +652,53 @@ export const generateCPCLFromExcel = async (
     let y = cfg.startY;
     let namesCombined = false;
 
-    // Combine firstName and surname on the same line
-    const firstNameIndex = selectedFields.indexOf('firstName');
-    const surnameIndex = selectedFields.indexOf('surname');
+    // Check if both firstName and surname are selected
+    const hasFirstName = selectedFields.includes('firstName');
+    const hasSurname = selectedFields.includes('surname');
 
     selectedFields.forEach((field) => {
         const value = row[field];
         if (!value) return;
 
         // Skip surname if we're combining it with firstName
-        if (field === 'surname' && firstNameIndex !== -1 && !namesCombined) {
+        if (field === 'surname' && hasFirstName && !namesCombined) {
             return;
         }
 
         // If this is firstName and surname exists, combine them
-        if (field === 'firstName' && surnameIndex !== -1) {
+        if (field === 'firstName' && hasSurname) {
             const fullName = `${row.firstName || ''} ${row.surname || ''}`.trim();
-            lines.push('SETBOLD 2'); // Bold for names
+            lines.push(`SETBOLD ${nameMag}`); // Bold for names
             lines.push(`TEXT ${cfg.nameFont} 0 ${cfg.startX} ${y} ${fullName}`);
             lines.push('SETBOLD 0'); // Reset bold
             namesCombined = true;
-            y += cfg.lineGap;
+            // Slightly larger gap after the taller name line
+            y += nameLineGap;
             return;
         }
 
         // For other fields or if names aren't being combined
         const isNameField = field === 'firstName' || field === 'surname';
+
+        // Get field-specific font size or use default
+        const fieldMultiplier = fieldFontSizes[field] || (isNameField ? 1.5 : 1.0);
+        const combinedMultiplier = fontSizeMultiplier * fieldMultiplier;
+
         const fontNum = isNameField ? cfg.nameFont : cfg.otherFont;
+        const baseMag = isNameField ? 2 : 1;
+        const mag = Math.max(1, Math.round(baseMag * combinedMultiplier));
 
         // TEXT font size x y text
         // For bold effect, we can use SETBOLD command before text
         if (isNameField) {
-            lines.push('SETBOLD 2'); // Bold for names
+            lines.push(`SETBOLD ${mag}`); // Bold for names
         }
         lines.push(`TEXT ${fontNum} 0 ${cfg.startX} ${y} ${value}`);
         if (isNameField) {
             lines.push('SETBOLD 0'); // Reset bold
         }
 
-        y += cfg.lineGap;
+        y += effectiveLineGap;
     });
 
     lines.push('PRINT');
@@ -934,3 +1007,4 @@ export const generateCPCL = async (event, bookingData, totalTax, discount, grand
 
 //     return new TextEncoder().encode(lines.join('\r\n'));
 // };
+

@@ -489,6 +489,15 @@ const financialManagementNav = {
 // Settings Submenu
 const settingsSubmenu = [
   {
+    key: 'label-printing',
+    path: 'label-printing',
+    title: 'Label Printing',
+    icon: SafetyOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin"]
+  },
+  {
     key: 'roles',
     path: 'role',
     title: 'Role Permission',

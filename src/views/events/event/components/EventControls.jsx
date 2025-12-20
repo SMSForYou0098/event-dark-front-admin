@@ -9,7 +9,7 @@ import ContentSelect from './ContentSelect';
 const toChecked = (v) => v === 1 || v === '1';
 const toNumber = (checked) => (checked ? 1 : 0);
 
-const EventControlsStep = ({ form, orgId }) => {
+const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       {/* Top controls */}
@@ -51,7 +51,9 @@ const EventControlsStep = ({ form, orgId }) => {
           <ContentSelect
             form={form}
             fieldName="insta_whts_url" // form will store only the id
+            contentList={contentList}
             contentType="note"
+            loading={contentLoading}
             customOrgId={orgId}
             extra="Please enter the Instagram post ID (not the full URL)."
             label="Instagram URL"
@@ -132,6 +134,8 @@ const EventControlsStep = ({ form, orgId }) => {
         label="WhatsApp Note"
         contentType="note"
         customOrgId={orgId}
+        contentList={contentList} // pass your WhatsApp note list here
+        loading={contentLoading} // loading state you get from API
         placeholder="Select WhatsApp note"
         rules={[{ required: false }]} // no required rule unless you want it
       />
@@ -154,6 +158,8 @@ const EventControlsStep = ({ form, orgId }) => {
         label="Booking Note"
         contentType="description"
         customOrgId={orgId}
+        contentList={contentList} // <-- you will pass this from parent
+        loading={contentLoading} // <-- loading state for Booking Notes
         placeholder="Select booking note"
         rules={[{ required: false }]} // or make required if needed
       />

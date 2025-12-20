@@ -1,11 +1,11 @@
 // BookingLayout.jsx - IMPROVED VERSION WITH CUSTOM HOOK
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Card, Row, Col, message } from 'antd';
 import api from 'auth/FetchInterceptor';
 import Loader from 'utils/Loader';
 import useBooking from './components/Usebooking';
 import BookingSeatCanvas from './components/Bookingseatcanvas';
-const BookingLayout = (props) => {
+const BookingLayout = forwardRef((props, ref) => {
     const { layoutId, eventId, setSelectedTkts } = props;
     const stageRef = useRef(null);
 
@@ -16,11 +16,32 @@ const BookingLayout = (props) => {
         sections,
         setSections,
         handleSeatClick,
+        markSelectedSeatsAsBooked,
+        updateSeatsByIds,
     } = useBooking({
         maxSeats: 10,
         holdDuration: 600, // 10 minutes
         autoHoldTimeout: true
     });
+
+    // Expose methods to parent via ref
+    useImperativeHandle(ref, () => ({
+        // Mark all selected seats as booked after successful booking
+        markSeatsAsBooked: () => {
+            markSelectedSeatsAsBooked();
+        },
+        // Mark specific seat IDs as booked (for 409 conflict errors)
+        markSeatIdsAsBooked: (seatIds) => {
+            if (Array.isArray(seatIds) && seatIds.length > 0) {
+                updateSeatsByIds(seatIds, 'booked');
+                message.warning('Some seats are no longer available');
+            }
+        },
+        // Clear all selections
+        clearSelection: () => {
+            setSelectedSeats([]);
+        }
+    }), [markSelectedSeatsAsBooked, updateSeatsByIds, setSelectedSeats]);
 
     useEffect(() => {
         setSelectedTkts(selectedSeats);
@@ -206,6 +227,7 @@ const BookingLayout = (props) => {
 
         </div>
     );
-};
+});
 
+BookingLayout.displayName = 'BookingLayout';
 export default BookingLayout;

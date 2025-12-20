@@ -53,6 +53,8 @@ const DataTable = ({
   onSearch, // (searchText) => void - for server-side search
   onSortChange, // (field, order) => void - for server-side sorting
   searchValue = "", // Controlled search value for server-side
+  pageSizeOptions = ["10", "20", "50", "100"], // Options for items per page
+  defaultPageSize = 10, // Default page size for client-side pagination
 }) => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
@@ -64,6 +66,9 @@ const DataTable = ({
 
   // Local input value for immediate UI feedback
   const [localSearchValue, setLocalSearchValue] = useState(searchValue);
+
+  // State for client-side page size
+  const [currentPageSize, setCurrentPageSize] = useState(defaultPageSize);
 
   // Sync controlled search value for server-side mode
   const displaySearchText = serverSide ? localSearchValue : searchText;
@@ -152,6 +157,11 @@ const DataTable = ({
       if (onSortChange && sorter) {
         const { field, order } = sorter;
         onSortChange(field, order); // order: 'ascend' | 'descend' | undefined
+      }
+    } else {
+      // Handle client-side page size change
+      if (paginationConfig && paginationConfig.pageSize !== currentPageSize) {
+        setCurrentPageSize(paginationConfig.pageSize);
       }
     }
 
@@ -478,10 +488,10 @@ const DataTable = ({
                   responsive: true,
                   position: isMobile ? ["bottomCenter"] : ["bottomRight"],
                   showSizeChanger: !isMobile,
-                  pageSizeOptions: ["1", "15", "20", "50", "100"],
+                  pageSizeOptions: pageSizeOptions,
                 }
                 : {
-                  pageSize: isMobile ? 5 : 10,
+                  pageSize: isMobile ? 5 : currentPageSize,
                   showTotal: (total, range) =>
                     isMobile
                       ? `${range[0]}-${range[1]}/${total}`
@@ -490,6 +500,8 @@ const DataTable = ({
                   simple: isSmallMobile,
                   responsive: true,
                   position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                  showSizeChanger: !isMobile,
+                  pageSizeOptions: pageSizeOptions,
                 }
             }
             onChange={handleTableChange}

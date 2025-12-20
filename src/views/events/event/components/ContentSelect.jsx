@@ -18,12 +18,10 @@ export const ContentSelect = ({
   customOrgId = null,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const {userRole, UserData} = useMyContext();
+  const {userRole} = useMyContext();
   // Prioritize customOrgId if provided, otherwise use org_id from form
   const formOrgId = Form.useWatch('org_id', form);
-  if(userRole ==='Organizer'){
-    orgId=UserData?.id 
-  }
+
   const orgId = customOrgId || formOrgId;
   // selected value will be the id
   const selectedId = Form.useWatch(fieldName, form);

@@ -1,4 +1,4 @@
-import React, { useState, memo, Fragment, useEffect, useCallback } from "react";
+import React, { useState, memo, Fragment, useEffect, useCallback, useRef } from "react";
 import { Button, Row, Col, Card, Space, Typography, message, Drawer } from "antd";
 import { CalendarOutlined, ArrowRightOutlined, CloseCircleOutlined, SettingOutlined } from "@ant-design/icons";
 import axios from "axios";
@@ -56,6 +56,9 @@ const POS = memo(() => {
   const [showErrorDrawer, setShowErrorDrawer] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Ref for BookingLayout to update seat status
+  const bookingLayoutRef = useRef(null);
+
   const {
     grandTotal,
   } = calcTicketTotals(selectedTickets, discount);
@@ -76,6 +79,7 @@ const POS = memo(() => {
       discount,
       amount: grandTotal,
       payment_method: method,
+      seating_module: seatingModule,
     };
 
     try {
@@ -105,13 +109,30 @@ const POS = memo(() => {
         return;
       }
       if (res.data.status) {
+        // ✅ Mark seats as booked in UI (reduces API calls)
+        if (seatingModule && bookingLayoutRef.current) {
+          bookingLayoutRef.current.markSeatsAsBooked();
+        }
+        
         setShowPrintModel(true);
         setBookingData(res.data?.bookings);
       }
     } catch (err) {
       console.log(err);
+      
+      // ✅ Handle 409 conflict - seats no longer available
+      const errorData = err?.response?.data;
+      if (errorData?.meta === 409 || err?.response?.status === 409) {
+        const unavailableSeatIds = errorData?.seats || [];
+        if (seatingModule && bookingLayoutRef.current && unavailableSeatIds.length > 0) {
+          bookingLayoutRef.current.markSeatIdsAsBooked(unavailableSeatIds);
+          message.error(errorData?.message || 'Some seats are no longer available');
+        } else {
+          message.error(errorData?.message || 'Some seats are no longer available');
+        }
+      }
     }
-  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, authToken, ErrorAlert, grandTotal]);
+  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, authToken, ErrorAlert, grandTotal, seatingModule]);
 
   // Effects
   useEffect(() => {
@@ -254,6 +275,7 @@ const POS = memo(() => {
             <Col xs={24} lg={24}>
               {seatingModule ? (
                 <BookingLayout
+                  ref={bookingLayoutRef}
                   eventId={event?.id}
                   setSelectedTkts={setSelectedTickets}
                   layoutId={event?.layout_id}

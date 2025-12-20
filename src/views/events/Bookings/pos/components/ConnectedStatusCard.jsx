@@ -32,3 +32,7 @@ const ConnectedStatusCard = ({ connectionMode, printerType, isConnected }) => {
 
 export default ConnectedStatusCard;
 
+
+
+
+

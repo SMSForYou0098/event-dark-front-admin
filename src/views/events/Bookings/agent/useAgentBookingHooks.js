@@ -7,20 +7,20 @@ import api from 'auth/FetchInterceptor';
  */
 const dataURLtoFile = (dataurl, filename) => {
   if (!dataurl || typeof dataurl !== 'string') return null;
-  
+
   try {
     const arr = dataurl.split(',');
     const mime = arr[0].match(/:(.*?);/)?.[1];
     if (!mime) return null;
-    
+
     const bstr = atob(arr[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
-    
+
     while (n--) {
       u8arr[n] = bstr.charCodeAt(n);
     }
-    
+
     return new File([u8arr], filename, { type: mime });
   } catch (error) {
     console.error('Error converting dataURL to File:', error);
@@ -40,8 +40,8 @@ export const buildAttendeesFormData = ({ attendees = [], userMeta = {}, fieldGro
       const fieldValue = attendee[fieldKey];
 
       // Skip internal/meta fields
-      if (['id', 'created_at', 'updated_at', 'deleted_at', 'status', 'booking_id', 
-           'user_id', 'agent_id', 'token', 'ticketId'].includes(fieldKey)) {
+      if (['id', 'created_at', 'updated_at', 'deleted_at', 'status', 'booking_id',
+        'user_id', 'agent_id', 'token', 'ticketId'].includes(fieldKey)) {
         return;
       }
 
@@ -50,17 +50,17 @@ export const buildAttendeesFormData = ({ attendees = [], userMeta = {}, fieldGro
         const fileExtension = fieldValue.match(/data:image\/(.*?);/)?.[1] || 'jpg';
         const fileName = `${fieldKey}_${index}_${Date.now()}.${fileExtension}`;
         const file = dataURLtoFile(fieldValue, fileName);
-        
+
         if (file) {
           fd.append(`${fieldGroupName}[${index}][${fieldKey}]`, file);
         } else {
           console.warn(`Failed to convert ${fieldKey} for attendee ${index}`);
         }
-      } 
+      }
       // ✅ Handle File objects directly
       else if (fieldValue instanceof File) {
         fd.append(`${fieldGroupName}[${index}][${fieldKey}]`, fieldValue);
-      } 
+      }
       // ✅ Handle Blob objects
       else if (fieldValue instanceof Blob) {
         const fileName = `${fieldKey}_${index}_${Date.now()}.jpg`;
@@ -299,6 +299,32 @@ export const useMasterBooking = (options = {}) =>
       const res = await api.post(url, payload);
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to create master booking');
+        err.server = res;
+        throw err;
+      }
+      return res;
+    },
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
+/**
+ * Lock seats for booking
+ * POST: lock-seats
+ * payload: { event_id, seats: [seat_id, ...] }
+ */
+export const useLockSeats = (options = {}) =>
+  useMutation({
+    mutationFn: async ({ event_id, seats }) => {
+      if (!event_id) throw new Error('event_id is required');
+      if (!seats || seats.length === 0) throw new Error('seats array is required');
+
+      const res = await api.post('seats/lock', { event_id, seats });
+      if (!res?.status) {
+        const err = new Error(res?.message || 'Failed to lock seats');
         err.server = res;
         throw err;
       }

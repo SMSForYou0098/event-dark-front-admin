@@ -565,6 +565,71 @@ const useBooking = (options = {}) => {
     return isMaxSeatsReached(selectedSeats.length, maxSeats);
   }, [selectedSeats.length, maxSeats]);
 
+  /**
+   * Update seat status by seat IDs - marks specific seats as booked/unavailable
+   * Used when API returns 409 conflict with seat IDs that are no longer available
+   * @param {Array} seatIds - Array of seat IDs to mark as booked
+   * @param {string} status - Status to set (default: 'booked')
+   */
+  const updateSeatsByIds = useCallback((seatIds, status = 'booked') => {
+    if (!Array.isArray(seatIds) || seatIds.length === 0) return;
+
+    setSections(prevSections =>
+      prevSections.map(section => ({
+        ...section,
+        rows: section.rows.map(row => ({
+          ...row,
+          seats: row.seats.map(seat =>
+            seatIds.includes(seat.id) ? { ...seat, status } : seat
+          )
+        }))
+      }))
+    );
+
+    // Also remove these seats from selected seats if they were selected
+    setSelectedSeats(prevSelectedSeats => {
+      return prevSelectedSeats.map(ticket => {
+        const updatedSeats = ticket.seats?.filter(s => !seatIds.includes(s.seat_id)) || [];
+        
+        if (updatedSeats.length === 0) {
+          return null;
+        }
+
+        const newQuantity = updatedSeats.length;
+        return {
+          ...ticket,
+          quantity: newQuantity,
+          seats: updatedSeats,
+          totalBaseAmount: +Math.max(0, ticket.baseAmount * newQuantity).toFixed(2),
+          totalCentralGST: +Math.max(0, ticket.centralGST * newQuantity).toFixed(2),
+          totalStateGST: +Math.max(0, ticket.stateGST * newQuantity).toFixed(2),
+          totalTaxTotal: +Math.max(0, ticket.totalTax * newQuantity).toFixed(2),
+          totalConvenienceFee: +Math.max(0, ticket.convenienceFee * newQuantity).toFixed(2),
+          totalFinalAmount: +Math.max(0, ticket.finalAmount * newQuantity).toFixed(2),
+        };
+      }).filter(Boolean);
+    });
+  }, []);
+
+  /**
+   * Mark all currently selected seats as booked (after successful booking)
+   * Clears selection and resets timer
+   */
+  const markSelectedSeatsAsBooked = useCallback(() => {
+    // Get all seat IDs from selected tickets
+    const allSeatIds = selectedSeats.flatMap(ticket => 
+      ticket.seats?.map(s => s.seat_id) || []
+    );
+
+    if (allSeatIds.length > 0) {
+      updateSeatsByIds(allSeatIds, 'booked');
+    }
+
+    setSelectedSeats([]);
+    setTimeRemaining(holdDuration);
+    setIsTimerActive(false);
+  }, [selectedSeats, updateSeatsByIds, holdDuration]);
+
   return {
     // State
     selectedSeats,
@@ -584,6 +649,8 @@ const useBooking = (options = {}) => {
     getTicketCounts,
     validateBooking,
     markSeatsAsBooked,
+    markSelectedSeatsAsBooked,
+    updateSeatsByIds,
     resetTimer,
     extendTimer,
     isSeatSelected,
