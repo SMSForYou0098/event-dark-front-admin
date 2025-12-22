@@ -172,7 +172,7 @@ const AgentCredit = ({ id }) => {
     };
 
     const handleQRData = (data) => {
-        console.log('QR Code scanned:', data);
+        // console.log('QR Code scanned:', data);
     };
 
     // Set user ID from prop

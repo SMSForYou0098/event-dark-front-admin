@@ -1,6 +1,7 @@
 // BookingLayout.jsx - IMPROVED VERSION WITH CUSTOM HOOK
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Card, Row, Col, message } from 'antd';
+import { Card, Row, Col, message, Modal } from 'antd';
+import { FaClock } from 'react-icons/fa';
 import api from 'auth/FetchInterceptor';
 import Loader from 'utils/Loader';
 import useBooking from './components/Usebooking';
@@ -33,15 +34,91 @@ const BookingLayout = forwardRef((props, ref) => {
         // Mark specific seat IDs as booked (for 409 conflict errors)
         markSeatIdsAsBooked: (seatIds) => {
             if (Array.isArray(seatIds) && seatIds.length > 0) {
+                // Check if any of the booked seats are in user's current selection (BEFORE removing them)
+                const bookedSeatIdsStr = seatIds.map(id => String(id).trim());
+                const bookedFromSelection = [];
+                
+                // Check selected seats before they get removed by updateSeatsByIds
+                selectedSeats.forEach(ticket => {
+                    ticket.seats?.forEach(selectedSeat => {
+                        const selectedSeatIdStr = String(selectedSeat.seat_id || selectedSeat.id || '').trim();
+                        if (bookedSeatIdsStr.includes(selectedSeatIdStr)) {
+                            bookedFromSelection.push({
+                                seatName: selectedSeat.seat_name || selectedSeat.label || `Seat ${selectedSeat.seat_id}`,
+                                seatId: selectedSeatIdStr
+                            });
+                        }
+                    });
+                });
+                
+                // Update seats (this will also remove them from selectedSeats)
                 updateSeatsByIds(seatIds, 'booked');
-                message.warning('Some seats are no longer available');
+                
+                // Show alert modal if seats from user's selection were booked
+                if (bookedFromSelection.length > 0) {
+                    const seatNames = bookedFromSelection.map(s => s.seatName).join(', ');
+                    const seatText = bookedFromSelection.length === 1 ? 'seat' : 'seats';
+                    
+                    Modal.warning({
+                        title: (
+                            <span>
+                                <FaClock style={{ marginRight: 8, color: '#B51515' }} />
+                                Seat Unavailable
+                            </span>
+                        ),
+                        content: `From your selected ${seatText}, ${seatNames} ${bookedFromSelection.length === 1 ? 'was' : 'were'} just booked by another user`,
+                        okText: 'OK',
+                    });
+                }
+            }
+        },
+        // Update seat status by IDs with custom status (for WebSocket updates)
+        // Backend filters: only sends updates to other users, not the current user booking
+        updateSeatStatus: (seatIds, status = 'booked') => {
+            if (Array.isArray(seatIds) && seatIds.length > 0) {
+                // Check if any of the updated seats are in user's current selection (BEFORE removing them)
+                const updatedSeatIdsStr = seatIds.map(id => String(id).trim());
+                const matchedFromSelection = [];
+                
+                // Check selected seats before they get removed by updateSeatsByIds
+                selectedSeats.forEach(ticket => {
+                    ticket.seats?.forEach(selectedSeat => {
+                        const selectedSeatIdStr = String(selectedSeat.seat_id || selectedSeat.id || '').trim();
+                        if (updatedSeatIdsStr.includes(selectedSeatIdStr)) {
+                            matchedFromSelection.push({
+                                seatName: selectedSeat.seat_name || selectedSeat.label || `Seat ${selectedSeat.seat_id}`,
+                                seatId: selectedSeatIdStr
+                            });
+                        }
+                    });
+                });
+                
+                // Update seats (this will also remove them from selectedSeats if status is 'booked')
+                updateSeatsByIds(seatIds, status);
+                
+                // Show alert modal if seats from user's selection were locked/booked by another user
+                if (matchedFromSelection.length > 0) {
+                    const seatNames = matchedFromSelection.map(s => s.seatName).join(', ');
+                    const seatText = matchedFromSelection.length === 1 ? 'seat' : 'seats';
+                    const actionText = status === 'locked' ? 'locked' : 'booked';
+                    
+                    Modal.warning({
+                        title: (
+                            <span>
+                                Seat Unavailable
+                            </span>
+                        ),
+                        content: `From your selected ${seatText}, ${seatNames} ${matchedFromSelection.length === 1 ? 'was' : 'were'} just ${actionText} by another user`,
+                        okText: 'OK',
+                    });
+                }
             }
         },
         // Clear all selections
         clearSelection: () => {
             setSelectedSeats([]);
         }
-    }), [markSelectedSeatsAsBooked, updateSeatsByIds, setSelectedSeats]);
+    }), [markSelectedSeatsAsBooked, updateSeatsByIds, setSelectedSeats, selectedSeats]);
 
     useEffect(() => {
         setSelectedTkts(selectedSeats);
@@ -75,7 +152,6 @@ const BookingLayout = forwardRef((props, ref) => {
                 if (!isMounted) return;
 
                 const data = response?.data || response;
-
                 // Process the layout data
                 if (data.stage) {
                     setStage({
@@ -157,8 +233,6 @@ const BookingLayout = forwardRef((props, ref) => {
             abortController.abort();
         };
     }, [layoutId, setSections]);
-
-
 
     // Handle wheel zoom
     const handleWheel = (e) => {

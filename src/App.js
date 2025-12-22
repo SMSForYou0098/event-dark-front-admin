@@ -12,7 +12,6 @@ import { THEME_CONFIG } from './configs/AppConfig'
 import './index.css' // keep whatever global CSS you need
 import { MyContextProvider } from 'Context/MyContextProvider'
 import { PrinterProvider } from 'Context/PrinterContext'
-import SimpleReverbExample from 'SampleReverb'
 
 const themes = {
   dark: `${process.env.PUBLIC_URL}/css/dark-theme.css`,
@@ -33,7 +32,6 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <div className="App">
-      <SimpleReverbExample />
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           <MyContextProvider>

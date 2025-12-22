@@ -88,7 +88,7 @@ const POSAttendeeModal = (props) => {
         handleSubmit();
       })
       .catch((errorInfo) => {
-        console.log('Validation failed:', errorInfo);
+        // console.error('Validation failed:', errorInfo);
       });
   }, [form, name, number, handleSubmit]);
 

@@ -808,9 +808,9 @@ const StadiumBuilder = ({
                   width={canvasSize.width}
                   height={canvasSize.height}
                   isAdmin={true}
-                  onSeatClick={(seat) => {
-                    console.log('Seat clicked:', seat);
-                  }}
+                      // onSeatClick={(seat) => {
+                      //   console.log('Seat clicked:', seat);
+                      // }}
                 />
               ) : (
                 <StadiumCanvas

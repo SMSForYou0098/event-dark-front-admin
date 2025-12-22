@@ -47,7 +47,7 @@ const fetchImage = async () => {
       // Store in sessionStorage
       sessionStorage.setItem(cacheKey, base64Image);
       setImageUrl(base64Image);
-      console.log('✅ Fetched and cached');
+      // console.log('✅ Fetched and cached');
     };
     reader.readAsDataURL(response.data);
     

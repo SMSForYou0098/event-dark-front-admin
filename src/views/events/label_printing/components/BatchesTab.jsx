@@ -19,9 +19,9 @@ const BatchesTab = ({
     // Calculate totals from batch groups
     const stats = useMemo(() => {
         const totalBatches = batchGroups.length;
-        const totalLabels = batchGroups.reduce((sum, b) => sum + (b.total || b.totalRecords || 0), 0);
-        const printedLabels = batchGroups.reduce((sum, b) => sum + (b.printed_count || b.printedRecords || 0), 0);
-        const pendingLabels = batchGroups.reduce((sum, b) => sum + (b.pending_count || b.pendingRecords || 0), 0);
+        const totalLabels = batchGroups.reduce((sum, b) => sum + (b.total_records || b.total || b.totalRecords || 0), 0);
+        const printedLabels = batchGroups.reduce((sum, b) => sum + (b.printed_records || b.printed_count || b.printedRecords || 0), 0);
+        const pendingLabels = batchGroups.reduce((sum, b) => sum + (b.pending_records || b.pending_count || b.pendingRecords || 0), 0);
         return { totalBatches, totalLabels, printedLabels, pendingLabels };
     }, [batchGroups]);
 
@@ -39,17 +39,17 @@ const BatchesTab = ({
         },
         {
             title: "Total",
-            dataIndex: "total",
+            dataIndex: "total_records",
             key: "total",
             align: "center",
-            render: (val, record) => <Tag>{val || record.totalRecords || 0}</Tag>,
+            render: (val, record) => <Tag>{val || record.total || record.totalRecords || 0}</Tag>,
         },
         {
             title: "Progress",
             key: "progress",
             render: (_, record) => {
-                const total = record.total || record.totalRecords || 0;
-                const printed = record.printed_count || record.printedRecords || 0;
+                const total = record.total_records || record.total || record.totalRecords || 0;
+                const printed = record.printed_records || record.printed_count || record.printedRecords || 0;
                 const percent = total > 0 ? Math.round((printed / total) * 100) : 0;
                 return (
                     <Space>
@@ -59,7 +59,7 @@ const BatchesTab = ({
                             style={{ width: 100 }}
                             strokeColor={percent === 100 ? '#52c41a' : '#1677ff'}
                         />
-                        <Text type="secondary">{printed}/{total}</Text>
+                        <Text type="secondary">{percent}% {printed}/{total}</Text>
                     </Space>
                 );
             },
@@ -69,9 +69,9 @@ const BatchesTab = ({
             key: "status",
             align: "center",
             render: (_, record) => {
-                const total = record.total || record.totalRecords || 0;
-                const printed = record.printed_count || record.printedRecords || 0;
-                const pending = record.pending_count || record.pendingRecords || 0;
+                const total = record.total_records || record.total || record.totalRecords || 0;
+                const printed = record.printed_records || record.printed_count || record.printedRecords || 0;
+                const pending = record.pending_records || record.pending_count || record.pendingRecords || 0;
                 
                 if (printed === total && total > 0) {
                     return <Tag color="success">Complete</Tag>;

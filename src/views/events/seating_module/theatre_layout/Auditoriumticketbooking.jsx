@@ -225,7 +225,7 @@ const AuditoriumTicketBooking = ({ layoutId, eventDetails }) => {
     try {
       // Make API call here
       // const response = await api.post('/bookings', bookingPayload);
-      console.log('Booking payload:', bookingPayload);
+      // console.log('Booking payload:', bookingPayload);
 
       message.success('Booking confirmed successfully!');
 

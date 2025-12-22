@@ -180,7 +180,7 @@ export const useLabelPrintingState = () => {
             };
 
             // Debug: Log payload to verify structure
-            console.log('Uploading labels with payload:', JSON.stringify(payload, null, 2));
+            // console.log('Uploading labels with payload:', JSON.stringify(payload, null, 2));
 
             await bulkStoreMutation.mutateAsync(payload);
 
@@ -344,24 +344,6 @@ export const useLabelPrintingState = () => {
                 await new Promise((r) => setTimeout(r, 300));
             }
 
-            // Mark labels as printed
-            if (selectedRows.length > 0 && selectedRows[0]?.id) {
-                const labelIds = selectedRows
-                    .map(row => row.id)
-                    .filter(Boolean);
-
-                if (labelIds.length > 0) {
-                    try {
-                        await bulkUpdateStatusMutation.mutateAsync({
-                            user_id: UserData?.id,
-                            ids: labelIds,
-                        });
-                    } catch (err) {
-                        console.error("Failed to update label status:", err);
-                    }
-                }
-            }
-
             message.success({ content: `Printed ${selectedRows.length} label(s)`, key: "print" });
         } catch (err) {
             console.error("Print error:", err);
@@ -382,8 +364,8 @@ export const useLabelPrintingState = () => {
         fontSizeMultiplier,
         fieldFontSizes,
         lineGapMultiplier,
-        bulkUpdateStatusMutation,
-        UserData?.id,
+        // bulkUpdateStatusMutation,
+        // UserData?.id,
     ]);
 
     const handlePrint = useCallback(async () => {
@@ -397,12 +379,29 @@ export const useLabelPrintingState = () => {
             return;
         }
 
+        // Mark labels as printed immediately when print button is clicked
+        // This happens before actual printing in case hardware issues occur
+        const labelIds = selectedRows
+            .map(row => row.id)
+            .filter(Boolean); // Remove any undefined/null IDs
+
+        if (labelIds.length > 0) {
+            // Call API asynchronously - don't wait for it to complete
+            bulkUpdateStatusMutation.mutateAsync({
+                user_id: UserData?.id,
+                ids: labelIds,
+            }).catch(err => {
+                console.error("Failed to update label status:", err);
+                // Don't show error to user - hardware might fail but we still want to mark as printed
+            });
+        }
+
         if (connectionMode === "browser") {
             handleBrowserPrint();
         } else {
             await handleThermalPrint();
         }
-    }, [connectionMode, selectedRows, selectedFields, handleBrowserPrint, handleThermalPrint]);
+    }, [connectionMode, selectedRows, selectedFields, handleBrowserPrint, handleThermalPrint, bulkUpdateStatusMutation, UserData?.id]);
 
     const handleSavePrintSettings = useCallback(async () => {
         dispatch(

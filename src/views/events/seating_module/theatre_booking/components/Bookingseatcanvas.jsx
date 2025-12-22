@@ -4,7 +4,7 @@ import { Image as KonvaImage } from 'react-konva';
 import Konva from 'konva';
 import { PRIMARY, SECONDARY } from 'utils/consts';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { FaChair } from 'react-icons/fa';
+import { FaChair, FaClock } from 'react-icons/fa';
 import { MdOutlineChair, MdOutlineTableBar } from 'react-icons/md';
 import { PiArmchairLight, PiChair, PiOfficeChair } from 'react-icons/pi';
 import { LuSofa } from 'react-icons/lu';
@@ -146,6 +146,7 @@ const getSeatColor = (seat, isSelected) => {
     if (!seat.ticket) return SEAT_COLORS.noTicket;
     if (seat.status === 'booked') return SEAT_COLORS.booked;
     if (seat.status === 'disabled') return SEAT_COLORS.disabled;
+    if (seat.status === 'hold' || seat.status === 'locked') return '#B51515'; // Orange color for hold/locked
     if (isSelected || seat.status === 'selected') return SEAT_COLORS.selected;
     return SEAT_COLORS.available;
 };
@@ -161,13 +162,16 @@ const Seat = memo(({
     rowTitle
 }) => {
     const [iconImage, setIconImage] = useState(null);
-
+    const [clockIconImage, setClockIconImage] = useState(null);
 
     const hasTicket = !!seat.ticket;
     const isDisabled = seat.status === 'disabled' || !hasTicket;
     const isBooked = seat.status === 'booked';
+    const isHold = seat.status === 'hold';
+    const isLocked = seat.status === 'locked';
     // Allow clicking on available or selected seats (for deselection)
-    const isClickable = !isDisabled && !isBooked;
+    // Disable if booked, hold, or locked
+    const isClickable = !isDisabled && !isBooked && !isHold && !isLocked;
     const seatColor = getSeatColor(seat, isSelected);
     const seatOpacity = isDisabled ? 0.3 : 1;
 
@@ -179,6 +183,20 @@ const Seat = memo(({
             });
         }
     }, [seat.icon, seat.radius]);
+
+    // Create clock icon for hold/locked status
+    useEffect(() => {
+        if (isHold || isLocked) {
+            const svgString = renderToStaticMarkup(
+                <FaClock size={Math.floor(seat.radius * 1.2)} color="#B51515" />
+            );
+            const img = new window.Image();
+            img.onload = () => setClockIconImage(img);
+            img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgString)));
+        } else {
+            setClockIconImage(null);
+        }
+    }, [isHold, isLocked, seat.radius]);
 
     const handleInteraction = useCallback((e) => {
         if (isClickable) {
@@ -244,7 +262,7 @@ const Seat = memo(({
                     const container = e.target.getStage().container();
                     if (isClickable) {
                         container.style.cursor = 'pointer';
-                    } else if (isDisabled || isBooked) {
+                    } else if (isDisabled || isBooked || isHold || isLocked) {
                         container.style.cursor = 'not-allowed';
                     }
 
@@ -264,7 +282,7 @@ const Seat = memo(({
             />
 
 
-            {!isBooked && (
+            {!isBooked && !isHold && !isLocked && (
                 iconImage ? (
                     <KonvaImage
                         image={iconImage}
@@ -308,7 +326,19 @@ const Seat = memo(({
                 />
             )}
 
-            {isDisabled && !isBooked && (
+            {(isHold || isLocked) && clockIconImage && (
+                <KonvaImage
+                    image={clockIconImage}
+                    x={-radius * 0.6}
+                    y={-radius * 0.6}
+                    width={radius * 1.2}
+                    height={radius * 1.2}
+                    listening={false}
+                    perfectDrawEnabled={false}
+                />
+            )}
+
+            {isDisabled && !isBooked && !isHold && !isLocked && (
                 <Line
                     points={[-radius * 0.5, -radius * 0.5, radius * 0.5, radius * 0.5]}
                     stroke={THEME.errorColor}
@@ -368,15 +398,27 @@ const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave,
         </Group>
     );
 }, (prevProps, nextProps) => {
+    // Check if selected seats changed
     const prevHasSelected = prevProps.row.seats.some(s => prevProps.selectedSeatIds.has(s.id));
     const nextHasSelected = nextProps.row.seats.some(s => nextProps.selectedSeatIds.has(s.id));
 
     if (prevHasSelected !== nextHasSelected) return false;
-    if (!prevHasSelected && !nextHasSelected) return true;
+    if (!prevHasSelected && !nextHasSelected) {
+        // Even if no selected seats, check if any seat status changed
+        const statusChanged = prevProps.row.seats.some((prevSeat, index) => {
+            const nextSeat = nextProps.row.seats[index];
+            return !nextSeat || prevSeat.status !== nextSeat.status;
+        });
+        return !statusChanged; // Return true if no changes (skip re-render)
+    }
 
-    return prevProps.row.seats.every(s =>
-        prevProps.selectedSeatIds.has(s.id) === nextProps.selectedSeatIds.has(s.id)
-    );
+    // Check both selection and status changes
+    return prevProps.row.seats.every((prevSeat, index) => {
+        const nextSeat = nextProps.row.seats[index];
+        if (!nextSeat) return false;
+        return prevProps.selectedSeatIds.has(prevSeat.id) === nextProps.selectedSeatIds.has(nextSeat.id) &&
+               prevSeat.status === nextSeat.status;
+    });
 });
 
 Row.displayName = 'Row';
@@ -411,16 +453,24 @@ const Section = memo(({ section, selectedSeatIds, onSeatClick, onSeatHover, onSe
         </Group>
     );
 }, (prevProps, nextProps) => {
+    // If section reference changed, always re-render (new data)
     if (prevProps.section !== nextProps.section) return false;
-    if (prevProps.selectedSeatIds === nextProps.selectedSeatIds) return true;
-
-    for (const row of prevProps.section.rows) {
-        for (const seat of row.seats) {
+    
+    // If section is same reference, check if selection changed
+    if (prevProps.selectedSeatIds !== nextProps.selectedSeatIds) {
+        // Check if any seat selection actually changed
+        for (const row of prevProps.section.rows || []) {
+            for (const seat of row.seats || []) {
             if (prevProps.selectedSeatIds.has(seat.id) !== nextProps.selectedSeatIds.has(seat.id)) {
-                return false;
+                    return false; // Selection changed, re-render
             }
         }
     }
+    }
+    
+    // Note: We can't detect seat status changes if section reference is same
+    // But since we create new objects in setSections, reference should change
+    // If status changes, section reference will be different, so we return false above
     return true;
 });
 

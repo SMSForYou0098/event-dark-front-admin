@@ -13,8 +13,7 @@ export const useTheatreLayout = (layoutId, eventId, options = {}) => {
     return useQuery({
         queryKey: ['theatre-layout', layoutId, eventId],
         queryFn: async () => {
-            console.log('layoutId', layoutId)
-            console.log('eventId', eventId)
+
             if (!layoutId) throw new Error('Layout ID is required');
 
             const response = await api.get(`layout/theatre/${layoutId}?eventId=${eventId}`);

@@ -25,6 +25,7 @@ import BookingSummary from './components/BookingSummary';
 import { calcTicketTotals, distributeDiscount, getSubtotal } from 'utils/ticketCalculations';
 import BookingLayout from 'views/events/seating_module/theatre_booking/Bookinglayout';
 import SeatingModuleSummary from './components/SeatingModuleSummary';
+import EventSeatsListener from '../components/EventSeatsListener';
 
 const NewAgentBooking = memo(({ type }) => {
   const {
@@ -501,7 +502,6 @@ const NewAgentBooking = memo(({ type }) => {
     setCurrentStep(0); // Reset to step 0
 
     const response = await fetchCategoryData(evnt?.category);
-    console.log('eee', response)
     if (response.status) {
       const attendeeRequired = response?.categoryData?.attendy_required === true;
       setIsAttendeeRequire(attendeeRequired);
@@ -528,13 +528,37 @@ const NewAgentBooking = memo(({ type }) => {
     });
   }, [discountValue, discountType, selectedTickets]);
 
-  const goToNextStep = useCallback(() => {
+  const goToNextStep = useCallback(async () => {
     if (currentStep === 0) {
       const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
       if (!hasValidTicket) {
         message.error('Please select at least one ticket');
         return;
       }
+
+      // Lock seats if seating module is enabled and seats are selected
+      if (seatingModule && eventID) {
+        const seats = selectedTickets?.flatMap(ticket =>
+          (ticket.seats || []).map(seat => seat.seat_id || seat.id).filter(Boolean)
+        ) || [];
+
+        if (seats.length > 0) {
+          try {
+            message.loading({ content: 'Locking seats...', key: 'lockSeats' });
+            const payload = {
+              event_id: eventID,
+              seats: seats
+            };
+            await lockSeatsMutation.mutateAsync({ ...payload, user_id: UserData?.id });
+            message.success({ content: 'Seats locked successfully', key: 'lockSeats' });
+          } catch (error) {
+            console.error('Failed to lock seats:', error);
+            message.error({ content: error?.message || 'Failed to lock seats', key: 'lockSeats' });
+            return; // Don't proceed if seat locking fails
+          }
+        }
+      }
+
       if (isAttendeeRequire) {
         setCurrentStep(1);
       } else {
@@ -550,7 +574,7 @@ const NewAgentBooking = memo(({ type }) => {
       }
       setShowPrintModel(true);
     }
-  }, [currentStep, selectedTickets, isAttendeeRequire]);
+  }, [currentStep, selectedTickets, isAttendeeRequire, seatingModule, eventID, lockSeatsMutation]);
 
   const goToPreviousStep = useCallback(() => {
     if (currentStep > 0) {
@@ -603,6 +627,16 @@ const NewAgentBooking = memo(({ type }) => {
 
   return (
     <Fragment>
+      {/* WebSocket listener for real-time seat updates */}
+      {seatingModule && eventID && (
+        <EventSeatsListener
+          eventId={eventID}
+          bookingLayoutRef={bookingLayoutRef}
+          enabled={seatingModule}
+          id={UserData?.id}
+        />
+      )}
+
       <AgentBookingModal
         showPrintModel={showPrintModel}
         handleClose={() => setShowPrintModel(false)}

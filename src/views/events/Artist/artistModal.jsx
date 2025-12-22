@@ -130,15 +130,12 @@ const ArtistCrewModal = ({
 
             if (error.response) {
                 // Server responded with error
-                console.log('Error response:', error.response.data);
                 errorMessage = error.response.data?.message || error.response.data?.error || errorMessage;
             } else if (error.request) {
                 // Request made but no response
-                console.log('No response received:', error.request);
                 errorMessage = 'No response from server. Please check your connection.';
             } else {
                 // Error in request setup
-                console.log('Error message:', error.message);
                 errorMessage = error.message || errorMessage;
             }
 

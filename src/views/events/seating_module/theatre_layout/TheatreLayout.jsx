@@ -894,7 +894,7 @@ const AuditoriumLayoutDesigner = () => {
         }
 
         message.success(layoutId ? 'Layout updated successfully!' : 'Layout saved successfully!');
-        console.log('Saved layout response:', response);
+            console.log('Saved layout response:', response);
       }
 
     } catch (error) {

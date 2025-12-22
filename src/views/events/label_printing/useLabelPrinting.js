@@ -25,8 +25,9 @@ export const useLabelPrints = (options = {}) =>
         err.server = res;
         throw err;
       }
-      // API returns batch summaries in res.data
-      return res.data || [];
+      // API returns { status: true, data: [...], pagination: {...} }
+      // Return the data array from res.data.data
+      return res.data?.data || res.data || [];
     },
     staleTime: 2 * 60 * 1000,
     retry: (count, err) => {
@@ -185,7 +186,8 @@ export const useBulkUpdateLabelStatus = (options = {}) => {
 
   return useMutation({
     mutationFn: async ({ user_id, ids }) => {
-      const res = await api.patch('label-prints/bulk-status', { user_id, ids, status:true });
+      const payload = { user_id, ids, status: true };
+      const res = await api.patch('label-prints/bulk-status', payload);
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to update label status');
         err.server = res;

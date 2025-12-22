@@ -16,6 +16,8 @@ import BookingLayout from "views/events/seating_module/theatre_booking/Bookingla
 import SeatingModuleSummary from "../agent/components/SeatingModuleSummary";
 import { ROW_GUTTER } from "constants/ThemeConstant";
 import ErrorDrawer from "./components/ErrorDrawer";
+import { useLockSeats } from "../agent/useAgentBookingHooks";
+import EventSeatsListener from "../components/EventSeatsListener";
 
 const { Title, Text } = Typography;
 
@@ -59,6 +61,9 @@ const POS = memo(() => {
   // Ref for BookingLayout to update seat status
   const bookingLayoutRef = useRef(null);
 
+  // Lock seats mutation hook
+  const lockSeatsMutation = useLockSeats();
+
   const {
     grandTotal,
   } = calcTicketTotals(selectedTickets, discount);
@@ -71,6 +76,7 @@ const POS = memo(() => {
       ErrorAlert('Please Select A Ticket');
       return;
     }
+
     const requestData = {
       user_id: UserData?.id,
       number,
@@ -186,7 +192,7 @@ const POS = memo(() => {
     }
   }, [StorePOSBooking]);
 
-  const handleBooking = useCallback(() => {
+  const handleBooking = useCallback(async () => {
     const hasValidTicket = selectedTickets.some(ticket => Number(ticket?.quantity) > 0);
 
     if (!hasValidTicket) {
@@ -197,10 +203,35 @@ const POS = memo(() => {
       setTimeout(() => {
         setShowErrorDrawer(false);
       }, 3000);
-    } else {
-      setShowAttendeeModel(true);
+      return;
     }
-  }, [selectedTickets]);
+
+    // Lock seats if seating module is enabled and seats are selected
+    if (seatingModule && event?.id) {
+      const seats = selectedTickets?.flatMap(ticket =>
+        (ticket.seats || []).map(seat => seat.seat_id || seat.id).filter(Boolean)
+      ) || [];
+
+      if (seats.length > 0) {
+        try {
+          message.loading({ content: 'Locking seats...', key: 'lockSeats' });
+          const payload = {
+            event_id: event.id,
+            seats: seats,
+            user_id: UserData?.id
+          };
+          await lockSeatsMutation.mutateAsync(payload);
+          message.success({ content: 'Seats locked successfully', key: 'lockSeats' });
+        } catch (error) {
+          console.error('Failed to lock seats:', error);
+          message.error({ content: error?.message || 'Failed to lock seats', key: 'lockSeats' });
+          return; // Don't proceed if seat locking fails
+        }
+      }
+    }
+
+    setShowAttendeeModel(true);
+  }, [selectedTickets, seatingModule, event, lockSeatsMutation, UserData?.id]);
 
   // Utility function to calculate total tax + convenience fee from booking array
   const calculateTotalTax = (bookings) => {
@@ -217,6 +248,17 @@ const POS = memo(() => {
 
   return (
     <Fragment>
+      {/* WebSocket listener for real-time seat updates */}
+      {seatingModule && event?.id && (
+        <EventSeatsListener
+          eventId={event.id}
+          bookingLayoutRef={bookingLayoutRef}
+          enabled={seatingModule}
+          id={UserData?.id}
+          
+        />
+      )}
+
       <POSAttendeeModal
         show={showAttendeeModel}
         handleClose={handleClose}

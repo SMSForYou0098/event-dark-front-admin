@@ -49,10 +49,10 @@ const PrintTab = ({
         (b.batch_id || b.batchId) === selectedBatchId
     );
 
-    // Compute batch stats
-    const batchTotal = selectedBatch?.total || selectedBatch?.totalRecords || 0;
-    const batchPrinted = selectedBatch?.printed_count || selectedBatch?.printedRecords || 0;
-    const batchPending = selectedBatch?.pending_count || selectedBatch?.pendingRecords || 0;
+    // Compute batch stats - use API response field names
+    const batchTotal = selectedBatch?.total_records || selectedBatch?.total || selectedBatch?.totalRecords || 0;
+    const batchPrinted = selectedBatch?.printed_records || selectedBatch?.printed_count || selectedBatch?.printedRecords || 0;
+    const batchPending = selectedBatch?.pending_records || selectedBatch?.pending_count || selectedBatch?.pendingRecords || 0;
 
     const columns = [
         { 
@@ -151,7 +151,7 @@ const PrintTab = ({
                                 }}
                                 options={batchGroups.map(b => {
                                     const batchId = b.batch_id || b.batchId;
-                                    const pending = b.pending_count || b.pendingRecords || 0;
+                                    const pending = b.pending_records || b.pending_count || b.pendingRecords || 0;
                                     return {
                                         label: (
                                             <div className="d-flex justify-content-between align-items-center">

@@ -71,7 +71,6 @@ const useBooking = (options = {}) => {
   const SEAT_MESSAGE_KEY = 'seat-selection-message';
 
   const handleSeatClick = useCallback((seat, sectionId, rowId) => {
-    console.log('seat',seat,'row')
     // Check if seat can be selected
     const validation = canSelectSeat(seat);
     if (!validation.valid) {
@@ -574,17 +573,28 @@ const useBooking = (options = {}) => {
   const updateSeatsByIds = useCallback((seatIds, status = 'booked') => {
     if (!Array.isArray(seatIds) || seatIds.length === 0) return;
 
-    setSections(prevSections =>
-      prevSections.map(section => ({
+    // Ensure all seatIds are strings for comparison
+    const seatIdsStr = seatIds.map(id => String(id).trim());
+    
+    setSections(prevSections => {
+      let updatedCount = 0;
+      const updatedSections = prevSections.map(section => ({
         ...section,
         rows: section.rows.map(row => ({
           ...row,
-          seats: row.seats.map(seat =>
-            seatIds.includes(seat.id) ? { ...seat, status } : seat
-          )
+          seats: row.seats.map(seat => {
+            // Compare as strings (seat.id format: "seat_1458")
+            const seatIdStr = String(seat.id).trim();
+            if (seatIdsStr.includes(seatIdStr)) {
+              updatedCount++;
+              return { ...seat, status };
+            }
+            return seat;
+          })
         }))
-      }))
-    );
+      }));
+      return updatedSections;
+    });
 
     // Also remove these seats from selected seats if they were selected
     setSelectedSeats(prevSelectedSeats => {

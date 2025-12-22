@@ -318,11 +318,11 @@ export const useMasterBooking = (options = {}) =>
  */
 export const useLockSeats = (options = {}) =>
   useMutation({
-    mutationFn: async ({ event_id, seats }) => {
+    mutationFn: async ({ event_id, seats, user_id }) => {
       if (!event_id) throw new Error('event_id is required');
       if (!seats || seats.length === 0) throw new Error('seats array is required');
 
-      const res = await api.post('seats/lock', { event_id, seats });
+      const res = await api.post('seats/lock', { event_id, seats, user_id });
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to lock seats');
         err.server = res;

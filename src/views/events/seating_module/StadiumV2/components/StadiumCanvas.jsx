@@ -461,13 +461,13 @@ const StadiumCanvas = ({
 
     if (item && clickedItem && item.id === clickedItem.id) {
       if (item.type === 'stand' && onStandClick) {
-        console.log('StadiumCanvas: Stand clicked', item.name, 'tiers:', item.tiers?.length);
+        // console.log('StadiumCanvas: Stand clicked', item.name, 'tiers:', item.tiers?.length);
         onStandClick(item);
       } else if (item.type === 'tier' && onTierClick) {
-        console.log('StadiumCanvas: Tier clicked', item.name, 'sections:', item.sections?.length);
+        // console.log('StadiumCanvas: Tier clicked', item.name, 'sections:', item.sections?.length);
         onTierClick(item, item.parentStand);
       } else if (item.type === 'section' && onSectionClick) {
-        console.log('StadiumCanvas: Section clicked', item.name, 'rows:', item.rows?.length, 'item:', item);
+        // console.log('StadiumCanvas: Section clicked', item.name, 'rows:', item.rows?.length, 'item:', item);
         onSectionClick(item, item.parentTier, item.parentStand);
       }
     }
