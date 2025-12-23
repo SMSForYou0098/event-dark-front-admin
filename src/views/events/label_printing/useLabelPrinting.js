@@ -119,6 +119,38 @@ export const useBulkStoreLabelPrints = (options = {}) => {
 };
 
 /**
+ * Add single label to existing batch
+ * POST: label-prints/add-to-batch
+ * payload: { batch_id, user_id, name, surname?, number?, designation?, company_name?, stall_number? }
+ */
+export const useAddToBatch = (options = {}) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload) => {
+      const res = await api.post('label-prints/add-to-batch', payload);
+      if (!res?.status) {
+        const err = new Error(res?.message || 'Failed to add label to batch');
+        err.server = res;
+        throw err;
+      }
+      return res;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: LABEL_PRINT_KEYS.all });
+      if (variables.batch_id) {
+        queryClient.invalidateQueries({ queryKey: LABEL_PRINT_KEYS.batch(variables.batch_id) });
+      }
+    },
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+};
+
+/**
  * Update single label print
  * PUT: label-prints/{id}
  */

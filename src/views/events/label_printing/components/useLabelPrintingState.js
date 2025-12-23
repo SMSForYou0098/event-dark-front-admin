@@ -13,6 +13,7 @@ import {
     useLabelPrints,
     useLabelPrintsByBatch,
     useBulkStoreLabelPrints,
+    useAddToBatch,
     useUpdateLabelPrint,
     useDeleteLabelPrint,
     useDeleteBatch,
@@ -89,6 +90,7 @@ export const useLabelPrintingState = () => {
     });
 
     const bulkStoreMutation = useBulkStoreLabelPrints();
+    const addToBatchMutation = useAddToBatch();
     const updateLabelMutation = useUpdateLabelPrint();
     const deleteLabelMutation = useDeleteLabelPrint();
     const deleteBatchMutation = useDeleteBatch();
@@ -368,8 +370,12 @@ export const useLabelPrintingState = () => {
         // UserData?.id,
     ]);
 
-    const handlePrint = useCallback(async () => {
-        if (!selectedRows.length) {
+    const handlePrint = useCallback(async (instantPrintData = null) => {
+        // If instant print data is provided, use it instead of selectedRows
+        const rowsToPrint = instantPrintData?.labels || selectedRows;
+        const fontsToUse = instantPrintData?.fieldFontSizes || fieldFontSizes;
+
+        if (!rowsToPrint.length) {
             message.warning("Select at least one row to print");
             return;
         }
@@ -379,29 +385,106 @@ export const useLabelPrintingState = () => {
             return;
         }
 
-        // Mark labels as printed immediately when print button is clicked
-        // This happens before actual printing in case hardware issues occur
-        const labelIds = selectedRows
-            .map(row => row.id)
-            .filter(Boolean); // Remove any undefined/null IDs
+        // Skip status update for instant print (no IDs)
+        if (!instantPrintData?.isInstantPrint) {
+            // Mark labels as printed immediately when print button is clicked
+            const labelIds = rowsToPrint
+                .map(row => row.id)
+                .filter(Boolean);
 
-        if (labelIds.length > 0) {
-            // Call API asynchronously - don't wait for it to complete
-            bulkUpdateStatusMutation.mutateAsync({
-                user_id: UserData?.id,
-                ids: labelIds,
-            }).catch(err => {
-                console.error("Failed to update label status:", err);
-                // Don't show error to user - hardware might fail but we still want to mark as printed
-            });
+            if (labelIds.length > 0) {
+                bulkUpdateStatusMutation.mutateAsync({
+                    user_id: UserData?.id,
+                    ids: labelIds,
+                }).catch(err => {
+                    console.error("Failed to update label status:", err);
+                });
+            }
         }
 
         if (connectionMode === "browser") {
-            handleBrowserPrint();
+            // For instant print, temporarily set selected rows for PrintPreview
+            if (instantPrintData?.isInstantPrint) {
+                setSelectedRows(rowsToPrint);
+                // Wait for state update before printing
+                setTimeout(() => {
+                    handleBrowserPrint();
+                }, 100);
+            } else {
+                handleBrowserPrint();
+            }
         } else {
-            await handleThermalPrint();
+            // Thermal printing
+            try {
+                if (!isConnected) {
+                    message.loading({ content: "Connecting to printer...", key: "connect" });
+                    try {
+                        if (connectionMode === "usb") {
+                            await connectUSB();
+                        } else {
+                            await connectBluetooth();
+                        }
+                        message.success({ content: "Printer connected!", key: "connect" });
+                        await new Promise((r) => setTimeout(r, 500));
+                    } catch (err) {
+                        message.error({ content: err.message || "Failed to connect", key: "connect" });
+                        return;
+                    }
+                }
+
+                setIsPrinting(true);
+                message.loading({ content: "Printing labels...", key: "print" });
+
+                for (const row of rowsToPrint) {
+                    let printerBytes;
+
+                    switch (printerType) {
+                        case 'zpl':
+                            printerBytes = await generateZPLFromExcel(
+                                row,
+                                selectedFields,
+                                labelSize,
+                                fontSizeMultiplier,
+                                fontsToUse,
+                                lineGapMultiplier
+                            );
+                            break;
+                        case 'cpcl':
+                            printerBytes = await generateCPCLFromExcel(
+                                row,
+                                selectedFields,
+                                labelSize,
+                                fontSizeMultiplier,
+                                fontsToUse,
+                                lineGapMultiplier
+                            );
+                            break;
+                        case 'tspl':
+                        default:
+                            printerBytes = await generateTSPLFromExcel(
+                                row,
+                                selectedFields,
+                                labelSize,
+                                fontSizeMultiplier,
+                                fontsToUse,
+                                lineGapMultiplier
+                            );
+                            break;
+                    }
+
+                    await sendRawBytes(printerBytes);
+                    await new Promise((r) => setTimeout(r, 300));
+                }
+
+                message.success({ content: `Printed ${rowsToPrint.length} label(s)`, key: "print" });
+            } catch (err) {
+                console.error("Print error:", err);
+                message.error({ content: err.message || "Print failed", key: "print" });
+            } finally {
+                setIsPrinting(false);
+            }
         }
-    }, [connectionMode, selectedRows, selectedFields, handleBrowserPrint, handleThermalPrint, bulkUpdateStatusMutation, UserData?.id]);
+    }, [connectionMode, selectedRows, selectedFields, handleBrowserPrint, fieldFontSizes, bulkUpdateStatusMutation, UserData?.id, isConnected, connectUSB, connectBluetooth, sendRawBytes, printerType, labelSize, fontSizeMultiplier, lineGapMultiplier, setSelectedRows]);
 
     const handleSavePrintSettings = useCallback(async () => {
         dispatch(
@@ -449,12 +532,25 @@ export const useLabelPrintingState = () => {
         message.info("Printer disconnected");
     }, [disconnect]);
 
+    // Handle save label to existing batch
+    const handleSaveToExistingBatch = useCallback(async (payload) => {
+        await addToBatchMutation.mutateAsync(payload);
+        refetchLabels();
+    }, [addToBatchMutation, refetchLabels]);
+
+    // Handle save label to new batch
+    const handleSaveToNewBatch = useCallback(async (payload) => {
+        await bulkStoreMutation.mutateAsync(payload);
+        refetchLabels();
+    }, [bulkStoreMutation, refetchLabels]);
+
     return {
         // Refs
         printRef,
 
         // Context
         isMobile,
+        UserData,
 
         // Printer
         connectionMode,
@@ -472,6 +568,7 @@ export const useLabelPrintingState = () => {
         refetchLabels,
         isUploading: bulkStoreMutation.isPending,
         isUpdatingLabel: updateLabelMutation.isPending,
+        isSaving: addToBatchMutation.isPending || bulkStoreMutation.isPending,
 
         // UI State
         activeTab,
@@ -517,5 +614,7 @@ export const useLabelPrintingState = () => {
         handleSavePrintSettings,
         handleDisconnect,
         handleViewBatch,
+        handleSaveToExistingBatch,
+        handleSaveToNewBatch,
     };
 };

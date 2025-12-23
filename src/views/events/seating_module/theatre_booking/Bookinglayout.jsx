@@ -6,9 +6,11 @@ import api from 'auth/FetchInterceptor';
 import Loader from 'utils/Loader';
 import useBooking from './components/Usebooking';
 import BookingSeatCanvas from './components/Bookingseatcanvas';
+import { useMyContext } from 'Context/MyContextProvider';
 const BookingLayout = forwardRef((props, ref) => {
     const { layoutId, eventId, setSelectedTkts } = props;
     const stageRef = useRef(null);
+    const { UserData } = useMyContext();
 
     // Custom booking hook
     const {
@@ -37,7 +39,7 @@ const BookingLayout = forwardRef((props, ref) => {
                 // Check if any of the booked seats are in user's current selection (BEFORE removing them)
                 const bookedSeatIdsStr = seatIds.map(id => String(id).trim());
                 const bookedFromSelection = [];
-                
+
                 // Check selected seats before they get removed by updateSeatsByIds
                 selectedSeats.forEach(ticket => {
                     ticket.seats?.forEach(selectedSeat => {
@@ -50,15 +52,15 @@ const BookingLayout = forwardRef((props, ref) => {
                         }
                     });
                 });
-                
+
                 // Update seats (this will also remove them from selectedSeats)
                 updateSeatsByIds(seatIds, 'booked');
-                
+
                 // Show alert modal if seats from user's selection were booked
                 if (bookedFromSelection.length > 0) {
                     const seatNames = bookedFromSelection.map(s => s.seatName).join(', ');
                     const seatText = bookedFromSelection.length === 1 ? 'seat' : 'seats';
-                    
+
                     Modal.warning({
                         title: (
                             <span>
@@ -79,7 +81,7 @@ const BookingLayout = forwardRef((props, ref) => {
                 // Check if any of the updated seats are in user's current selection (BEFORE removing them)
                 const updatedSeatIdsStr = seatIds.map(id => String(id).trim());
                 const matchedFromSelection = [];
-                
+
                 // Check selected seats before they get removed by updateSeatsByIds
                 selectedSeats.forEach(ticket => {
                     ticket.seats?.forEach(selectedSeat => {
@@ -92,16 +94,16 @@ const BookingLayout = forwardRef((props, ref) => {
                         }
                     });
                 });
-                
+
                 // Update seats (this will also remove them from selectedSeats if status is 'booked')
                 updateSeatsByIds(seatIds, status);
-                
+
                 // Show alert modal if seats from user's selection were locked/booked by another user
                 if (matchedFromSelection.length > 0) {
                     const seatNames = matchedFromSelection.map(s => s.seatName).join(', ');
                     const seatText = matchedFromSelection.length === 1 ? 'seat' : 'seats';
                     const actionText = status === 'locked' ? 'locked' : 'booked';
-                    
+
                     Modal.warning({
                         title: (
                             <span>
@@ -176,17 +178,25 @@ const BookingLayout = forwardRef((props, ref) => {
                             numberOfSeats: parseInt(row.numberOfSeats) || 0,
                             curve: parseFloat(row.curve) || 0,
                             spacing: parseFloat(row.spacing) || 40,
-                            seats: row.seats?.map(seat => ({
-                                ...seat,
-                                number: parseInt(seat.number) || 0,
-                                x: parseFloat(seat.x) || 0,
-                                y: parseFloat(seat.y) || 0,
-                                radius: parseFloat(seat.radius) || 12,
-                                // Seat status can be: 'available', 'selected', 'booked', 'disabled'
-                                status: seat.status || 'available',
-                                // Ticket information from relation
-                                ticket: seat.ticket || null
-                            })) || []
+                            seats: row.seats?.map(seat => {
+                                // Filter out hold status for current user's seats
+                                let seatStatus = seat.status || 'available';
+                                if (seat.status === 'hold' && String(seat.hold_by) === String(UserData?.id)) {
+                                    seatStatus = 'available'; // Unload hold status for current user
+                                }
+
+                                return {
+                                    ...seat,
+                                    number: parseInt(seat.number) || 0,
+                                    x: parseFloat(seat.x) || 0,
+                                    y: parseFloat(seat.y) || 0,
+                                    radius: parseFloat(seat.radius) || 12,
+                                    // Seat status can be: 'available', 'selected', 'booked', 'disabled'
+                                    status: seatStatus,
+                                    // Ticket information from relation
+                                    ticket: seat.ticket || null
+                                };
+                            }) || []
                         })) || []
                     }));
 
@@ -268,25 +278,25 @@ const BookingLayout = forwardRef((props, ref) => {
     }
     return (
         <div className="booking-layout">
-                <Row gutter={16}>
-                    {/* Left Side - Canvas */}
-                    <Col xs={24} span={24}>
-                        <div className='booking-canvas rounded-4 overflow-hidden' style={{ height: '33rem' }}>
-                            <BookingSeatCanvas
-                                stageRef={stageRef}
-                                canvasScale={canvasScale}
-                                stage={stage}
-                                sections={sections}
-                                selectedSeats={selectedSeats}
-                                onSeatClick={handleSeatClick}
-                                handleWheel={handleWheel}
-                                setStagePosition={setStagePosition}
-                            />
-                        </div>
-                    </Col>
+            <Row gutter={16}>
+                {/* Left Side - Canvas */}
+                <Col xs={24} span={24}>
+                    <div className='booking-canvas rounded-4 overflow-hidden' style={{ height: '33rem' }}>
+                        <BookingSeatCanvas
+                            stageRef={stageRef}
+                            canvasScale={canvasScale}
+                            stage={stage}
+                            sections={sections}
+                            selectedSeats={selectedSeats}
+                            onSeatClick={handleSeatClick}
+                            handleWheel={handleWheel}
+                            setStagePosition={setStagePosition}
+                        />
+                    </div>
+                </Col>
 
-                    {/* Right Side - Summary */}
-                    {/* <Col xs={24} span={24}>
+                {/* Right Side - Summary */}
+                {/* <Col xs={24} span={24}>
                         <BookingSummary
                             selectedSeats={selectedSeats}
                             totalAmount={totalAmount}
@@ -297,7 +307,7 @@ const BookingLayout = forwardRef((props, ref) => {
                         />
                         <BookingLegend sections={sections} />
                     </Col> */}
-                </Row>
+            </Row>
 
         </div>
     );

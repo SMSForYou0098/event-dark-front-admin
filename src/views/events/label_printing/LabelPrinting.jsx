@@ -5,7 +5,8 @@ import {
     Upload,
     Layers,
     Printer,
-    CheckCircle
+    CheckCircle,
+    Zap
 } from "lucide-react";
 import printLoader from "assets/event/stock/print_loader.gif";
 import Loader from "utils/Loader";
@@ -15,6 +16,7 @@ import {
     UploadTab,
     BatchesTab,
     PrintTab,
+    InstantPrintTab,
     PrinterConfigDrawer,
     PrintSettingsDrawer,
     EditLabelModal,
@@ -41,7 +43,7 @@ const LabelPrinting = () => {
         isConnected,
         deviceName,
         printerStatus,
-                printerType,
+        printerType,
         setPrinterType,
 
         // API State
@@ -96,6 +98,10 @@ const LabelPrinting = () => {
         handleSavePrintSettings,
         handleDisconnect,
         handleViewBatch,
+        handleSaveToExistingBatch,
+        handleSaveToNewBatch,
+        isSaving,
+        UserData,
     } = useLabelPrintingState();
 
     // Table columns for preview (using API field names)
@@ -162,6 +168,9 @@ const LabelPrinting = () => {
                     onRefresh={refetchLabels}
                     onViewBatch={handleViewBatch}
                     onDeleteBatch={handleDeleteBatch}
+                    onAddLabel={handleSaveToExistingBatch}
+                    isSaving={isSaving}
+                    userId={UserData?.id}
                 />
             ),
         },
@@ -198,6 +207,40 @@ const LabelPrinting = () => {
                     fontFamily={fontFamily}
                     isConnected={isConnected}
                     connectionMode={connectionMode}
+                    isLoadingBatches={isLoadingLabels}
+                />
+            ),
+        },
+        {
+            key: "instant",
+            label: (
+                <Space>
+                    <Zap size={16} />
+                    <span>Instant Print</span>
+                </Space>
+            ),
+            children: (
+                <InstantPrintTab
+                    labelSize={labelSize}
+                    setLabelSize={setLabelSize}
+                    isPrinting={isPrinting}
+                    onInstantPrint={(data) => {
+                        // Handle instant printing with standard fields
+                        handlePrint(data);
+                    }}
+                    onOpenSettings={() => setShowPrintSettings(true)}
+                    fontFamily={fontFamily}
+                    isConnected={isConnected}
+                    connectionMode={connectionMode}
+                    selectedFields={selectedFields}
+                    fieldFontSizes={fieldFontSizes}
+                    setFieldFontSizes={setFieldFontSizes}
+                    batchGroups={batchGroups}
+                    onSaveToExistingBatch={handleSaveToExistingBatch}
+                    onSaveToNewBatch={handleSaveToNewBatch}
+                    isSaving={isSaving}
+                    isLoadingBatches={isLoadingLabels}
+                    userId={UserData?.id}
                 />
             ),
         },
@@ -265,14 +308,14 @@ const LabelPrinting = () => {
             />
 
             {/* Main Content */}
-                <Card
+            <Card
                 title={
                     <div className="d-flex align-items-center gap-2">
                         <Printer size={20} />
                         <span>Label Printing</span>
                     </div>
                 }
-                    extra={
+                extra={
                     <Space>
                         {isConnected && (
                             <Tag color="success" icon={<CheckCircle size={12} />}>
@@ -299,7 +342,7 @@ const LabelPrinting = () => {
                     size={isMobile ? "small" : "middle"}
                     tabBarStyle={{ marginBottom: isMobile ? 16 : 24 }}
                 />
-                </Card>
+            </Card>
 
             {/* Hidden Print Preview for Browser Print */}
             <PrintPreview

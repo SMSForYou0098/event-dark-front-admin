@@ -43,9 +43,11 @@ const PrintTab = ({
     fontFamily,
     isConnected,
     connectionMode,
+    isLoadingBatches = false,
+    isLoadingLabels = false,
 }) => {
     // Find selected batch info - support both field naming conventions
-    const selectedBatch = batchGroups.find(b => 
+    const selectedBatch = batchGroups.find(b =>
         (b.batch_id || b.batchId) === selectedBatchId
     );
 
@@ -55,8 +57,8 @@ const PrintTab = ({
     const batchPending = selectedBatch?.pending_records || selectedBatch?.pending_count || selectedBatch?.pendingRecords || 0;
 
     const columns = [
-        { 
-            title: "Name", 
+        {
+            title: "Name",
             key: "fullName",
             render: (_, record) => (
                 <Text strong>
@@ -64,24 +66,24 @@ const PrintTab = ({
                 </Text>
             ),
         },
-        { 
-            title: "Mobile", 
+        {
+            title: "Mobile",
             dataIndex: "number",
             render: (val) => val || <Text type="secondary">-</Text>,
         },
-        { 
-            title: "Designation", 
+        {
+            title: "Designation",
             dataIndex: "designation",
             render: (val) => val || <Text type="secondary">-</Text>,
         },
-        { 
-            title: "Company", 
+        {
+            title: "Company",
             dataIndex: "company_name",
             render: (val) => val || <Text type="secondary">-</Text>,
         },
-        { 
-            title: "Stall", 
-            dataIndex: "stall_number", 
+        {
+            title: "Stall",
+            dataIndex: "stall_number",
             align: "center",
             render: (val) => val ? <Tag>{val}</Tag> : <Text type="secondary">-</Text>,
         },
@@ -91,7 +93,7 @@ const PrintTab = ({
             align: "center",
             width: 100,
             render: (status) => (
-                <Tag 
+                <Tag
                     color={status ? "success" : "warning"}
                     icon={status ? <CheckCircle size={12} /> : null}
                 >
@@ -107,11 +109,11 @@ const PrintTab = ({
                 record.id ? (
                     <Space size="small">
                         <Tooltip title="Edit">
-                            <Button 
-                                size="small" 
+                            <Button
+                                size="small"
                                 type="text"
-                                onClick={() => onEditLabel(record)} 
-                                icon={<Edit2 size={14} />} 
+                                onClick={() => onEditLabel(record)}
+                                icon={<Edit2 size={14} />}
                             />
                         </Tooltip>
                         <Popconfirm
@@ -122,11 +124,11 @@ const PrintTab = ({
                             cancelText="Cancel"
                         >
                             <Tooltip title="Delete">
-                                <Button 
-                                    size="small" 
+                                <Button
+                                    size="small"
                                     type="text"
-                                    danger 
-                                    icon={<Trash2 size={14} />} 
+                                    danger
+                                    icon={<Trash2 size={14} />}
                                 />
                             </Tooltip>
                         </Popconfirm>
@@ -167,14 +169,16 @@ const PrintTab = ({
                                 allowClear
                                 style={{ width: '100%' }}
                                 size="large"
+                                loading={isLoadingBatches}
+                                notFoundContent={isLoadingBatches ? "Loading..." : "No batches"}
                             />
                         </Form.Item>
                     </Col>
 
                     <Col xs={24} md={8}>
                         <Form.Item label="Label Size" className="mb-0">
-                            <Radio.Group 
-                                value={labelSize} 
+                            <Radio.Group
+                                value={labelSize}
                                 onChange={(e) => setLabelSize(e.target.value)}
                             >
                                 <Space>
@@ -236,8 +240,8 @@ const PrintTab = ({
                     className="mb-4"
                     type={isConnected ? "success" : "warning"}
                     message={
-                        isConnected 
-                            ? "Thermal printer connected and ready" 
+                        isConnected
+                            ? "Thermal printer connected and ready"
                             : "Thermal printer not connected. Click 'Printer Settings' to connect."
                     }
                     showIcon
@@ -261,7 +265,7 @@ const PrintTab = ({
 
             {/* Labels Table */}
             {selectedBatchId ? (
-                <Card 
+                <Card
                     styles={{ body: { padding: 0 } }}
                     title={
                         <div className="d-flex align-items-center gap-2">

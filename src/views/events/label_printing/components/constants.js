@@ -5,11 +5,11 @@
  * Keys match API field names
  */
 export const AVAILABLE_FIELDS = [
-    { key: "name", label: "First Name", defaultEnabled: true, defaultSize: 1.5 },
-    { key: "surname", label: "Surname", defaultEnabled: true, defaultSize: 1.5 },
-    { key: "number", label: "Mobile", defaultEnabled: true, defaultSize: 1.0 },
-    { key: "designation", label: "Designation", defaultEnabled: true, defaultSize: 1.0 },
-    { key: "company_name", label: "Company", defaultEnabled: true, defaultSize: 1.0 },
+    { key: "name", label: "First Name", defaultEnabled: false, defaultSize: 1.5 },
+    { key: "surname", label: "Surname", defaultEnabled: false, defaultSize: 1.5 },
+    { key: "number", label: "Mobile", defaultEnabled: false, defaultSize: 1.0 },
+    { key: "designation", label: "Designation", defaultEnabled: false, defaultSize: 1.0 },
+    { key: "company_name", label: "Company", defaultEnabled: false, defaultSize: 1.0 },
     { key: "stall_number", label: "Stall", defaultEnabled: false, defaultSize: 1.0 },
 ];
 

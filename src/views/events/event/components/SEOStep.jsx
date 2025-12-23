@@ -116,7 +116,7 @@ const SEOStep = ({ form, eventKey }) => {
                                     marginBottom: '8px',
                                 }}
                             >
-                                Generating SEO with Gemini AI
+                                Generating SEO with AI
                             </Text>
                             <Text
                                 style={{

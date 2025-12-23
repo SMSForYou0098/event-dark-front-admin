@@ -60,10 +60,10 @@ const PrintSettingsDrawer = ({
         >
             <Space direction="vertical" size="large" className="w-100" style={{ paddingBottom: 20 }}>
                 {/* Fields Selection */}
-                <Card 
+                <Card
                     title={<Text strong>Fields to Print</Text>}
                     size="small"
-                    styles={{ 
+                    styles={{
                         body: { padding: 16 },
                         header: { padding: '12px 16px' }
                     }}
@@ -76,7 +76,7 @@ const PrintSettingsDrawer = ({
                         value={selectedFields}
                         onChange={setSelectedFields}
                         className="w-100"
-                        style={{ 
+                        style={{
                             display: 'flex',
                             flexDirection: 'column',
                             gap: 12
@@ -85,10 +85,10 @@ const PrintSettingsDrawer = ({
                 </Card>
 
                 {/* Global Typography */}
-                <Card 
+                <Card
                     title={<Text strong>Global Typography</Text>}
                     size="small"
-                    styles={{ 
+                    styles={{
                         body: { padding: 16 },
                         header: { padding: '12px 16px' }
                     }}
@@ -108,29 +108,7 @@ const PrintSettingsDrawer = ({
 
                         <Divider className="my-2" />
 
-                        <Form.Item 
-                            label={
-                                <Text>
-                                    Font Size: <Text strong style={{ color: '#1677ff' }}>{Math.round(fontSizeMultiplier * 100)}%</Text>
-                                </Text>
-                            }
-                            className="mb-3"
-                        >
-                            <Slider
-                                min={0.5}
-                                max={2.0}
-                                step={0.1}
-                                value={fontSizeMultiplier}
-                                onChange={setFontSizeMultiplier}
-                                marks={globalMarks}
-                                tooltip={{
-                                    formatter: (value) => `${Math.round(value * 100)}%`
-                                }}
-                                style={{ marginBottom: 8 }}
-                            />
-                        </Form.Item>
-
-                        <Form.Item 
+                        <Form.Item
                             label={
                                 <Text>
                                     Line Spacing: <Text strong style={{ color: '#1677ff' }}>{Math.round(lineGapMultiplier * 100)}%</Text>
@@ -154,10 +132,10 @@ const PrintSettingsDrawer = ({
 
                 {/* Individual Field Font Sizes */}
                 {selectedFields.length > 0 && (
-                    <Card 
+                    <Card
                         title={<Text strong>Individual Field Font Sizes</Text>}
                         size="small"
-                        styles={{ 
+                        styles={{
                             body: { padding: 16, maxHeight: isMobile ? 400 : 350, overflowY: "auto" },
                             header: { padding: '12px 16px' }
                         }}
