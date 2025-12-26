@@ -4,12 +4,14 @@ import { Form, Select, Switch, Card, Row, Col, Space } from 'antd';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import ContentSelect from './ContentSelect';
+import { useMyContext } from 'Context/MyContextProvider';
 
 // helpers — accept "1"/1 => true, "0"/0/undefined => false
 const toChecked = (v) => v === 1 || v === '1';
 const toNumber = (checked) => (checked ? 1 : 0);
 
 const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
+  const { userRole } = useMyContext();
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       {/* Top controls */}
@@ -92,25 +94,33 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
               label: "Hide Agent Attendee Suggestion",
             },
             { name: "show_on_home", label: "Display Event on Home Page" },
-          ].map((f) => (
-            <Col xs={24} sm={12} lg={8} key={f.name}>
-              <Form.Item
-                name={f.name}
-                label={f.label}
-                tooltip={f.tooltip}
-                valuePropName="checked"
-                // 👇 FIX: use checked, not value
-                getValueProps={(v) => ({ checked: toChecked(v) })}
-                getValueFromEvent={toNumber}
-                initialValue={0}
-              >
-                <Switch
-                  checkedChildren={f.onLabels?.[0] || "Yes"}
-                  unCheckedChildren={f.onLabels?.[1] || "No"}
-                />
-              </Form.Item>
-            </Col>
-          ))}
+          ]
+            .filter((f) => {
+              // Only show "High Demand" field to Admin users
+              if (f.name === "event_feature" && userRole !== "Admin") {
+                return false;
+              }
+              return true;
+            })
+            .map((f) => (
+              <Col xs={24} sm={12} lg={8} key={f.name}>
+                <Form.Item
+                  name={f.name}
+                  label={f.label}
+                  tooltip={f.tooltip}
+                  valuePropName="checked"
+                  // 👇 FIX: use checked, not value
+                  getValueProps={(v) => ({ checked: toChecked(v) })}
+                  getValueFromEvent={toNumber}
+                  initialValue={0}
+                >
+                  <Switch
+                    checkedChildren={f.onLabels?.[0] || "Yes"}
+                    unCheckedChildren={f.onLabels?.[1] || "No"}
+                  />
+                </Form.Item>
+              </Col>
+            ))}
         </Row>
       </Card>
 

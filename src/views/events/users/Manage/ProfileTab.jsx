@@ -906,8 +906,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             showSearch
                                             placeholder="Select organization"
                                             options={OrganizerList?.map(org => ({
-                                                value: String(org.value),
-                                                label: `${org.organisation} (${org.label})`,
+                                                value: String(org.id),
+                                                label: `${org.organisation} (${org.name})`,
                                             }))}
                                             optionFilterProp="label"
                                         />
@@ -937,6 +937,49 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                                         !reportingUserId ? 'Please select an account manager first' :
                                                             'No events found'
                                                 }
+                                                dropdownRender={(menu) => {
+                                                    // Only show Select All for multiple mode (not for Scanner)
+                                                    if (formState.roleName === 'Scanner') {
+                                                        return menu;
+                                                    }
+
+                                                    const allEventValues = fetchedEvents.map(e => e.value);
+                                                    const allSelected = allEventValues.length > 0 &&
+                                                        formState.events?.length === allEventValues.length;
+
+                                                    return (
+                                                        <>
+                                                            {allEventValues.length > 0 && (
+                                                                <div style={{ padding: '8px 12px', borderBottom: '1px solid #303030' }}>
+                                                                    <Space>
+                                                                        <Button
+                                                                            size="small"
+                                                                            type={allSelected ? 'default' : 'primary'}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (allSelected) {
+                                                                                    // Deselect all
+                                                                                    handleEventChange([]);
+                                                                                } else {
+                                                                                    // Select all
+                                                                                    handleEventChange(allEventValues);
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            {allSelected ? 'Deselect All' : 'Select All'}
+                                                                        </Button>
+                                                                        {formState.events?.length > 0 && !allSelected && (
+                                                                            <span style={{ color: '#888', fontSize: 12 }}>
+                                                                                {formState.events.length} / {allEventValues.length} selected
+                                                                            </span>
+                                                                        )}
+                                                                    </Space>
+                                                                </div>
+                                                            )}
+                                                            {menu}
+                                                        </>
+                                                    );
+                                                }}
                                             />
                                         </Form.Item>
                                     </Col>

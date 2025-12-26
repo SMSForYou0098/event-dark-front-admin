@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Card, Collapse, Input, Grid, Button } from 'antd';
-import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 import PosEventCard from './PosEventCard';
 import { SearchOutlined, LeftOutlined, RightOutlined } from "@ant-design/icons";
 import Loader from 'utils/Loader';
 import { useQuery } from '@tanstack/react-query';
+import api from 'auth/FetchInterceptor';
+
 const { Panel } = Collapse;
 const PosEvents = ({ type, handleButtonClick, isScanner }) => {
-    const { api, authToken, UserData, truncateString } = useMyContext();
+    const { UserData, truncateString } = useMyContext();
     const screens = Grid.useBreakpoint();
     const scrollerRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -20,17 +21,12 @@ const PosEvents = ({ type, handleButtonClick, isScanner }) => {
         queryKey: ['pos-events', UserData?.id],
         queryFn: async () => {
             if (!UserData?.id) return [];
-            
-            const res = await axios.get(`${api}pos-events/${UserData?.id}`, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
-            });
-            return res.data.events || [];
+            const res = await api.get(`pos-events/${UserData?.id}`);
+            return res.events || [];
         },
-        enabled: !!UserData?.id, // Only run query if UserData.id exists
-        staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-        cacheTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+        enabled: !!UserData?.id,
+        staleTime: 5 * 60 * 1000,
+        cacheTime: 10 * 60 * 1000,
     });
 
     // Auto-select first event for scanner users

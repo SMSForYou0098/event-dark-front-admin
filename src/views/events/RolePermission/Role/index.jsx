@@ -1,52 +1,38 @@
 import React, { memo, Fragment, useState, useEffect, useCallback, useMemo } from "react";
 import { Card, Modal, Button, Form, Input, Table, Space, Tooltip } from "antd";
 import { PlusOutlined, EditOutlined, SafetyOutlined } from "@ant-design/icons";
-import axios from "axios";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useMyContext } from "../../../../Context/MyContextProvider";
+import api from "auth/FetchInterceptor";
 
 const { Search } = Input;
 
 const Roles = memo(() => {
-    const { api, formatDateTime, ErrorAlert, successAlert, authToken } = useMyContext();
+    const { formatDateTime, ErrorAlert, successAlert } = useMyContext();
     const navigate = useNavigate();
-    const [loading, setLoading] = useState(true);
-    const [roles, setRoles] = useState([]);
+    const queryClient = useQueryClient();
     const [filteredRoles, setFilteredRoles] = useState([]);
     const [searchText, setSearchText] = useState('');
     const [form] = Form.useForm();
 
-    // Role data fetch
-    const RoleData = useCallback(async () => {
-        try {
-            setLoading(true);
-            const response = await axios.get(`${api}role-list`, {
-                headers: {
-                    'Authorization': `Bearer ${authToken}`,
-                }
-            });
-            if (response.data.role) {
-                const rolesData = response.data.role.reverse();
-                setRoles(rolesData);
-                setFilteredRoles(rolesData);
-            }
-        } catch (error) {
-            console.error('Error fetching roles:', error);
+    // Fetch roles using TanStack Query
+    const { data: roles = [], isLoading: loading } = useQuery({
+        queryKey: ['roles'],
+        queryFn: async () => {
+            const response = await api.get('role-list');
+            return response.role ? response.role.reverse() : [];
+        },
+        onError: () => {
             ErrorAlert('Failed to fetch roles');
-        } finally {
-            setLoading(false);
-        }
-    }, [api, authToken, ErrorAlert]);
-
-    useEffect(() => {
-        RoleData();
-    }, [RoleData]);
+        },
+    });
 
     // Search functionality
     const handleSearch = useCallback((value) => {
         setSearchText(value);
         const searchValue = value.toLowerCase().trim();
-        
+
         if (searchValue) {
             const filtered = roles.filter((role) =>
                 role.name.toLowerCase().includes(searchValue) ||
@@ -72,6 +58,32 @@ const Roles = memo(() => {
     const [isEdit, setIsEdit] = useState(false);
     const [editId, setEditId] = useState('');
 
+    // Create role mutation
+    const createMutation = useMutation({
+        mutationFn: (values) => api.post('create-role', {
+            name: values.name,
+            guard_name: values.name
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['roles'] });
+            handleCancel();
+            successAlert('Role created successfully');
+        },
+    });
+
+    // Update role mutation
+    const updateMutation = useMutation({
+        mutationFn: (values) => api.post('role-update', {
+            id: editId,
+            name: values.name
+        }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['roles'] });
+            handleCancel();
+            successAlert('Role updated successfully');
+        },
+    });
+
     const showModal = () => {
         setOpen(true);
         form.resetFields();
@@ -80,26 +92,10 @@ const Roles = memo(() => {
     const handleOk = async () => {
         try {
             const values = await form.validateFields();
-            const response = await axios.post(`${api}create-role`, {
-                name: values.name,
-                guard_name: values.name
-            }, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                }
-            });
-            if (response.data.status) {
-                RoleData();
-                handleCancel();
-                successAlert('Role created successfully');
-            }
+            createMutation.mutate(values);
         } catch (error) {
-            if (error.errorFields) {
-                // Form validation error, don't close modal
-                return;
-            }
+            if (error.errorFields) return;
             handleCancel();
-            console.log(error);
         }
     };
 
@@ -121,30 +117,14 @@ const Roles = memo(() => {
     const UpdateRole = async () => {
         try {
             const values = await form.validateFields();
-            const response = await axios.post(`${api}role-update`, {
-                id: editId,
-                name: values.name
-            }, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                }
-            });
-            if (response.data.status) {
-                RoleData();
-                handleCancel();
-                successAlert('Role updated successfully');
-            }
+            updateMutation.mutate(values);
         } catch (error) {
-            if (error.errorFields) {
-                // Form validation error, don't close modal
-                return;
-            }
+            if (error.errorFields) return;
             handleCancel();
-            console.log(error);
         }
     };
 
-    const AssignPermission = useCallback((id , name) => {
+    const AssignPermission = useCallback((id, name) => {
         navigate(`${id}/${name}/permission`);
     }, [navigate]);
 
@@ -197,7 +177,7 @@ const Roles = memo(() => {
                         <Button
                             size="small"
                             icon={<SafetyOutlined />}
-                            onClick={() => AssignPermission(record.id,record?.name)}
+                            onClick={() => AssignPermission(record.id, record?.name)}
                         />
                     </Tooltip>
                 </Space>
@@ -219,7 +199,7 @@ const Roles = memo(() => {
             <Modal
                 title={`${isEdit ? 'Edit' : 'Create New'} Role`}
                 open={open}
-                style={{top : 0}}
+                style={{ top: 0 }}
                 onOk={handleSubmit}
                 onCancel={handleCancel}
                 okText={isEdit ? "Update Role" : "Create Role"}

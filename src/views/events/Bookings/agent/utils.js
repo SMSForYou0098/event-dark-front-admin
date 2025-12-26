@@ -19,9 +19,9 @@ export const sanitizeData = (attendees) => {
     const sanitized = {};
     Object.keys(attendee).forEach(key => {
       // ✅ Exclude system fields
-      if (!['id', 'created_at', 'updated_at', 'deleted_at', 'status', 
-            'booking_id', 'user_id', 'agent_id', 'token', 'ticketId', 
-            'missingFields', 'index'].includes(key)) {
+      if (!['id', 'created_at', 'updated_at', 'deleted_at', 'status',
+        'booking_id', 'user_id', 'agent_id', 'token', 'ticketId',
+        'missingFields', 'index'].includes(key)) {
         sanitized[key] = sanitizeInput(attendee[key]);
       }
     });
@@ -41,31 +41,31 @@ export const processImageFile = async (file) => {
 };
 
 
-export const BookingStats = ({type , id }) => {
+export const BookingStats = ({ type, id }) => {
   const [bookings, setBookings] = useState({
     bookings: 0,
     amount: 0,
     discount: 0
   });
 
-    // API calls with useCallback
-    const GetBookings = useCallback(async () => {
-      try {
-        // const url = `${api}booking-stats/pos/${UserData?.id}`;
-        const url = `booking-stats/${type}/${id}`;
-        const res = await api.get(url);
-        if (res.status) {
-          setBookings(res);
-        }
-      } catch (err) {
-        console.log(err);
+  // API calls with useCallback
+  const GetBookings = useCallback(async () => {
+    try {
+      // const url = `${api}booking-stats/pos/${UserData?.id}`;
+      const url = `booking-stats/${type}/${id}`;
+      const res = await api.get(url);
+      if (res.status) {
+        setBookings(res);
       }
-    }, [type, id]);
+    } catch (err) {
+      console.log(err);
+    }
+  }, [type, id]);
 
 
-    useEffect(() => {
-      GetBookings();
-    }, [GetBookings]);
+  useEffect(() => {
+    GetBookings();
+  }, [GetBookings]);
 
 
   const bookingStats = useMemo(() => ({
@@ -73,7 +73,7 @@ export const BookingStats = ({type , id }) => {
     amount: (parseInt(bookings?.amount) ?? 0).toFixed(2),
     discount: (parseInt(bookings?.discount) ?? 0).toFixed(2)
   }), [bookings]);
-  
+
   const stats = [
     {
       title: "Bookings",
@@ -95,17 +95,17 @@ export const BookingStats = ({type , id }) => {
 
   return (
     <div className="d-flex justify-content-between mb-3">
-    {stats.map((item, index) => (
-      <Statistic
-        key={index}
-        title={item.title}
-        value={item.value}
-        prefix={item.prefix}
-        valueStyle={{ ...item.valueStyle, fontSize: '14px' , fontWeight : 'bold' }}
-      />
-    ))}
+      {stats.map((item, index) => (
+        <Statistic
+          key={index}
+          title={item.title}
+          value={item.value}
+          prefix={item.prefix}
+          valueStyle={{ ...item.valueStyle, fontSize: '14px', fontWeight: 'bold' }}
+        />
+      ))}
 
-  </div>
+    </div>
   )
 }
 
@@ -164,35 +164,37 @@ export const handleDiscountChange = ({
 };
 
 export const resendTickets = async (record, type, setLoading = null) => {
-    try {
-        if (setLoading) setLoading(true);
+  try {
+    console.log(record);
 
-        const endpoint = 'resend-ticket';
-        
-        // Prepare request payload
-        const payload = {
-            table_name: type,
-            is_master: record?.is_master || false,
-            set_id: record?.is_set ? record?.set_id : false,
-            order_id: record?.is_master
-                ? record?.bookings?.[0]?.token
-                : record?.token || record?.order_id || '',
-        };
+    if (setLoading) setLoading(true);
 
-        const response = await api.post(endpoint, payload);
+    const endpoint = 'resend-ticket';
 
-        if (response.status) {
-            if (response.message) {
-                message.success(`${type} tickets resent successfully!`);
-            }
-            return { success: true, data: response };
-        } else {
-            throw new Error(response?.message || 'Failed to resend tickets');
-        }
-    } catch (error) {
-        message.error(error.message || 'Failed to resend tickets');
-        return { success: false, error: error.message };
-    } finally {
-        if (setLoading) setLoading(false);
+    // Prepare request payload
+    const payload = {
+      table_name: type,
+      is_master: record?.is_master || false,
+      set_id: record?.is_set ? record?.set_id : false,
+      order_id: record?.is_master
+        ? record?.order_id
+        : record?.token || record?.order_id || '',
+    };
+
+    const response = await api.post(endpoint, payload);
+
+    if (response.status) {
+      if (response.message) {
+        message.success(`${type} tickets resent successfully!`);
+      }
+      return { success: true, data: response };
+    } else {
+      throw new Error(response?.message || 'Failed to resend tickets');
     }
+  } catch (error) {
+    message.error(error.message || 'Failed to resend tickets');
+    return { success: false, error: error.message };
+  } finally {
+    if (setLoading) setLoading(false);
+  }
 };

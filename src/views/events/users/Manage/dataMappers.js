@@ -47,7 +47,8 @@ export const mapApiToForm = (apiData) => {
         status: Boolean(user.status),
         authentication: user.authentication === 1,
         agreementStatus: user.agreement_status === 1,
-        agentDiscount: user.agent_disc === 1,
+        // agentDiscount: user.agent_disc === 1,
+        agentDiscount: user.agent_disc,
 
         // Role-specific
         paymentMethod: user.payment_method || 'Cash',

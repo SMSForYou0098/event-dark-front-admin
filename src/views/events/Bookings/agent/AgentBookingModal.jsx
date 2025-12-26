@@ -522,7 +522,7 @@ const AgentBookingModal = (props) => {
                     loading={loading || disabled}
                     icon={loading && <LoadingOutlined />}
                   >
-                    {loading ? 'Sending Tickets' : 'Submitsss'}
+                    {loading ? 'Sending Tickets' : 'Submit'}
                   </Button>
                 </Form.Item>
               </Col>

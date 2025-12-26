@@ -5,9 +5,10 @@ import { Button, Col, message, Row, Spin } from 'antd';
 import axios from 'axios';
 import { CloudDownloadOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
+import FallbackTicketBackground from './FallbackTicketBackground';
 
 const TicketCanvas = (props) => {
-  const { showDetails, ticketName, userName, number, address, ticketBG, date, time, photo, OrderId, showPrintButton, ticketNumber } = props;
+  const { showDetails, ticketName, userName, number, address, ticketBG, date, time, photo, OrderId, showPrintButton, ticketNumber, eventName } = props;
   const { api } = useMyContext();
   const canvasRef = useRef(null);
   const qrContainerRef = useRef(null);
@@ -16,51 +17,58 @@ const TicketCanvas = (props) => {
   const [loading, setLoading] = useState(false);
   const [loadingImage, setLoadingImage] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [useFallback, setUseFallback] = useState(false);
   const textColor = '#000';
 
-const fetchImage = async () => {
-  try {
-    // Create a unique cache key based on the ticket background path
-    const cacheKey = `ticket_image_${ticketBG}`;
-    
-    // Check if image is already in sessionStorage
-    const cachedImage = sessionStorage.getItem(cacheKey);
-    
-    if (cachedImage) {
-      // Use cached base64 image
-      setImageUrl(cachedImage);
-      return;
-    }
-    
-    // If not cached, fetch from API
-    const response = await axios.post(
-      `${api}get-image/retrive`,
-      { path: ticketBG },
-      { responseType: 'blob' }
-    );
-    
-    // Convert blob to base64 for storage
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64Image = reader.result;
-      
-      // Store in sessionStorage
-      sessionStorage.setItem(cacheKey, base64Image);
-      setImageUrl(base64Image);
-      // console.log('✅ Fetched and cached');
-    };
-    reader.readAsDataURL(response.data);
-    
-  } catch (error) {
-    message.error('❌ Failed to load ticket background image.');
-  }
-};
+  const fetchImage = async () => {
+    try {
+      // Create a unique cache key based on the ticket background path
+      const cacheKey = `ticket_image_${ticketBG}`;
 
-useEffect(() => {
-  if (ticketBG) {
-    fetchImage();
-  }
-}, [ticketBG]);
+      // Check if image is already in sessionStorage
+      const cachedImage = sessionStorage.getItem(cacheKey);
+
+      if (cachedImage) {
+        // Use cached base64 image
+        setImageUrl(cachedImage);
+        return;
+      }
+
+      // If not cached, fetch from API
+      const response = await axios.post(
+        `${api}get-image/retrive`,
+        { path: ticketBG },
+        { responseType: 'blob' }
+      );
+
+      // Convert blob to base64 for storage
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Image = reader.result;
+
+        // Store in sessionStorage
+        sessionStorage.setItem(cacheKey, base64Image);
+        setImageUrl(base64Image);
+        // console.log('✅ Fetched and cached');
+      };
+      reader.readAsDataURL(response.data);
+
+    } catch (error) {
+      // Failed to load image, use fallback background instead
+      console.warn('Failed to load ticket background, using fallback:', error);
+      setUseFallback(true);
+    }
+  };
+
+  useEffect(() => {
+    if (ticketBG) {
+      setUseFallback(false);
+      fetchImage();
+    } else {
+      // No ticketBG provided, use fallback background
+      setUseFallback(true);
+    }
+  }, [ticketBG]);
 
   // Generate QR code data URL when OrderId is available
   useEffect(() => {
@@ -73,7 +81,7 @@ useEffect(() => {
     const extractQRCode = () => {
       // Find the canvas element inside the hidden div
       const qrCanvas = qrContainerRef.current?.querySelector('canvas');
-      
+
       if (qrCanvas) {
         try {
           const dataUrl = qrCanvas.toDataURL('image/png');
@@ -107,6 +115,11 @@ useEffect(() => {
     });
 
   }, [OrderId]);
+
+  // Handle fallback background generation
+  const handleFallbackGenerated = (dataUrl) => {
+    setImageUrl(dataUrl);
+  };
 
   const getTextWidth = (text, fontSize = 16, fontFamily = 'Arial') => {
     const tempText = new fabric.Text(text, {
@@ -199,7 +212,7 @@ useEffect(() => {
 
         canvas.remove(loader);
         const qrImg = await loadFabricImage(qrDataUrl);
-        
+
         const qrCodeWidth = 95;
         const qrCodeHeight = 95;
         const padding = 1;
@@ -245,8 +258,9 @@ useEffect(() => {
         canvas.add(qrImg);
         canvas.add(ticketNumberText);
 
-        // Add ticket details if showDetails is true
-        if (showDetails) {
+        // Add ticket details if showDetails is true and NOT using fallback background
+        // (fallback background already includes event details)
+        if (showDetails && !useFallback) {
           centerText(`${ticketName}` || 'Ticket Name', 16, 'Arial', canvas, 50);
           centerText(`${userName}` || 'User Name', 16, 'Arial', canvas, 190);
           centerText(`${number}` || 'User Number', 16, 'Arial', canvas, 210);
@@ -296,7 +310,7 @@ useEffect(() => {
         URL.revokeObjectURL(imageUrl);
       }
     };
-  }, [imageUrl, qrDataUrl, OrderId, ticketName, userName, address, time, date, photo, number, showDetails, ticketNumber]);
+  }, [imageUrl, qrDataUrl, OrderId, ticketName, userName, address, time, date, photo, number, showDetails, ticketNumber, useFallback]);
 
   const downloadCanvas = () => {
     setLoading(true);
@@ -399,16 +413,29 @@ useEffect(() => {
           </Col>
         </Row>
       )}
-      
+
       {/* Hidden QR Code Generator */}
       <div ref={qrContainerRef} style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-        <QRCodeCanvas 
-          value={OrderId || ''} 
-          size={150} 
-          level="H" 
+        <QRCodeCanvas
+          value={OrderId || ''}
+          size={150}
+          level="H"
           includeMargin={true}
         />
       </div>
+
+      {/* Fallback Background Generator - only renders when no ticketBG is provided */}
+      {useFallback && !imageUrl && (
+        <FallbackTicketBackground
+          eventName={eventName || "Event Name"}
+          ticketName={ticketName || "General Admission"}
+          date={date || "Event Date"}
+          address={address || "Event Venue Address"}
+          width={300}
+          height={600}
+          onGenerated={handleFallbackGenerated}
+        />
+      )}
     </>
   );
 };

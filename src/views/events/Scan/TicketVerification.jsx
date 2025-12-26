@@ -1,7 +1,6 @@
 import React, { memo, useState, useEffect, useCallback } from 'react';
 import { Row, Col, message, Modal, Button, Card, Space, Typography, Divider } from 'antd';
 import { ExclamationCircleOutlined, CheckCircleOutlined, ReloadOutlined, ClockCircleOutlined, EnvironmentOutlined, TeamOutlined } from '@ant-design/icons';
-import axios from 'axios';
 import useSound from 'use-sound';
 
 import beepSound from '../../../assets/event/stock/tik.mp3';
@@ -15,13 +14,12 @@ import AdminActionModal from './components/AdminActionModal';
 import ShopKeeperModal from './components/ShopKeeperModal';
 import StickyBottom from 'utils/MobileStickyBottom.jsx/StickyBottom';
 import PosEvents from '../Bookings/components/PosEvents';
+import api from 'auth/FetchInterceptor';
 
 const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const {
-        api,
         userRole,
         formatDateTime,
-        authToken,
         UserData,
         fetchCategoryData,
         handleWhatsappAlert,
@@ -55,13 +53,6 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Sounds ──────────────────────────────
     const [playBeep] = useSound(beepSound);
     const [playError] = useSound(errorSound);
-
-    // ─── Helper: axios instance with token ───
-    const axiosAuth = useCallback(() => {
-        return axios.create({
-            headers: { Authorization: `Bearer ${authToken}` },
-        });
-    }, [authToken]);
 
     // ─── Error Modal ─────────────────────────
     const showErrorModal = (errorMsg, checkInTime = null) => {
@@ -137,12 +128,12 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Fetch Token Length ──────────────────
     const getTokenLength = useCallback(async () => {
         try {
-            const res = await axiosAuth().get(`${api}scanner-token-length/${UserData?.id}`);
-            if (res.data.status) setTokenLength(res.data.tokenLength);
+            const res = await api.get(`scanner-token-length/${UserData?.id}`);
+            if (res.status) setTokenLength(res.tokenLength);
         } catch {
             // ignore silently
         }
-    }, [api, UserData, axiosAuth]);
+    }, [UserData]);
 
     useEffect(() => {
         getTokenLength();
@@ -172,12 +163,12 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         setLoading(prev => ({ ...prev, fetching: true }));
         setShow(true);
         try {
-            const res = await axiosAuth().post(`${api}verify-ticket/${data}`, {
+            const res = await api.post(`verify-ticket/${data}`, {
                 user_id: UserData?.reporting_user,
                 event_id: event?.id
             });
 
-            if (res.data.status) {
+            if (res.status) {
                 showSuccess('Ticket Found');
                 const mainBookings = res.data;
                 setTicketData(mainBookings);
@@ -201,8 +192,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const handleShopKeeperVerification = async (data) => {
         setLoading(prev => ({ ...prev, verifying: true }));
         try {
-            const res = await axiosAuth().post(`${api}wallet-user/${data}`);
-            if (res.data.status) {
+            const res = await api.post(`wallet-user/${data}`);
+            if (res.status) {
                 showSuccess('Wallet Verified');
                 setTicketData(res.data);
                 setShow(true);
@@ -266,8 +257,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         setLoading(prev => ({ ...prev, verifying: true }));
         setIsProcessing(true);
         try {
-            const res = await axiosAuth().get(`${api}chek-in/${sessionId}`);
-            if (res.data.status) {
+            const res = await api.get(`chek-in/${sessionId}`);
+            if (res.status) {
                 showSuccessModal('Ticket Scanned Successfully!');
                 setQRData('');
                 setShow(false);
@@ -286,7 +277,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const handleDebit = async (amount, remarks) => {
         try {
             setIsProcessing(true);
-            const res = await axiosAuth().post(`${api}debit-wallet`, {
+            const res = await api.post(`debit-wallet`, {
                 amount,
                 description: remarks,
                 token: QRdata,
@@ -295,8 +286,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 user_id: ticketData.user?.id,
             });
 
-            if (res.data.status) {
-                const tx = res.data.data;
+            if (res.status) {
+                const tx = res.data;
                 setResData(tx);
                 setShowReceipt(true);
                 setShow(false);

@@ -163,14 +163,14 @@ export const ExpandDataTable = ({
         const { current, pageSize } = paginationConfig;
         onPaginationChange(current, pageSize);
       }
-      
+
       // Handle sorting change
       if (onSortChange && sorter) {
         const { field, order } = sorter;
         onSortChange(field, order);
       }
     }
-    
+
     // Call any existing onChange from tableProps
     tableProps.onChange?.(paginationConfig, filters, sorter);
   };
@@ -463,31 +463,31 @@ export const ExpandDataTable = ({
               pagination={
                 serverSide && pagination
                   ? {
-                      current: pagination.current_page,
-                      pageSize: pagination.per_page,
-                      total: pagination.total,
-                      showTotal: (total, range) =>
-                        isMobile
-                          ? `${range[0]}-${range[1]}/${total}`
-                          : `Showing ${range[0]}-${range[1]} of ${total} items`,
-                      size: isMobile ? "small" : "default",
-                      simple: isSmallMobile,
-                      responsive: true,
-                      position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-                      showSizeChanger: !isMobile,
-                      pageSizeOptions: ["10", "15", "20", "50", "100"],
-                    }
+                    current: pagination.current_page,
+                    pageSize: pagination.per_page,
+                    total: pagination.total,
+                    showTotal: (total, range) =>
+                      isMobile
+                        ? `${range[0]}-${range[1]}/${total}`
+                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                    size: isMobile ? "small" : "default",
+                    simple: isSmallMobile,
+                    responsive: true,
+                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                    showSizeChanger: !isMobile,
+                    pageSizeOptions: ["10", "15", "20", "50", "100"],
+                  }
                   : {
-                      pageSize: isMobile ? 5 : 10,
-                      showTotal: (total, range) =>
-                        isMobile
-                          ? `${range[0]}-${range[1]}/${total}`
-                          : `Showing ${range[0]}-${range[1]} of ${total} items`,
-                      size: isMobile ? "small" : "default",
-                      simple: isSmallMobile,
-                      responsive: true,
-                      position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-                    }
+                    pageSize: isMobile ? 5 : 10,
+                    showTotal: (total, range) =>
+                      isMobile
+                        ? `${range[0]}-${range[1]}/${total}`
+                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                    size: isMobile ? "small" : "default",
+                    simple: isSmallMobile,
+                    responsive: true,
+                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                  }
               }
               onChange={handleTableChange}
               locale={{ emptyText }}

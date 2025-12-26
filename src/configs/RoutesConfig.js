@@ -855,4 +855,12 @@ export const protectedRoutes = [
             roles: ['admin'],
         }
     },
+    {
+        key: 'intimation',
+        path: `/intimation`,
+        component: React.lazy(() => import('views/events/Intimations/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
 ]

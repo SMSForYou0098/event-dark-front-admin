@@ -1,70 +1,47 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button, Space, Image, Tag, message, Modal } from 'antd';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { useMyContext } from '../../../Context/MyContextProvider';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../common/DataTable';
 import dayjs from 'dayjs';
+import api from 'auth/FetchInterceptor';
 
 const Posts = () => {
-  const { authToken, api } = useMyContext();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const getData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get(`${api}blog-list`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      if (response.data?.status && Array.isArray(response.data.data)) {
-        setPosts(response.data.data);
-      } else {
-        setError({ message: 'Invalid response format.' });
+  const { data: posts = [], isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['blog-posts'],
+    queryFn: async () => {
+      const response = await api.get('blog-list');
+      if (response?.status && Array.isArray(response.data)) {
+        return response.data;
       }
-    } catch (err) {
-      console.error(err);
-      setError({ 
-        message: err.response?.data?.message || 'Failed to fetch blog posts.' 
-      });
-      message.error(err.response?.data?.message || 'Failed to fetch blog posts.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      throw new Error('Invalid response format.');
+    },
+  });
 
-  const handleDelete = async (id) => {
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`blog-destroy/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
+      message.success('The blog post has been deleted.');
+    },
+    onError: () => {
+      message.error('Failed to delete the post.');
+    },
+  });
+
+  const handleDelete = (id) => {
     Modal.confirm({
       title: 'Are you sure?',
       content: 'This action will permanently delete the blog post.',
       okText: 'Yes, delete it!',
       cancelText: 'Cancel',
-      onOk: async () => {
-        try {
-          await axios.delete(`${api}blog-destroy/${id}`, {
-            headers: { Authorization: `Bearer ${authToken}` },
-          });
-
-          const updated = posts.filter((post) => post.id !== id);
-          setPosts(updated);
-          message.success('The blog post has been deleted.');
-        } catch (err) {
-          console.error(err);
-          message.error('Failed to delete the post.');
-        }
-      },
+      onOk: () => deleteMutation.mutate(id),
     });
   };
-
-  useEffect(() => {
-    getData();
-  }, []);
 
   const columns = [
     {
@@ -149,7 +126,7 @@ const Posts = () => {
         loading={loading}
         error={error}
         showRefresh={true}
-        onRefresh={getData}
+        onRefresh={refetch}
         showSearch={true}
         enableSearch={true}
         emptyText="No blog posts found"

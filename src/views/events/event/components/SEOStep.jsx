@@ -226,7 +226,7 @@ const SEOStep = ({ form, eventKey }) => {
                         label="Meta Description"
                         rules={[
                             { required: true, message: 'Please enter meta description' },
-                            { max: 160, message: 'Meta description should be max 160 characters' }
+                            { max: 280, message: 'Meta description should be max 280 characters' }
                         ]}
                     >
                         <TextArea
