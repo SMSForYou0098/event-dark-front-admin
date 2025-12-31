@@ -123,7 +123,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
     const soldOut = toBool(record?.sold_out);
     const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
     const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
-    return isAgentNotAllowed || isPosNotAllowed || record?.booking_not_open === 1;
+    return isAgentNotAllowed || isPosNotAllowed || record?.booking_not_open;
   };
 
 
@@ -138,7 +138,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
 
         let bookingStatus = null;
         if (rowIsDisabled(record)) {
-          if (record?.booking_not_open === 1) {
+          if (record?.booking_not_open) {
             bookingStatus = {
               label: 'Booking Not Open',
               icon: <ClockCircleOutlined />,
@@ -170,7 +170,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
                 bookingBlocked={isBookingBlocked}
               />
             </Space>
-            {record?.fast_filling === 1 && (
+            {record?.fast_filling && (
               <Tag icon={<RiseOutlined />} color="green" className='mt-1 p-0 px-2' style={{ lineHeight: 2 }}>
                 Fast Filling
               </Tag>
@@ -196,7 +196,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
             key={`${event?.id}-${record.id}`} // Add key to force remount on event change
             getTicketCount={getTicketCount}
             category={record.name}
-            price={record?.sale === 1 ? Number(record?.sale_price) : Number(record?.price)}
+            price={record?.sale ? Number(record?.sale_price) : Number(record?.price)}
             limit={10}
             ticketID={record.id}
             initialValue={selectedTicket?.quantity || 0}
@@ -219,7 +219,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
           return '-';
         }
 
-        const price = record?.sale === 1 ? record?.sale_price : record?.price;
+        const price = record?.sale ? record?.sale_price : record?.price;
         const total = price * quantity;
         return `${getCurrencySymbol(record?.currency)}${total}`;
       },

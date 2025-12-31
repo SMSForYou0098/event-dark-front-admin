@@ -1,4 +1,4 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined, FileImageOutlined } from '@ant-design/icons';
 
 // Dashboard
 const dashboardNav = {
@@ -598,6 +598,15 @@ const mediaSubmenu = [
     path: 'media/blogs',
     title: 'Blogs',
     icon: BookOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'tickets',
+    path: 'media/tickets',
+    title: 'Tickets',
+    icon: FileImageOutlined,
     breadcrumb: false,
     submenu: [],
     roles: ['Admin']

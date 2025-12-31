@@ -5,7 +5,7 @@ import { ArrowLeftOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout, signIn } from '../../../../store/slices/authSlice';
-import axios from 'axios';
+import api from '../../../../auth/FetchInterceptor';
 import { API_BASE_URL } from 'constants/ApiConstant';
 import { persistor } from 'store';
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig';
@@ -140,7 +140,8 @@ const Twofactor = memo(() => {
       setOTP([]); // ✅ clear input boxes
       setError('');
 
-      await axios.post(`${API_BASE_URL}verify-user`, { data: number });
+      // Use api instance from FetchInterceptor (custom header automatically added)
+      await api.post(`${API_BASE_URL}verify-user`, { data: number });
 
       setCountdown(30);
       setTimerVisible(true);

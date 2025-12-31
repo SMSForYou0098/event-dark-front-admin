@@ -1,17 +1,18 @@
 // EventControlsStep.jsx
 import React from 'react';
-import { Form, Select, Switch, Card, Row, Col, Space } from 'antd';
+import { Form, Select, Switch, Card, Row, Col, Space, DatePicker } from 'antd';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import ContentSelect from './ContentSelect';
 import { useMyContext } from 'Context/MyContextProvider';
 
-// helpers — accept "1"/1 => true, "0"/0/undefined => false
-const toChecked = (v) => v === 1 || v === '1';
-const toNumber = (checked) => (checked ? 1 : 0);
+// helpers — convert to boolean
+const toBoolean = (v) => v === true || v === 1 || v === '1';
+const toBooleanValue = (checked) => Boolean(checked);
 
 const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
   const { userRole } = useMyContext();
+  console.log('fom', form.getFieldValue('expected_date'));
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       {/* Top controls */}
@@ -20,7 +21,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
           <Form.Item
             name="scan_detail"
             label="User Data While Scan"
-            initialValue={null}
+            initialValue={2}
             rules={[
               { required: true, message: "Please select user data option" },
             ]}
@@ -94,6 +95,21 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
               label: "Hide Agent Attendee Suggestion",
             },
             { name: "show_on_home", label: "Display Event on Home Page" },
+            {
+              name: "is_cancelled",
+              label: "Event Cancelled",
+              tooltip: "Mark event as cancelled",
+            },
+            {
+              name: "is_sold_out",
+              label: "Sold Out",
+              tooltip: "Mark event as sold out",
+            },
+            {
+              name: "is_postponed",
+              label: "Event Postponed",
+              tooltip: "Mark event as postponed",
+            },
           ]
             .filter((f) => {
               // Only show "High Demand" field to Admin users
@@ -102,27 +118,68 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
               }
               return true;
             })
-            .map((f) => (
-              <Col xs={24} sm={12} lg={8} key={f.name}>
+            .map((f) => {
+              // Define mutually exclusive fields
+              const exclusiveFields = ['is_cancelled', 'is_sold_out', 'is_postponed'];
+              const isExclusive = exclusiveFields.includes(f.name);
+
+              return (
+                <Col xs={24} sm={12} lg={8} key={f.name}>
+                  <Form.Item
+                    name={f.name}
+                    label={f.label}
+                    tooltip={f.tooltip}
+                    valuePropName="checked"
+                    getValueProps={(v) => ({ checked: toBoolean(v) })}
+                    getValueFromEvent={toBooleanValue}
+                    initialValue={false}
+                  >
+                    <Switch
+                      checkedChildren={f.onLabels?.[0] || "Yes"}
+                      unCheckedChildren={f.onLabels?.[1] || "No"}
+                      onChange={(checked) => {
+                        // If this is one of the exclusive fields and it's being turned ON
+                        if (isExclusive && checked) {
+                          // Turn off the other exclusive fields
+                          exclusiveFields.forEach((fieldName) => {
+                            if (fieldName !== f.name) {
+                              form.setFieldValue(fieldName, false);
+                            }
+                          });
+                        }
+                      }}
+                    />
+                  </Form.Item>
+                </Col>
+              );
+            })}
+        </Row>
+      </Card>
+
+      {/* Expected Date - Only show when event is postponed */}
+      <Form.Item noStyle shouldUpdate={(prev, curr) => prev.is_postponed !== curr.is_postponed}>
+        {({ getFieldValue }) => {
+          const isPostponed = toBoolean(getFieldValue('is_postponed'));
+
+          return isPostponed ? (
+            <Row gutter={ROW_GUTTER}>
+              <Col xs={24} sm={4} lg={4}>
                 <Form.Item
-                  name={f.name}
-                  label={f.label}
-                  tooltip={f.tooltip}
-                  valuePropName="checked"
-                  // 👇 FIX: use checked, not value
-                  getValueProps={(v) => ({ checked: toChecked(v) })}
-                  getValueFromEvent={toNumber}
-                  initialValue={0}
+                  name="expected_date"
+                  label="Expected Date"
+                  tooltip="Expected date for postponed or rescheduled events"
                 >
-                  <Switch
-                    checkedChildren={f.onLabels?.[0] || "Yes"}
-                    unCheckedChildren={f.onLabels?.[1] || "No"}
+                  <DatePicker
+                    style={{ width: '100%' }}
+                    format="YYYY-MM-DD"
+                    placeholder="Select expected date"
                   />
                 </Form.Item>
               </Col>
-            ))}
-        </Row>
-      </Card>
+            </Row>
+          ) : null;
+        }}
+      </Form.Item>
 
       {/* WhatsApp Note */}
       {/* <Form.Item

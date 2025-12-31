@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Row, Col, Button, Form, Select, Switch, Radio, Typography, Divider, Card, Tooltip, Tag, notification, Input, Space, Table } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined, WalletOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { useMyContext } from '../../../../Context/MyContextProvider';
-import axios from 'axios';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import apiClient from 'auth/FetchInterceptor';
 import { capitilize } from './Transaction';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import Flex from 'components/shared-components/Flex';
@@ -10,22 +11,43 @@ import Flex from 'components/shared-components/Flex';
 const { Option } = Select;
 
 const AssignCredit = ({ id }) => {
-  const { UserData, api, authToken, UserList, formatAmountWithCommas } = useMyContext();
+  const { UserData, UserList, formatAmountWithCommas } = useMyContext();
+  const queryClient = useQueryClient();
 
   // States
-  const [currentBalance, setCurrentBalance] = useState(0);
   const [creditAmount, setCreditAmount] = useState('');
   const [previewBalance, setPreviewBalance] = useState(0);
   const [isDeduction, setIsDeduction] = useState(false);
-  const [userData, setUserData] = useState({});
-  const [resData, setResData] = useState({});
   const [userId, setUserId] = useState(null);
   const [isQRScanEnabled, setIsQRScanEnabled] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [loading, setLoading] = useState(false);
 
   // Quick amount options
   const quickAmounts = [10000, 50000, 100000, 200000, 500000, 1000000];
+
+  // Computed user ID for queries
+  const activeUserId = useMemo(() => id || userId?.value, [id, userId]);
+
+  // Fetch user credits using TanStack Query
+  const {
+    data: userBalance,
+    isLoading: balanceLoading,
+    refetch: refetchBalance
+  } = useQuery({
+    queryKey: ['userCredits', activeUserId],
+    queryFn: async () => {
+      if (!activeUserId) return null;
+      const response = await apiClient.get(`chek-user/${activeUserId}`);
+      return response.balance;
+    },
+    enabled: !!activeUserId,
+    staleTime: 1000 * 60 * 2, // 2 minutes
+  });
+
+  // Derived current balance
+  const currentBalance = useMemo(() => {
+    return userBalance?.total_credits || 0;
+  }, [userBalance]);
 
   // Safe number formatting function
   const safeFormatAmount = (amount) => {
@@ -68,31 +90,7 @@ const AssignCredit = ({ id }) => {
     }
   };
 
-  // Fetch user credits
-  const UserCredits = async (uid) => {
-    if (uid) {
-      try {
-        const response = await axios.get(`${api}chek-user/${uid}`, {
-          headers: { 'Authorization': 'Bearer ' + authToken }
-        });
-
-        const balance = response.data.balance;
-        setUserData(balance);
-
-        // Set current balance from total_credits
-        const totalCredits = balance.total_credits || 0;
-        setCurrentBalance(totalCredits);
-        setPreviewBalance(totalCredits);
-      } catch (error) {
-        console.error('Error fetching user credits:', error);
-        notification.error({
-          message: 'Error',
-          description: 'Failed to fetch user credits'
-        });
-      }
-    }
-  };
-
+  // Set userId from id prop
   useEffect(() => {
     if (id) {
       const foundUser = UserList.find(user => user.value === id);
@@ -100,11 +98,12 @@ const AssignCredit = ({ id }) => {
     }
   }, [id, UserList]);
 
+  // Update preview balance when currentBalance changes
   useEffect(() => {
-    if (id || userId?.value) {
-      UserCredits(id || userId?.value);
+    if (currentBalance !== undefined) {
+      setPreviewBalance(currentBalance);
     }
-  }, [userId, id]);
+  }, [currentBalance]);
 
   // Handle credit input and calculate preview
   const handleCreditChange = (value) => {
@@ -184,15 +183,63 @@ const AssignCredit = ({ id }) => {
   const HandleSendAlerts = async () => {
     const template = isDeduction ? 'Transaction Debit' : 'Transaction Credit';
     const values = {
-      name: capitilize(userId?.label || userData?.user?.name),
+      name: capitilize(userId?.label || userBalance?.user?.name),
       credits: parseFloat(creditAmount) || 0,
       ctCredits: previewBalance,
       type: isDeduction ? 'debit' : 'credit'
     };
-    // await handleWhatsappAlert(userId?.number || userData?.user?.number, values, template);
+    // await handleWhatsappAlert(userId?.number || userBalance?.user?.number, values, template);
   };
 
-  const UpdateBalance = async () => {
+  // Update balance mutation
+  const updateBalanceMutation = useMutation({
+    mutationFn: async ({ isDeduct, amount }) => {
+      const endpoint = isDeduct ? 'deduct-balance' : 'add-balance';
+      const payload = isDeduct ? {
+        user_id: activeUserId,
+        deductAmount: amount,
+        payment_method: paymentMethod,
+        assign_by: UserData?.id,
+        manual_deduction: true
+      } : {
+        user_id: activeUserId,
+        newCredit: amount,
+        payment_method: paymentMethod,
+        assign_by: UserData?.id,
+        deduction: isDeduct
+      };
+
+      return await apiClient.post(endpoint, payload);
+    },
+    onSuccess: (response) => {
+      if (response.status) {
+        // Invalidate and refetch user credits
+        queryClient.invalidateQueries({ queryKey: ['userCredits', activeUserId] });
+
+        // Send alerts
+        HandleSendAlerts();
+
+        // Reset form
+        setCreditAmount('');
+        setIsDeduction(false);
+        setPaymentMethod('cash');
+
+        notification.success({
+          message: 'Success',
+          description: response.message
+        });
+      }
+    },
+    onError: (error) => {
+      console.error('Error updating balance:', error);
+      notification.error({
+        message: 'Error',
+        description: error.response?.data?.message || 'Failed to update balance'
+      });
+    },
+  });
+
+  const UpdateBalance = () => {
     const amount = parseFloat(creditAmount) || 0;
 
     if (!creditAmount || amount <= 0) {
@@ -211,57 +258,7 @@ const AssignCredit = ({ id }) => {
       return;
     }
 
-    setLoading(true);
-    const endpoint = isDeduction ? 'deduct-balance' : 'add-balance';
-
-    try {
-      // Prepare payload based on whether it's deduction or addition
-      const payload = isDeduction ? {
-        user_id: userId?.value ?? id,
-        deductAmount: amount,
-        payment_method: paymentMethod,
-        assign_by: UserData?.id,
-        manual_deduction: true
-      } : {
-        user_id: userId?.value ?? id,
-        newCredit: amount,
-        payment_method: paymentMethod,
-        assign_by: UserData?.id,
-        deduction: isDeduction
-      };
-
-      const response = await axios.post(`${api}${endpoint}`, payload, {
-        headers: { 'Authorization': 'Bearer ' + authToken }
-      });
-
-      if (response.data.status) {
-        setResData(response.data);
-
-        // Refresh user credits
-        await UserCredits(userId?.value || id);
-
-        // Send alerts
-        HandleSendAlerts();
-
-        // Reset form
-        setCreditAmount('');
-        setIsDeduction(false);
-        setPaymentMethod('cash');
-
-        notification.success({
-          message: 'Success',
-          description: response.data.message
-        });
-      }
-    } catch (error) {
-      console.error('Error updating balance:', error);
-      notification.error({
-        message: 'Error',
-        description: error.response?.data?.message || 'Failed to update balance'
-      });
-    } finally {
-      setLoading(false);
-    }
+    updateBalanceMutation.mutate({ isDeduct: isDeduction, amount });
   };
 
   const numericCreditAmount = parseFloat(creditAmount) || 0;
@@ -276,7 +273,7 @@ const AssignCredit = ({ id }) => {
         </Flex>
       ),
       dataIndex: 'name',
-      render: () => userData?.user?.name || 'N/A',
+      render: () => userBalance?.user?.name || 'N/A',
     },
     {
       key: 'email',
@@ -287,7 +284,7 @@ const AssignCredit = ({ id }) => {
         </Flex>
       ),
       dataIndex: 'email',
-      render: () => userData?.user?.email || 'N/A',
+      render: () => userBalance?.user?.email || 'N/A',
     },
     {
       key: 'number',
@@ -298,7 +295,7 @@ const AssignCredit = ({ id }) => {
         </Flex>
       ),
       dataIndex: 'number',
-      render: () => userData?.user?.number || 'N/A',
+      render: () => userBalance?.user?.number || 'N/A',
     },
     {
       key: 'balance',
@@ -321,9 +318,9 @@ const AssignCredit = ({ id }) => {
   const data = [
     {
       key: 'user-info',
-      name: userData?.user?.name,
-      email: userData?.user?.email,
-      number: userData?.user?.number,
+      name: userBalance?.user?.name,
+      email: userBalance?.user?.email,
+      number: userBalance?.user?.number,
       balance: currentBalance,
     },
   ];
@@ -340,7 +337,7 @@ const AssignCredit = ({ id }) => {
               </Col>
               <Col>
                 <Tag color="blue" className="fs-12">
-                  {userData?.user?.name || userId?.label || 'N/A'}
+                  {userBalance?.user?.name || userId?.label || 'N/A'}
                 </Tag>
               </Col>
             </Row>
@@ -423,7 +420,7 @@ const AssignCredit = ({ id }) => {
                 type="primary"
                 block
                 onClick={UpdateBalance}
-                loading={loading}
+                loading={updateBalanceMutation.isPending}
                 disabled={
                   (!id && !userId?.value) ||
                   !creditAmount ||
@@ -447,12 +444,13 @@ const AssignCredit = ({ id }) => {
           </Card>
         </Col>
         <Col xs={24} md={12}>
-          {userData?.user && (
+          {userBalance?.user && (
             <Card title="User Details" bordered={false}>
               <Table
                 columns={userFields}
                 dataSource={data}
                 pagination={false}
+                loading={balanceLoading}
               />
             </Card>
           )}

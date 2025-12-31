@@ -41,7 +41,7 @@ export const api = axios.create({
   timeout: DEFAULT_TIMEOUT,
 });
 
-// Request interceptor: attach Authorization header (Bearer)
+// Request interceptor: attach Authorization header (Bearer) and custom headers
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -49,6 +49,9 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Add custom header for all requests
+    config.headers = config.headers || {};
+    config.headers['X-Request-Source'] = process.env.REACT_APP_BACKEND_HEADER || 'GTX025U';
     return config;
   },
   (error) => Promise.reject(error)
@@ -94,7 +97,7 @@ api.interceptors.response.use(
       // Clear persisted token (choose one approach)
       try {
         localStorage.removeItem(AUTH_TOKEN);
-      } catch (e) {}
+      } catch (e) { }
 
       // Dispatch a redux action to update auth state
       if (store?.dispatch) {
@@ -129,7 +132,7 @@ api.interceptors.response.use(
         error?.response?.data?.error ||
         error?.response?.data ||
         'An error occurred';
-      message.error(`${serverMsg}`);
+      // message.error(`${serverMsg}`);
     }
 
     return Promise.reject(error);

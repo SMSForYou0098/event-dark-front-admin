@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Button, Form, Input, Alert, message } from 'antd';
 import { MailOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
-import axios from 'axios';
+import api from '../../../auth/FetchInterceptor';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { API_BASE_URL } from 'constants/ApiConstant';
@@ -48,7 +48,7 @@ const LoginForm = ({ extra = null }) => {
   // Resend verification mutation
   const resendVerificationMutation = useMutation({
     mutationFn: async (email) => {
-      const response = await axios.post(`${API_BASE_URL}resend-verification`, { email });
+      const response = await api.post(`${API_BASE_URL}resend-verification`, { email });
       return response.data;
     },
     onSuccess: () => {
@@ -90,7 +90,7 @@ const LoginForm = ({ extra = null }) => {
 
     try {
       setLoading(true);
-      const response = await axios.post(`${API_BASE_URL}verify-user`, { data });
+      const response = await api.post(`${API_BASE_URL}verify-user`, { data });
 
       if (response?.data?.status) {
         const { pass_req, session_id, auth_session } = response.data;

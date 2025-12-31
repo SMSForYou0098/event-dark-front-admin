@@ -124,14 +124,39 @@ const EventStepperForm = () => {
 
         // Step 1: Event Controls
         if (current === 1) {
+            // Helper to convert API values (could be boolean, number, or string) to boolean
+            const toBool = (v) => v === true || v === 1 || v === '1';
+
+            // Parse expected_date if it exists (from controls object)
+            let expectedDateValue = undefined;
+            if (controls?.expected_date) {
+                const parsed = dayjs(controls.expected_date);
+                expectedDateValue = parsed.isValid() ? parsed : undefined;
+            }
+
+            // Handle scan_detail - convert boolean/number to number for Select
+            let scanDetailValue = 2; // default
+            if (controls?.scan_detail !== undefined && controls?.scan_detail !== null) {
+                // If it's a boolean, convert: true -> 2, false -> 0
+                if (typeof controls.scan_detail === 'boolean') {
+                    scanDetailValue = controls.scan_detail ? 2 : 0;
+                } else {
+                    scanDetailValue = Number(controls.scan_detail);
+                }
+            }
+
             Object.assign(patch, {
-                scan_detail: controls?.scan_detail ?? '2',
-                event_feature: Number(controls?.event_feature) || 0,
-                status: Number(controls?.status) || 0,
-                house_full: Number(controls?.house_full) || 0,
-                online_att_sug: Number(controls?.online_att_sug) || 0,
-                offline_att_sug: Number(controls?.offline_att_sug) || 0,
-                show_on_home: Number(controls?.show_on_home) || 0,
+                scan_detail: scanDetailValue,
+                event_feature: toBool(controls?.event_feature),
+                status: toBool(controls?.status),
+                house_full: toBool(controls?.house_full),
+                online_att_sug: toBool(controls?.online_att_sug),
+                offline_att_sug: toBool(controls?.offline_att_sug),
+                show_on_home: toBool(controls?.show_on_home),
+                expected_date: expectedDateValue,
+                is_sold_out: toBool(controls?.is_sold_out),
+                is_postponed: toBool(controls?.is_postponed),
+                is_cancelled: toBool(controls?.is_cancelled),
 
                 // storing instagram post id from url
                 insta_whts_url: detail?.insta_whts_url || '',
@@ -163,12 +188,13 @@ const EventStepperForm = () => {
 
         // Step 3: Tickets
         if (current === 3) {
+            const toBool = (v) => v === true || v === 1 || v === '1';
             const ticketSystem = Number(controls?.ticket_system) || 0;
             // If both are 0 from backend, default to ticket_system = 1
             const finalTicketSystem = ticketSystem === 0 ? 1 : 0;
             const finalBookingBySeat = ticketSystem === 1 ? 1 : 0;
             Object.assign(patch, {
-                multi_scan: Number(controls?.multi_scan) || 0,
+                multi_scan: toBool(controls?.multi_scan),
                 ticket_system: finalTicketSystem,
                 bookingBySeat: finalBookingBySeat,
                 ticket_terms: detail?.ticket_terms || undefined,

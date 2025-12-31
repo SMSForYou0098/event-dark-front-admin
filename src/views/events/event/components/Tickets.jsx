@@ -12,19 +12,19 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
   const form = Form.useFormInstance();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
 
-  const toChecked = (v) => v === 1 || v === '1';
-  const toNumber = (checked) => (checked ? 1 : 0);
+  const toBoolean = (v) => v === true || v === 1 || v === '1';
+  const toBooleanValue = (checked) => Boolean(checked);
 
   const handleBookingTypeChange = (fieldName, checked) => {
     if (checked) {
       // If one is turned on, turn off the other
       if (fieldName === 'ticket_system') {
-        form.setFieldValue('bookingBySeat', 0);
+        form.setFieldValue('bookingBySeat', false);
       } else if (fieldName === 'bookingBySeat') {
-        form.setFieldValue('ticket_system', 0);
+        form.setFieldValue('ticket_system', false);
       }
     }
-    return toNumber(checked);
+    return toBooleanValue(checked);
   };
 
   const handleManageLayoutClick = () => {
@@ -50,18 +50,18 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
   };
 
   const switchFields = [
-    { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans', initialValue: 0 },
+    { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans', initialValue: false },
     {
       name: 'ticket_system',
       label: 'Booking By Ticket',
       onChange: (checked) => handleBookingTypeChange('ticket_system', checked),
-      initialValue: 1  // Default checked
+      initialValue: true  // Default checked
     },
     {
       name: 'bookingBySeat',
       label: 'Booking By Seat',
       onChange: (checked) => handleBookingTypeChange('bookingBySeat', checked),
-      initialValue: 0
+      initialValue: false
     },
   ];
 
@@ -88,8 +88,8 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
                 <Form.Item
                   name={f.name}
                   valuePropName="checked"
-                  getValueProps={(v) => ({ checked: toChecked(v) })}
-                  getValueFromEvent={f.onChange || toNumber}
+                  getValueProps={(v) => ({ checked: toBoolean(v) })}
+                  getValueFromEvent={f.onChange || toBooleanValue}
                   initialValue={f.initialValue}
                   noStyle
                 >
@@ -102,7 +102,7 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
           <Form.Item shouldUpdate noStyle>
             {() => {
               const bookingBySeatValue = form.getFieldValue('bookingBySeat');
-              return toChecked(bookingBySeatValue) ? (
+              return toBoolean(bookingBySeatValue) ? (
                 <Button type="primary" onClick={handleManageLayoutClick}>
                   Manage Ticket in Layout
                 </Button>

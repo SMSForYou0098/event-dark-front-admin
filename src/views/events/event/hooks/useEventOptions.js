@@ -45,31 +45,31 @@ export const useVenues = () =>
 
 //  ---- getting all the event categorties ----
 
-  export const useEventCategories = (options = {}) =>
-    useQuery({
-      queryKey: ["event-categories"],
-      queryFn: async () => {
-        const res = await api.get("category-title"); // auth header added automatically by interceptor
+export const useEventCategories = (options = {}) =>
+  useQuery({
+    queryKey: ["event-categories"],
+    queryFn: async () => {
+      const res = await api.get("category-title"); // auth header added automatically by interceptor
 
-        // If your interceptor returns { status, categoryData }
-        const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
+      // If your interceptor returns { status, categoryData }
+      const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
 
-        if (!rawData) throw new Error("Invalid response structure");
+      if (!rawData) throw new Error("Invalid response structure");
 
-        const transformed = Object.values(rawData).map((item) => ({
-          label: item.title,
-          value: item.id,
-        }));
+      const transformed = Object.values(rawData).map((item) => ({
+        label: item.title,
+        value: item.id,
+      }));
 
-        return transformed;
-      },
-      staleTime: 5 * 60 * 1000, // cache for 5 minutes
-      retry: (count, err) => {
-        const status = err?.response?.status;
-        return status >= 500 && count < 2;
-      },
-      ...options, // allow custom overrides
-    });
+      return transformed;
+    },
+    staleTime: 5 * 60 * 1000, // cache for 5 minutes
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options, // allow custom overrides
+  });
 
 
 
@@ -88,8 +88,8 @@ export const useCreateEvent = (options = {}) =>
   useMutation({
     mutationFn: async (payloadOrFormData) => {
       const body = payloadOrFormData; // already FormData from the component
-      
-      
+
+
       const res = await api.post('/create-event', body, {
         headers: { /* let browser set multipart boundary; omit Content-Type */ },
       });
@@ -150,13 +150,23 @@ export function buildEventFormData(values, isDraft = false) {
 
   // ---------- CONTROLS ----------
   if (values.step === 'controls') {
-    appendIfDefined('scan_detail', values.scan_detail);
-    appendIfDefined('event_feature', values.event_feature ?? 0);
-    appendIfDefined('status', values.status ?? 1);
-    appendIfDefined('house_full', values.house_full ?? 0);
-    appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
-    appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
-    appendIfDefined('show_on_home', values.show_on_home ?? 0);
+    appendIfDefined('scan_detail', Number(values.scan_detail));
+    // Send boolean values directly to API
+    appendIfDefined('event_feature', values.event_feature ?? false);
+    appendIfDefined('status', values.status ?? false);
+    appendIfDefined('house_full', values.house_full ?? false);
+    appendIfDefined('online_att_sug', values.online_att_sug ?? false);
+    appendIfDefined('offline_att_sug', values.offline_att_sug ?? false);
+    appendIfDefined('show_on_home', values.show_on_home ?? false);
+    appendIfDefined('is_postponed', values.is_postponed ?? false);
+    appendIfDefined('is_cancelled', values.is_cancelled ?? false);
+    appendIfDefined('is_sold_out', values.is_sold_out ?? false);
+
+    // Convert expected_date to string format if it's a moment/dayjs object
+    if (values.expected_date) {
+      const dateStr = values.expected_date?.format ? values.expected_date.format('YYYY-MM-DD') : values.expected_date;
+      appendIfDefined('expected_date', dateStr);
+    }
 
     // storing instagram post id from url
     const extractInstagramId = (url) => {
@@ -188,7 +198,7 @@ export function buildEventFormData(values, isDraft = false) {
       fd.append('tickets', JSON.stringify(values.tickets));
     }
     appendIfDefined('ticket_terms', values.ticket_terms);
-    appendIfDefined('multi_scan', values.multi_scan ?? 0);
+    appendIfDefined('multi_scan', values.multi_scan ?? false);
     appendIfDefined('ticket_system', values.ticket_system ? 0 : 1);
   }
 
@@ -246,12 +256,12 @@ export const useEventDetail = (id, step = null, options = {}) =>
     queryKey: ['event-detail', id, step], // Include step in cache key
     enabled: !!id, // Only run when ID is present
     queryFn: async () => {
-      const url = step 
-        ? `edit-event/${id}/${step}` 
+      const url = step
+        ? `edit-event/${id}/${step}`
         : `edit-detail/${id}`;
-        //     const url = step 
-        // ? `event-detail/${id}?step${step}` 
-        // : `edit-detail/${id}`;
+      //     const url = step 
+      // ? `event-detail/${id}?step${step}` 
+      // : `edit-detail/${id}`;
       const res = await api.get(url);
 
       if (!res?.status) {
@@ -294,12 +304,12 @@ export const useUpdateEvent = (options = {}) =>
   });
 
 
-  export const  toUploadFileList = (raw) => {
+export const toUploadFileList = (raw) => {
   // raw can be array or JSON string; normalize to array of URLs
   let urls = [];
   if (Array.isArray(raw)) urls = raw;
   else if (typeof raw === 'string') {
-    try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) urls = parsed; } catch(e) {}
+    try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) urls = parsed; } catch (e) { }
   }
 
   // only keep up to 4 since backend expects images_1..images_4
@@ -346,10 +356,10 @@ export const useArtists = (options = {}) =>
   });
 
 
-  /**
- * Optional: helper to build FormData for artist payloads with files.
- * Use only if you need to send images/files.
- */
+/**
+* Optional: helper to build FormData for artist payloads with files.
+* Use only if you need to send images/files.
+*/
 export const buildArtistFormData = (values = {}) => {
   const fd = new FormData();
 

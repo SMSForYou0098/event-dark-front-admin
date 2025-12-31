@@ -15,6 +15,7 @@ import apiClient from 'auth/FetchInterceptor';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { useQuery } from '@tanstack/react-query';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -29,11 +30,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     const [form] = Form.useForm();
 
     // State management
-    const [tickets, setTickets] = useState([]);
-    const [areas, setAreas] = useState([]);
-    const [promocodes, setPromocodes] = useState([]);
-    const [currencies, setCurrencies] = useState([]);
-    const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [editMode, setEditMode] = useState(false);
     const [editingTicket, setEditingTicket] = useState(null);
@@ -45,76 +41,91 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     const [imageValidationError, setImageValidationError] = useState('');
     const [priceValue, setPriceValue] = useState('');
     const saleSectionRef = useRef(null);
+    const [selectedFallbackTicket, setSelectedFallbackTicket] = useState(null);
+    const [submitting, setSubmitting] = useState(false);
 
-    // Fetch tickets
-    const fetchTickets = useCallback(async () => {
-        if (!eventId) return;
-        setLoading(true);
-        try {
-            const response = await apiClient.get(`tickets/${eventId}`);
-            if (response.status) {
-                setTickets(response.tickets || []);
+
+    // Fetch tickets using TanStack Query
+    const {
+        data: tickets = [],
+        isLoading: ticketsLoading,
+        refetch: refetchTickets,
+    } = useQuery({
+        queryKey: ['tickets', eventId],
+        queryFn: async () => {
+            if (!eventId) return [];
+            const response = await apiClient.get(`tickets/${eventId}`, {
+                headers: { "X-Request-Source": "GTX025U" }
+            });
+            return response.status ? (response.tickets || []) : [];
+        },
+        enabled: !!eventId,
+        staleTime: 2 * 60 * 1000,
+    });
+
+    // Fetch fallback tickets for the event category
+    const {
+        data: fallbackTickets = [],
+        isLoading: fallbackLoading,
+    } = useQuery({
+        queryKey: ['fallback-tickets', eventId],
+        queryFn: async () => {
+            if (!eventId) return [];
+            const res = await apiClient.get(`fallback-tickets/category/${eventId}`);
+            if (res?.data) {
+                return Array.isArray(res.data) ? res.data : [res.data];
             }
-        } catch (error) {
-            message.error('Failed to fetch tickets');
-        } finally {
-            setLoading(false);
-        }
-    }, [eventId]);
+            return [];
+        },
+        enabled: !!eventId,
+        staleTime: 2 * 60 * 1000,
+    });
 
-    // Fetch access areas
-    const fetchAreas = useCallback(async () => {
-        if (!eventId) return;
-        try {
+    // Fetch access areas using TanStack Query
+    const { data: areas = [] } = useQuery({
+        queryKey: ['access-areas', eventId],
+        queryFn: async () => {
+            if (!eventId) return [];
             const response = await apiClient.get(`accessarea-list/${eventId}`);
-            const areaOptions = (response.data || []).map(area => ({
+            return (response.data || []).map(area => ({
                 value: area.id,
                 label: area.title
             }));
-            setAreas(areaOptions);
-        } catch (error) {
-            console.error('Failed to fetch areas');
-        }
-    }, [eventId]);
+        },
+        enabled: !!eventId,
+        staleTime: 5 * 60 * 1000,
+    });
 
-    // Fetch promocodes
-    const fetchPromocodes = useCallback(async () => {
-        if (!UserData?.id) return;
-        try {
+    // Fetch promocodes using TanStack Query
+    const { data: promocodes = [] } = useQuery({
+        queryKey: ['promocodes', UserData?.id],
+        queryFn: async () => {
+            if (!UserData?.id) return [];
             const response = await apiClient.get(`promo-list/${UserData?.id}`);
-            const promoOptions = (response?.promoCodes || []).map(promo => ({
+            return (response?.promoCodes || []).map(promo => ({
                 value: promo.id,
                 label: promo.code
             }));
-            setPromocodes(promoOptions);
-        } catch (error) {
-            console.error('Failed to fetch promocodes');
-        }
-    }, [UserData?.id]);
+        },
+        enabled: !!UserData?.id,
+        staleTime: 5 * 60 * 1000,
+    });
 
-    // Fetch currencies
-    const fetchCurrencies = useCallback(async () => {
-        try {
+    // Fetch currencies using TanStack Query
+    const { data: currencies = [] } = useQuery({
+        queryKey: ['currencies'],
+        queryFn: async () => {
             const response = await axios.get('https://api.exchangerate-api.com/v4/latest/INR');
-            const currencyOptions = Object.keys(response.data.rates).map(cur => ({
+            return Object.keys(response.data.rates).map(cur => ({
                 value: cur,
                 label: cur
             }));
-            setCurrencies(currencyOptions);
-        } catch (error) {
-            console.error('Failed to fetch currencies');
-        }
-    }, []);
+        },
+        staleTime: 30 * 60 * 1000, // Cache currencies for 30 mins
+    });
 
-    // Initialize data
-    useEffect(() => {
-        if (eventId) {
-            fetchTickets();
-            fetchAreas();
-            fetchPromocodes();
-            fetchCurrencies();
-        }
-    }, [eventId, fetchTickets, fetchAreas, fetchPromocodes, fetchCurrencies]);
+    // Set loading state based on tickets loading
+    const loading = ticketsLoading;
 
     // Currency conversion - triggered by priceValue and selectedCurrency changes
     useEffect(() => {
@@ -177,6 +188,9 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         setImageValidationError('');
         setPriceValue('');
         setConvertedPrice('');
+        // Auto-select default fallback ticket
+        const defaultFallback = fallbackTickets.find(t => t.default);
+        setSelectedFallbackTicket(defaultFallback?.id || fallbackTickets[0]?.id || null);
         setModalVisible(true);
     };
 
@@ -242,19 +256,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
         setSelectedCurrency(ticket.currency || 'INR');
         setPriceValue(ticket.price);
-
-        // Update tickets array so the main table shows the same fallback values
-        // (form.setFieldsValue only updates the form, not the table data source)
-        setTickets(prev => prev.map(t => {
-            if (!t) return t;
-            if (t.id === ticket.id) {
-                return {
-                    ...t,
-                    remaining_quantity: ticket?.remaining_quantity ?? 50,
-                };
-            }
-            return t;
-        }));
     }, [form]);
 
     // Handle delete ticket
@@ -268,7 +269,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 try {
                     await apiClient.delete(`ticket-delete/${ticketId}`);
                     message.success('Ticket deleted successfully');
-                    fetchTickets();
+                    refetchTickets();
                 } catch (error) {
                     message.error('Failed to delete ticket');
                 }
@@ -278,7 +279,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
     // Handle form submit
     const handleSubmit = async (values) => {
-        setLoading(true);
+        setSubmitting(true);
         try {
             // console.log(values)
             const formData = new FormData();
@@ -320,10 +321,16 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 formData.append('sale_price', values.sale_price);
             }
 
-            // Image
+            // Image - either uploaded file or fallback URL
             const newImage = imageFileList.find(file => file.originFileObj);
             if (newImage) {
                 formData.append('background_image', newImage.originFileObj);
+            } else if (selectedFallbackTicket) {
+                // Pass fallback ticket URL as background_image if no custom image uploaded
+                const fallbackImg = fallbackTickets.find(t => t.id === selectedFallbackTicket);
+                if (fallbackImg?.image) {
+                    formData.append('background_image', fallbackImg.image);
+                }
             }
 
             const endpoint = editMode
@@ -337,12 +344,12 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             if (response.status) {
                 message.success(`Ticket ${editMode ? 'updated' : 'created'} successfully`);
                 setModalVisible(false);
-                fetchTickets();
+                refetchTickets();
             }
         } catch (error) {
             message.error(error.response?.data?.message || 'Failed to save ticket');
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
@@ -616,11 +623,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
             {/* Ticket Form Modal */}
             <Modal
-                title={editMode ? 'Edit Ticket' : 'Create New Ticket'}
+                title={editMode ? `Edit Ticket -  ${editingTicket?.remaining_count} / ${editingTicket?.ticket_quantity} ` : 'Create New Ticket'}
                 open={modalVisible}
                 onCancel={() => setModalVisible(false)}
                 onOk={() => form.submit()}
-                confirmLoading={loading}
+                confirmLoading={submitting}
                 width={'80%'}
                 okText={editMode ? 'Update' : 'Create'}
                 okButtonProps={{ disabled: !canSubmit() }}
@@ -700,7 +707,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 </Col>
 
                                 {/* Read-only Sold / Remaining display when editing */}
-                                {editingTicket && (
+                                {/* {editingTicket && (
                                     <>
                                         <Col xs={24} md={4}>
                                             <Form.Item label="Sold">
@@ -732,7 +739,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                             </Form.Item>
                                         </Col>
                                     </>
-                                )}
+                                )} */}
 
                                 <Col xs={24} md={8}>
                                     <Form.Item
@@ -799,11 +806,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     </Form.Item>
                                 </Col>
 
-                                <Col xs={24} md={12}>
+                                <Col xs={24} md={8}>
                                     <Form.Item
                                         label="Ticket Background Image (Optional)"
                                         validateStatus={imageValidationError ? 'error' : ''}
-                                        help={imageValidationError || 'If uploading, image must be exactly 300x600 pixels'}
+                                        help={imageValidationError || 'Upload custom image or select from fallback images'}
                                     >
                                         <Upload {...imageUploadProps}>
                                             {imageFileList.length < 1 && (
@@ -823,6 +830,72 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         )}
                                     </Form.Item>
                                 </Col>
+
+                                {/* Fallback Ticket Selection */}
+                                {imageFileList.length === 0 && fallbackTickets.length > 0 && (
+                                    <Col xs={24} md={8}>
+                                        <Form.Item label="Or Select Fallback Image">
+                                            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                                                {fallbackTickets.map((ticket) => (
+                                                    <div
+                                                        key={ticket.id}
+                                                        onClick={() => setSelectedFallbackTicket(ticket.id)}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                            border: selectedFallbackTicket === ticket.id
+                                                                ? '3px solid #1890ff'
+                                                                : '2px solid #d9d9d9',
+                                                            borderRadius: 8,
+                                                            padding: 4,
+                                                            position: 'relative',
+                                                            opacity: selectedFallbackTicket === ticket.id ? 1 : 0.7,
+                                                            transition: 'all 0.2s',
+                                                        }}
+                                                    >
+                                                        {ticket.default && (
+                                                            <Tag
+                                                                color="green"
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    top: 8,
+                                                                    right: 8,
+                                                                    zIndex: 1,
+                                                                }}
+                                                            >
+                                                                Default
+                                                            </Tag>
+                                                        )}
+                                                        {selectedFallbackTicket === ticket.id && (
+                                                            <CheckOutlined
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    bottom: 8,
+                                                                    right: 8,
+                                                                    color: '#1890ff',
+                                                                    fontSize: 20,
+                                                                    background: 'white',
+                                                                    borderRadius: '50%',
+                                                                    padding: 2,
+                                                                }}
+                                                            />
+                                                        )}
+                                                        <Image
+                                                            src={ticket.image}
+                                                            alt={`Fallback ${ticket.id}`}
+                                                            width={80}
+                                                            height={160}
+                                                            style={{
+                                                                objectFit: 'cover',
+                                                                borderRadius: 4,
+                                                            }}
+                                                            preview={false}
+                                                        />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </Form.Item>
+                                    </Col>
+                                )}
 
                                 {/* Switches */}
                                 <Col xs={24}>
@@ -906,13 +979,19 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                             <h5>Ticket Preview:</h5>
                             <div className="rounded p-2 mt-2">
                                 <Image
-                                    src={imagePreviewUrl || 'https://placehold.co/300x600'}
+                                    src={
+                                        imagePreviewUrl ||
+                                        (selectedFallbackTicket
+                                            ? fallbackTickets.find(t => t.id === selectedFallbackTicket)?.image
+                                            : fallbackTickets.find(t => t.default)?.image) ||
+                                        'https://placehold.co/300x600'
+                                    }
                                     alt="Ticket Background Preview"
                                     className="rounded w-100"
                                     style={{
                                         maxWidth: '300px'
                                     }}
-                                    preview={!!imagePreviewUrl}
+                                    preview={!!imagePreviewUrl || !!selectedFallbackTicket || fallbackTickets.some(t => t.default)}
                                 />
                                 <div className="text-center small text-muted mt-2">
                                     300x600 pixels
