@@ -4,14 +4,13 @@ import {
     Row,
     Col,
     Typography,
-    Space,
     Spin,
     Empty,
     Modal,
     Skeleton,
+    Divider,
 } from 'antd';
 import {
-    PictureOutlined,
     ExclamationCircleOutlined,
 } from '@ant-design/icons';
 
@@ -40,6 +39,7 @@ import {
     useBulkDeleteMedia,
     useMoveMedia,
 } from './hooks/useMedia';
+import { ROW_GUTTER } from 'constants/ThemeConstant';
 
 const { Title, Text } = Typography;
 const { confirm } = Modal;
@@ -293,35 +293,44 @@ const MediaGallery = () => {
         sm: 8,
         md: 6,
         lg: 4,
-        xl: 3,
+        xl: 4,
     });
 
     const hasContent = filteredFolders.length > 0 || filteredMedia.length > 0;
 
     return (
         <Card
-            className="media-gallery"
-            style={{ minHeight: 'calc(100vh - 180px)' }}
+        className="media-gallery"
+            // title="Media Gallery"
+            // extra={
+            // }
+            // style={{ minHeight: 'calc(100vh - 180px)' }}
         >
-            {/* Header with Stats */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-                <Title level={3} style={{ margin: 0 }}>Media</Title>
-                <StorageStats />
+                <Row gap={ROW_GUTTER}>
+                    <Col xs={8} md={4}>
+                      <Text>Media Gallery</Text>
+                    </Col>
+                    <Col xs={16} md={14}>
+                    <Toolbar
+                        onCreateFolder={handleCreateFolder}
+                        onUpload={handleUpload}
+                        onDeleteSelected={handleDeleteSelected}
+                        onRefresh={handleRefresh}
+                        selectedCount={selectedMedia.length}
+                        viewMode={viewMode}
+                        onViewModeChange={setViewMode}
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
+                        loading={isLoading}
+                    />
+                </Col>
+                <Col xs={24} md={6}>
+                    <StorageStats />
+                </Col>
+            </Row>
+            <div className="d-block d-sm-none">
+                <Divider className='mb-0'/>
             </div>
-            {/* Toolbar */}
-            <Toolbar
-                onCreateFolder={handleCreateFolder}
-                onUpload={handleUpload}
-                onDeleteSelected={handleDeleteSelected}
-                onRefresh={handleRefresh}
-                selectedCount={selectedMedia.length}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                loading={isLoading}
-            />
-
             {/* Breadcrumb */}
             <Breadcrumb
                 path={folderPath}
@@ -343,38 +352,54 @@ const MediaGallery = () => {
                         style={{ padding: '60px 0' }}
                     />
                 ) : (
-                    <Row gutter={[16, 16]}>
-                        {/* Folders */}
-                        {filteredFolders?.map((folder) => (
-                            <Col key={folder.id} {...getColSpan()}>
-                                <FolderCard
-                                    folder={folder}
-                                    onOpen={handleOpenFolder}
-                                    onEdit={handleEditFolder}
-                                    onDelete={handleDeleteFolder}
-                                    onDrop={handleDropOnFolder}
-                                />
-                            </Col>
-                        ))}
+                    <>
+                        {/* Folders Row */}
+                        {filteredFolders && filteredFolders.length > 0 && (
+                            <>
+                                {/* add name with divider  , use antd divider*/}
 
-                        {/* Media Files */}
-                        {filteredMedia?.map((media) => (
-                            <Col key={media.id} {...getColSpan()}>
-                                <MediaCard
-                                    media={media}
-                                    selected={selectedMedia.includes(media.id)}
-                                    onSelect={handleMediaSelect}
-                                    onPreview={handleMediaPreview}
-                                    onDelete={handleDeleteMedia}
-                                    selectionMode={selectedMedia.length > 0}
-                                    selectedMediaIds={selectedMedia}
-                                />
-                            </Col>
-                        ))}
+                                <Divider> <Text className='fw-bold'>Folders</Text> </Divider>
+                                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                                    {filteredFolders.map((folder) => (
+                                        <Col key={folder.id} {...getColSpan()}>
+                                            <FolderCard
+                                                folder={folder}
+                                                onOpen={handleOpenFolder}
+                                                onEdit={handleEditFolder}
+                                                onDelete={handleDeleteFolder}
+                                                onDrop={handleDropOnFolder}
+                                            />
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </>
+                        )}
+
+                        {/* Media Files Row */}
+                        {filteredMedia && filteredMedia.length > 0 && (
+                            <>
+                                <Divider> <Text className='fw-bold'>Media Files</Text> </Divider>
+                                <Row gutter={[16, 16]}>
+                                    {filteredMedia.map((media) => (
+                                        <Col key={media.id} {...getColSpan()}>
+                                            <MediaCard
+                                                media={media}
+                                                selected={selectedMedia.includes(media.id)}
+                                                onSelect={handleMediaSelect}
+                                                onPreview={handleMediaPreview}
+                                                onDelete={handleDeleteMedia}
+                                                selectionMode={selectedMedia.length > 0}
+                                                selectedMediaIds={selectedMedia}
+                                            />
+                                        </Col>
+                                    ))}
+                                </Row>
+                            </>
+                        )}
 
                         {/* Loading skeleton */}
                         {isLoading && (
-                            <>
+                            <Row gutter={[16, 16]}>
                                 {[1, 2, 3, 4].map((i) => (
                                     <Col key={`skeleton-${i}`} {...getColSpan()}>
                                         <Card style={{ background: '#1f1f1f' }}>
@@ -382,9 +407,9 @@ const MediaGallery = () => {
                                         </Card>
                                     </Col>
                                 ))}
-                            </>
+                            </Row>
                         )}
-                    </Row>
+                    </>
                 )}
             </Spin>
 

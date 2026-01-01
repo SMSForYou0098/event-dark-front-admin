@@ -5,7 +5,6 @@ import {
     FolderOpenFilled,
     EditOutlined,
     DeleteOutlined,
-    DragOutlined,
     MoreOutlined,
 } from '@ant-design/icons';
 
@@ -118,25 +117,53 @@ const FolderCard = ({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             style={{
-                textAlign: 'center',
                 cursor: 'pointer',
                 border: isDragOver
-                    ? '2px dashed #52c41a'
+                    ? '2px dashed var(--primary-color)'
                     : '1px solid #303030',
                 background: isDragOver
-                    ? 'rgba(82, 196, 65, 0.1)'
+                    ? 'rgba(181, 21, 21, 0.1)'
                     : 'var(--card-bg, #1f1f1f)',
                 transition: 'all 0.2s ease',
                 transform: isDragOver ? 'scale(1.02)' : 'none',
             }}
-            styles={{
-                body: {
-                    padding: '16px 12px',
-                },
-            }}
+            bodyStyle={{ padding: '12px 8px' }}
         >
-            <div style={{ position: 'relative' }}>
-                {/* Actions dropdown */}
+            <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                gap: '12px'
+            }}>
+                {/* Left side: Icon and Name */}
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px',
+                    flex: 1,
+                    minWidth: 0
+                }}>
+                    {/* Folder Icon with Badge */}
+                    <Badge
+                        count={folder.media_count || folder.children_count || 0}
+                        size="small"
+                        style={{ backgroundColor: 'var(--primary-color)' }}
+                    >
+                        <FolderOpenFilled
+                            style={{
+                                fontSize: 24,
+                                color: 'var(--primary-color)',
+                            }}
+                        />
+                    </Badge>
+
+                    {/* Folder Name */}
+                    <Text className='m-0 fw-bold' ellipsis={{ tooltip: folder.name }}>
+                        {folder.name}
+                    </Text>
+                </div>
+
+                {/* Right side: Actions */}
                 <Dropdown
                     menu={{ items: menuItems }}
                     trigger={['click']}
@@ -145,69 +172,32 @@ const FolderCard = ({
                     <div
                         onClick={(e) => e.stopPropagation()}
                         style={{
-                            position: 'absolute',
-                            top: -8,
-                            right: -4,
                             padding: 4,
                             cursor: 'pointer',
                             opacity: 0.7,
+                            display: 'flex',
+                            alignItems: 'center'
                         }}
                     >
                         <MoreOutlined style={{ fontSize: 16 }} />
                     </div>
                 </Dropdown>
+            </div>
 
-                {/* Folder Icon */}
-                <Badge
-                    count={folder.media_count || folder.children_count || 0}
-                    size="small"
-                    style={{ backgroundColor: isDragOver ? '#52c41a' : 'var(--primary-color)' }}
-                    offset={[-5, 5]}
-                >
-                    {isDragOver ? (
-                        <FolderOpenFilled
-                            style={{
-                                fontSize: 56,
-                                color: '#52c41a',
-                            }}
-                        />
-                    ) : (
-                        <FolderFilled
-                            style={{
-                                fontSize: 56,
-                                color: '#faad14',
-                            }}
-                        />
-                    )}
-                </Badge>
-
-                {/* Folder Name */}
+            {/* Drop hint */}
+            {isDragOver && (
                 <Text
-                    ellipsis={{ tooltip: folder.name }}
+                    type="secondary"
                     style={{
                         display: 'block',
                         marginTop: 8,
-                        fontSize: 13,
-                        fontWeight: 500,
+                        fontSize: 11,
+                        textAlign: 'center'
                     }}
                 >
-                    {folder.name}
+                    Drop here
                 </Text>
-
-                {/* Drop hint */}
-                {isDragOver && (
-                    <Text
-                        style={{
-                            display: 'block',
-                            marginTop: 4,
-                            fontSize: 11,
-                            color: '#52c41a',
-                        }}
-                    >
-                        Drop here
-                    </Text>
-                )}
-            </div>
+            )}
         </Card>
     );
 };

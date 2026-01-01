@@ -39,6 +39,8 @@
   --select-active-bg: rgba(181, 21, 21, 0.15);
   --select-selected-bg: var(--primary-color);
 }
+
+
 .bg-custom-secondary{
      background : #0d0d0d;
 }
@@ -7630,4 +7632,8 @@ a.text-dark:hover {
 
 .invisible {
     visibility: hidden !important
+}
+
+:where(.css-dev-only-do-not-override-1u1move).ant-breadcrumb ol {
+    align-items: center !important;
 }

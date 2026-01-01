@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Breadcrumb as AntBreadcrumb, Typography } from 'antd';
+import { Breadcrumb as AntBreadcrumb, Typography, Space } from 'antd';
 import { HomeOutlined, FolderOutlined } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -75,23 +75,28 @@ const Breadcrumb = ({
         {
             key: 'home',
             title: (
-                <span
+                <Space
+                    size={4}
                     onClick={() => onNavigate?.(null)}
                     onDragOver={handleRootDragOver}
                     onDragLeave={handleRootDragLeave}
                     onDrop={handleRootDrop}
                     style={{
                         cursor: 'pointer',
-                        padding: '4px 8px',
+                        padding: '6px 12px',
                         borderRadius: 4,
                         background: isRootDragOver ? 'rgba(82, 196, 65, 0.2)' : 'transparent',
-                        border: isRootDragOver ? '2px dashed #52c41a' : '2px dashed transparent',
+                        border: isRootDragOver ? '2px dashed var(--primary-color)' : '2px dashed transparent',
                         transition: 'all 0.2s ease',
+                        display: 'inline-flex',
+                        alignItems: 'center',
                     }}
                 >
-                    <HomeOutlined style={{ marginRight: 4, color: isRootDragOver ? '#52c41a' : undefined }} />
-                    {isRootDragOver ? 'Drop here' : 'Media'}
-                </span>
+                    <Space size="small">
+                        <HomeOutlined style={{ color: isRootDragOver ? 'var(--primary-color)' : 'inherit', fontSize: 14 }} />
+                        <Text>{isRootDragOver ? 'Drop here' : 'Media'}</Text>
+                    </Space>
+                </Space>
             ),
         },
         ...path.map((folder, index) => {
@@ -101,7 +106,8 @@ const Breadcrumb = ({
             return {
                 key: folder.id,
                 title: (
-                    <span
+                    <Space
+                        size={4}
                         onClick={() => {
                             // Navigate to this folder (not last item)
                             if (!isLastItem) {
@@ -115,29 +121,25 @@ const Breadcrumb = ({
                             cursor: !isLastItem ? 'pointer' : 'default',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            padding: '4px 8px',
+                            padding: '6px 12px',
                             borderRadius: 4,
                             background: isDragOver ? 'rgba(82, 196, 65, 0.2)' : 'transparent',
-                            border: isDragOver ? '2px dashed #52c41a' : '2px dashed transparent',
+                            border: isDragOver ? '2px dashed var(--primary-color)' : '2px dashed transparent',
                             transition: 'all 0.2s ease',
                         }}
                     >
-                        <FolderOutlined style={{ marginRight: 4, color: isDragOver ? '#52c41a' : '#faad14' }} />
-                        {isDragOver ? 'Drop here' : folder.name}
-                    </span>
+                        <Space size="small">
+                            <FolderOutlined style={{ color: isDragOver ? 'var(--primary-color)' : 'var(--warning-color)', fontSize: 14 }} />
+                            <Text>{isDragOver ? 'Drop here' : folder.name}</Text>
+                        </Space>
+                    </Space>
                 ),
             };
         }),
     ];
 
     return (
-        <AntBreadcrumb
-            items={items}
-            style={{
-                padding: '8px 0',
-                marginBottom: 16,
-            }}
-        />
+        <AntBreadcrumb items={items} />
     );
 };
 

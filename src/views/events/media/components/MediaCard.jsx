@@ -5,7 +5,6 @@ import {
     FileImageOutlined,
     VideoCameraOutlined,
     DeleteOutlined,
-    CopyOutlined,
     LinkOutlined,
     MoreOutlined,
 } from '@ant-design/icons';
@@ -144,7 +143,7 @@ const MediaCard = ({
             style={{
                 overflow: 'hidden',
                 borderRadius: 12,
-                border: selected ? '2px solid #52c41a' : '1px solid #303030',
+                border: selected ? '2px solid var(--primary-color)' : '1px solid #303030',
                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                 boxShadow: selected ? '0 0 0 4px rgba(82, 196, 65, 0.15)' : '0 4px 12px rgba(0,0,0,0.2)',
                 background: '#1f1f1f',
@@ -292,7 +291,6 @@ const MediaCard = ({
                         <Text
                             style={{
                                 fontSize: 12,
-                                color: '#52c41a',
                                 background: 'rgba(82, 196, 65, 0.1)',
                                 padding: '2px 6px',
                                 borderRadius: 4,

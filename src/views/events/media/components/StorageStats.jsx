@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Progress, Typography, Space } from 'antd';
+import { Progress, Typography, Space } from 'antd';
 import { CloudServerOutlined, CloudUploadOutlined, CloudOutlined } from '@ant-design/icons';
 import { useStorageStats } from '../hooks/useMedia';
 
@@ -7,7 +7,7 @@ const { Text } = Typography;
 
 const StorageStats = () => {
     // Fetch storage stats
-    const { data: stats, isLoading } = useStorageStats();
+    const { data: stats } = useStorageStats();
 
     // Helper to parse size string to bytes (approximate for progress bar)
     const parseSizeToBytes = (sizeStr) => {
@@ -35,46 +35,46 @@ const StorageStats = () => {
     const percent = totalBytes > 0 ? Math.min(Math.round((usedBytes / totalBytes) * 100), 100) : 0;
 
     return (
-        <div style={{ marginBottom: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 5 }}>
+        <>
+            <Space direction="vertical" size={4}>
                 <Progress
                     percent={percent}
                     showInfo={true}
                     size="small"
-                    style={{ width: 200 }}
+                    style={{ width: 300 }}
                     strokeColor={{
-                        '0%': '#108ee9',
-                        '100%': '#87d068',
+                        '0%': 'var(--primary-color)',
+                        '100%': 'var(--secondary-color)',
                     }}
                 />
-            </div>
+                <Space direction="horizontal" size={20}>
+                    <Space direction="vertical" size={0} align="center">
+                        <Text type="secondary" style={{ fontSize: 12 }}>Total</Text>
+                        <Space size={4}>
+                            <CloudOutlined style={{ color: 'var(--primary-color)' }} />
+                            <Text strong style={{ fontSize: 13 }}>{totalStr}</Text>
+                        </Space>
+                    </Space>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 20 }}>
-                <div style={{ textAlign: 'center' }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Total</Text>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <CloudOutlined style={{ color: '#1890ff' }} />
-                        <Text strong style={{ fontSize: 13 }}>{totalStr}</Text>
-                    </div>
-                </div>
+                    <Space direction="vertical" size={0} align="center">
+                        <Text type="secondary" style={{ fontSize: 12 }}>Used</Text>
+                        <Space size={4}>
+                            <CloudUploadOutlined style={{ color: 'var(--warning-color)' }} />
+                            <Text strong style={{ fontSize: 13 }}>{usedStr}</Text>
+                        </Space>
+                    </Space>
 
-                <div style={{ textAlign: 'center' }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Used</Text>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <CloudUploadOutlined style={{ color: '#faad14' }} />
-                        <Text strong style={{ fontSize: 13 }}>{usedStr}</Text>
-                    </div>
-                </div>
+                    <Space direction="vertical" size={0} align="center">
+                        <Text type="secondary" style={{ fontSize: 12 }}>Free</Text>
+                        <Space size={4}>
+                            <CloudServerOutlined style={{ color: 'var(--success-color)' }} />
+                            <Text strong style={{ fontSize: 13 }}>{freeStr}</Text>
+                        </Space>
+                    </Space>
+                </Space>
+            </Space>
 
-                <div style={{ textAlign: 'center' }}>
-                    <Text type="secondary" style={{ fontSize: 12 }}>Free</Text>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <CloudServerOutlined style={{ color: '#52c41a' }} />
-                        <Text strong style={{ fontSize: 13 }}>{freeStr}</Text>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </>
     );
 };
 

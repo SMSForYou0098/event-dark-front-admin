@@ -8,7 +8,7 @@ import {
     CloseOutlined,
 } from '@ant-design/icons';
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 const MediaPreviewModal = ({
     open,
@@ -107,7 +107,7 @@ const MediaPreviewModal = ({
                     <Text ellipsis style={{ maxWidth: 400, color: '#fff' }}>
                         {currentMedia?.title || currentMedia?.file_name || currentMedia?.name || 'Preview'}
                     </Text>
-                    <Space>
+                    {/* <Space>
                         <Button
                             type="text"
                             icon={<DownloadOutlined />}
@@ -124,7 +124,7 @@ const MediaPreviewModal = ({
                         >
                             Delete
                         </Button>
-                    </Space>
+                    </Space> */}
                 </Space>
             }
         >

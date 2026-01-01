@@ -1,32 +1,27 @@
 import React from 'react';
-import { Space, Button, Input, Tooltip, Badge } from 'antd';
+import { Space, Button, Input, Badge } from 'antd';
 import {
     FolderAddOutlined,
     UploadOutlined,
     DeleteOutlined,
-    ReloadOutlined,
-    AppstoreOutlined,
-    UnorderedListOutlined,
     SearchOutlined,
 } from '@ant-design/icons';
+import { useMyContext } from 'Context/MyContextProvider';
 
 const Toolbar = ({
     onCreateFolder,
     onUpload,
     onDeleteSelected,
-    onRefresh,
     selectedCount = 0,
-    viewMode = 'grid', // 'grid' or 'list'
-    onViewModeChange,
     searchQuery = '',
     onSearchChange,
-    loading = false,
 }) => {
+    const {isMobile} = useMyContext();
     return (
         <div
             style={{
                 display: 'flex',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
                 alignItems: 'center',
                 flexWrap: 'wrap',
                 gap: 12,
@@ -34,19 +29,19 @@ const Toolbar = ({
             }}
         >
             {/* Left Actions */}
-            <Space wrap>
+            <Space>
                 <Button
                     type="primary"
                     icon={<FolderAddOutlined />}
                     onClick={onCreateFolder}
                 >
-                    New Folder
+                    {!isMobile && 'New Folder'}
                 </Button>
                 <Button
                     icon={<UploadOutlined />}
                     onClick={onUpload}
                 >
-                    Upload
+                    {!isMobile && 'Upload'}
                 </Button>
                 {selectedCount > 0 && (
                     <Badge count={selectedCount} size="small">
@@ -55,49 +50,18 @@ const Toolbar = ({
                             icon={<DeleteOutlined />}
                             onClick={onDeleteSelected}
                         >
-                            Delete Selected
+                            {!isMobile && 'Delete Selected'}
                         </Button>
                     </Badge>
                 )}
-            </Space>
-
-            {/* Right Actions */}
-            <Space>
-                {/* Search */}
                 <Input
                     placeholder="Search..."
                     prefix={<SearchOutlined style={{ color: '#666' }} />}
                     value={searchQuery}
                     onChange={(e) => onSearchChange?.(e.target.value)}
-                    style={{ width: 200 }}
+                    style={{ width: isMobile ? 150 : 200 }}
                     allowClear
                 />
-
-                {/* View Toggle */}
-                {/* <Button.Group>
-                    <Tooltip title="Grid View">
-                        <Button
-                            icon={<AppstoreOutlined />}
-                            type={viewMode === 'grid' ? 'primary' : 'default'}
-                            onClick={() => onViewModeChange?.('grid')}
-                        />
-                    </Tooltip>
-                    <Tooltip title="List View">
-                        <Button
-                            icon={<UnorderedListOutlined />}
-                            type={viewMode === 'list' ? 'primary' : 'default'}
-                            onClick={() => onViewModeChange?.('list')}
-                        />
-                    </Tooltip>
-                </Button.Group> */}
-
-                {/* Refresh */}
-                <Tooltip title="Refresh">
-                    <Button
-                        icon={<ReloadOutlined spin={loading} />}
-                        onClick={onRefresh}
-                    />
-                </Tooltip>
             </Space>
         </div>
     );
