@@ -7,11 +7,10 @@ import { useNavigate } from 'react-router-dom';
 import ContentSelect from './ContentSelect';
 const { Text } = Typography;
 
-const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, contentLoading, orgId }) => {
+const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, contentLoading, orgId, form }) => {
   const navigate = useNavigate();
-  const form = Form.useFormInstance();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
-
+  const venueId = form.getFieldValue('venue_id');
   const toBoolean = (v) => v === true || v === 1 || v === '1';
   const toBooleanValue = (checked) => Boolean(checked);
 
@@ -36,7 +35,11 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
         cancelText: 'Cancel',
         centered: true,
         onOk: () => {
-          navigate(`/theatre/new?venueId=${eventLayoutId}`);
+          if (eventLayoutId) {
+            navigate(`/theatre/new?venueId=${eventLayoutId}`);
+          } else {
+            navigate(`/theatre/new?venueId=${venueId}`);
+          }
         }
       });
       return;

@@ -165,7 +165,6 @@ export const handleDiscountChange = ({
 
 export const resendTickets = async (record, type, setLoading = null) => {
   try {
-    console.log(record);
 
     if (setLoading) setLoading(true);
 
@@ -184,9 +183,7 @@ export const resendTickets = async (record, type, setLoading = null) => {
     const response = await api.post(endpoint, payload);
 
     if (response.status) {
-      if (response.message) {
-        message.success(`${type} tickets resent successfully!`);
-      }
+
       return { success: true, data: response };
     } else {
       throw new Error(response?.message || 'Failed to resend tickets');

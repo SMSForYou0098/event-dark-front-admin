@@ -92,8 +92,8 @@ const LoginForm = ({ extra = null }) => {
       setLoading(true);
       const response = await api.post(`${API_BASE_URL}verify-user`, { data });
 
-      if (response?.data?.status) {
-        const { pass_req, session_id, auth_session } = response.data;
+      if (response?.status) {
+        const { pass_req, session_id, auth_session } = response;
 
         if (pass_req) {
           const info = { data, password_required: pass_req, session_id, auth_session };

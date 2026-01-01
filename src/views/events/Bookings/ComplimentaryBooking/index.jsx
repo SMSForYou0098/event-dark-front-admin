@@ -22,6 +22,7 @@ const CbList = memo(() => {
   const queryClient = useQueryClient();
   const [batchData, setBatchData] = useState([]);
   const [show, setShow] = useState(false);
+  const [selectedBatchId, setSelectedBatchId] = useState(null);
 
   // Fetch complimentary bookings using TanStack Query
   const {
@@ -87,7 +88,7 @@ const CbList = memo(() => {
       queryClient.invalidateQueries({
         queryKey: ["complimentaryBookings", UserData?.id],
       });
-       message.success(`Ticket ${variables.isDeleted ? "enabled" : "disabled"} successfully.`);
+      message.success(`Ticket ${variables.isDeleted ? "enabled" : "disabled"} successfully.`);
     },
     onError: (error) => {
       console.error("Error:", error);
@@ -104,9 +105,8 @@ const CbList = memo(() => {
       confirm({
         title: "Are you sure?",
         icon: <ExclamationCircleOutlined />,
-        content: `Do you want to ${
-          data?.is_deleted ? "enable" : "disable"
-        } this ticket?`,
+        content: `Do you want to ${data?.is_deleted ? "enable" : "disable"
+          } this ticket?`,
         okText: data?.is_deleted ? "Yes, enable it!" : "Yes, disable it!",
         cancelText: "Cancel",
         onOk() {
@@ -128,6 +128,7 @@ const CbList = memo(() => {
         const data = await fetchBatchBookings(batchId);
         if (data?.bk) {
           setBatchData(data.bk);
+          setSelectedBatchId(batchId);
           setShow(true);
         }
       } catch (error) {
@@ -177,130 +178,131 @@ const CbList = memo(() => {
   const onHide = useCallback(() => {
     setShow(false);
     setBatchData([]);
+    setSelectedBatchId(null);
   }, []);
 
   // Define columns
-const columns = useMemo(
-  () => [
-    {
-      title: "#",
-      key: "index",
-      align: "center",
-      width: 60,
-      render: (_, __, index) => index + 1,
-    },
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Number",
-      dataIndex: "number",
-      key: "number",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Event Name",
-      dataIndex: "event_name",
-      key: "event_name",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Ticket Type",
-      dataIndex: "ticket_name",
-      key: "ticket_name",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Total Bookings",
-      dataIndex: "booking_count",
-      key: "booking_count",
-      align: "center",
-      sorter: (a, b) => a.booking_count - b.booking_count,
-      render: (count) => (
-        <Tag color="blue" style={{ fontSize: 14 }}>
-          {count}
-        </Tag>
-      ),
-    },
-    {
-      title: "Generate Date",
-      dataIndex: "booking_date",
-      key: "booking_date",
-      align: "center",
-      sorter: (a, b) =>
-        new Date(a.booking_date) - new Date(b.booking_date),
-      render: (date) => formatDateTime(date),
-    },
-    {
-      title: "Status",
-      dataIndex: "is_deleted",
-      key: "status",
-      align: "center",
-      width: 120,
-      filters: [
-        { text: "Active", value: 0 },
-        { text: "Disabled", value: 1 },
-      ],
-      onFilter: (value, record) => record.is_deleted === value,
-      render: (isDeleted, record) => (
-        <Switch
-          checked={!isDeleted}
-          onChange={() => DeleteBooking(record.batch_id)}
-          checkedChildren="Active"
-          unCheckedChildren="Disabled"
-          loading={toggleBookingMutation.isPending}
-        />
-      ),
-    },
-    {
-      title: "Action",
-      key: "action",
-      align: "center",
-      width: 120,
-      render: (_, record) => (
-        <Space size="small">
-          {record.type === 1 && (
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={() => HandleResend(record.batch_id)}
-              disabled={record?.is_deleted}
-              title="Resend Tickets"
-              size="small"
-            />
-          )}
-          <Button
-            type="default"
-            icon={<FileZipOutlined />}
-            onClick={() => HandleZipDownload(record.batch_id)}
-            disabled={record?.is_deleted}
-            title="Download ZIP"
-            size="small"
-            style={{ color: "#52c41a" }}
+  const columns = useMemo(
+    () => [
+      {
+        title: "#",
+        key: "index",
+        align: "center",
+        width: 60,
+        render: (_, __, index) => index + 1,
+      },
+      {
+        title: "Name",
+        dataIndex: "name",
+        key: "name",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Number",
+        dataIndex: "number",
+        key: "number",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Event Name",
+        dataIndex: "event_name",
+        key: "event_name",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Ticket Type",
+        dataIndex: "ticket_name",
+        key: "ticket_name",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Total Bookings",
+        dataIndex: "booking_count",
+        key: "booking_count",
+        align: "center",
+        sorter: (a, b) => a.booking_count - b.booking_count,
+        render: (count) => (
+          <Tag color="blue" style={{ fontSize: 14 }}>
+            {count}
+          </Tag>
+        ),
+      },
+      {
+        title: "Generate Date",
+        dataIndex: "booking_date",
+        key: "booking_date",
+        align: "center",
+        sorter: (a, b) =>
+          new Date(a.booking_date) - new Date(b.booking_date),
+        render: (date) => formatDateTime(date),
+      },
+      {
+        title: "Status",
+        dataIndex: "is_deleted",
+        key: "status",
+        align: "center",
+        width: 120,
+        filters: [
+          { text: "Active", value: 0 },
+          { text: "Disabled", value: 1 },
+        ],
+        onFilter: (value, record) => record.is_deleted === value,
+        render: (isDeleted, record) => (
+          <Switch
+            checked={!isDeleted}
+            onChange={() => DeleteBooking(record.batch_id)}
+            checkedChildren="Active"
+            unCheckedChildren="Disabled"
+            loading={toggleBookingMutation.isPending}
           />
-        </Space>
-      ),
-    },
-  ],
-  [
-    DeleteBooking,
-    HandleResend,
-    HandleZipDownload,
-    formatDateTime,
-    toggleBookingMutation.isPending,
-  ]
-);
+        ),
+      },
+      {
+        title: "Action",
+        key: "action",
+        align: "center",
+        width: 120,
+        render: (_, record) => (
+          <Space size="small">
+            {record.type === 1 && (
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                onClick={() => HandleResend(record.batch_id, record)}
+                disabled={record?.is_deleted}
+                title="Resend Tickets"
+                size="small"
+              />
+            )}
+            <Button
+              type="default"
+              icon={<FileZipOutlined />}
+              onClick={() => HandleZipDownload(record.batch_id)}
+              disabled={record?.is_deleted}
+              title="Download ZIP"
+              size="small"
+              style={{ color: "#52c41a" }}
+            />
+          </Space>
+        ),
+      },
+    ],
+    [
+      DeleteBooking,
+      HandleResend,
+      HandleZipDownload,
+      formatDateTime,
+      toggleBookingMutation.isPending,
+    ]
+  );
 
   return (
     <Fragment>
-      <BatchDataModel show={show} onHide={onHide} batchData={batchData} />
+      <BatchDataModel show={show} onHide={onHide} batchData={batchData} batchId={selectedBatchId} />
 
       <DataTable
         title="Complimentary Bookings"

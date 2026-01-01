@@ -76,6 +76,7 @@ const EventStepperForm = () => {
     const [layouts, setLayouts] = useState([]);
     const [eventLayoutId, setEventLayoutId] = useState(null)
     const [embedCode, setEmbedCode] = useState('');
+    const [componentLoader, setComponentLoader] = useState(false)
 
     // Sync step from location state
     useEffect(() => {
@@ -230,12 +231,12 @@ const EventStepperForm = () => {
                 patch.images = toUploadFileList(event_galleries.images);
             }
 
-            if (event_galleries?.insta_thumb) {
-                patch.insta_thumb = [{
+            if (event_galleries?.insta_thumbnail) {
+                patch.insta_thumbnail = [{
                     uid: 'ig-thumb',
                     name: 'instagram-thumb.jpg',
                     status: 'done',
-                    url: event_galleries.insta_thumb,
+                    url: event_galleries.insta_thumbnail,
                 }];
             }
 
@@ -247,6 +248,9 @@ const EventStepperForm = () => {
                     url: event_galleries.layout_image,
                 }];
             }
+
+            patch.youtube_url = event_galleries?.youtube_url;
+            patch.instagram_media_url = event_galleries?.insta_url; // Api returns insta_url, form expects instagram_media_url
         }
 
         // Step 6: SEO
@@ -347,7 +351,7 @@ const EventStepperForm = () => {
             },
             { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} />, icon: <EnvironmentOutlined /> },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
-            { title: 'SEO', content: <SEOStep form={form} eventKey={id} />, icon: <GlobalOutlined /> },
+            { title: 'SEO', content: <SEOStep form={form} eventKey={id} componentLoader={componentLoader} setComponentLoader={setComponentLoader} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
         [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
@@ -508,7 +512,7 @@ const EventStepperForm = () => {
                         {
                             isEdit && current !== steps.length - 1 &&
                             <Tooltip title="Save current progress">
-                                <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
+                                <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading || componentLoader}>
                                     Save Draft
                                 </Button>
                             </Tooltip>
@@ -516,7 +520,7 @@ const EventStepperForm = () => {
 
                         <div style={{ display: 'flex', gap: 8 }}>
                             {current > 0 && current !== steps.length - 1 && (
-                                <Button onClick={prev} size="large" disabled={isLoading}>
+                                <Button onClick={prev} size="large" disabled={isLoading || componentLoader}>
                                     Previous
                                 </Button>
                             )}
@@ -527,7 +531,7 @@ const EventStepperForm = () => {
                                     onClick={next}
                                     size="large"
                                     loading={isLoading}
-                                    disabled={isLoading}
+                                    disabled={isLoading || componentLoader}
                                 >
                                     {current === 0 && !isEdit ? 'Create & Continue' : 'Save & Continue'}
                                 </Button>
@@ -539,7 +543,7 @@ const EventStepperForm = () => {
                                     onClick={handleSubmit}
                                     size="large"
                                     loading={isLoading}
-                                    disabled={isLoading}
+                                    disabled={isLoading || componentLoader}
                                     icon={<CheckCircleOutlined />}
                                 >
                                     Publish Event

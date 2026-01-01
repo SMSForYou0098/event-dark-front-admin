@@ -1,5 +1,5 @@
 // SEOStep.jsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Form, Input, Row, Col, Button, Typography, message } from 'antd';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
@@ -9,7 +9,7 @@ import { PRIMARY } from 'utils/consts';
 const { TextArea } = Input;
 const { Text } = Typography;
 
-const SEOStep = ({ form, eventKey }) => {
+const SEOStep = ({ form, eventKey, componentLoader, setComponentLoader }) => {
     // TanStack Query mutation for SEO generation
     const { mutate: generateSEO, isPending: generating } = useMutation({
         mutationFn: async () => {
@@ -47,6 +47,14 @@ const SEOStep = ({ form, eventKey }) => {
             message.error(error?.message || 'Failed to generate SEO content');
         },
     });
+
+    useEffect(() => {
+        if (generating) {
+            setComponentLoader(true);
+        } else {
+            setComponentLoader(false);
+        }
+    }, [generating]);
 
     return (
         <div style={{ position: 'relative' }}>
