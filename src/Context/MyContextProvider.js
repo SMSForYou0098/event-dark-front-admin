@@ -147,7 +147,7 @@ export const MyContextProvider = ({ children }) => {
         GetSystemVars()
       }
     };
-    GetSystemSetting()
+    // GetSystemSetting()
     fetchData();
     setCurrencyMaster(currencyData)
   }, []);

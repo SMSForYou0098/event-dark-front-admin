@@ -588,7 +588,7 @@ const mediaSubmenu = [
     key: 'media-banners',
     path: 'media/banners',
     title: 'Banners',
-    icon: PlayCircleFilled,
+    icon: BookOutlined,
     breadcrumb: false,
     submenu: [],
     permissions: ["View Banners"]
@@ -598,6 +598,15 @@ const mediaSubmenu = [
     path: 'media/blogs',
     title: 'Blogs',
     icon: BookOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'media-gallery',
+    path: 'media/gallery',
+    title: 'Gallery',
+    icon: PlayCircleFilled,
     breadcrumb: false,
     submenu: [],
     roles: ['Admin']

@@ -755,6 +755,14 @@ export const protectedRoutes = [
             permissions: ['View Category Tickets'],
         }
     },
+    {
+        key: 'media-gallery',
+        path: `/media/gallery`,
+        component: React.lazy(() => import('views/events/media/index')),
+        meta: {
+            permissions: ['View Category Tickets'],
+        }
+    },
     // Category Settings
     {
         key: 'category',
