@@ -158,6 +158,12 @@ const EventStepperForm = () => {
                 is_sold_out: toBool(controls?.is_sold_out),
                 is_postponed: toBool(controls?.is_postponed),
                 is_cancelled: toBool(controls?.is_cancelled),
+                // Booking control fields (default true if not set)
+                online_booking: controls?.online_booking !== undefined ? toBool(controls.online_booking) : true,
+                agent_booking: controls?.agent_booking !== undefined ? toBool(controls.agent_booking) : true,
+                pos_booking: controls?.pos_booking !== undefined ? toBool(controls.pos_booking) : true,
+                complimentary_booking: controls?.complimentary_booking !== undefined ? toBool(controls.complimentary_booking) : true,
+                sponsor_booking: controls?.sponsor_booking !== undefined ? toBool(controls.sponsor_booking) : true,
 
                 // storing instagram post id from url
                 insta_whts_url: detail?.insta_whts_url || '',

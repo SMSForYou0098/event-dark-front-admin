@@ -96,6 +96,36 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
             },
             { name: "show_on_home", label: "Display Event on Home Page" },
             {
+              name: "online_booking",
+              label: "Online Booking",
+              tooltip: "Allow online ticket bookings",
+              defaultValue: true,
+            },
+            {
+              name: "agent_booking",
+              label: "Agent Booking",
+              tooltip: "Allow agent ticket bookings",
+              defaultValue: true,
+            },
+            {
+              name: "pos_booking",
+              label: "POS Booking",
+              tooltip: "Allow POS ticket bookings",
+              defaultValue: true,
+            },
+            {
+              name: "complimentary_booking",
+              label: "Complimentary Booking",
+              tooltip: "Allow complimentary ticket bookings",
+              defaultValue: true,
+            },
+            {
+              name: "sponsor_booking",
+              label: "Sponsor Booking",
+              tooltip: "Allow sponsor ticket bookings",
+              defaultValue: true,
+            },
+            {
               name: "is_cancelled",
               label: "Event Cancelled",
               tooltip: "Mark event as cancelled",
@@ -125,30 +155,49 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
 
               return (
                 <Col xs={24} sm={12} lg={8} key={f.name}>
-                  <Form.Item
-                    name={f.name}
-                    label={f.label}
-                    tooltip={f.tooltip}
-                    valuePropName="checked"
-                    getValueProps={(v) => ({ checked: toBoolean(v) })}
-                    getValueFromEvent={toBooleanValue}
-                    initialValue={false}
-                  >
-                    <Switch
-                      checkedChildren={f.onLabels?.[0] || "Yes"}
-                      unCheckedChildren={f.onLabels?.[1] || "No"}
-                      onChange={(checked) => {
-                        // If this is one of the exclusive fields and it's being turned ON
-                        if (isExclusive && checked) {
-                          // Turn off the other exclusive fields
-                          exclusiveFields.forEach((fieldName) => {
-                            if (fieldName !== f.name) {
-                              form.setFieldValue(fieldName, false);
-                            }
-                          });
-                        }
-                      }}
-                    />
+                  <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking}>
+                    {({ getFieldValue }) => {
+                      const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
+
+                      // Disable event_feature and show_on_home if online_booking is false
+                      const isDisabled =
+                        (f.name === 'event_feature' || f.name === 'show_on_home') && !onlineBookingEnabled;
+
+                      return (
+                        <Form.Item
+                          name={f.name}
+                          label={f.label}
+                          tooltip={f.tooltip}
+                          valuePropName="checked"
+                          getValueProps={(v) => ({ checked: toBoolean(v) })}
+                          getValueFromEvent={toBooleanValue}
+                          initialValue={f.defaultValue ?? false}
+                        >
+                          <Switch
+                            disabled={isDisabled}
+                            checkedChildren={f.onLabels?.[0] || "Yes"}
+                            unCheckedChildren={f.onLabels?.[1] || "No"}
+                            onChange={(checked) => {
+                              // If this is one of the exclusive fields and it's being turned ON
+                              if (isExclusive && checked) {
+                                // Turn off the other exclusive fields
+                                exclusiveFields.forEach((fieldName) => {
+                                  if (fieldName !== f.name) {
+                                    form.setFieldValue(fieldName, false);
+                                  }
+                                });
+                              }
+
+                              // Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
+                              if (f.name === 'online_booking' && !checked) {
+                                form.setFieldValue('event_feature', false);
+                                form.setFieldValue('show_on_home', false);
+                              }
+                            }}
+                          />
+                        </Form.Item>
+                      );
+                    }}
                   </Form.Item>
                 </Col>
               );

@@ -1,8 +1,8 @@
 // AuditoriumLayoutDesigner.jsx - UPDATED WITH TICKET ASSIGNMENT API
 import React, { useRef, useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Input, message, Row } from 'antd';
+import { useParams, useNavigate } from 'react-router-dom';
+import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Input, message, Row, Tooltip } from 'antd';
 import api from 'auth/FetchInterceptor';
 import LeftBar from './components/creation/LeftBar';
 import CenterCanvas from './components/creation/CenterCanvas';
@@ -49,6 +49,8 @@ const AuditoriumLayoutDesigner = () => {
 
   // Determine mode: if eventId exists, we're in ticket assignment mode
   const isAssignMode = !!eventId;
+
+  const navigate = useNavigate();
 
   // State Management
   const [stage, setStage] = useState({
@@ -894,7 +896,7 @@ const AuditoriumLayoutDesigner = () => {
         }
 
         message.success(layoutId ? 'Layout updated successfully!' : 'Layout saved successfully!');
-            console.log('Saved layout response:', response);
+        console.log('Saved layout response:', response);
       }
 
     } catch (error) {
@@ -966,7 +968,7 @@ const AuditoriumLayoutDesigner = () => {
   return (
     <Card className="auditorium-designer" bodyStyle={{ paddingTop: 10 }}>
       <Row align="middle" gutter={10} wrap={false} className='mb-4'>
-        <Col span={10}>
+        <Col span={9}>
           <h5>
             {isAssignMode
               ? `Assign Tickets to Layout: ${layoutName}`
@@ -1029,6 +1031,15 @@ const AuditoriumLayoutDesigner = () => {
           >
             {isAssignMode ? "Save" : layoutId ? "Update" : "Save"}
           </Button>
+        </Col>
+        <Col>
+          <Tooltip title="Back">
+            <Button
+              type="primary"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate('/events')}
+            />
+          </Tooltip>
         </Col>
 
       </Row>

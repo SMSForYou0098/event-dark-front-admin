@@ -568,15 +568,15 @@ const EventList = ({ isJunk = false }) => {
   );
 
   if (isLoading) {
-  return (
-    <div className="text-center py-5">
-      <Spin size="large" />
-    </div>
-  );
-}
+    return (
+      <div className="text-center py-5">
+        <Spin size="large" />
+      </div>
+    );
+  }
 
   if (!events || events.length === 0) {
-    return <EmptyEventsState />
+    return <EmptyEventsState isJunk={isJunk} />
   }
 
   return (

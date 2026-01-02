@@ -161,6 +161,12 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('is_postponed', values.is_postponed ?? false);
     appendIfDefined('is_cancelled', values.is_cancelled ?? false);
     appendIfDefined('is_sold_out', values.is_sold_out ?? false);
+    // Booking control fields (default true)
+    appendIfDefined('online_booking', values.online_booking ?? true);
+    appendIfDefined('agent_booking', values.agent_booking ?? true);
+    appendIfDefined('pos_booking', values.pos_booking ?? true);
+    appendIfDefined('complimentary_booking', values.complimentary_booking ?? true);
+    appendIfDefined('sponsor_booking', values.sponsor_booking ?? true);
 
     // Convert expected_date to string format if it's a moment/dayjs object
     if (values.expected_date) {

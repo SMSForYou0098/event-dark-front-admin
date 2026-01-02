@@ -18,7 +18,6 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
 
     const { bookingData, salesData, isLoading, error, gatewayWiseSalesData, gatewayLoading, organizerSummary, organizerTickets, userStats } = useDashboardData(userId);
 
-    console.log(userStats, 'userStats')
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -126,14 +125,14 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                         xl: 4,
                         style: { flex: '1 1 20%', maxWidth: isMobile ? '100%' : '20%' }
                     }}
-                    extraHeader={
-                        <Switch
-                            checked={showToday}
-                            onChange={(checked) => setShowToday(checked)}
-                            checkedChildren="Today"
-                            unCheckedChildren="Overall"
-                        />
-                    }
+                    // extraHeader={
+                    //     <Switch
+                    //         checked={showToday}
+                    //         onChange={(checked) => setShowToday(checked)}
+                    //         checkedChildren="Today"
+                    //         unCheckedChildren="Overall"
+                    //     />
+                    // }
                     isMobile={isMobile}
                 />
 
@@ -149,7 +148,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 {/* Event Info Section */}
                 <StatSection
                     title="Events Info"
-                    stats={getEventStats(bookingData)}
+                    stats={getEventStats(bookingData?.eventinfo)}
                     colConfig={{ xs: 24, sm: 12, lg: 8 }}
                     containerCol={{ xs: 24, md: 12 }}
                     isMobile={isMobile}

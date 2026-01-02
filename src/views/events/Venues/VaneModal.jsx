@@ -1,9 +1,10 @@
 // components/VenueModal.js
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, Upload, message, Row, Col, Space, Button } from 'antd';
-import { LinkOutlined, PlusOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, message, Row, Col, Space, Button, Image } from 'antd';
+import { PlusOutlined, PictureOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 
 const { TextArea } = Input;
 
@@ -31,8 +32,14 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [cities, setCities] = useState([]);
-    const [thumbnailFileList, setThumbnailFileList] = useState([]);
-    const [venueImagesFileList, setVenueImagesFileList] = useState([]);
+
+    // Media selection state
+    const [thumbnailUrl, setThumbnailUrl] = useState(null);
+    const [venueImageUrls, setVenueImageUrls] = useState([]);
+
+    // Media picker modal state
+    const [thumbnailPickerOpen, setThumbnailPickerOpen] = useState(false);
+    const [venueImagesPickerOpen, setVenueImagesPickerOpen] = useState(false);
 
     // Initialize form with venue data in edit mode
     useEffect(() => {
@@ -47,14 +54,10 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                 state: venueData.state,
                 type: venueData.type,
                 aembeded_code: venueData.aembeded_code || '',
+                thumbnail: venueData.thumbnail || null,
+                venue_images: venueData.venue_images || null,
             });
-            // form.setFields([
-            //     {
-            //         name: 'map_url',
-            //         value: venueData.map_url || '',
-            //         errors: []
-            //     }
-            // ]);
+
             // Load cities for the selected state
             if (venueData.state) {
                 const stateCities = getCitiesByState(venueData.state);
@@ -63,30 +66,49 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
 
             // Set existing thumbnail
             if (venueData.thumbnail) {
-                setThumbnailFileList([{
-                    uid: '-1',
-                    name: 'thumbnail.jpg',
-                    status: 'done',
-                    url: venueData.thumbnail,
-                }]);
+                setThumbnailUrl(venueData.thumbnail);
             }
-            const vnimages = venueData?.venue_images?.split(',')
+
             // Set existing venue images
+            const vnimages = venueData?.venue_images?.split(',').filter(Boolean);
             if (vnimages && Array.isArray(vnimages)) {
-                setVenueImagesFileList(vnimages?.map((url, index) => ({
-                    uid: `-${index + 2}`,
-                    name: `image-${index + 1}.jpg`,
-                    status: 'done',
-                    url: url,
-                })));
+                setVenueImageUrls(vnimages);
             }
+        } else if (open && mode === 'create') {
+            form.resetFields();
+            setThumbnailUrl(null);
+            setVenueImageUrls([]);
+            setCities([]);
         }
-    }, [open, mode, venueData, form, getCitiesByState]);
+    }, [open, mode, venueData, form, getCitiesByState, userRole, UserData]);
 
     const handleStateChange = (stateName) => {
         form.setFieldValue('city', null);
         const stateCities = getCitiesByState(stateName);
         setCities(stateCities);
+    };
+
+    const handleThumbnailSelect = (url) => {
+        setThumbnailUrl(url);
+        form.setFieldValue('thumbnail', url);
+    };
+
+    const handleRemoveThumbnail = () => {
+        setThumbnailUrl(null);
+        form.setFieldValue('thumbnail', null);
+    };
+
+    const handleVenueImagesSelect = (urls) => {
+        // Limit to 5 images
+        const limitedUrls = urls.slice(0, 5);
+        setVenueImageUrls(limitedUrls);
+        form.setFieldValue('venue_images', limitedUrls.join(','));
+    };
+
+    const handleRemoveVenueImage = (urlToRemove) => {
+        const newUrls = venueImageUrls.filter(url => url !== urlToRemove);
+        setVenueImageUrls(newUrls);
+        form.setFieldValue('venue_images', newUrls.join(','));
     };
 
     const handleSubmit = async (values) => {
@@ -104,24 +126,14 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
             formData.append('aembeded_code', values.aembeded_code || '');
             formData.append('map_url', values.map_url || '');
 
-            // Append thumbnail (only if new file uploaded)
-            const newThumbnail = thumbnailFileList.find(file => file.originFileObj);
-            if (newThumbnail) {
-                formData.append('thumbnail', newThumbnail.originFileObj);
+            // Append thumbnail URL from gallery
+            if (thumbnailUrl) {
+                formData.append('thumbnail', thumbnailUrl);
             }
 
-            // Append venue images (only new files)
-            const newVenueImages = venueImagesFileList.filter(file => file.originFileObj);
-            newVenueImages.forEach((file) => {
-                formData.append('venue_images', file.originFileObj);
-            });
-
-            // Keep existing images in edit mode
-            if (mode === 'edit') {
-                const existingImages = venueImagesFileList
-                    .filter(file => !file.originFileObj)
-                    .map(file => file.url);
-                formData.append('existing_images', JSON.stringify(existingImages));
+            // Append venue image URLs
+            if (venueImageUrls.length > 0) {
+                formData.append('venue_images', venueImageUrls.join(','));
             }
 
             // API call
@@ -151,211 +163,278 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
 
     const handleCancel = () => {
         form.resetFields();
-        setThumbnailFileList([]);
-        setVenueImagesFileList([]);
+        setThumbnailUrl(null);
+        setVenueImageUrls([]);
         setCities([]);
         onCancel();
     };
 
-    const thumbnailUploadProps = {
-        beforeUpload: (file) => {
-            const isImage = file.type.startsWith('image/');
-            if (!isImage) {
-                message.error('You can only upload image files!');
-                return Upload.LIST_IGNORE;
-            }
-            const isLt5M = file.size / 1024 / 1024 < 5;
-            if (!isLt5M) {
-                message.error('Image must be smaller than 5MB!');
-                return Upload.LIST_IGNORE;
-            }
-            return false;
-        },
-        onChange: ({ fileList }) => setThumbnailFileList(fileList.slice(-1)),
-        onRemove: () => setThumbnailFileList([]),
-        fileList: thumbnailFileList,
-        maxCount: 1,
-        listType: 'picture-card',
-    };
-
-    // Venue images upload props
-    const venueImagesUploadProps = {
-        beforeUpload: (file) => {
-            const isImage = file.type.startsWith('image/');
-            if (!isImage) {
-                message.error('You can only upload image files!');
-                return Upload.LIST_IGNORE;
-            }
-            const isLt5M = file.size / 1024 / 1024 < 5;
-            if (!isLt5M) {
-                message.error('Image must be smaller than 5MB!');
-                return Upload.LIST_IGNORE;
-            }
-            // Check if limit reached
-            if (venueImagesFileList.length >= 5) {
-                message.warning('Maximum 5 images allowed');
-                return Upload.LIST_IGNORE;
-            }
-            return false;
-        },
-        onChange: ({ fileList }) => setVenueImagesFileList(fileList.slice(0, 5)), // Ensure max 5
-        onRemove: (file) => {
-            setVenueImagesFileList(prev => prev.filter(f => f.uid !== file.uid));
-        },
-        fileList: venueImagesFileList,
-        multiple: true,
-        listType: 'picture-card',
-        maxCount: 5, // Built-in max count
-    };
     return (
-        <Modal
-            title={mode === 'edit' ? 'Edit Venue' : 'Create New Venue'}
-            open={open}
-            onCancel={handleCancel}
-            onOk={() => form.submit()}
-            confirmLoading={loading}
-            width={900}
-            style={{ top: 0 }}
-            okText={mode === 'edit' ? 'Update' : 'Create'}
-        >
-            <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleSubmit}
+        <>
+            <Modal
+                title={mode === 'edit' ? 'Edit Venue' : 'Create New Venue'}
+                open={open}
+                onCancel={handleCancel}
+                onOk={() => form.submit()}
+                confirmLoading={loading}
+                width={900}
+                style={{ top: 20 }}
+                okText={mode === 'edit' ? 'Update' : 'Create'}
             >
-                <Row gutter={16} style={{ maxHeight: isMobile ? '30rem' : '100%', overflowX: 'auto' }}>
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label="Venue Name"
-                            name="name"
-                            rules={[{ required: true, message: 'Please enter venue name' }]}
-                        >
-                            <Input placeholder="Enter venue name" />
-                        </Form.Item>
-                    </Col>
-                    {/* <PermissionChecker role="Admin">
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleSubmit}
+                >
+                    <Row gutter={16} style={{ maxHeight: isMobile ? '30rem' : '100%', overflowX: 'auto' }}>
                         <Col xs={24} md={12}>
-                            <OrganisationList />
+                            <Form.Item
+                                label="Venue Name"
+                                name="name"
+                                rules={[{ required: true, message: 'Please enter venue name' }]}
+                            >
+                                <Input placeholder="Enter venue name" />
+                            </Form.Item>
                         </Col>
-                    </PermissionChecker> */}
 
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label="Venue Type"
-                            name="type"
-                            rules={[{ required: true, message: 'Please select venue type' }]}
-                        >
-                            <Select
-                                showSearch
-                                placeholder="Select venue type"
-                                options={VENUE_TYPES.map(type => ({ value: type, label: type }))}
-                            />
-                        </Form.Item>
-                    </Col>
+                        <Col xs={24} md={12}>
+                            <Form.Item
+                                label="Venue Type"
+                                name="type"
+                                rules={[{ required: true, message: 'Please select venue type' }]}
+                            >
+                                <Select
+                                    showSearch
+                                    placeholder="Select venue type"
+                                    options={VENUE_TYPES.map(type => ({ value: type, label: type }))}
+                                />
+                            </Form.Item>
+                        </Col>
 
-                    <Col xs={24} md={6}>
-                        <Form.Item
-                            label="State"
-                            name="state"
-                            rules={[{ required: true, message: 'Please select state' }]}
-                        >
-                            <Select
-                                showSearch
-                                placeholder="Select state"
-                                options={locationData?.states}
-                                onChange={handleStateChange}
-                                optionFilterProp="label"
-                            />
-                        </Form.Item>
-                    </Col>
+                        <Col xs={24} md={6}>
+                            <Form.Item
+                                label="State"
+                                name="state"
+                                rules={[{ required: true, message: 'Please select state' }]}
+                            >
+                                <Select
+                                    showSearch
+                                    placeholder="Select state"
+                                    options={locationData?.states}
+                                    onChange={handleStateChange}
+                                    optionFilterProp="label"
+                                />
+                            </Form.Item>
+                        </Col>
 
-                    <Col xs={24} md={6}>
-                        <Form.Item
-                            label="City"
-                            name="city"
-                            rules={[{ required: true, message: 'Please select city' }]}
-                        >
-                            <Select
-                                showSearch
-                                placeholder="Select city"
-                                options={cities}
-                                // disabled={!cities.length}
-                                optionFilterProp="label"
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label="Map URL"
-                            name="map_url"
-                        >
-                            <Input placeholder="Enter map URL" />
-                        </Form.Item>
-                    </Col>
-                    <Col xs={24} md={24}>
-                        <Form.Item
-                            label="Address"
-                            name="address"
-                            rules={[{ required: true, message: 'Please enter address' }]}
-                        >
-                            <Input.TextArea placeholder="Enter full address" />
-                        </Form.Item>
-                    </Col>
+                        <Col xs={24} md={6}>
+                            <Form.Item
+                                label="City"
+                                name="city"
+                                rules={[{ required: true, message: 'Please select city' }]}
+                            >
+                                <Select
+                                    showSearch
+                                    placeholder="Select city"
+                                    options={cities}
+                                    optionFilterProp="label"
+                                />
+                            </Form.Item>
+                        </Col>
 
-                    <Col xs={12} md={4}>
-                        <Form.Item
-                            label="Thumbnail Image"
-                            name="thumbnail"
-                            rules={[
-                                {
-                                    required: mode === 'create',
-                                    message: 'Please upload thumbnail'
-                                }
-                            ]}
-                        >
-                            <Upload {...thumbnailUploadProps}>
-                                {thumbnailFileList?.length < 1 && (
-                                    <div>
-                                        <PlusOutlined />
-                                        <div style={{ marginTop: 8 }}>Upload</div>
+                        <Col xs={24} md={12}>
+                            <Form.Item
+                                label="Map URL"
+                                name="map_url"
+                            >
+                                <Input placeholder="Enter map URL" />
+                            </Form.Item>
+                        </Col>
+
+                        <Col xs={24} md={24}>
+                            <Form.Item
+                                label="Address"
+                                name="address"
+                                rules={[{ required: true, message: 'Please enter address' }]}
+                            >
+                                <Input.TextArea placeholder="Enter full address" />
+                            </Form.Item>
+                        </Col>
+
+                        {/* Thumbnail Image */}
+                        <Col xs={24} md={8}>
+                            <Form.Item
+                                label="Thumbnail Image"
+                                name="thumbnail"
+                                rules={[
+                                    {
+                                        required: mode === 'create',
+                                        message: 'Please select thumbnail'
+                                    }
+                                ]}
+                            >
+                                {thumbnailUrl ? (
+                                    <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 12,
+                                        padding: 12,
+                                        background: '#1f1f1f',
+                                        borderRadius: 8,
+                                        border: '1px solid #303030'
+                                    }}>
+                                        <Image
+                                            src={thumbnailUrl}
+                                            alt="Thumbnail"
+                                            width={60}
+                                            height={60}
+                                            style={{
+                                                objectFit: 'cover',
+                                                borderRadius: 6
+                                            }}
+                                        />
+                                        <div style={{ flex: 1 }}>
+                                            <Space size="small">
+                                                <Button
+                                                    size="small"
+                                                    icon={<PictureOutlined />}
+                                                    onClick={() => setThumbnailPickerOpen(true)}
+                                                >
+                                                    Change
+                                                </Button>
+                                                <Button
+                                                    size="small"
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                    onClick={handleRemoveThumbnail}
+                                                />
+                                            </Space>
+                                        </div>
                                     </div>
+                                ) : (
+                                    <Button
+                                        type="dashed"
+                                        icon={<PictureOutlined />}
+                                        onClick={() => setThumbnailPickerOpen(true)}
+                                        style={{ width: '100%', height: 60 }}
+                                    >
+                                        Select Thumbnail
+                                    </Button>
                                 )}
-                            </Upload>
-                        </Form.Item>
-                    </Col>
+                            </Form.Item>
+                        </Col>
 
-                    <Col xs={24} md={20}>
-                        <Form.Item
-                            label="Venue Images (Maximum 5)"
-                            name="venue_images"
-                        >
-                            <Upload {...venueImagesUploadProps}>
-                                {venueImagesFileList.length < 5 && ( // Hide uploader when 5 images uploaded
-                                    <div>
-                                        <PlusOutlined />
-                                        <div style={{ marginTop: 8 }}>Upload</div>
-                                    </div>
-                                )}
-                            </Upload>
-                        </Form.Item>
-                    </Col>
+                        {/* Venue Images */}
+                        <Col xs={24} md={16}>
+                            <Form.Item
+                                label="Venue Images (Maximum 5)"
+                                name="venue_images"
+                            >
+                                <div style={{
+                                    padding: 12,
+                                    background: '#1f1f1f',
+                                    borderRadius: 8,
+                                    border: '1px solid #303030',
+                                    minHeight: 60,
+                                }}>
+                                    {venueImageUrls.length > 0 ? (
+                                        <Space wrap size={8}>
+                                            {venueImageUrls.map((url, index) => (
+                                                <div
+                                                    key={index}
+                                                    style={{
+                                                        position: 'relative',
+                                                        display: 'inline-block'
+                                                    }}
+                                                >
+                                                    <Image
+                                                        src={url}
+                                                        alt={`Venue image ${index + 1}`}
+                                                        width={60}
+                                                        height={60}
+                                                        style={{
+                                                            objectFit: 'cover',
+                                                            borderRadius: 6
+                                                        }}
+                                                    />
+                                                    <Button
+                                                        type="primary"
+                                                        danger
+                                                        size="small"
+                                                        icon={<CloseOutlined />}
+                                                        onClick={() => handleRemoveVenueImage(url)}
+                                                        style={{
+                                                            position: 'absolute',
+                                                            top: -8,
+                                                            right: -8,
+                                                            width: 20,
+                                                            height: 20,
+                                                            minWidth: 20,
+                                                            padding: 0,
+                                                            borderRadius: '50%',
+                                                        }}
+                                                    />
+                                                </div>
+                                            ))}
+                                            {venueImageUrls.length < 5 && (
+                                                <Button
+                                                    type="dashed"
+                                                    icon={<PlusOutlined />}
+                                                    onClick={() => setVenueImagesPickerOpen(true)}
+                                                    style={{ width: 60, height: 60 }}
+                                                />
+                                            )}
+                                        </Space>
+                                    ) : (
+                                        <Button
+                                            type="dashed"
+                                            icon={<PictureOutlined />}
+                                            onClick={() => setVenueImagesPickerOpen(true)}
+                                            style={{ width: '100%', height: 40 }}
+                                        >
+                                            Select Venue Images
+                                        </Button>
+                                    )}
+                                </div>
+                            </Form.Item>
+                        </Col>
 
-                    <Col xs={24}>
-                        <Form.Item
-                            label="Embedded Code"
-                            name="aembeded_code"
-                        >
-                            <TextArea
-                                rows={3}
-                                placeholder="Enter embedded code (e.g., Google Maps iframe)"
-                            />
-                        </Form.Item>
-                    </Col>
+                        <Col xs={24}>
+                            <Form.Item
+                                label="Embedded Code"
+                                name="aembeded_code"
+                            >
+                                <TextArea
+                                    rows={3}
+                                    placeholder="Enter embedded code (e.g., Google Maps iframe)"
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Form>
+            </Modal>
 
+            {/* Thumbnail Picker Modal */}
+            <MediaGalleryPickerModal
+                open={thumbnailPickerOpen}
+                onCancel={() => setThumbnailPickerOpen(false)}
+                onSelect={handleThumbnailSelect}
+                multiple={false}
+                title="Select Thumbnail Image"
+                value={thumbnailUrl}
+            />
 
-                </Row>
-            </Form>
-        </Modal>
+            {/* Venue Images Picker Modal */}
+            <MediaGalleryPickerModal
+                open={venueImagesPickerOpen}
+                onCancel={() => setVenueImagesPickerOpen(false)}
+                onSelect={handleVenueImagesSelect}
+                multiple={true}
+                maxCount={5}
+                title="Select Venue Images (Max 5)"
+                value={venueImageUrls}
+            />
+        </>
     );
 };
 

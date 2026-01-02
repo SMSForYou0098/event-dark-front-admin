@@ -223,18 +223,31 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     }, [needsEvents, reportingUserId]);
 
     // Fetch events
-    const { data: fetchedEvents = [], isLoading: eventsLoading, isFetching: eventsFetching } = useQuery({
-        queryKey: ["org-events", reportingUserId],
-        enabled: shouldFetchEvents,
-        queryFn: async () => {
-            // ✅ Double-check before making API call
-            if (!reportingUserId || reportingUserId === 'undefined') {
-                throw new Error('Invalid reporting user ID');
-            }
+    const roleName = formState.roleName;
 
-            const res = await apiClient.get(`org-event/${reportingUserId}`);
-            const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
-            return list.map(event => ({
+    const {
+        data: fetchedEvents = [],
+        isLoading: eventsLoading,
+        isFetching: eventsFetching,
+    } = useQuery({
+        queryKey: ["org-events", reportingUserId, roleName],
+        enabled:
+            shouldFetchEvents &&
+            !!reportingUserId &&
+            reportingUserId !== "undefined" &&
+            !!roleName, // 👈 runs when roleName is set
+        queryFn: async () => {
+            const res = await apiClient.get(
+                `org-event/${reportingUserId}?role=${roleName}`
+            );
+
+            const list = Array.isArray(res?.data)
+                ? res.data
+                : Array.isArray(res?.events)
+                    ? res.events
+                    : [];
+
+            return list.map((event) => ({
                 value: event.id,
                 label: event.name,
                 tickets: event.tickets || [],
@@ -243,6 +256,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         staleTime: 5 * 60 * 1000,
         placeholderData: (previousData) => previousData,
     });
+
 
     // Use all available events for options/ticket derivation: prefer fetchedEvents, fallback to edit response
     const allEvents = useMemo(() => {
