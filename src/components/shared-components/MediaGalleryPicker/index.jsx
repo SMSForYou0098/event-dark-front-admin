@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, memo } from 'react';
 import {
     Row,
     Col,
@@ -7,7 +7,6 @@ import {
     Empty,
     Input,
     Button,
-    Space,
     Breadcrumb,
     Tabs,
     Modal,
@@ -22,9 +21,9 @@ import {
     CloudUploadOutlined,
 } from '@ant-design/icons';
 
-// Sub-components
-import SelectableMediaCard from './SelectableMediaCard';
-import SimpleFolderCard from './SimpleFolderCard';
+// Sub-components - reuse from media module
+import MediaCard from 'views/events/media/components/MediaCard';
+import FolderCard from 'views/events/media/components/FolderCard';
 import UploadSection from './UploadSection';
 
 // Hooks from media module
@@ -156,28 +155,31 @@ const MediaGalleryPicker = ({
         }
     }, [mediaFiles, pendingAutoSelect, multiple, maxCount, onChange]);
 
-    // Handlers
-    const handleOpenFolder = (folder) => {
+    // Handlers - memoized to prevent unnecessary re-renders
+    const handleOpenFolder = useCallback((folder) => {
         setCurrentFolder(folder.id);
         setFolderPath((prev) => [...prev, folder]);
         setSearchQuery('');
-    };
+    }, []);
 
-    const handleBreadcrumbNavigate = (folder) => {
+    const handleBreadcrumbNavigate = useCallback((folder) => {
         if (folder === null) {
             setCurrentFolder(null);
             setFolderPath([]);
         } else {
-            const index = folderPath.findIndex((f) => f.id === folder.id);
-            if (index !== -1) {
-                setCurrentFolder(folder.id);
-                setFolderPath(folderPath.slice(0, index + 1));
-            }
+            setFolderPath((prev) => {
+                const index = prev.findIndex((f) => f.id === folder.id);
+                if (index !== -1) {
+                    setCurrentFolder(folder.id);
+                    return prev.slice(0, index + 1);
+                }
+                return prev;
+            });
         }
         setSearchQuery('');
-    };
+    }, []);
 
-    const handleMediaSelect = (media) => {
+    const handleMediaSelect = useCallback((media) => {
         const mediaUrl = media.file_path || media.url;
 
         if (multiple) {
@@ -195,21 +197,21 @@ const MediaGalleryPicker = ({
                     newSelection = [...prev, media];
                 }
 
-                // Notify parent
+                // Notify parent - use setTimeout to defer callback
                 const urls = newSelection.map(m => m.file_path || m.url);
-                onChange?.(urls);
+                setTimeout(() => onChange?.(urls), 0);
                 return newSelection;
             });
         } else {
             // Single selection mode
             setSelectedMedia([media]);
-            onChange?.(mediaUrl);
+            setTimeout(() => onChange?.(mediaUrl), 0);
         }
-    };
+    }, [multiple, maxCount, onChange]);
 
-    const handleUploadFiles = async (files) => {
+    const handleUploadFiles = useCallback(async (files) => {
         try {
-            const result = await bulkUploadMutation.mutateAsync({
+            await bulkUploadMutation.mutateAsync({
                 files,
                 categoryId: currentFolder,
             });
@@ -230,32 +232,31 @@ const MediaGalleryPicker = ({
         } catch (error) {
             console.error('Upload failed:', error);
         }
-    };
+    }, [currentFolder, bulkUploadMutation, refetchChild, refetchRoot]);
 
-    const handleRefresh = () => {
+    const handleRefresh = useCallback(() => {
         refetchRoot();
         if (currentFolder) {
             refetchChild();
         }
-    };
+    }, [currentFolder, refetchRoot, refetchChild]);
 
-    // Check if media is selected
-    const isMediaSelected = (media) => {
-        const mediaUrl = media.file_path || media.url;
-        return selectedMedia.some(m => (m.file_path || m.url) === mediaUrl);
-    };
+    // Create a Set of selected URLs for O(1) lookup - much faster than array.some()
+    const selectedUrlsSet = useMemo(() => {
+        return new Set(selectedMedia.map(m => m.file_path || m.url));
+    }, [selectedMedia]);
 
-    // Grid column config
-    const getColSpan = () => ({
+    // Grid column config - memoized to prevent new object on every render
+    const colSpan = useMemo(() => ({
         xs: 12,
         sm: 8,
         md: 6,
-    });
+    }), []);
 
     const hasContent = filteredFolders.length > 0 || filteredMedia.length > 0;
 
-    // Tab items
-    const tabItems = [
+    // Tab items - memoized to prevent recreation on every render
+    const tabItems = useMemo(() => [
         {
             key: 'browse',
             label: (
@@ -272,7 +273,7 @@ const MediaGalleryPicker = ({
                 </span>
             ),
         },
-    ];
+    ], []);
 
     return (
         <div className="media-gallery-picker">
@@ -333,7 +334,7 @@ const MediaGalleryPicker = ({
                             {
                                 title: (
                                     <a onClick={() => handleBreadcrumbNavigate(null)}>
-                                        <HomeOutlined /> Root
+                                        <HomeOutlined /> Home
                                     </a>
                                 ),
                             },
@@ -377,9 +378,10 @@ const MediaGalleryPicker = ({
                                             <Row gutter={[8, 8]} style={{ marginBottom: 16 }}>
                                                 {filteredFolders.map((folder) => (
                                                     <Col key={folder.id} xs={12} sm={8}>
-                                                        <SimpleFolderCard
+                                                        <FolderCard
                                                             folder={folder}
                                                             onOpen={handleOpenFolder}
+                                                            pickerMode={true}
                                                         />
                                                     </Col>
                                                 ))}
@@ -395,11 +397,14 @@ const MediaGalleryPicker = ({
                                             </Text>
                                             <Row gutter={[8, 8]}>
                                                 {filteredMedia.map((media) => (
-                                                    <Col key={media.id} {...getColSpan()}>
-                                                        <SelectableMediaCard
+                                                    <Col key={media.id} {...colSpan}>
+                                                        <MemoizedMediaCard
                                                             media={media}
-                                                            selected={isMediaSelected(media)}
+                                                            selected={selectedUrlsSet.has(media.file_path || media.url)}
                                                             onSelect={handleMediaSelect}
+                                                            selectionMode={true}
+                                                            pickerMode={true}
+                                                            draggable={false}
                                                         />
                                                     </Col>
                                                 ))}
@@ -416,6 +421,18 @@ const MediaGalleryPicker = ({
     );
 };
 
+// Memoized MediaCard wrapper - only re-renders when props actually change
+const MemoizedMediaCard = memo(MediaCard, (prevProps, nextProps) => {
+    // Custom comparison - only re-render if these specific props change
+    return (
+        prevProps.media.id === nextProps.media.id &&
+        prevProps.selected === nextProps.selected &&
+        prevProps.selectionMode === nextProps.selectionMode &&
+        prevProps.pickerMode === nextProps.pickerMode &&
+        prevProps.draggable === nextProps.draggable
+    );
+});
+
 /**
  * MediaGalleryPickerModal - Modal wrapper for MediaGalleryPicker
  * Use this when you want the picker to open in a modal dialog
@@ -426,6 +443,7 @@ const MediaGalleryPicker = ({
  * @param {boolean} multiple - Allow multiple selection
  * @param {number} maxCount - Maximum selection count
  * @param {string} title - Modal title
+ * @param {object} dimensionValidation - Optional validation { width, height, strict } - strict=true means exact match
  */
 export const MediaGalleryPickerModal = ({
     open,
@@ -435,8 +453,10 @@ export const MediaGalleryPickerModal = ({
     maxCount = 10,
     title = 'Select Media',
     value,
+    dimensionValidation = null, // { width: 300, height: 600, strict: true }
 }) => {
     const [tempSelection, setTempSelection] = useState(value);
+    const [validating, setValidating] = useState(false);
 
     // Reset temp selection when modal opens
     useEffect(() => {
@@ -445,10 +465,63 @@ export const MediaGalleryPickerModal = ({
         }
     }, [open, value]);
 
-    const handleConfirm = () => {
-        onSelect?.(tempSelection);
-        onCancel?.();
-    };
+    // Memoized selection handler to prevent child re-renders
+    const handleSelectionChange = useCallback((newValue) => {
+        setTempSelection(newValue);
+    }, []);
+
+    // Validate image dimensions
+    const validateImageDimensions = useCallback(async (imageUrl) => {
+        return new Promise((resolve, reject) => {
+            const img = new window.Image();
+            img.onload = () => {
+                const { width, height, strict = true } = dimensionValidation;
+                if (strict) {
+                    if (img.width !== width || img.height !== height) {
+                        reject(`Image must be exactly ${width}px × ${height}px. Selected image is ${img.width}px × ${img.height}px`);
+                    } else {
+                        resolve(true);
+                    }
+                } else {
+                    // Non-strict: just check minimum dimensions
+                    if (img.width < width || img.height < height) {
+                        reject(`Image must be at least ${width}px × ${height}px. Selected image is ${img.width}px × ${img.height}px`);
+                    } else {
+                        resolve(true);
+                    }
+                }
+            };
+            img.onerror = () => reject('Failed to load image for validation');
+            img.src = imageUrl;
+        });
+    }, [dimensionValidation]);
+
+    const handleConfirm = useCallback(async () => {
+        // If dimension validation is required
+        if (dimensionValidation && tempSelection) {
+            setValidating(true);
+            try {
+                const urls = Array.isArray(tempSelection) ? tempSelection : [tempSelection];
+
+                // Validate all selected images
+                for (const url of urls) {
+                    await validateImageDimensions(url);
+                }
+
+                // All validations passed
+                onSelect?.(tempSelection);
+                onCancel?.();
+            } catch (err) {
+                message.error(err);
+            } finally {
+                setValidating(false);
+            }
+        } else {
+            // No validation needed
+            onSelect?.(tempSelection);
+            onCancel?.();
+        }
+    }, [dimensionValidation, tempSelection, validateImageDimensions, onSelect, onCancel]);
 
     const hasSelection = multiple
         ? (Array.isArray(tempSelection) && tempSelection.length > 0)
@@ -461,19 +534,50 @@ export const MediaGalleryPickerModal = ({
             onCancel={onCancel}
             onOk={handleConfirm}
             okText="Select"
-            okButtonProps={{ disabled: !hasSelection }}
+            cancelText="Cancel"
+            okButtonProps={{ disabled: !hasSelection, loading: validating }}
             width={800}
-            style={{ top: 20 }}
-            styles={{ body: { maxHeight: '70vh', overflow: 'auto' } }}
+            centered
+            zIndex={1100}
+            styles={{
+                body: {
+                    maxHeight: 'calc(80vh - 120px)', // Leave space for header and footer
+                    overflow: 'hidden', // Prevent double scrollbar
+                    paddingBottom: 12,
+                },
+                footer: {
+                    position: 'sticky',
+                    bottom: 0,
+                    background: 'var(--card-bg, #1f1f1f)',
+                    borderTop: '1px solid #303030',
+                    marginTop: 0,
+                    paddingTop: 12,
+                    zIndex: 10,
+                },
+            }}
         >
+            {dimensionValidation && (
+                <div style={{
+                    marginBottom: 12,
+                    padding: '8px 12px',
+                    background: 'rgba(255,165,0,0.1)',
+                    borderRadius: 6,
+                    border: '1px solid rgba(255,165,0,0.3)'
+                }}>
+                    <Text type="warning" style={{ fontSize: 12 }}>
+                        ⚠️ Required dimensions: {dimensionValidation.width}×{dimensionValidation.height}px
+                    </Text>
+                </div>
+            )}
             <MediaGalleryPicker
                 multiple={multiple}
                 maxCount={maxCount}
                 value={tempSelection}
-                onChange={setTempSelection}
+                onChange={handleSelectionChange}
             />
         </Modal>
     );
 };
 
 export default MediaGalleryPicker;
+

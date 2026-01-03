@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Card, Form, Input, Button, Row, Col, Select, Upload, message, Radio, Spin, Carousel, Image, Modal, Switch, } from 'antd';
-import { UploadOutlined, SaveOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Row, Col, Select, Upload, message, Radio, Spin, Carousel, Image, Modal, Switch, Space, Typography, } from 'antd';
+import { UploadOutlined, SaveOutlined, PictureOutlined, DeleteOutlined } from '@ant-design/icons';
 import { OrganisationList } from 'utils/CommonInputs';
 import { useMyContext } from 'Context/MyContextProvider';
 import { useEventCategories } from 'views/events/event/hooks/useEventOptions';
 import { useOrganizerEvents, useCreateBanner, useUpdateBanner, useEventsByCategories, } from 'views/events/Settings/hooks/useBanners';
 import { IMAGE_FIELDS, SWITCH_FIELDS, TEXT_FIELDS, TEXTAREA_FIELDS } from './constants';
 import { CustomNextArrow, CustomPrevArrow } from 'views/events/Settings/Banner/CaroselArrows';
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 
 const { TextArea } = Input;
+const { Text } = Typography;
 
 const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visible }) => {
   const { UserData, userRole } = useMyContext();
   const isOrganizer = userRole === 'Organizer'
   const [form] = Form.useForm();
   const isEditMode = mode === 'edit'
+
   // States
   const [bannerType, setBannerType] = useState(isOrganizer ? 'organization' : 'main');
   const [selectedOrgId, setSelectedOrgId] = useState(isOrganizer ? UserData?.id : null);
@@ -26,13 +29,14 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     mdImage: null,
   });
 
+  // Media picker states
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const [currentImageField, setCurrentImageField] = useState(null); // Track which field is being edited
+
   // Clear state when modal closes
   useEffect(() => {
     if (!visible) {
-      // Reset form fields
       form.resetFields();
-      
-      // Reset all state to initial values
       setBannerType(isOrganizer ? 'organization' : 'main');
       setSelectedOrgId(isOrganizer ? UserData?.id : null);
       setSelectedCategoryId(null);
@@ -42,17 +46,17 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         smImage: null,
         mdImage: null,
       });
+      setMediaPickerOpen(false);
+      setCurrentImageField(null);
     }
   }, [visible, form, isOrganizer, UserData?.id]);
 
-  // Set default org ID and banner type for organizers - IMMEDIATELY on mount
+  // Set default org ID and banner type for organizers
   useEffect(() => {
     if (visible && isOrganizer && UserData?.id && !isEditMode) {
       const orgId = String(UserData.id);
       setSelectedOrgId(UserData.id);
       setBannerType('organization');
-
-      // Set form values immediately
       form.setFieldsValue({
         org_id: orgId,
         banner_type: 'organization',
@@ -76,39 +80,29 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
   useEffect(() => {
     if (visible && isEditMode && bannerData) {
       const data = bannerData;
-
-      // Determine banner type - use the type from data directly
       let type = data.type || 'main';
-
-      // Normalize type names
       if (type === 'organisation') {
         type = 'organization';
       }
-
       setBannerType(type);
 
-      // Set org ID for organization type
       if (isOrganizer && UserData?.id) {
         setSelectedOrgId(UserData.id);
       } else if (data.org_id) {
         setSelectedOrgId(data.org_id);
       }
 
-      // Extract category ID - handle both object and direct ID
       let categoryId = null;
       if (data.category) {
         categoryId = typeof data.category === 'object' ? data.category.id : data.category;
         setSelectedCategoryId(categoryId);
-
-        // Set category title for fetching events
         const categoryTitle = typeof data.category === 'object'
           ? data.category.title
           : findCategoryTitleById(categoryId);
         setSelectedCategoryTitle(categoryTitle);
       }
 
-      // Set form values
-      form.setFieldsValue({   
+      form.setFieldsValue({
         banner_type: type,
         category: categoryId,
         title: data.title,
@@ -123,7 +117,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         display_in_popup: data.display_in_popup ? 1 : 0,
       });
 
-      // Set images if they exist
+      // Set images if they exist - store as URL strings for gallery-selected images
       const newImages = {};
       if (data.images) {
         newImages.bannerImage = {
@@ -159,7 +153,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
   } = useOrganizerEvents(selectedOrgId, {
     enabled: bannerType === 'organization' && !!selectedOrgId,
   });
-  // Fetch events based on selected category title (for category banner type only)
+
   const {
     data: categoryEventsData = [],
     isLoading: categoryEventsLoading,
@@ -167,7 +161,6 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     enabled: bannerType === 'category' && !!selectedCategoryTitle,
   });
 
-  // Process category events data to match the expected format
   const categoryEvents = useMemo(() => {
     return categoryEventsData?.map(event => ({
       value: event.id,
@@ -197,23 +190,16 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     },
   });
 
-  // Handle banner type change - DON'T allow organizers to change
+  // Handle banner type change
   const handleBannerTypeChange = (e) => {
-    // Prevent organizers from changing banner type
     if (isOrganizer) return;
-
     const type = e.target.value;
     setBannerType(type);
-
-    // Update form field
     form.setFieldValue('banner_type', type);
-
-    // Only reset dropdown-related states
     setSelectedOrgId(null);
     setSelectedCategoryId(null);
     setSelectedCategoryTitle(null);
 
-    // Clear only dropdown fields based on selection
     if (type === 'main') {
       form.setFieldsValue({
         org_id: undefined,
@@ -227,8 +213,6 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         event_id: undefined,
         event_key: undefined,
       });
-
-      // Auto-set org_id for organizers
       if (isOrganizer && UserData?.id) {
         setSelectedOrgId(UserData.id);
         form.setFieldValue('org_id', String(UserData.id));
@@ -242,7 +226,6 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     }
   };
 
-  // Handle org selection change (for organization banner type)
   const handleOrgChange = (value) => {
     setSelectedOrgId(value);
     form.setFieldsValue({
@@ -251,7 +234,6 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     });
   };
 
-  // Handle category selection change (for category banner type)
   const handleCategoryChange = (categoryId) => {
     setSelectedCategoryId(categoryId);
     const categoryTitle = findCategoryTitleById(categoryId);
@@ -262,72 +244,93 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     });
   };
 
-  // Handle event selection
   const handleEventChange = (value) => {
     const events = bannerType === 'organization' ? orgEvents : categoryEvents;
     const selectedEvent = events?.find(e => e.value === value);
-
     if (selectedEvent) {
-      // Always use event_key from the selected event
       form.setFieldValue('event_key', selectedEvent.event_key);
     }
   };
 
-  // Generic image upload handler
-  const handleImageChange = (stateKey) => ({ fileList }) => {
-    setImages(prev => ({ ...prev, [stateKey]: fileList[0] || null }));
+  // Open media picker for a specific image field
+  const openMediaPicker = (stateKey) => {
+    setCurrentImageField(stateKey);
+    setMediaPickerOpen(true);
+  };
+
+  // Handle media selection from gallery picker
+  const handleMediaSelect = (url) => {
+    if (currentImageField) {
+      setImages(prev => ({
+        ...prev,
+        [currentImageField]: {
+          uid: Date.now().toString(),
+          name: 'gallery-image',
+          status: 'done',
+          url: url,
+          isGalleryImage: true, // Flag to identify gallery-selected images
+        }
+      }));
+    }
+    setMediaPickerOpen(false);
+    setCurrentImageField(null);
+  };
+
+  // Clear image for a field
+  const clearImage = (stateKey) => {
+    setImages(prev => ({ ...prev, [stateKey]: null }));
   };
 
   // Handle form submit
   const handleSubmit = async () => {
     try {
-      // Validate and get values
       const values = await form.validateFields();
-
       const submitData = new FormData();
       const IMAGE_KEYS = ['images', 'sm_image', 'md_image'];
 
-      // Always send the normalized banner type
       submitData.append('type', bannerType);
 
-      // Append non-file fields (skip upload fields and irrelevant fields per type)
       Object.entries(values).forEach(([key, val]) => {
-        // 1) skip the form-only banner_type field (we already appended 'type' above)
         if (key === 'banner_type') return;
-
-        // 2) skip file fields; they'll be appended from state below
         if (IMAGE_KEYS.includes(key)) return;
-
-        // 3) skip fields based on banner type
         if (bannerType === 'main' && (key === 'org_id' || key === 'event_id' || key === 'event_key')) return;
         if (bannerType === 'organization' && key === 'category') return;
         if (bannerType === 'category' && key === 'org_id') return;
 
-        // 4) Handle boolean fields - convert to 0 or 1
         if (key === 'display_in_popup') {
           submitData.append(key, val ? '1' : '0');
           return;
         }
 
-        // 5) append only meaningful values
         if (val !== undefined && val !== null && val !== '') {
-          // Coerce to string to be consistent for FormData text fields
           submitData.append(key, String(val));
         }
       });
 
-      // Append image files only if a NEW file is picked (originFileObj exists)
-      if (images.bannerImage?.originFileObj) {
-        submitData.append('images', images.bannerImage.originFileObj);
+      // Append images - handle both gallery URLs and file uploads
+      // Field name: 'images' for bannerImage, 'sm_image' for smImage, 'md_image' for mdImage
+      if (images.bannerImage) {
+        if (images.bannerImage.originFileObj) {
+          submitData.append('images', images.bannerImage.originFileObj);
+        } else if (images.bannerImage.isGalleryImage && images.bannerImage.url) {
+          submitData.append('images', images.bannerImage.url);
+        }
       }
-      if (images.smImage?.originFileObj) {
-        submitData.append('sm_image', images.smImage.originFileObj);
+      if (images.smImage) {
+        if (images.smImage.originFileObj) {
+          submitData.append('sm_image', images.smImage.originFileObj);
+        } else if (images.smImage.isGalleryImage && images.smImage.url) {
+          submitData.append('sm_image', images.smImage.url);
+        }
       }
-      if (images.mdImage?.originFileObj) {
-        submitData.append('md_image', images.mdImage.originFileObj);
+      if (images.mdImage) {
+        if (images.mdImage.originFileObj) {
+          submitData.append('md_image', images.mdImage.originFileObj);
+        } else if (images.mdImage.isGalleryImage && images.mdImage.url) {
+          submitData.append('md_image', images.mdImage.url);
+        }
       }
 
-      // Submit
       if (isEditMode) {
         updateBanner({ id, formData: submitData });
       } else {
@@ -339,51 +342,34 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     }
   };
 
-
-  // Upload props for images
-  const uploadProps = {
-    beforeUpload: (file) => {
-      const isImage = file.type.startsWith('image/');
-      if (!isImage) {
-        message.error('You can only upload image files!');
-        return Upload.LIST_IGNORE;
-      }
-      const isLt5M = file.size / 1024 / 1024 < 5;
-      if (!isLt5M) {
-        message.error('Image must be smaller than 5MB!');
-        return Upload.LIST_IGNORE;
-      }
-      return false;
-    },
-    maxCount: 1,
-  };
-
   // Get all uploaded images for carousel
   const uploadedImages = useMemo(() => {
     const imgs = [];
     if (images.bannerImage) {
-      imgs.push({
-        url: images.bannerImage.url || URL.createObjectURL(images.bannerImage.originFileObj),
-        title: 'Banner Image',
-      });
+      const url = images.bannerImage.url ||
+        (images.bannerImage.originFileObj ? URL.createObjectURL(images.bannerImage.originFileObj) : null);
+      if (url) {
+        imgs.push({ url, title: 'Banner Image' });
+      }
     }
     if (images.smImage) {
-      imgs.push({
-        url: images.smImage.url || URL.createObjectURL(images.smImage.originFileObj),
-        title: 'Small Image',
-      });
+      const url = images.smImage.url ||
+        (images.smImage.originFileObj ? URL.createObjectURL(images.smImage.originFileObj) : null);
+      if (url) {
+        imgs.push({ url, title: 'Small Image' });
+      }
     }
     if (images.mdImage) {
-      imgs.push({
-        url: images.mdImage.url || URL.createObjectURL(images.mdImage.originFileObj),
-        title: 'Medium Image',
-      });
+      const url = images.mdImage.url ||
+        (images.mdImage.originFileObj ? URL.createObjectURL(images.mdImage.originFileObj) : null);
+      if (url) {
+        imgs.push({ url, title: 'Medium Image' });
+      }
     }
     return imgs;
   }, [images]);
 
   const isSubmitting = isCreating || isUpdating;
-  const showOrgDropdown = false; // Never show org dropdown (Organizers use their own ID, others see type options)
   const showCategoryField = bannerType === 'category' || bannerType === 'main';
   const showEventDropdown = bannerType === 'organization' || bannerType === 'category';
   const eventsData = bannerType === 'organization' ? orgEvents : categoryEvents;
@@ -392,221 +378,277 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
     ? (selectedOrgId ? "Select event" : (isOrganizer ? "Loading events..." : "Select organization first"))
     : (selectedCategoryTitle ? "Select event" : "Select category first");
 
-  // Custom arrow components for carousel
+  // Get current image URL for a field
+  const getImageUrl = (stateKey) => {
+    const img = images[stateKey];
+    if (!img) return null;
+    return img.url || (img.originFileObj ? URL.createObjectURL(img.originFileObj) : null);
+  };
+
   return (
-    <Modal
-      title={`${mode === 'create' ? 'Create' : 'Edit'} Banner`}
-      open={visible}
-      onCancel={onCancel}
-      footer={
-        <>
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={() => form.submit()}
-            loading={isSubmitting}
-          >
-            {isSubmitting
-              ? (isEditMode ? 'Updating...' : 'Creating...')
-              : (isEditMode ? 'Update' : 'Create')}
-          </Button>
-        </>
-      }
-      width={1200}
-      destroyOnClose
-      afterClose={() => {
-        // Additional cleanup after modal animation completes
-        form.resetFields();
-      }}
-    >
-      <Form form={form} layout="vertical" onFinish={handleSubmit}>
-        <Row gutter={[16, 16]}>
-          {/* Banner Type */}
-          <Col xs={24}>
-            <Form.Item label="Banner Type" name="banner_type" initialValue="main">
-              <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
-                <Radio value="main">Main Banner</Radio>
-                <Radio value="organization">Organization Banner</Radio>
-                <Radio value="category">Category Banner</Radio>
-              </Radio.Group>
-            </Form.Item>
-          </Col>
-
-          {/* Organization Dropdown */}
-          {bannerType === 'organization' && (
-            <Col xs={24} md={12}>
-              <OrganisationList onChange={handleOrgChange} />
-            </Col>
-          )}
-
-          {/* Category Dropdown */}
-          {showCategoryField && (
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Category"
-                name="category"
-                rules={[{ required: true, message: 'Please select category' }]}
-              >
-                <Select
-                  showSearch
-                  placeholder="Select category"
-                  loading={catLoading}
-                  options={categories?.map(cat => ({
-                    value: cat.id || cat.value,
-                    label: cat.name || cat.label,
-                  }))}
-                  optionFilterProp="label"
-                  onChange={handleCategoryChange}
-                />
-              </Form.Item>
-            </Col>
-          )}
-
-          {/* Event Dropdown */}
-          {showEventDropdown && (
-            <Col xs={24} md={12}>
-              <Form.Item
-                label="Event"
-                name="event_id"
-                rules={[
-                  {
-                    required: bannerType === 'category',
-                    message: 'Please select event'
-                  }
-                ]}
-              >
-                <Select
-                  showSearch
-                  placeholder={eventPlaceholder}
-                  loading={eventsLoading}
-                  disabled={bannerType === 'organization' ? !selectedOrgId : !selectedCategoryTitle}
-                  options={eventsData?.map(event => ({
-                    value: event.value,
-                    label: event.label,
-                  }))}
-                  optionFilterProp="label"
-                  onChange={handleEventChange}
-                  allowClear
-                />
-              </Form.Item>
-            </Col>
-          )}
-
-          {/* Hidden Event Key Field */}
-          <Form.Item name="event_key" noStyle>
-            <Input type="hidden" />
-          </Form.Item>
-
-          {/* Text Fields */}
-          {TEXT_FIELDS.map((field) => (
-            <Col key={field.name} {...field.span}>
-              <Form.Item
-                label={field.label}
-                name={field.name}
-                rules={field.rules}
-              >
-                <Input placeholder={field.placeholder} />
-              </Form.Item>
-            </Col>
-          ))}
-          {/* Switch Fields - NEW SECTION */}
-          {SWITCH_FIELDS.map((field) => (
-            <Col key={field.name} {...field.span}>
-              <Form.Item
-                label={field.label}
-                name={field.name}
-                valuePropName="checked"
-                tooltip={field.tooltip}
-                initialValue={false}
-              >
-                <Switch />
-              </Form.Item>
-            </Col>
-          ))}
-
-
-          {/* Image Upload Fields */}
-          {IMAGE_FIELDS.map((field) => (
-            <Col key={field.name} {...field.span}>
-              <Form.Item
-                label={field.label}
-                name={field.name}
-                rules={field.required ? [{ required: !isEditMode, message: `Please upload ${field.label.toLowerCase()}` }] : undefined}
-              >
-                <Upload
-                  {...uploadProps}
-                  fileList={images[field.stateKey] ? [images[field.stateKey]] : []}
-                  onChange={handleImageChange(field.stateKey)}
-                  listType="picture-card"
-                  accept="image/*"
-                >
-                  {!images[field.stateKey] && (
-                    <div>
-                      <UploadOutlined />
-                      <div style={{ marginTop: 8 }}>{field.uploadText}</div>
-                    </div>
-                  )}
-                </Upload>
-              </Form.Item>
-            </Col>
-          ))}
-
-          {/* TextArea Fields */}
-          {TEXTAREA_FIELDS.map((field) => (
-            <Col key={field.name} {...field.span}>
-              <Form.Item
-                label={field.label}
-                name={field.name}
-                rules={field.rules}
-              >
-                <TextArea
-                  rows={field.rows}
-                  placeholder={field.placeholder}
-                  showCount
-                  maxLength={field.maxLength}
-                />
-              </Form.Item>
-            </Col>
-          ))}
-
-
-          {/* Image Preview Carousel */}
-          {uploadedImages.length > 0 && (
+    <>
+      <Modal
+        title={`${mode === 'create' ? 'Create' : 'Edit'} Banner`}
+        open={visible}
+        onCancel={onCancel}
+        footer={
+          <>
+            <Button onClick={onCancel}>Cancel</Button>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={() => form.submit()}
+              loading={isSubmitting}
+            >
+              {isSubmitting
+                ? (isEditMode ? 'Updating...' : 'Creating...')
+                : (isEditMode ? 'Update' : 'Create')}
+            </Button>
+          </>
+        }
+        width={1200}
+        destroyOnClose
+        afterClose={() => {
+          form.resetFields();
+        }}
+      >
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
+          <Row gutter={[16, 16]}>
+            {/* Banner Type */}
             <Col xs={24}>
-              <Card title="Image Preview" style={{ marginTop: 16 }}>
-                <Carousel
-                  arrows
-                  prevArrow={<CustomPrevArrow />}
-                  nextArrow={<CustomNextArrow />}
-                  style={{ padding: '0 40px' }}
-                >
-                  {uploadedImages.map((img, index) => (
-                    <div key={index}>
-                      <div style={{ textAlign: 'center', padding: '20px' }}>
-                        <h4 style={{ marginBottom: 16 }}>{img.title}</h4>
-                        <Image
-                          src={img.url}
-                          alt={img.title}
-                          style={{
-                            maxHeight: '400px',
-                            maxWidth: '100%',
-                            objectFit: 'contain',
-                          }}
-                          preview={{
-                            mask: 'Click to preview',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </Carousel>
-              </Card>
+              <Form.Item label="Banner Type" name="banner_type" initialValue="main">
+                <Radio.Group onChange={handleBannerTypeChange} value={bannerType}>
+                  <Radio value="main">Main Banner</Radio>
+                  <Radio value="organization">Organization Banner</Radio>
+                  <Radio value="category">Category Banner</Radio>
+                </Radio.Group>
+              </Form.Item>
             </Col>
-          )}
-        </Row>
-      </Form>
-    </Modal>
+
+            {/* Organization Dropdown */}
+            {bannerType === 'organization' && (
+              <Col xs={24} md={12}>
+                <OrganisationList onChange={handleOrgChange} />
+              </Col>
+            )}
+
+            {/* Category Dropdown */}
+            {showCategoryField && (
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="Category"
+                  name="category"
+                  rules={[{ required: true, message: 'Please select category' }]}
+                >
+                  <Select
+                    showSearch
+                    placeholder="Select category"
+                    loading={catLoading}
+                    options={categories?.map(cat => ({
+                      value: cat.id || cat.value,
+                      label: cat.name || cat.label,
+                    }))}
+                    optionFilterProp="label"
+                    onChange={handleCategoryChange}
+                  />
+                </Form.Item>
+              </Col>
+            )}
+
+            {/* Event Dropdown */}
+            {showEventDropdown && (
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="Event"
+                  name="event_id"
+                  rules={[
+                    {
+                      required: bannerType === 'category',
+                      message: 'Please select event'
+                    }
+                  ]}
+                >
+                  <Select
+                    showSearch
+                    placeholder={eventPlaceholder}
+                    loading={eventsLoading}
+                    disabled={bannerType === 'organization' ? !selectedOrgId : !selectedCategoryTitle}
+                    options={eventsData?.map(event => ({
+                      value: event.value,
+                      label: event.label,
+                    }))}
+                    optionFilterProp="label"
+                    onChange={handleEventChange}
+                    allowClear
+                  />
+                </Form.Item>
+              </Col>
+            )}
+
+            {/* Hidden Event Key Field */}
+            <Form.Item name="event_key" noStyle>
+              <Input type="hidden" />
+            </Form.Item>
+
+            {/* Text Fields */}
+            {TEXT_FIELDS.map((field) => (
+              <Col key={field.name} {...field.span}>
+                <Form.Item
+                  label={field.label}
+                  name={field.name}
+                  rules={field.rules}
+                >
+                  <Input placeholder={field.placeholder} />
+                </Form.Item>
+              </Col>
+            ))}
+
+            {/* Switch Fields */}
+            {SWITCH_FIELDS.map((field) => (
+              <Col key={field.name} {...field.span}>
+                <Form.Item
+                  label={field.label}
+                  name={field.name}
+                  valuePropName="checked"
+                  tooltip={field.tooltip}
+                  initialValue={false}
+                >
+                  <Switch />
+                </Form.Item>
+              </Col>
+            ))}
+
+            {/* Image Fields - Using MediaGalleryPicker */}
+            {IMAGE_FIELDS.map((field) => (
+              <Col key={field.name} {...field.span}>
+                <Form.Item
+                  label={field.label}
+                  name={field.name}
+                  rules={field.required ? [{ required: !isEditMode && !images[field.stateKey], message: `Please select ${field.label.toLowerCase()}` }] : undefined}
+                >
+                  <Card
+                    size="small"
+                    style={{
+                      border: images[field.stateKey] ? '2px solid #52c41a' : '1px solid #303030',
+                      minHeight: 120,
+                    }}
+                    styles={{ body: { padding: 12 } }}
+                  >
+                    {getImageUrl(field.stateKey) ? (
+                      <div style={{ textAlign: 'center' }}>
+                        <Image
+                          src={getImageUrl(field.stateKey)}
+                          alt={field.label}
+                          style={{ maxHeight: 100, objectFit: 'contain' }}
+                        />
+                        <div style={{ marginTop: 8 }}>
+                          <Space size="small">
+                            <Button
+                              size="small"
+                              icon={<PictureOutlined />}
+                              onClick={() => openMediaPicker(field.stateKey)}
+                            >
+                              Change
+                            </Button>
+                            <Button
+                              size="small"
+                              danger
+                              icon={<DeleteOutlined />}
+                              onClick={() => clearImage(field.stateKey)}
+                            />
+                          </Space>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center' }}>
+                        <Button
+                          type="dashed"
+                          icon={<PictureOutlined />}
+                          onClick={() => openMediaPicker(field.stateKey)}
+                          style={{ height: 60, width: '100%' }}
+                        >
+                          <div>
+                            <div>{field.uploadText}</div>
+                            <Text type="secondary" style={{ fontSize: 10 }}>
+                              Select from Gallery
+                            </Text>
+                          </div>
+                        </Button>
+                      </div>
+                    )}
+                  </Card>
+                </Form.Item>
+              </Col>
+            ))}
+
+            {/* TextArea Fields */}
+            {TEXTAREA_FIELDS.map((field) => (
+              <Col key={field.name} {...field.span}>
+                <Form.Item
+                  label={field.label}
+                  name={field.name}
+                  rules={field.rules}
+                >
+                  <TextArea
+                    rows={field.rows}
+                    placeholder={field.placeholder}
+                    showCount
+                    maxLength={field.maxLength}
+                  />
+                </Form.Item>
+              </Col>
+            ))}
+
+            {/* Image Preview Carousel */}
+            {uploadedImages.length > 0 && (
+              <Col xs={24}>
+                <Card title="Image Preview" style={{ marginTop: 16 }}>
+                  <Carousel
+                    arrows
+                    prevArrow={<CustomPrevArrow />}
+                    nextArrow={<CustomNextArrow />}
+                    style={{ padding: '0 40px' }}
+                  >
+                    {uploadedImages.map((img, index) => (
+                      <div key={index}>
+                        <div style={{ textAlign: 'center', padding: '20px' }}>
+                          <h4 style={{ marginBottom: 16 }}>{img.title}</h4>
+                          <Image
+                            src={img.url}
+                            alt={img.title}
+                            style={{
+                              maxHeight: '400px',
+                              maxWidth: '100%',
+                              objectFit: 'contain',
+                            }}
+                            preview={{
+                              mask: 'Click to preview',
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </Carousel>
+                </Card>
+              </Col>
+            )}
+          </Row>
+        </Form>
+      </Modal>
+
+      {/* Media Gallery Picker Modal */}
+      <MediaGalleryPickerModal
+        open={mediaPickerOpen}
+        onCancel={() => {
+          setMediaPickerOpen(false);
+          setCurrentImageField(null);
+        }}
+        onSelect={handleMediaSelect}
+        multiple={false}
+        title={`Select ${currentImageField === 'bannerImage' ? 'Banner' : currentImageField === 'smImage' ? 'Small' : 'Medium'} Image`}
+        value={getImageUrl(currentImageField)}
+      />
+    </>
   );
 };
 

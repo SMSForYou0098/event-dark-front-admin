@@ -1,219 +1,166 @@
 // MediaStep.jsx
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Form, Input, Upload, Row, Col, Space, Image } from 'antd';
-import { InboxOutlined, PlusOutlined } from '@ant-design/icons';
-import Dragger from 'antd/es/upload/Dragger';
-
-const normFile = (e) => (Array.isArray(e) ? e : e?.fileList ?? []);
+import React, { useCallback, useState } from 'react';
+import { Form, Input, Row, Col, Space, Image, Button } from 'antd';
+import { PlusOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 
 const MediaStep = ({ form }) => {
-  // ---- Thumbnail preview (existing or just-picked) ----
-  const thumbList = Form.useWatch('thumbnail', form);
-  const [thumbPreview, setThumbPreview] = useState(null);
-  const objectUrlRef = useRef(null); // so we can revoke created ObjectURLs
+  // Modal visibility states for each picker
+  const [thumbnailModalOpen, setThumbnailModalOpen] = useState(false);
+  const [instaThumbModalOpen, setInstaThumbModalOpen] = useState(false);
+  const [layoutImageModalOpen, setLayoutImageModalOpen] = useState(false);
+  const [galleryModalOpen, setGalleryModalOpen] = useState(false);
 
-  useEffect(() => {
-    // cleanup old object URL
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
 
-    if (Array.isArray(thumbList) && thumbList.length > 0) {
-      const f = thumbList[0];
-      if (f?.url) {
-        // existing server image (edit mode)
-        setThumbPreview(f.url);
-      } else if (f?.originFileObj) {
-        // newly selected local file
-        const url = URL.createObjectURL(f.originFileObj);
-        objectUrlRef.current = url;
-        setThumbPreview(url);
-      } else {
-        setThumbPreview(null);
-      }
-    } else {
-      setThumbPreview(null);
-    }
+  console.log('form',form.getFieldValue()
+)
+  // Watch form values for previews
+  const thumbnailValue = Form.useWatch('thumbnail', form);
+  const instaThumbValue = Form.useWatch('insta_thumbnail', form);
+  const layoutImageValue = Form.useWatch('layout_image', form);
+  const galleryImages = Form.useWatch('images', form);
 
-    return () => {
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-    };
-  }, [thumbList]);
+  // Handler for thumbnail selection (single image with dimension validation)
+  const handleThumbnailSelect = useCallback((url) => {
+    form.setFieldsValue({ thumbnail: url });
+  }, [form]);
 
-  // Keep only 1 thumb in the list on change and validate
-  const handleThumbChange = useCallback(
-    (info) => {
-      const fileList = (info?.fileList || []).slice(-1); // ensure max 1
-      form.setFieldsValue({ thumbnail: fileList });
-      
-      // Trigger validation when a new file is selected
-      if (fileList.length > 0) {
-        setTimeout(() => {
-          form.validateFields(['thumbnail']).catch(() => {
-            // Validation errors are handled by the validator
-          });
-        }, 100);
-      }
-    },
-    [form]
+  // Handler for insta thumbnail selection (single image)
+  const handleInstaThumbSelect = useCallback((url) => {
+    form.setFieldsValue({ insta_thumbnail: url });
+  }, [form]);
+
+  // Handler for layout image selection (single image)
+  const handleLayoutImageSelect = useCallback((url) => {
+    form.setFieldsValue({ layout_image: url });
+  }, [form]);
+
+  // Handler for gallery images selection (multiple)
+  const handleGallerySelect = useCallback((urls) => {
+    form.setFieldsValue({ images: urls });
+  }, [form]);
+
+  // Simple remove handlers - just clear the value
+  const handleRemoveThumbnail = useCallback(() => {
+    form.setFieldsValue({ thumbnail: null });
+  }, [form]);
+
+  const handleRemoveInstaThumb = useCallback(() => {
+    form.setFieldsValue({ insta_thumbnail: null });
+  }, [form]);
+
+  const handleRemoveLayoutImage = useCallback(() => {
+    form.setFieldsValue({ layout_image: null });
+  }, [form]);
+
+  const handleRemoveGalleryImage = useCallback((urlToRemove) => {
+    const currentUrls = form.getFieldValue('images') || [];
+    form.setFieldsValue({ images: currentUrls.filter(url => url !== urlToRemove) });
+  }, [form]);
+
+  // Reusable image preview card component
+  const ImagePreviewCard = ({ src, onRemove, width = 150, height = 150, label }) => (
+    <div style={{ position: 'relative', display: 'inline-block' }}>
+      <div
+        style={{
+          width,
+          height,
+          border: '1px solid #303030',
+          borderRadius: 8,
+          overflow: 'hidden',
+          background: '#1a1a1a',
+        }}
+      >
+        <Image
+          src={src}
+          alt={label}
+          width={width}
+          height={height}
+          style={{ objectFit: 'cover' }}
+          preview={{ mask: 'Preview' }}
+        />
+      </div>
+      {onRemove && (
+        <Button
+          type="text"
+          danger
+          size="small"
+          icon={<DeleteOutlined />}
+          onClick={onRemove}
+          style={{
+            position: 'absolute',
+            top: 4,
+            right: 4,
+            background: 'rgba(0,0,0,0.6)',
+            borderRadius: '50%',
+          }}
+        />
+      )}
+    </div>
   );
 
-  const handleThumbRemove = () => true;
-
-  // ---- Thumbnail dimension validation function ----
-  const validateThumbnailDimensions = useCallback(async (file) => {
-    return new Promise((resolve, reject) => {
-      const imgElement = document.createElement('img');
-      const objectUrl = URL.createObjectURL(file);
-
-      imgElement.onload = () => {
-        const { width, height } = imgElement;
-        URL.revokeObjectURL(objectUrl);
-
-        if (width === 600 && height === 725) {
-          resolve(true);
-        } else {
-          const errorMsg = `Invalid image size: ${width}×${height}px. Thumbnail must be exactly 600px width × 725px height.`;
-          reject(new Error(errorMsg));
-        }
-      };
-
-      imgElement.onerror = () => {
-        URL.revokeObjectURL(objectUrl);
-        const errorMsg = 'Unable to read image dimensions. Please ensure the file is a valid image.';
-        reject(new Error(errorMsg));
-      };
-
-      imgElement.src = objectUrl;
-    });
-  }, []);
-
-  // ---- Custom Form.Item validator for thumbnail dimensions ----
-  const validateThumbnail = useCallback(
-    async (_, fileList) => {
-      if (!Array.isArray(fileList) || fileList.length === 0) {
-        throw new Error('Please upload event thumbnail');
-      }
-
-      const file = fileList[0];
-      
-      // If it's an existing server image (has URL), skip dimension validation
-      if (file?.url && !file?.originFileObj) {
-        return Promise.resolve();
-      }
-
-      // If it's a new file, validate dimensions
-      if (file?.originFileObj) {
-        try {
-          await validateThumbnailDimensions(file.originFileObj);
-          return Promise.resolve();
-        } catch (error) {
-          return Promise.reject(error);
-        }
-      }
-
-      return Promise.resolve();
-    },
-    [validateThumbnailDimensions]
-  );
-
-  // ---- Gallery removal tracking (existing URLs only) ----
-  const handleGalleryRemove = useCallback(
-    (file) => {
-      const url = file?.url;
-      if (url) {
-        const prev = form.getFieldValue('remove_images') || [];
-        if (!prev.includes(url)) {
-          form.setFieldsValue({ remove_images: [...prev, url] });
-        }
-      }
-      return true;
-    },
-    [form]
+  // Placeholder upload button
+  const UploadPlaceholder = ({ onClick, label, size = 150 }) => (
+    <div
+      onClick={onClick}
+      style={{
+        width: size,
+        height: size,
+        border: '2px dashed #404040',
+        borderRadius: 8,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        background: '#1a1a1a',
+        transition: 'border-color 0.3s',
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--primary-color)'}
+      onMouseLeave={(e) => e.currentTarget.style.borderColor = '#404040'}
+    >
+      <PictureOutlined style={{ fontSize: 28, color: '#666', marginBottom: 8 }} />
+      <span style={{ fontSize: 12, color: '#888', textAlign: 'center', padding: '0 8px' }}>
+        {label}
+      </span>
+    </div>
   );
 
   return (
     <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      {/* Hidden array field to collect URLs/paths of removed gallery images */}
-      <Form.Item name="remove_images" hidden>
-        <input />
-      </Form.Item>
-
-      {/* Event thumbnail (single) with side-by-side preview */}
+      {/* Event Thumbnail (single, 600×725px required) */}
       <Form.Item
         name="thumbnail"
         label="Event Thumbnail"
-        rules={[
-          { required: true, message: 'Please upload event thumbnail' },
-          { validator: validateThumbnail },
-        ]}
-        valuePropName="fileList"
-        getValueFromEvent={normFile}
+        rules={[{ required: true, message: 'Please select event thumbnail' }]}
       >
         <Row gutter={16} align="middle">
           <Col>
-            <div
-              style={{
-                width: 220,
-                height: 220,
-                margin: 'auto',
-              }}
-            >
-              <Dragger
-                multiple={false}
-                maxCount={1}
-                beforeUpload={(file) => {
-                  // Prevent auto upload, validation happens in Form.Item validator
-                  return false;
-                }}
-                accept="image/*"
-                onChange={handleThumbChange}
-                onRemove={handleThumbRemove}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  padding: 10,
-                }}
-                showUploadList={false}
-              >
-                <p className="ant-upload-drag-icon" style={{ marginBottom: 0 }}>
-                  <InboxOutlined />
-                </p>
-                <p className="ant-upload-text" style={{ fontSize: 13 }}>
-                  Upload Thumbnail
-                </p>
-                <p style={{ fontSize: 12, color: '#888' }}>
-                  Required size: 600×725px
-                </p>
-              </Dragger>
-
-            </div>
+            {thumbnailValue ? (
+              <ImagePreviewCard
+                src={thumbnailValue}
+                onRemove={handleRemoveThumbnail}
+                width={180}
+                height={218}
+                label="Thumbnail"
+              />
+            ) : (
+              <UploadPlaceholder
+                onClick={() => setThumbnailModalOpen(true)}
+                label="Select Thumbnail (600×725px)"
+                size={180}
+              />
+            )}
           </Col>
-
-          {thumbPreview && (
+          {thumbnailValue && (
             <Col>
-              <div
-                style={{
-                  width: 220,
-                  height: 220,
-                  border: '1px solid #d9d9d9',
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                }}
+              <Button
+                type="dashed"
+                icon={<PlusOutlined />}
+                onClick={() => setThumbnailModalOpen(true)}
               >
-                <Image
-                  src={thumbPreview}
-                  alt="Thumbnail Preview"
-                  width={220}
-                  height={220}
-                  style={{ objectFit: 'cover' }}
-                  preview={false}
-                />
-              </div>
+                Change Thumbnail
+              </Button>
             </Col>
           )}
         </Row>
@@ -242,69 +189,157 @@ const MediaStep = ({ form }) => {
       </Row>
 
       <Row gutter={16}>
+        {/* Instagram Thumbnail */}
         <Col xs={24} md={12}>
           <Form.Item
             name="insta_thumbnail"
             label="Instagram Thumbnail"
-            valuePropName="fileList"
-            getValueFromEvent={normFile}
           >
-            <Upload
-              listType="picture-card"
-              maxCount={1}
-              beforeUpload={() => false}
-              accept="image/*"
-            >
-              <div>
-                <PlusOutlined />
-                <div style={{ marginTop: 8 }}>Upload</div>
-              </div>
-            </Upload>
+            <Row gutter={12} align="middle">
+              <Col>
+                {instaThumbValue ? (
+                  <ImagePreviewCard
+                    src={instaThumbValue}
+                    onRemove={handleRemoveInstaThumb}
+                    width={120}
+                    height={120}
+                    label="Insta Thumbnail"
+                  />
+                ) : (
+                  <UploadPlaceholder
+                    onClick={() => setInstaThumbModalOpen(true)}
+                    label="Select Image"
+                    size={120}
+                  />
+                )}
+              </Col>
+              {instaThumbValue && (
+                <Col>
+                  <Button
+                    type="dashed"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => setInstaThumbModalOpen(true)}
+                  >
+                    Change
+                  </Button>
+                </Col>
+              )}
+            </Row>
           </Form.Item>
         </Col>
 
+        {/* Layout Image */}
         <Col xs={24} md={12}>
           <Form.Item
             name="layout_image"
             label="Ground/Arena Layout Image"
-            valuePropName="fileList"
-            getValueFromEvent={normFile}
           >
-            <Upload
-              listType="picture-card"
-              maxCount={1}
-              beforeUpload={() => false}
-              accept="image/*"
-            >
-              <div>
-                <PlusOutlined />
-                <div style={{ marginTop: 8 }}>Upload Layout</div>
-              </div>
-            </Upload>
+            <Row gutter={12} align="middle">
+              <Col>
+                {layoutImageValue ? (
+                  <ImagePreviewCard
+                    src={layoutImageValue}
+                    onRemove={handleRemoveLayoutImage}
+                    width={120}
+                    height={120}
+                    label="Layout"
+                  />
+                ) : (
+                  <UploadPlaceholder
+                    onClick={() => setLayoutImageModalOpen(true)}
+                    label="Select Layout"
+                    size={120}
+                  />
+                )}
+              </Col>
+              {layoutImageValue && (
+                <Col>
+                  <Button
+                    type="dashed"
+                    size="small"
+                    icon={<PlusOutlined />}
+                    onClick={() => setLayoutImageModalOpen(true)}
+                  >
+                    Change
+                  </Button>
+                </Col>
+              )}
+            </Row>
           </Form.Item>
         </Col>
       </Row>
 
+      {/* Event Gallery (multiple, max 5) */}
       <Form.Item
         name="images"
         label="Event Image Gallery (Max 5 images)"
-        valuePropName="fileList"
-        getValueFromEvent={normFile}
       >
-        <Upload
-          listType="picture-card"
-          multiple
-          maxCount={5}
-          beforeUpload={() => false}
-          accept="image/*"
-          onRemove={handleGalleryRemove}
-        >
-          <div>
-            <PlusOutlined />
-            <div style={{ marginTop: 8 }}>Upload Images</div>
-          </div>
-        </Upload>
+        <Row gutter={[12, 12]} align="middle">
+          {/* Show existing gallery images */}
+          {Array.isArray(galleryImages) && galleryImages.map((url, index) => (
+            <Col key={url || index}>
+              <ImagePreviewCard
+                src={url}
+                onRemove={() => handleRemoveGalleryImage(url)}
+                width={100}
+                height={100}
+                label={`Gallery ${index + 1}`}
+              />
+            </Col>
+          ))}
+          
+          {/* Add more button (only if less than 5) */}
+          {(!galleryImages || galleryImages.length < 5) && (
+            <Col>
+              <UploadPlaceholder
+                onClick={() => setGalleryModalOpen(true)}
+                label={galleryImages?.length ? 'Add More' : 'Select Images'}
+                size={100}
+              />
+            </Col>
+          )}
+        </Row>
       </Form.Item>
+
+      {/* Media Gallery Picker Modals */}
+      <MediaGalleryPickerModal
+        open={thumbnailModalOpen}
+        onCancel={() => setThumbnailModalOpen(false)}
+        onSelect={handleThumbnailSelect}
+        multiple={false}
+        title="Select Event Thumbnail"
+        value={thumbnailValue}
+        dimensionValidation={{ width: 600, height: 725, strict: true }}
+      />
+
+      <MediaGalleryPickerModal
+        open={instaThumbModalOpen}
+        onCancel={() => setInstaThumbModalOpen(false)}
+        onSelect={handleInstaThumbSelect}
+        multiple={false}
+        title="Select Instagram Thumbnail"
+        value={instaThumbValue}
+      />
+
+      <MediaGalleryPickerModal
+        open={layoutImageModalOpen}
+        onCancel={() => setLayoutImageModalOpen(false)}
+        onSelect={handleLayoutImageSelect}
+        multiple={false}
+        title="Select Layout Image"
+        value={layoutImageValue}
+      />
+
+      <MediaGalleryPickerModal
+        open={galleryModalOpen}
+        onCancel={() => setGalleryModalOpen(false)}
+        onSelect={handleGallerySelect}
+        multiple={true}
+        maxCount={5}
+        title="Select Gallery Images (Max 5)"
+        value={galleryImages}
+      />
     </Space>
   );
 };

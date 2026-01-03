@@ -1,12 +1,13 @@
+// BlogPostEditor.jsx
 import React, { useState, useRef, useEffect } from 'react';
 import JoditEditor from 'jodit-react';
 import {
-  Button, Form, Card, Row, Col, Alert, Switch, Input, Upload, Image, message
+  Button, Form, Card, Row, Col, Alert, Switch, Input, Image, message
 } from 'antd';
-import { DeleteOutlined, UploadOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
+import { DeleteOutlined, SaveOutlined, CloseOutlined, PictureOutlined } from '@ant-design/icons';
 import MetaFields from './MetaFields';
 import { joditConfig } from 'utils/consts';
-
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 
 const BlogPostEditor = ({
   initialContent = '',
@@ -25,6 +26,8 @@ const BlogPostEditor = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const editor = useRef(null);
 
+  // Media Picker State
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
 
   useEffect(() => {
     if (isEditing) {
@@ -46,23 +49,15 @@ const BlogPostEditor = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-
-  const handleFeaturedImageChange = (info) => {
-    const file = info.file.originFileObj || info.file;
-    if (!file) return;
-
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData((prev) => ({
-        ...prev,
-        featuredImageFile: file,
-        previewFeaturedImage: reader.result,
-      }));
-    };
-    reader.readAsDataURL(file);
+  const handleMediaSelect = (url) => {
+    if (!url) return;
+    setFormData((prev) => ({
+      ...prev,
+      featuredImageFile: url,
+      previewFeaturedImage: url,
+    }));
+    setMediaPickerOpen(false);
   };
-
 
   const handleRemoveImage = () => {
     setFormData((prev) => ({
@@ -85,7 +80,7 @@ const BlogPostEditor = ({
 
     try {
       const latestContent = (content || '').trim();
-      
+
       if (!latestContent || latestContent === '<p><br></p>' || latestContent === '<p></p>') {
         message.error('Please enter content before submitting');
         setIsSubmitting(false);
@@ -115,27 +110,6 @@ const BlogPostEditor = ({
     }
   };
 
-
-  const uploadProps = {
-    beforeUpload: (file) => {
-      const isImage = file.type.startsWith('image/');
-      if (!isImage) {
-        message.error('You can only upload image files!');
-        return Upload.LIST_IGNORE;
-      }
-      const isLt5M = file.size / 1024 / 1024 < 5;
-      if (!isLt5M) {
-        message.error('Image must be smaller than 5MB!');
-        return Upload.LIST_IGNORE;
-      }
-      return false;
-    },
-    onChange: handleFeaturedImageChange,
-    maxCount: 1,
-    showUploadList: false,
-  };
-
-
   return (
     <div className="blog-post-editor mt-4">
       <Card>
@@ -154,9 +128,13 @@ const BlogPostEditor = ({
 
 
             <Form.Item label="Featured Image">
-              <Upload {...uploadProps}>
-                <Button icon={<UploadOutlined />}>Select Image</Button>
-              </Upload>
+              <Button
+                icon={<PictureOutlined />}
+                onClick={() => setMediaPickerOpen(true)}
+                block
+              >
+                Select from Gallery
+              </Button>
             </Form.Item>
 
 
@@ -221,7 +199,7 @@ const BlogPostEditor = ({
                   config={joditConfig}
                   tabIndex={1}
                   onBlur={(newContent) => setContent(newContent)} // ✅ Only use onBlur
-                  onChange={(newContent) => {}} // ✅ Leave onChange empty
+                  onChange={(newContent) => { }} // ✅ Leave onChange empty
                 />
               </div>
             </Form.Item>
@@ -257,6 +235,16 @@ const BlogPostEditor = ({
           </Button>
         </div>
       </Card>
+
+      {/* Media Picker Modal */}
+      <MediaGalleryPickerModal
+        open={mediaPickerOpen}
+        onCancel={() => setMediaPickerOpen(false)}
+        onSelect={handleMediaSelect}
+        multiple={false}
+        title="Select Featured Image"
+        value={formData.featuredImageFile}
+      />
     </div>
   );
 };

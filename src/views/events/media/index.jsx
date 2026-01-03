@@ -189,6 +189,8 @@ const MediaGallery = () => {
             files,
             categoryId: currentFolder,
         });
+        // Refresh data after upload
+        handleRefresh();
     };
 
     const handleMediaSelect = (media) => {
@@ -216,6 +218,8 @@ const MediaGallery = () => {
             onOk: async () => {
                 await deleteMediaMutation.mutateAsync(media.id);
                 setPreviewModalOpen(false);
+                // Refresh data after delete
+                handleRefresh();
             },
         });
     };
@@ -232,6 +236,8 @@ const MediaGallery = () => {
             onOk: async () => {
                 await bulkDeleteMutation.mutateAsync(selectedMedia);
                 setSelectedMedia([]);
+                // Refresh data after bulk delete
+                handleRefresh();
             },
         });
     };

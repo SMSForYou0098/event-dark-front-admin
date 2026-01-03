@@ -1,3 +1,4 @@
+// Category.jsx
 import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
@@ -15,12 +16,15 @@ import {
   notification,
   Spin,
   message,
+  Image,
+  Typography
 } from "antd";
-import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined, PictureOutlined } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import AssignFields from "./AssignFields";
 import SelectedOptionView from "./SelectedOptionView";
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 
 const Category = () => {
   const queryClient = useQueryClient();
@@ -29,6 +33,9 @@ const Category = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [fields, setFields] = useState({ show: false, ids: [], names: [] });
+
+  // Media Picker State
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
 
   const [form] = Form.useForm();
 
@@ -50,12 +57,22 @@ const Category = () => {
       formData.append("status", values.status);
       formData.append("attendy_required", values.attendyRequired);
       formData.append("photo_required", values.photoRequired);
-      
+
       // Handle image upload properly
-      if (values.image?.fileList?.length > 0) {
-        const file = values.image.fileList[0];
+      // Handle image upload properly
+      let fileList = [];
+      if (Array.isArray(values.image)) {
+        fileList = values.image;
+      } else if (values.image?.fileList) {
+        fileList = values.image.fileList;
+      }
+
+      if (fileList.length > 0) {
+        const file = fileList[0];
         if (file.originFileObj) {
           formData.append("image", file.originFileObj);
+        } else if (file.url) {
+          formData.append("image", file.url);
         }
       }
 
@@ -141,29 +158,22 @@ const Category = () => {
     (record) => {
       setEditRecord(record);
       setModalVisible(true);
-      
+
       // Parse field IDs and set fields
       const fieldIds = record?.catrgotyhas_field?.custom_fields_id
         ?.split(",")
         ?.map(Number);
-      
+
       setFields({
         ids: fieldIds || [],
         names: record?.fields || [],
         show: false,
       });
 
-      // Set form values including image if exists
-      const formValues = {
-        title: record.title,
-        attendyRequired: record.attendy_required,
-        photoRequired: record.photo_required,
-        status: record.status,
-      };
-
-      // If editing and there's an existing image, create a file list array
+      // Prepare image file list
+      let imageFileList = [];
       if (record.image) {
-        formValues.image = [
+        imageFileList = [
           {
             uid: '-1',
             name: 'image.png',
@@ -173,10 +183,32 @@ const Category = () => {
         ];
       }
 
-      form.setFieldsValue(formValues);
+      // Set form values
+      form.setFieldsValue({
+        title: record.title,
+        attendyRequired: record.attendy_required,
+        photoRequired: record.photo_required,
+        status: record.status,
+        image: imageFileList,
+      });
     },
     [form]
   );
+
+  // Handle media selection from picker
+  const handleMediaSelect = (url) => {
+    if (!url) return;
+
+    const newFile = {
+      uid: `gallery-${Date.now()}`,
+      name: 'gallery-image.jpg',
+      status: 'done',
+      url: url,
+    };
+
+    form.setFieldsValue({ image: [newFile] });
+    setMediaPickerOpen(false);
+  };
 
   // ========================= TABLE COLUMNS =========================
   const columns = useMemo(
@@ -236,8 +268,8 @@ const Category = () => {
 
   // ========================= RENDER =========================
   return (
-    <Card 
-      title="Categories" 
+    <Card
+      title="Categories"
       extra={
         <Button
           type="primary"
@@ -298,34 +330,67 @@ const Category = () => {
                   }
                 ]}
               >
-                <Upload
-                  listType="picture-card"
-                  maxCount={1}
-                  beforeUpload={(file) => {
-                    const isImage = file.type.startsWith('image/');
-                    if (!isImage) {
-                      message.error('You can only upload image files!');
-                      return Upload.LIST_IGNORE;
-                    }
-                    const isLt5M = file.size / 1024 / 1024 < 5;
-                    if (!isLt5M) {
-                      message.error('Image must be smaller than 5MB!');
-                      return Upload.LIST_IGNORE;
-                    }
-                    return false; // Prevent auto upload
+                <Form.Item shouldUpdate={(prev, curr) => prev.image !== curr.image} noStyle>
+                  {({ getFieldValue, setFieldsValue }) => {
+                    const fileList = getFieldValue('image') || [];
+                    const file = fileList[0];
+                    const imageUrl = file?.url || (file?.originFileObj ? URL.createObjectURL(file.originFileObj) : null);
+
+                    return (
+                      <Card
+                        size="small"
+                        style={{
+                          border: imageUrl ? '2px solid #52c41a' : '1px dashed #d9d9d9',
+                          textAlign: 'center',
+                          height: '100%',
+                          minHeight: 120,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center'
+                        }}
+                        styles={{ body: { padding: 8 } }}
+                      >
+                        {imageUrl ? (
+                          <>
+                            <Image
+                              src={imageUrl}
+                              alt="Category"
+                              style={{ maxHeight: 80, objectFit: 'contain' }}
+                              className="rounded mb-2"
+                            />
+                            <Space size="small">
+                              <Button
+                                size="small"
+                                icon={<PictureOutlined />}
+                                onClick={() => setMediaPickerOpen(true)}
+                              />
+                              <Button
+                                size="small"
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={() => setFieldsValue({ image: [] })}
+                              />
+                            </Space>
+                          </>
+                        ) : (
+                          <div
+                            onClick={() => setMediaPickerOpen(true)}
+                            style={{ cursor: 'pointer', padding: '10px 0' }}
+                          >
+                            <PlusOutlined style={{ fontSize: 24, color: '#999' }} />
+                            <div style={{ marginTop: 8, fontSize: 12 }}>Select</div>
+                          </div>
+                        )}
+                      </Card>
+                    );
                   }}
-                >
-                  <div>
-                    <PlusOutlined />
-                    <div style={{ marginTop: 8 }}>Upload</div>
-                  </div>
-                </Upload>
+                </Form.Item>
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item 
-                label="Attendee Required" 
-                name="attendyRequired" 
+              <Form.Item
+                label="Attendee Required"
+                name="attendyRequired"
                 valuePropName="checked"
               >
                 <Switch
@@ -340,9 +405,9 @@ const Category = () => {
               </Form.Item>
             </Col>
             <Col span={8}>
-              <Form.Item 
-                label="Status" 
-                name="status" 
+              <Form.Item
+                label="Status"
+                name="status"
                 valuePropName="checked"
               >
                 <Switch />
@@ -377,6 +442,16 @@ const Category = () => {
           </Form.Item>
         </Form>
       </Modal>
+
+      {/* Media Picker Modal */}
+      <MediaGalleryPickerModal
+        open={mediaPickerOpen}
+        onCancel={() => setMediaPickerOpen(false)}
+        onSelect={handleMediaSelect}
+        multiple={false}
+        title="Select Category Image"
+        dimensionValidation={{ width: 282, height: 260, strict: true }}
+      />
 
       <AssignFields
         editState={!!editRecord}

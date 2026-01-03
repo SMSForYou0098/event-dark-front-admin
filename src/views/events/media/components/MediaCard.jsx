@@ -19,6 +19,7 @@ const MediaCard = ({
     onPreview,
     onDelete,
     selectionMode = false,
+    pickerMode = false, // When true: simplified UI for picker (no actions, smaller, always show checkbox)
     onDragStart, // Called when this media is dragged
     draggable = true,
     selectedMediaIds = [], // Array of all selected media IDs for multi-drag
@@ -164,7 +165,7 @@ const MediaCard = ({
                     top: 12,
                     left: 12,
                     zIndex: 10,
-                    opacity: selected || selectionMode ? 1 : 0,
+                    opacity: selected || selectionMode || pickerMode ? 1 : 0,
                     transition: 'opacity 0.2s',
                     padding: 4,
                     borderRadius: 4,
@@ -183,7 +184,7 @@ const MediaCard = ({
             <div
                 style={{
                     position: 'relative',
-                    height: 180,
+                    height: pickerMode ? 120 : 180,
                     width: '100%',
                     background: '#141414',
                     display: 'flex',
@@ -300,33 +301,35 @@ const MediaCard = ({
                         </Text>
                     </div>
 
-                    {/* Actions dropdown */}
-                    <Dropdown
-                        menu={{
-                            items: menuItems,
-                            style: { minWidth: 120 }
-                        }}
-                        trigger={['click']}
-                        placement="bottomRight"
-                        arrow
-                    >
-                        <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="action-button"
-                            style={{
-                                padding: '4px',
-                                cursor: 'pointer',
-                                color: 'rgba(255,255,255,0.45)',
-                                borderRadius: 4,
-                                transition: 'all 0.2s',
-                                marginTop: 2,
+                    {/* Actions dropdown - hide in picker mode */}
+                    {!pickerMode && (
+                        <Dropdown
+                            menu={{
+                                items: menuItems,
+                                style: { minWidth: 120 }
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                            onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                            trigger={['click']}
+                            placement="bottomRight"
+                            arrow
                         >
-                            <MoreOutlined style={{ fontSize: 20 }} />
-                        </div>
-                    </Dropdown>
+                            <div
+                                onClick={(e) => e.stopPropagation()}
+                                className="action-button"
+                                style={{
+                                    padding: '4px',
+                                    cursor: 'pointer',
+                                    color: 'rgba(255,255,255,0.45)',
+                                    borderRadius: 4,
+                                    transition: 'all 0.2s',
+                                    marginTop: 2,
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
+                                onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
+                            >
+                                <MoreOutlined style={{ fontSize: 20 }} />
+                            </div>
+                        </Dropdown>
+                    )}
                 </div>
             </div>
 

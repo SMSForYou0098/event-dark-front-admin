@@ -8,7 +8,6 @@ import {
     message,
     Divider,
     Tooltip,
-    Spin,
     Image,
 } from 'antd';
 import {
@@ -29,7 +28,6 @@ import BasicDetailsStep from './components/BasicDetails';
 import EventControlsStep from './components/EventControls';
 import TimingStep from './components/Timing';
 import TicketsStep from './components/Tickets';
-import LocationStep from './components/LocationStep';
 import MediaStep from './components/MediaStep';
 import SEOStep from './components/SEOStep';
 import PublishStep from './components/PublishStep';
@@ -40,10 +38,8 @@ import {
     useCreateEvent,
     useUpdateEvent,
     useEventDetail,
-    toUploadFileList,
 } from './hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
-import { useGetAllContentMaster } from '../EventContent/useContentMaster';
 
 const { Step } = Steps;
 const { Title } = Typography;
@@ -62,7 +58,7 @@ const STEP_NAMES = {
 
 const EventStepperForm = () => {
     const navigate = useNavigate();
-    const { loader, UserData, userRole } = useMyContext()
+    const { loader, } = useMyContext()
     const location = useLocation();
     const { id } = useParams();
     const isEdit = !!id;
@@ -224,35 +220,24 @@ const EventStepperForm = () => {
 
         // Step 5: Media
         if (current === 5) {
-            if (event_galleries?.thumbnail) {
-                patch.thumbnail = [{
-                    uid: 'existing-thumb',
-                    name: 'current-thumbnail.jpg',
-                    status: 'done',
-                    url: event_galleries.thumbnail,
-                }];
-            }
-
-            if (event_galleries.images) {
-                patch.images = toUploadFileList(event_galleries.images);
-            }
-
-            if (event_galleries?.insta_thumbnail) {
-                patch.insta_thumbnail = [{
-                    uid: 'ig-thumb',
-                    name: 'instagram-thumb.jpg',
-                    status: 'done',
-                    url: event_galleries.insta_thumbnail,
-                }];
-            }
-
-            if (event_galleries?.layout_image) {
-                patch.layout_image = [{
-                    uid: 'arena-layout',
-                    name: 'arena-layout.jpg',
-                    status: 'done',
-                    url: event_galleries.layout_image,
-                }];
+            // Now using URL strings directly (for MediaGalleryPicker)
+            patch.thumbnail = event_galleries?.thumbnail || null;
+            patch.insta_thumbnail = event_galleries?.insta_thumbnail || null;
+            patch.layout_image = event_galleries?.layout_image || null;
+            
+            // Gallery images - handle JSON string or array
+            if (event_galleries?.images) {
+                let imagesArray = event_galleries.images;
+                // If it's a JSON string, parse it
+                if (typeof imagesArray === 'string') {
+                    try {
+                        imagesArray = JSON.parse(imagesArray);
+                    } catch (e) {
+                        // If parsing fails, try splitting by comma (fallback)
+                        imagesArray = imagesArray.split(',').map(url => url.trim());
+                    }
+                }
+                patch.images = Array.isArray(imagesArray) ? imagesArray : [];
             }
 
             patch.youtube_url = event_galleries?.youtube_url;

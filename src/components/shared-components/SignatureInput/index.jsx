@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Tabs, Button, Input, Select, Upload, Row, Col, Typography, message } from 'antd';
-import { EditOutlined, FontSizeOutlined, UploadOutlined } from '@ant-design/icons';
+import { EditOutlined, FontSizeOutlined, UploadOutlined, PictureOutlined, DeleteOutlined } from '@ant-design/icons';
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -33,6 +34,15 @@ const SignatureInput = ({
     onClearCanvas,
 }) => {
     const [isDrawing, setIsDrawing] = useState(false);
+    const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+
+    const handleMediaSelect = (url) => {
+        if (url) {
+            if (onSignaturePreviewChange) onSignaturePreviewChange(url);
+            if (onUploadedSignatureChange) onUploadedSignatureChange(url);
+            setMediaPickerOpen(false);
+        }
+    };
 
     // Load existing signature on canvas when editing
     useEffect(() => {
@@ -116,131 +126,156 @@ const SignatureInput = ({
     };
 
     return (
-        <Tabs activeKey={signatureType} onChange={onSignatureTypeChange}>
-            {/* Draw Signature Tab */}
-            <Tabs.TabPane tab={<><EditOutlined /> Draw Signature</>} key="draw">
-                <div className="text-center">
-                    <div className="d-inline-block">
-                        <canvas
-                            ref={canvasRef}
-                            width={600}
-                            height={200}
-                            onMouseDown={startDrawing}
-                            onMouseMove={draw}
-                            onMouseUp={stopDrawing}
-                            onMouseLeave={stopDrawing}
-                            className="border border-2 rounded"
-                            style={{
-                                cursor: 'crosshair',
-                                touchAction: 'none',
-                                maxWidth: '100%',
-                                background: 'white'
-                            }}
-                        />
-                    </div>
-                    <div className="mt-3">
-                        <Button onClick={clearCanvas} danger>Clear Signature</Button>
-                    </div>
-                    <Text type="secondary" className="d-block mt-2">
-                        Draw your signature using mouse/touchpad
-                    </Text>
-                </div>
-            </Tabs.TabPane>
+        <>
 
-            {/* Type Signature Tab */}
-            <Tabs.TabPane tab={<><FontSizeOutlined /> Type Signature</>} key="type">
-                <Row gutter={16}>
-                    <Col xs={24} md={12}>
-                        <div className="mb-3">
-                            <label className="d-block mb-2">Select Font Style</label>
-                            <Select
-                                value={selectedFont.name}
-                                onChange={(val) => {
-                                    const font = SIGNATURE_FONTS.find(f => f.name === val);
-                                    if (onFontChange) onFontChange(font);
+            <Tabs activeKey={signatureType} onChange={onSignatureTypeChange}>
+                {/* Draw Signature Tab */}
+                <Tabs.TabPane tab={<><EditOutlined /> Draw Signature</>} key="draw">
+                    <div className="text-center">
+                        <div className="d-inline-block">
+                            <canvas
+                                ref={canvasRef}
+                                width={600}
+                                height={200}
+                                onMouseDown={startDrawing}
+                                onMouseMove={draw}
+                                onMouseUp={stopDrawing}
+                                onMouseLeave={stopDrawing}
+                                className="border border-2 rounded"
+                                style={{
+                                    cursor: 'crosshair',
+                                    touchAction: 'none',
+                                    maxWidth: '100%',
+                                    background: 'white'
                                 }}
-                                className="w-100"
+                            />
+                        </div>
+                        <div className="mt-3">
+                            <Button onClick={clearCanvas} danger>Clear Signature</Button>
+                        </div>
+                        <Text type="secondary" className="d-block mt-2">
+                            Draw your signature using mouse/touchpad
+                        </Text>
+                    </div>
+                </Tabs.TabPane>
+
+                {/* Type Signature Tab */}
+                <Tabs.TabPane tab={<><FontSizeOutlined /> Type Signature</>} key="type">
+                    <Row gutter={16}>
+                        <Col xs={24} md={12}>
+                            <div className="mb-3">
+                                <label className="d-block mb-2">Select Font Style</label>
+                                <Select
+                                    value={selectedFont.name}
+                                    onChange={(val) => {
+                                        const font = SIGNATURE_FONTS.find(f => f.name === val);
+                                        if (onFontChange) onFontChange(font);
+                                    }}
+                                    className="w-100"
+                                >
+                                    {SIGNATURE_FONTS.map(font => (
+                                        <Option key={font.name} value={font.name}>
+                                            <span style={{ fontFamily: font.style, fontSize: '20px' }}>
+                                                {font.name}
+                                            </span>
+                                        </Option>
+                                    ))}
+                                </Select>
+                            </div>
+                        </Col>
+                        <Col xs={24} md={12}>
+                            <div className="mb-3">
+                                <label className="d-block mb-2">Type Your Signature</label>
+                                <Input
+                                    value={typedSignature}
+                                    onChange={(e) => {
+                                        if (onTypedSignatureChange) {
+                                            onTypedSignatureChange(e.target.value);
+                                        }
+                                    }}
+                                    placeholder="Enter your name"
+                                    maxLength={50}
+                                />
+                            </div>
+                        </Col>
+                        <Col xs={24}>
+                            <div className="border border-2 rounded p-4 text-center" style={{ background: 'white' }}>
+                                <Text type="secondary" className="d-block mb-3 text-black">Signature Preview:</Text>
+                                {typedSignature ? (
+                                    <div style={{
+                                        fontFamily: selectedFont.style,
+                                        fontSize: '32px',
+                                        color: '#000'
+                                    }}>
+                                        {typedSignature}
+                                    </div>
+                                ) : (
+                                    <Text type="secondary">Type your name above to preview</Text>
+                                )}
+                            </div>
+                        </Col>
+                    </Row>
+                </Tabs.TabPane>
+
+                {/* Upload Signature Tab */}
+                <Tabs.TabPane tab={<><UploadOutlined /> Select Signature</>} key="upload">
+                    <div className="text-center">
+                        {!signaturePreview ? (
+                            <div
+                                onClick={() => setMediaPickerOpen(true)}
+                                className="d-inline-flex flex-column align-items-center justify-content-center p-4 border rounded"
+                                style={{ cursor: 'pointer', minWidth: '300px', minHeight: '150px', borderStyle: 'dashed', background: 'white' }}
                             >
-                                {SIGNATURE_FONTS.map(font => (
-                                    <Option key={font.name} value={font.name}>
-                                        <span style={{ fontFamily: font.style, fontSize: '20px' }}>
-                                            {font.name}
-                                        </span>
-                                    </Option>
-                                ))}
-                            </Select>
-                        </div>
-                    </Col>
-                    <Col xs={24} md={12}>
-                        <div className="mb-3">
-                            <label className="d-block mb-2">Type Your Signature</label>
-                            <Input
-                                value={typedSignature}
-                                onChange={(e) => {
-                                    if (onTypedSignatureChange) {
-                                        onTypedSignatureChange(e.target.value);
-                                    }
-                                }}
-                                placeholder="Enter your name"
-                                maxLength={50}
-                            />
-                        </div>
-                    </Col>
-                    <Col xs={24}>
-                        <div className="border border-2 rounded p-4 text-center" style={{ background: 'white' }}>
-                            <Text type="secondary" className="d-block mb-3 text-black">Signature Preview:</Text>
-                            {typedSignature ? (
-                                <div style={{
-                                    fontFamily: selectedFont.style,
-                                    fontSize: '32px',
-                                    color: '#000'
-                                }}>
-                                    {typedSignature}
+                                <PictureOutlined style={{ fontSize: '32px', marginBottom: '16px', color: '#1890ff' }} />
+                                <Text strong style={{ fontSize: '16px' }}>Select Signature Image</Text>
+                                <Text type="secondary" className="mt-2">Click to browse gallery</Text>
+                            </div>
+                        ) : (
+                            <div className="text-center position-relative d-inline-block">
+                                <div className="border border-2 rounded p-4 bg-white">
+                                    <Text strong className="d-block mb-3 text-start">Selected Signature:</Text>
+                                    <img
+                                        src={signaturePreview}
+                                        alt="Signature"
+                                        className="img-fluid"
+                                        style={{ maxHeight: '150px', maxWidth: '100%' }}
+                                    />
                                 </div>
-                            ) : (
-                                <Text type="secondary">Type your name above to preview</Text>
-                            )}
-                        </div>
-                    </Col>
-                </Row>
-            </Tabs.TabPane>
-
-            {/* Upload Signature Tab */}
-            <Tabs.TabPane tab={<><UploadOutlined /> Upload Signature</>} key="upload">
-                <div className="text-center">
-                    <Upload
-                        accept="image/jpeg,image/png,image/jpg"
-                        beforeUpload={beforeUpload}
-                        onChange={handleImageUpload}
-                        showUploadList={false}
-                        maxCount={1}
-                    >
-                        <Button icon={<UploadOutlined />} type="dashed">
-                            Click to Upload Signature
-                        </Button>
-                    </Upload>
-                    <div className="mt-3">
-                        <Text type="secondary" className="d-block">
-                            <strong>Accepted formats:</strong> JPG, PNG (Max 2MB)
-                        </Text>
-                        <Text type="secondary" className="d-block">
-                            <strong>Recommended:</strong> White background, 600×200px
-                        </Text>
+                                <div className="mt-3">
+                                    <Button
+                                        icon={<PictureOutlined />}
+                                        onClick={() => setMediaPickerOpen(true)}
+                                        className="me-2"
+                                    >
+                                        Change Image
+                                    </Button>
+                                    <Button
+                                        danger
+                                        icon={<DeleteOutlined />}
+                                        onClick={() => {
+                                            if (onSignaturePreviewChange) onSignaturePreviewChange(null);
+                                            if (onUploadedSignatureChange) onUploadedSignatureChange(null);
+                                        }}
+                                    >
+                                        Remove
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    {signaturePreview && (
-                        <div className="border border-2 rounded p-3 mt-4 d-inline-block bg-white">
-                            <Text strong className="d-block mb-2">Uploaded Signature:</Text>
-                            <img
-                                src={signaturePreview}
-                                alt="Signature"
-                                className="img-fluid"
-                                style={{ maxHeight: '150px', maxWidth: '100%' }}
-                            />
-                        </div>
-                    )}
-                </div>
-            </Tabs.TabPane>
-        </Tabs>
+                </Tabs.TabPane>
+            </Tabs>
+
+            {/* Media Picker Modal */}
+            <MediaGalleryPickerModal
+                open={mediaPickerOpen}
+                onCancel={() => setMediaPickerOpen(false)}
+                onSelect={handleMediaSelect}
+                multiple={false}
+                title="Select Signature"
+                dimensionValidation={{ width: 600, height: 200, strict: false }}
+            />
+        </>
     );
 };
 

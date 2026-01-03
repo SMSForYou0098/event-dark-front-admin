@@ -215,19 +215,14 @@ export function buildEventFormData(values, isDraft = false) {
 
   // ---------- MEDIA ----------
   if (values.step === 'media') {
-    if (Array.isArray(values.thumbnail)) appendSingleUpload('thumbnail', values.thumbnail);
-    if (Array.isArray(values.insta_thumbnail)) appendSingleUpload('insta_thumbnail', values.insta_thumbnail);
-    if (Array.isArray(values.layout_image)) appendSingleUpload('layout_image', values.layout_image);
+    // Now these are URL strings from the media gallery picker (not fileList arrays)
+    appendIfDefined('thumbnail', values.thumbnail);
+    appendIfDefined('insta_thumbnail', values.insta_thumbnail);
+    appendIfDefined('layout_image', values.layout_image);
 
-    // Gallery images
-    if (Array.isArray(values.images)) {
-      appendExistingGalleryUrls(values.images);
-      appendGalleryUploadsAsArray(values.images);
-    }
-
-    // Removed images
-    if (Array.isArray(values.remove_images)) {
-      values.remove_images.forEach((url) => fd.append('remove_images[]', url));
+    // Gallery images - join as comma-separated string (like venue_images)
+    if (Array.isArray(values.images) && values.images.length > 0) {
+      fd.append('images', values.images.join(','));
     }
 
     // Media URLs

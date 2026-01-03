@@ -1,11 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Upload, message, Progress, Typography, Space } from 'antd';
 import {
     InboxOutlined,
     FileImageOutlined,
-    VideoCameraOutlined,
-    CheckCircleFilled,
-    CloseCircleFilled,
 } from '@ant-design/icons';
 
 const { Dragger } = Upload;
@@ -21,6 +18,14 @@ const MediaUploadModal = ({
     const [fileList, setFileList] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+
+    // Clear fileList when modal is closed
+    useEffect(() => {
+        if (!open) {
+            setFileList([]);
+            setUploadProgress(0);
+        }
+    }, [open]);
 
     // Allowed file types
     const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -114,6 +119,7 @@ const MediaUploadModal = ({
             width={600}
             maskClosable={!uploading}
             closable={!uploading}
+            zIndex={1050}
         >
             <Dragger
                 {...uploadProps}
