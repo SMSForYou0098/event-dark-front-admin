@@ -340,7 +340,7 @@ const Venues = () => {
         addButtonProps={null}
         enableExport={true}
         exportRoute={'export-venues'}
-        ExportPermission={UserPermissions?.includes("Export Venues")}
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Venues")}
         authToken={authToken}
         loading={loading}
         // Backend pagination props

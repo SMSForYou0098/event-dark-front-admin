@@ -21,6 +21,7 @@ import {
   useCreateOrganizerAgreement,
   useUpdateOrganizerAgreement,
   useDeleteOrganizerAgreement,
+  useSetDefaultAgreement,
 } from './useOrganizerAgreement';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
 import { joditConfig } from 'utils/consts';
@@ -54,6 +55,7 @@ const OrganizerAgreement = () => {
   });
 
   const deleteMutation = useDeleteOrganizerAgreement();
+  const setDefaultMutation = useSetDefaultAgreement();
 
   // ========================= MODAL HANDLERS =========================
   const handleModalClose = useCallback(() => {
@@ -119,6 +121,7 @@ const OrganizerAgreement = () => {
       formData.append('title', values.title);
       formData.append('content', content);
       formData.append('status', values.status ? 1 : 0);
+      formData.append('default', values.default ? 1 : 0);
       formData.append('signature_type', signatureType);
 
       // Add signature based on type
@@ -137,6 +140,7 @@ const OrganizerAgreement = () => {
       }
     } catch (err) {
       // Form validation error - handled by antd
+      message.error(err?.message || 'Please fill all required fields');
     }
   }, [form, content, editRecord, createMutation, updateMutation, signatureType, getSignatureData]);
 
@@ -148,6 +152,17 @@ const OrganizerAgreement = () => {
     [deleteMutation]
   );
 
+  // ========================= SET DEFAULT =========================
+  const handleSetDefault = useCallback(
+    (record) => {
+      if (record.default === 1 || record.default === true) {
+        return; // Already default, no need to do anything or unsetting logic if needed
+      }
+      setDefaultMutation.mutate(record.id);
+    },
+    [setDefaultMutation]
+  );
+
   // ========================= EDIT =========================
   const handleEdit = useCallback(
     (record) => {
@@ -156,6 +171,7 @@ const OrganizerAgreement = () => {
       form.setFieldsValue({
         title: record.title,
         status: record.status === 1 || record.status === true,
+        default: record.default === 1 || record.default === true,
       });
 
       // Load signature data if available
@@ -176,6 +192,7 @@ const OrganizerAgreement = () => {
             if (canvas && record.signature_image) {
               const ctx = canvas.getContext('2d');
               const img = new Image();
+              img.crossOrigin = 'anonymous';  // Prevent canvas tainting for CORS
               img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -203,6 +220,29 @@ const OrganizerAgreement = () => {
         title: 'Title',
         dataIndex: 'title',
         sorter: (a, b) => a.title.localeCompare(b.title),
+        width: 200,
+      },
+      {
+        title: 'Default',
+        dataIndex: 'default',
+        align: 'center',
+        width: 100,
+        render: (val, record) => (
+          <Popconfirm
+            title="Set as Default?"
+            description="Are you sure you want to set this agreement as default?"
+            onConfirm={() => handleSetDefault(record)}
+            okText="Yes"
+            cancelText="No"
+            disabled={val === 1 || val === true} // Disable confirmation if already default
+          >
+            <Switch
+              checked={val === 1 || val === true}
+              checkedChildren="On"
+              unCheckedChildren="Off"
+            />
+          </Popconfirm>
+        ),
       },
       {
         title: 'Status',
@@ -292,13 +332,22 @@ const OrganizerAgreement = () => {
                 <Input placeholder="Enter agreement title" />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col span={6}>
               <Form.Item
                 label="Status"
                 name="status"
                 valuePropName="checked"
               >
                 <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+              </Form.Item>
+            </Col>
+            <Col span={6}>
+              <Form.Item
+                label="Default"
+                name="default"
+                valuePropName="checked"
+              >
+                <Switch checkedChildren="enable" unCheckedChildren="disable" />
               </Form.Item>
             </Col>
           </Row>
@@ -313,7 +362,7 @@ const OrganizerAgreement = () => {
               config={joditConfig}
               tabIndex={1}
               onBlur={(newContent) => setContent(newContent)}
-              onChange={() => {}}
+              onChange={() => { }}
             />
           </Form.Item>
 

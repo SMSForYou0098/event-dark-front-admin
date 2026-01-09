@@ -196,6 +196,7 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('end_time', values.end_time);
     appendIfDefined('overnight_event', values.overnight_event ? 1 : 0);
     appendIfDefined('event_type', values.event_type);
+    appendIfDefined('tba', values.tba);
   }
 
   // ---------- TICKETS ----------

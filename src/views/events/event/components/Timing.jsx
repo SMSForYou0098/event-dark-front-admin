@@ -37,7 +37,12 @@ const TimingStep = ({ form, ...props }) => {
 
   const onRangeChange = (range) => {
     if (!Array.isArray(range) || !range[0] || !range[1]) {
-      form.setFieldsValue({ date_range: undefined, start_time: undefined, end_time: undefined });
+      form.setFieldsValue({
+        date_range: undefined,
+        start_time: undefined,
+        end_time: undefined,
+        // no_date_range: true // Optional: could auto-check if cleared, but user didn't ask for this explicitly
+      });
       return;
     }
     const [start, end] = range;
@@ -45,6 +50,7 @@ const TimingStep = ({ form, ...props }) => {
       date_range: `${start.format(FMT_DATE)},${end.format(FMT_DATE)}`,
       start_time: start.format(FMT_T),
       end_time: end.format(FMT_T),
+      tba: false, // Auto-uncheck when date is selected
     });
   };
 
@@ -54,41 +60,78 @@ const TimingStep = ({ form, ...props }) => {
         <Row gutter={16}>
           <Col xs={24} md={6}>
             <Form.Item
-              name="date_range"
-              label="Event Date Range"
-              rules={[{ required: true, message: 'Please select date range' }]}
-              // Show RangePicker using stored dates + start/end_time for the time parts
-              getValueProps={(value) => {
-                const startTime = form.getFieldValue('start_time');
-                const endTime = form.getFieldValue('end_time');
-                return { value: buildRangePickerValue(value, startTime, endTime) };
-              }}
+              noStyle
+              shouldUpdate={(prev, cur) => prev.tba !== cur.tba}
             >
-              <RangePicker
-                showTime
-                style={{ width: '100%' }}
-                placeholder={['Start Date & Time', 'End Date & Time']}
-                format={FMT_DT}
-                onChange={onRangeChange}
-              />
+              {({ getFieldValue }) => {
+                const isTba = getFieldValue('tba');
+                return (
+                  <Form.Item
+                    name="date_range"
+                    label={
+                      <span>
+                        Event Date Range
+                        <Form.Item name="tba" valuePropName="checked" noStyle initialValue={false}>
+                          <Checkbox style={{ marginLeft: 8 }}>To Be Announced</Checkbox>
+                        </Form.Item>
+                      </span>
+                    }
+                    validateTrigger={['onChange', 'onBlur']}
+                    rules={[
+                      {
+                        required: !isTba,
+                        message: 'Please select date range',
+                      },
+                    ]}
+                    // Show RangePicker using stored dates + start/end_time for the time parts
+                    getValueProps={(value) => {
+                      const startTime = form.getFieldValue('start_time');
+                      const endTime = form.getFieldValue('end_time');
+                      return { value: buildRangePickerValue(value, startTime, endTime) };
+                    }}
+                  >
+                    <RangePicker
+                      showTime
+                      style={{ width: '100%' }}
+                      placeholder={['Start Date & Time', 'End Date & Time']}
+                      format={FMT_DT}
+                      onChange={onRangeChange}
+                      disabled={isTba}
+                    />
+                  </Form.Item>
+                );
+              }}
             </Form.Item>
           </Col>
 
           {/* entry_time -> "HH:mm" */}
           <Col xs={12} md={3}>
             <Form.Item
-              name="entry_time"
-              label="Entry Time"
-              rules={[{ required: true, message: 'Please select entry time' }]}
-              getValueProps={(value) => ({
-                value:
-                  typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
-                    ? dayjs(value, FMT_T)
-                    : undefined,
-              })}
-              getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
+              noStyle
+              shouldUpdate={(prev, cur) => prev.tba !== cur.tba}
             >
-              <TimePicker style={{ width: '100%' }} format={FMT_T} placeholder="Entry time" />
+              {({ getFieldValue }) => (
+                <Form.Item
+                  name="entry_time"
+                  label="Entry Time"
+                  dependencies={['tba']}
+                  rules={[
+                    {
+                      required: !getFieldValue('tba'),
+                      message: 'Please select entry time',
+                    },
+                  ]}
+                  getValueProps={(value) => ({
+                    value:
+                      typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
+                        ? dayjs(value, FMT_T)
+                        : undefined,
+                  })}
+                  getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
+                >
+                  <TimePicker style={{ width: '100%' }} format={FMT_T} placeholder="Entry time" disabled={getFieldValue('no_date_range')} />
+                </Form.Item>
+              )}
             </Form.Item>
           </Col>
 

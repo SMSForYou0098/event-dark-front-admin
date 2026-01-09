@@ -7,6 +7,7 @@ import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
 import BookingCount from "../Bookings/Online_Bookings/BookingCount";
 import { debounce } from "utils/debounce";
+import { useMyContext } from "Context/MyContextProvider";
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
@@ -49,6 +50,8 @@ export const ExpandDataTable = ({
   const [exportLoading, setExportLoading] = useState(false);
   const [showGatewayReport, setShowGatewayReport] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
+
+  const { userRole } = useMyContext();
 
   // Local input value for immediate UI feedback (server-side mode)
   const [localSearchValue, setLocalSearchValue] = useState(searchValue);
@@ -278,9 +281,23 @@ export const ExpandDataTable = ({
     }
     setExportLoading(true);
     try {
+      // Format date if it's an object
+      let formattedDate = dateRange;
+      console.log(dateRange);
+
+      if (dateRange && typeof dateRange === 'object') {
+        if (Array.isArray(dateRange) && dateRange.length === 2) {
+          const start = dayjs(dateRange[0]).format('YYYY-MM-DD');
+          const end = dayjs(dateRange[1]).format('YYYY-MM-DD');
+          formattedDate = `${start},${end}`;
+        } else if (dateRange.startDate && dateRange.endDate) {
+          formattedDate = `${dateRange.startDate},${dateRange.endDate}`;
+        }
+      }
+
       const response = await api.post(
         exportRoute,
-        { date: dateRange },
+        { date: formattedDate, type: type },
         { responseType: "blob" }
       );
 
@@ -323,7 +340,9 @@ export const ExpandDataTable = ({
         <RangePicker
           value={
             dateRange
-              ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
+              ? Array.isArray(dateRange)
+                ? [dayjs(dateRange[0]), dayjs(dateRange[1])]
+                : [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
               : null
           }
           onChange={handleDateRangeChange}
@@ -345,7 +364,7 @@ export const ExpandDataTable = ({
           </Button>
         </Tooltip>
       )}
-      {enableExport && ExportPermission && exportRoute && (
+      {enableExport && (ExportPermission || userRole === "Admin") && exportRoute && (
         <Tooltip title="Export Data">
           <Button
             type="primary"

@@ -69,6 +69,9 @@ export const mapApiToForm = (apiData) => {
         signatureFontStyle: user.signature_font_style || '',
         signatureImage: user.org_signatory_image || null,
         agreement: user.agreement || null,
+
+        // Agreement verification status (for edit mode)
+        agreementVerification: user.agreement_verification === true || user.agreement_verification === 1,
     };
 };
 

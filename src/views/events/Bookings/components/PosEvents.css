@@ -1,0 +1,14 @@
+/* PosEvents Component Styles */
+
+.pos-nav-btn {
+    z-index: 1;
+}
+
+.pos-events-scroller::-webkit-scrollbar {
+    display: none;
+}
+
+.pos-events-scroller {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}

@@ -107,16 +107,20 @@ const htmlStyles = {
     marginTop: 12,
   },
   ul: {
-    marginLeft: 20,
+    marginLeft: 15,
     marginBottom: 10,
+    paddingLeft: 10,
   },
   ol: {
-    marginLeft: 20,
+    marginLeft: 15,
     marginBottom: 10,
+    paddingLeft: 10,
   },
   li: {
     marginBottom: 4,
     textAlign: 'justify',
+    paddingLeft: 5,
+    lineHeight: 1.6, // Match paragraph line height
   },
   br: {
     marginBottom: 8,
@@ -129,7 +133,7 @@ const htmlStyles = {
   },
 };
 
-const SignatureBlock = ({ signatureData, label , adminName }) => {
+const SignatureBlock = ({ signatureData, label, adminName }) => {
   if (!signatureData) return null;
 
   const {
@@ -179,14 +183,21 @@ const SignatureBlock = ({ signatureData, label , adminName }) => {
   );
 };
 
-const AgreementPdfDocument = ({ content, adminSignature, organizerSignature, title , org }) => {
+const AgreementPdfDocument = ({ content, adminSignature, organizerSignature, title, org }) => {
   // Clean HTML content for PDF rendering
   const cleanContent = (html) => {
     if (!html) return '';
-    // Remove script tags and event handlers for safety
+    // Remove script tags, event handlers, and clean up Jodit's output
     return html
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-      .replace(/on\w+="[^"]*"/gi, '');
+      .replace(/on\w+="[^"]*"/gi, '')
+      // Remove data attributes that Jodit adds
+      .replace(/\s*data-[^=]*="[^"]*"/gi, '')
+      // Remove <p> tags directly inside <li> (Jodit wraps li content in p tags)
+      .replace(/<li([^>]*)>\s*<p([^>]*)>/gi, '<li$1>')
+      .replace(/<\/p>\s*<\/li>/gi, '</li>')
+      // Clean up empty paragraphs
+      .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '');
   };
 
   return (
@@ -203,7 +214,7 @@ const AgreementPdfDocument = ({ content, adminSignature, organizerSignature, tit
         {/* Signatures - Fixed on every page */}
         {(adminSignature || organizerSignature) && (
           <View style={styles.signatureSection} fixed>
-            <SignatureBlock signatureData={adminSignature} label="For, Trava Get Your Ticket Pvt. Ltd." adminName={'Janak Rana'}/>
+            <SignatureBlock signatureData={adminSignature} label="For, Trava Get Your Ticket Pvt. Ltd." adminName={'Janak Rana'} />
             <SignatureBlock signatureData={organizerSignature} label={`For ${org?.organisation}`} />
           </View>
         )}

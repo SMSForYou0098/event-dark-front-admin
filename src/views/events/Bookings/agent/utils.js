@@ -48,26 +48,6 @@ export const BookingStats = ({ type, id }) => {
     discount: 0
   });
 
-  // API calls with useCallback
-  const GetBookings = useCallback(async () => {
-    try {
-      // const url = `${api}booking-stats/pos/${UserData?.id}`;
-      const url = `booking-stats/${type}/${id}`;
-      const res = await api.get(url);
-      if (res.status) {
-        setBookings(res);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }, [type, id]);
-
-
-  useEffect(() => {
-    GetBookings();
-  }, [GetBookings]);
-
-
   const bookingStats = useMemo(() => ({
     bookings: bookings?.bookings,
     amount: (parseInt(bookings?.amount) ?? 0).toFixed(2),

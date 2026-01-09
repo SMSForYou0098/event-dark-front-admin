@@ -177,6 +177,7 @@ const EventStepperForm = () => {
                 end_time: detail?.end_time,
                 event_type: detail?.event_type,
                 overnight_event: Number(controls?.overnight_event) || 0,
+                tba: detail?.date_range ? false : true,
                 // map_code: detail?.map_code || undefined,
                 // address: detail?.address || undefined,
             });
@@ -224,7 +225,7 @@ const EventStepperForm = () => {
             patch.thumbnail = event_galleries?.thumbnail || null;
             patch.insta_thumbnail = event_galleries?.insta_thumbnail || null;
             patch.layout_image = event_galleries?.layout_image || null;
-            
+
             // Gallery images - handle JSON string or array
             if (event_galleries?.images) {
                 let imagesArray = event_galleries.images;

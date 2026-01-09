@@ -11,6 +11,7 @@ import {
     Tabs,
     Modal,
     message,
+    Alert,
 } from 'antd';
 import {
     SearchOutlined,
@@ -58,6 +59,7 @@ const MediaGalleryPicker = ({
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('browse'); // 'browse' or 'upload'
     const [pendingAutoSelect, setPendingAutoSelect] = useState(null); // Track files to auto-select
+    const [alertMessage, setAlertMessage] = useState(null); // { type: 'error'|'warning'|'success', text: string }
 
     // Queries
     const {
@@ -107,18 +109,27 @@ const MediaGalleryPicker = ({
         );
     }, [mediaFiles, searchQuery]);
 
-    // Initialize selected media from value prop
+    // Initialize selected media from value prop - use ref to prevent infinite loop
+    const initializedRef = React.useRef(false);
     useEffect(() => {
-        if (value) {
+        if (value && !initializedRef.current) {
             const urls = Array.isArray(value) ? value : [value];
             // Find media objects matching the URLs
             const allMedia = [...(rootData.media || []), ...(childData.media || [])];
             const matched = allMedia.filter(m => urls.includes(m.file_path || m.url));
+
+            // Only update if we found matching media
             if (matched.length > 0) {
                 setSelectedMedia(matched);
+                initializedRef.current = true;
             }
         }
-    }, [value, rootData.media, childData.media]);
+
+        // Reset initialization flag when value changes or modal closes
+        if (!value) {
+            initializedRef.current = false;
+        }
+    }, [value]);
 
     // Auto-select uploaded files when they appear in the media list
     useEffect(() => {
@@ -191,7 +202,7 @@ const MediaGalleryPicker = ({
                     newSelection = prev.filter(m => (m.file_path || m.url) !== mediaUrl);
                 } else {
                     if (prev.length >= maxCount) {
-                        message.warning(`Maximum ${maxCount} files can be selected`);
+                        setAlertMessage({ type: 'warning', text: `Maximum ${maxCount} files can be selected` });
                         return prev;
                     }
                     newSelection = [...prev, media];
@@ -228,7 +239,7 @@ const MediaGalleryPicker = ({
 
             // Switch to browse tab to show uploaded files
             setActiveTab('browse');
-            message.success('Files uploaded and selected!');
+            setAlertMessage({ type: 'success', text: 'Files uploaded and selected!' });
         } catch (error) {
             console.error('Upload failed:', error);
         }
@@ -290,6 +301,18 @@ const MediaGalleryPicker = ({
                         {selectedMedia.length} {multiple ? 'file(s)' : 'file'} selected
                     </Text>
                 </div>
+            )}
+
+            {/* Alert Messages */}
+            {alertMessage && (
+                <Alert
+                    message={alertMessage.text}
+                    type={alertMessage.type}
+                    showIcon
+                    closable
+                    onClose={() => setAlertMessage(null)}
+                    style={{ marginBottom: 12 }}
+                />
             )}
 
             {/* Tabs */}
@@ -457,11 +480,13 @@ export const MediaGalleryPickerModal = ({
 }) => {
     const [tempSelection, setTempSelection] = useState(value);
     const [validating, setValidating] = useState(false);
+    const [validationError, setValidationError] = useState(null);
 
-    // Reset temp selection when modal opens
+    // Reset temp selection and errors when modal opens
     useEffect(() => {
         if (open) {
             setTempSelection(value);
+            setValidationError(null);
         }
     }, [open, value]);
 
@@ -512,7 +537,7 @@ export const MediaGalleryPickerModal = ({
                 onSelect?.(tempSelection);
                 onCancel?.();
             } catch (err) {
-                message.error(err);
+                setValidationError(err);
             } finally {
                 setValidating(false);
             }
@@ -569,6 +594,19 @@ export const MediaGalleryPickerModal = ({
                     </Text>
                 </div>
             )}
+
+            {/* Validation Error Alert */}
+            {validationError && (
+                <Alert
+                    message={validationError}
+                    type="error"
+                    showIcon
+                    closable
+                    onClose={() => setValidationError(null)}
+                    style={{ marginBottom: 12 }}
+                />
+            )}
+
             <MediaGalleryPicker
                 multiple={multiple}
                 maxCount={maxCount}

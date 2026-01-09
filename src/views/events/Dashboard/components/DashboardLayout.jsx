@@ -8,8 +8,6 @@ import DiscountCard from './DiscountCard';
 import { getBookingStats, getCncData, getDiscountData, getEventStats, getGatewayColumns, getGatewayData, getRevenueStats, getUserStats } from './dashboardConfig';
 import DashSkeleton from '../Admin/DashSkeleton';
 import { useDashboardData } from './useDashboardData';
-import OrganizerSummary from './OrganizerSummary';
-import EventTicketsSummary from './EventTicketsSummary';
 import GatewayWiseSales from './GatewayWiseSales';
 
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
@@ -230,9 +228,8 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                         </Col>
                     </Row>
                 </Col>
+
             </Row>
-            <OrganizerSummary organizerSummary={organizerSummary?.data} />
-            <EventTicketsSummary organizerTickets={organizerTickets?.data} isLoading={isLoading} />
         </div>
     );
 };

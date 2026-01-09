@@ -49,7 +49,7 @@ const PaymentGatewayForm = ({
         formValues[field.name] = gateway[field.gatewayKey] || '';
       });
       form.setFieldsValue(formValues);
-      setStatus(gateway.status === 1);
+      setStatus(gateway.status);
       if (hasEnvironment) {
         setEnvironment(gateway.env || null);
       }
@@ -65,7 +65,7 @@ const PaymentGatewayForm = ({
   const handleSubmit = async (values) => {
     const payload = {
       user_id: user || UserData?.id,
-      status: status ? 1 : 0,
+      status: status,
       ...values
     };
 
@@ -81,7 +81,7 @@ const PaymentGatewayForm = ({
     { value: "prod", label: "Production Environment" },
   ];
 
-    const handleStatusChange = (checked) => {
+  const handleStatusChange = (checked) => {
     setStatus(checked);
     onStatusChange?.(checked);
   };
@@ -202,7 +202,7 @@ const PaymentGatewayForm = ({
                 loading={updateGatewayMutation.isPending}
                 icon={<SaveOutlined />}
                 size="large"
-                // style={{ minWidth: '120px' }}
+              // style={{ minWidth: '120px' }}
               >
                 {updateGatewayMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>

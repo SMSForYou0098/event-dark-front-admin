@@ -111,7 +111,7 @@ const AgentBookingModal = (props) => {
 
     setCheckingUser(true);
     try {
-      const url = `user-form-number/${phoneNumber}`;
+      const url = `user-from-number/${phoneNumber}`;
       const response = await api.get(url);
 
       setIsExist(response.status);

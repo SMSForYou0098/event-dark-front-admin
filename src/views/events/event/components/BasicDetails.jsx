@@ -1,14 +1,18 @@
 // BasicDetailsStep.jsx
-import React, { useEffect, useMemo } from 'react';
-import { Form, Input, Select, Row, Col } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Form, Input, Select, Row, Col, Drawer, Button, List, Tag } from 'antd';
+import { useQuery } from '@tanstack/react-query';
+import { EyeOutlined } from '@ant-design/icons';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useEventCategories } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
 import { VanueList } from './CONSTANTS';
 import { ContentSelect } from './ContentSelect';
+import apiClient from 'auth/FetchInterceptor';
 
 const BasicDetailsStep = ({ form, isEdit }) => {
+  const [fieldsDrawerOpen, setFieldsDrawerOpen] = useState(false);
   const { UserData, } = useMyContext();
 
   // categories
@@ -16,6 +20,27 @@ const BasicDetailsStep = ({ form, isEdit }) => {
     data: categories = [],
     isLoading: catLoading,
   } = useEventCategories();
+
+  // Watch selected category
+  const selectedCategory = Form.useWatch('category', form);
+
+  // Fetch category details when category is selected
+  const {
+    data: categoryDetails,
+    isLoading: categoryDetailsLoading,
+  } = useQuery({
+    queryKey: ['category-show', selectedCategory],
+    queryFn: async () => {
+      const response = await apiClient.get(`category-show/${selectedCategory}`);
+      return response?.data || response;
+    },
+    enabled: !!selectedCategory,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Get fields from category details
+  const categoryFields = categoryDetails?.fields || [];
+  const hasFields = categoryFields.length > 0;
 
   // compute the organizerId for venues:
   const selectedOrganizerFromForm = Form.useWatch('org_id', form);
@@ -75,10 +100,42 @@ const BasicDetailsStep = ({ form, isEdit }) => {
             notFoundContent={catLoading ? "Loading..." : "No categories found"}
           />
         </Form.Item>
+        {/* Category Fields Drawer Button */}
+        {hasFields && (
+          <Button
+            icon={<EyeOutlined />}
+            onClick={() => setFieldsDrawerOpen(true)}
+            loading={categoryDetailsLoading}
+            type="link"
+          >
+            View Category Fields
+          </Button>
+        )}
       </Col>
 
+
+      {/* Category Fields Drawer */}
+      <Drawer
+        title={`Category Fields - ${categoryDetails?.title || 'Details'}`}
+        placement="right"
+        onClose={() => setFieldsDrawerOpen(false)}
+        open={fieldsDrawerOpen}
+        width={400}
+      >
+        <List
+          dataSource={categoryFields}
+          renderItem={(field) => (
+            <List.Item>
+              <Tag color="blue" style={{ fontSize: 14 }}>
+                {field.lable}
+              </Tag>
+            </List.Item>
+          )}
+        />
+      </Drawer>
+
       {/* Event Name */}
-      <Col xs={24} md={8}>
+      <Col xs={24} md={8} className=''>
         <Form.Item
           name="name"
           label="Event Name"

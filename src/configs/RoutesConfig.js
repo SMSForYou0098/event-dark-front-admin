@@ -551,7 +551,7 @@ export const protectedRoutes = [
         ),
         meta: {
             //roles: ['admin', 'organizer', 'pos'],
-            permissions: ['Create POS Bookings'],
+            permissions: ['Add POS Booking'],
         }
     },
 
@@ -798,6 +798,11 @@ export const protectedRoutes = [
         key: 'agent-reports',
         path: `/reports/agent`,
         component: React.lazy(() => import('views/events/Reports/AgentReport')),
+    },
+    {
+        key: 'organizer-reports',
+        path: `/reports/organizer`,
+        component: React.lazy(() => import('views/events/Reports/OrganizerReport')),
     },
 
     // ==================== New Booking Page ====================

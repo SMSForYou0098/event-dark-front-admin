@@ -295,11 +295,11 @@ const EventList = ({ isJunk = false }) => {
       },
       {
         title: 'Organisation',
-        dataIndex: 'organisation',
+        dataIndex: ['user', 'organisation'],
         key: 'organisation',
         align: 'center',
         searchable: true,
-        sorter: (a, b) => (a.organisation || '').localeCompare(b.organisation || ''),
+        sorter: (a, b) => (a.user?.organisation || '').localeCompare(b.user?.organisation || ''),
       },
       {
         title: 'Event Dates',

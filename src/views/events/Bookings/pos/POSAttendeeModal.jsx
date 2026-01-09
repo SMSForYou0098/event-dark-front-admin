@@ -73,6 +73,18 @@ const POSAttendeeModal = (props) => {
     fetchUserDetails();
   }, [fetchUserDetails]);
 
+  // Clear form values when modal is closed
+  useEffect(() => {
+    if (!show) {
+      form.resetFields();
+      setError("");
+      setShowNameField(false);
+      setName("");
+      setNumber("");
+      setMethod("Cash");
+    }
+  }, [show, form, setName, setNumber, setMethod]);
+
   const validateAndSubmit = useCallback(() => {
     form.validateFields()
       .then(() => {
@@ -116,7 +128,7 @@ const POSAttendeeModal = (props) => {
       closable={!disabled}
       title={
         <div style={{ textAlign: 'center', width: '100%' }}>
-          Attendee Detail For This Booking
+          Attendee Detail
         </div>
       }
       footer={null}

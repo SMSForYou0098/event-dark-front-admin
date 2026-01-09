@@ -13,7 +13,7 @@ import PermissionChecker from "layouts/PermissionChecker";
 import { resendTickets } from "./agent/utils";
 
 const BookingList = memo(({ type = 'agent' }) => {
-    const { UserData, formatDateTime, truncateString, isMobile, UserPermissions } = useMyContext();
+    const { UserData, formatDateTime, truncateString, isMobile, UserPermissions, userRole } = useMyContext();
 
     const [dateRange, setDateRange] = useState(null);
     const navigate = useNavigate();
@@ -38,11 +38,11 @@ const BookingList = memo(({ type = 'agent' }) => {
     const config = useMemo(() => {
         const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
         const token = (data) => data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id;
-        
+
         return {
             title: `${typeCapitalized} Bookings`,
             apiUrl: `bookings/${type}/${UserData?.id}`,
-            exportRoute: `export-${type}Booking`,
+            exportRoute: `bookings/export`,
             exportPermission: `Export ${typeCapitalized} Bookings`,
             deleteEndpoint: (data) => data.is_deleted
                 ? `restore/${type}/${token(data)}`
@@ -237,9 +237,10 @@ const BookingList = memo(({ type = 'agent' }) => {
             showIndex = true,
             showEvent = false,
             showUser = false,
+            showNumber = false,
             showOrganizer = false,
             showAgent = false,
-            showDiscount = false,
+            showDiscount = true,
             showPaymentMethod = false,
             showPurchaseDate = false,
             isNested = false,
@@ -319,6 +320,24 @@ const BookingList = memo(({ type = 'agent' }) => {
                 align: 'center',
                 searchable: true,
             });
+        }
+
+        // Number/Contact column - Only show if Admin or has 'View Contact Number' permission
+        if (showNumber) {
+            const canViewContact = userRole === 'Admin' || UserPermissions?.includes('View Contact Number');
+            if (canViewContact) {
+                columns.push({
+                    title: 'Contact',
+                    dataIndex: 'number',
+                    key: 'contact',
+                    align: 'center',
+                    width: 120,
+                    render: (_, record) => {
+                        const number = record?.bookings?.[0]?.number || record?.number || '-';
+                        return <span>{number}</span>;
+                    },
+                });
+            }
         }
 
         // Ticket column (common for both)
@@ -555,15 +574,16 @@ const BookingList = memo(({ type = 'agent' }) => {
                 togglePending: toggleBookingMutation.isPending,
                 currentId: loadingId,
             },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        }),[isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
-    
-        // Columns for DataTable
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+        }), [isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
+
+    // Columns for DataTable
     const columns = useMemo(() =>
         createCommonColumns({
             showIndex: true,
             showEvent: true,
             showUser: true,
+            showNumber: true,
             showOrganizer: true,
             showAgent: true,
             showDiscount: true,
@@ -580,7 +600,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 togglePending: toggleBookingMutation.isPending,
                 currentId: loadingId,
             },
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+            // eslint-disable-next-line react-hooks/exhaustive-deps
         }), [isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
 
     return (
@@ -656,7 +676,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 columns={columns}
                 data={formatBookingData(bookings)}
                 exportRoute={config.exportRoute}
-                ExportPermission={UserPermissions?.includes(config.exportPermission)}
+                ExportPermission={userRole === "Admin" ? true : UserPermissions?.includes(config.exportPermission)}
                 tableProps={{
                     scroll: { x: 1500 },
                     size: isMobile ? "small" : "middle",

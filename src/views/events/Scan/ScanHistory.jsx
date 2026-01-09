@@ -3,12 +3,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Tag, Typography } from "antd";
 import apiClient from "auth/FetchInterceptor";
 import DataTable from "views/events/common/DataTable";
+import { useMyContext } from "Context/MyContextProvider";
 
 const { Text } = Typography;
 
 const ScanHistory = () => {
   const [dateRange, setDateRange] = useState(null);
-
+  const { userRole, UserPermissions } = useMyContext();
   // Fetch scan history using TanStack Query
   const {
     data: scanHistory = [],
@@ -169,7 +170,7 @@ const ScanHistory = () => {
       onRefresh={refetch}
       enableExport
       exportRoute="export-scan-history"
-      ExportPermission={true}
+      ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Scan History")}
       emptyText="No scan history found"
       enableSearch
       showSearch

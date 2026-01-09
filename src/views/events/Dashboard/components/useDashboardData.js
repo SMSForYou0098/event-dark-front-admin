@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import OrganizerService from 'services/OrganizerService';
 
 export const useDashboardData = (userId) => {
     // Fetch all dashboard data in parallel for better performance
@@ -8,8 +9,8 @@ export const useDashboardData = (userId) => {
             api.get(`bookingCount/${userId}`),
             api.get(`calculateSale/${userId}`),
             api.get(`gateway-wise-sales/${userId}`).catch(() => null), // Graceful fallback if gateway API fails
-            api.get(`organizer/summary/${userId}`).catch(() => null),
-            api.get(`getDashboardOrgTicket`).catch(() => null), // Graceful fallback if gateway API fails
+            OrganizerService.getOrganizerSummary(userId),
+            OrganizerService.getDashboardOrgTickets(),
             api.get(`user-stats`).catch(() => null) // Graceful fallback if gateway API fails
         ]);
 

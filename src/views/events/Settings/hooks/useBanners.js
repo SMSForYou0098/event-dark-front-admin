@@ -5,26 +5,31 @@ import api from "auth/FetchInterceptor";
 // ORGANIZER EVENTS HOOK
 // ============================================
 
-export const useOrganizerEvents = (organizerId, options = {}) =>
+export const useOrganizerEvents = (organizerId, role, options = {}) =>
   useQuery({
-    queryKey: ['org-events', organizerId],
+    queryKey: ['org-events', organizerId, role],
     queryFn: async () => {
       if (!organizerId) throw new Error('Organizer ID is required');
-      
-      const res = await api.get(`org-event/${organizerId}`);
-      
+
+      // If role is 'Organizer', use base endpoint; otherwise add role as query param
+      const url = role
+        ? `org-event/${organizerId}?role=${role}`
+        : `org-event/${organizerId}`;
+
+      const res = await api.get(url);
+
       // Handle different response structures
-      const list = Array.isArray(res?.data) 
-        ? res.data 
-        : Array.isArray(res?.events) 
-          ? res.events 
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : Array.isArray(res?.events)
+          ? res.events
           : [];
-      
+
       // Map to standardized format with tickets
       return list.map(event => ({
         value: event.id,
         label: event.name,
-        event_key:event.event_key || '',
+        event_key: event.event_key || '',
         tickets: event.tickets || []
       }));
     },
@@ -50,13 +55,13 @@ export const useBanner = (id, options = {}) =>
     queryKey: ['banner', id],
     queryFn: async () => {
       if (!id) throw new Error('Banner ID is required');
-      
+
       const res = await api.get(`banner-show/${id}`);
-      
+
       if (!res?.status) {
         throw new Error(res?.message || 'Failed to fetch banner');
       }
-      
+
       return res?.data || {};
     },
     enabled: !!id,
@@ -107,13 +112,13 @@ export const useCreateBanner = (options = {}) =>
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to create banner');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -127,20 +132,20 @@ export const useUpdateBanner = (options = {}) =>
   useMutation({
     mutationFn: async ({ id, formData }) => {
       if (!id) throw new Error('Banner ID is required');
-      
+
       // FormData should be passed directly
       const res = await api.post(`banner-update/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to update banner');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -154,15 +159,15 @@ export const useDeleteBanner = (options = {}) =>
   useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error('Banner ID is required');
-      
+
       const res = await api.delete(`banner-destroy/${id}`);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to delete banner');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -178,15 +183,15 @@ export const useRearrangeBanner = (options = {}) =>
     mutationFn: async ({ type, banners }) => {
       if (!type) throw new Error('Banner type is required');
       if (!Array.isArray(banners)) throw new Error('Banners array is required');
-      
+
       const res = await api.post(`rearrange-banner/${type}`, { banners });
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to rearrange banners');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,

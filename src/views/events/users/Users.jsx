@@ -207,8 +207,8 @@ const Users = () => {
   // Action handlers
   const handleAssignCredit = useCallback((id) => {
     const route = `edit/${id}`;
-      console.log('Navigating to route:', route);
-      console.log('Full URL will be:', window.location.origin + window.location.pathname + '/' + route);
+    console.log('Navigating to route:', route);
+    console.log('Full URL will be:', window.location.origin + window.location.pathname + '/' + route);
     navigate(route);
   }, [navigate]);
 
@@ -623,7 +623,7 @@ const Users = () => {
         // Export functionality
         enableExport={true}
         exportRoute={"export-users"}
-        ExportPermission={UserPermissions?.includes("Export Users")}
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Users")}
         // Loading states
         loading={usersLoading || mutationLoading}
         error={usersError}

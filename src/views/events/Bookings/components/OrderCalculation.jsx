@@ -36,11 +36,11 @@ const OrderCalculation = (props) => {
         <h5 className="text-success">{ticketCurrency}{convenienceFee}</h5>
       </div>
       <div className="d-flex justify-content-between mb-2">
-        <h6>Central GST (CGST) @ 9%</h6>
+        <h6>(CGST) @ 9%</h6>
         <h6 className="text-success">{ticketCurrency}{centralGST}</h6>
       </div>
       <div className="d-flex justify-content-between mb-2">
-        <h6>State GST (SGST) @ 9%</h6>
+        <h6>(SGST) @ 9%</h6>
         <h6 className="text-success">{ticketCurrency}{stateGST}</h6>
       </div>
 

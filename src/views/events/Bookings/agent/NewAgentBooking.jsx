@@ -100,6 +100,7 @@ const NewAgentBooking = memo(({ type }) => {
     },
   });
 
+  /*
   const updateUserMutation = useUpdateUser({
     // onSuccess: (response) => {
     //   if (response.status && response.user) {
@@ -111,6 +112,7 @@ const NewAgentBooking = memo(({ type }) => {
       message.error(error.message || 'Failed to update user');
     },
   });
+  */
 
   const corporateBookingMutation = useCorporateBooking({
     onSuccess: (response) => {
@@ -377,10 +379,12 @@ const NewAgentBooking = memo(({ type }) => {
             if (designation) formData.append('designation', designation);
             formData.append('user_id', checkResult.user.id);
 
+            /*
             await updateUserMutation.mutateAsync({
               userId: checkResult.user.id,
               formData
             });
+            */
 
             user = checkResult.user;
             setCreatedUser(user);
@@ -482,14 +486,14 @@ const NewAgentBooking = memo(({ type }) => {
         setIsSubmitting(false);
       }, 1000);
     }
-  }, [isSubmitting, name, number, email, companyName, designation, photo, doc, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, updateUserMutation, handleBookingAfterUser]);
+  }, [isSubmitting, name, number, email, companyName, designation, photo, doc, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, handleBookingAfterUser]);
 
   const isLoading =
     corporateBookingMutation.isPending ||
     agentBookingMutation.isPending ||
     // masterBookingMutation.isPending ||
     createUserMutation.isPending ||
-    updateUserMutation.isPending;
+    createUserMutation.isPending; // || updateUserMutation.isPending;
 
 
   const attendeeStepRef = useRef(null);

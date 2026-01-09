@@ -86,15 +86,23 @@ const PosEvents = ({ type, handleButtonClick, isScanner }) => {
                 onChange={setActiveKey}
                 ghost
             >
-                <Panel header="Events" key="1">
-                    <Input
-                        className="mb-3"
-                        placeholder="Search Your Event..."
-                        prefix={<SearchOutlined />}
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        allowClear
-                    />
+                <Panel header={
+                    <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
+                        <p className="mb-0 fs-14  fw-semibold">Events</p>
+                        <div className='mr-2'>
+                            <Input
+                                style={{ maxWidth: 250 }}
+                                placeholder="Search Your Event..."
+                                prefix={<SearchOutlined />}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                allowClear
+                            />
+                        </div>
+                    </div>
+
+                } key="1">
+
                     <div className="px-4" style={{ position: 'relative' }}>
                         <div
                             style={{

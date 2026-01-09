@@ -649,7 +649,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 width={'100%'}
                                 style={{ borderRadius: 8, maxWidth: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                             />
-                            <div className="mt-2 text-muted small">300x600 px</div>
+                            <div className="mt-2 text-muted small">300x750 px</div>
                         </div>
                     </Col>
                 </Row>
@@ -657,11 +657,14 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
             <MediaGalleryPickerModal
                 open={mediaPickerOpen}
-                onCancel={() => setMediaPickerOpen(false)}
+                onCancel={() => {
+                    setMediaPickerOpen(false);
+                    setSelectedMediaUrl('');
+                }}
                 onSelect={handleMediaSelect}
                 multiple={false}
                 title="Select Ticket Background"
-                dimensionValidation={{ width: 300, height: 600, strict: true }}
+                dimensionValidation={{ width: 300, height: 750, strict: true }}
                 value={selectedMediaUrl}
             />
         </>

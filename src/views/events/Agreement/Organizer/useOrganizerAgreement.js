@@ -81,6 +81,14 @@ export const useUpdateOrganizerAgreement = (options = {}) => {
     });
 };
 
+// Set default organizer agreement
+const setDefaultAgreement = async (id) => {
+    const response = await api.post(`agreement/set-default/${id}`);
+    return response;
+};
+
+// ... existing delete hook ...
+
 // Hook to delete organizer agreement
 export const useDeleteOrganizerAgreement = (options = {}) => {
     const queryClient = useQueryClient();
@@ -95,6 +103,25 @@ export const useDeleteOrganizerAgreement = (options = {}) => {
         onError: (error) => {
             console.error('Error deleting agreement:', error);
             message.error(error.response?.data?.message || 'Failed to delete agreement. Please try again.');
+            options.onError?.(error);
+        },
+    });
+};
+
+// Hook to set default organizer agreement
+export const useSetDefaultAgreement = (options = {}) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: setDefaultAgreement,
+        onSuccess: (data, variables) => {
+            message.success(data?.message || 'Default agreement set successfully!');
+            queryClient.invalidateQueries({ queryKey: ['organizer-agreements'] });
+            options.onSuccess?.(data, variables);
+        },
+        onError: (error) => {
+            console.error('Error setting default agreement:', error);
+            message.error(error.response?.data?.message || 'Failed to set default agreement. Please try again.');
             options.onError?.(error);
         },
     });

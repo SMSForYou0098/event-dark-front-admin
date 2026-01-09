@@ -31,7 +31,7 @@ const PreviewAgreement = () => {
                     setAgreementData(previewData.data);
                     setAuthModalVisible(false);
                     form.resetFields();
-                } 
+                }
             }
         }
     });

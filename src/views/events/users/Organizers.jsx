@@ -13,21 +13,21 @@ import PermissionChecker from 'layouts/PermissionChecker';
 import { withAccess } from '../common/withAccess';
 
 const Organizers = () => {
-  const { 
-    api: apiUrl, 
-    UserPermissions, 
-    authToken, 
-    auth_session, 
+  const {
+    api: apiUrl,
+    UserPermissions,
+    authToken,
+    auth_session,
     session_id,
-    loader
+    loader,
+    userRole
   } = useMyContext();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const [dateRange, setDateRange] = useState(null);
   const [error, setError] = useState(null);
   const [mutationLoading, setMutationLoading] = useState(false);
-
   // Fetch organizers with React Query
   const fetchOrganizers = async () => {
     const params = new URLSearchParams();
@@ -45,11 +45,11 @@ const Organizers = () => {
     return response.data || [];
   };
 
-  const { 
-    data: organizers = [], 
-    isLoading: organizersLoading, 
+  const {
+    data: organizers = [],
+    isLoading: organizersLoading,
     error: organizersError,
-    refetch: refetchOrganizers 
+    refetch: refetchOrganizers
   } = useQuery({
     queryKey: ['organizers', { dateRange }],
     queryFn: fetchOrganizers,
@@ -127,33 +127,33 @@ const Organizers = () => {
   };
 
   const formatOrganizerData = (organizers) => {
-    return organizers.map(organizer => ({ 
-      ...organizer, 
-      key: organizer.id 
+    return organizers.map(organizer => ({
+      ...organizer,
+      key: organizer.id
     }));
   };
 
-    // Delete user mutation
-    const deleteUserMutation = useMutation({
-      mutationFn: async (userId) => {
-        const res = await api.delete(`user-delete/${userId}`);
-        console.log("Delete response:", res);
-        return res.data;
-      },
-      onSuccess: () => {
-        refetchOrganizers();
-        message.success("User Deleted successfully.");
-        setMutationLoading(false);
-      },
-      onError: (err) => {
-        message.error(
-          err.response?.data?.message || err.message || "An error occurred"
-        );
-        setMutationLoading(false);
-      },
-    });
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId) => {
+      const res = await api.delete(`user-delete/${userId}`);
+      console.log("Delete response:", res);
+      return res.data;
+    },
+    onSuccess: () => {
+      refetchOrganizers();
+      message.success("User Deleted successfully.");
+      setMutationLoading(false);
+    },
+    onError: (err) => {
+      message.error(
+        err.response?.data?.message || err.message || "An error occurred"
+      );
+      setMutationLoading(false);
+    },
+  });
 
-    const handleDelete = useCallback((id) => {
+  const handleDelete = useCallback((id) => {
     if (!id) return;
 
     Modal.confirm({
@@ -249,21 +249,21 @@ const Organizers = () => {
   actionColumns.push({
     title: 'Actions',
     key: 'actions',
-    fixed : 'right',
+    fixed: 'right',
     width: '150px',
     align: 'center',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
         <PermissionChecker permission="Impersonet">
           {/* <Tooltip title="Impersonate User"> */}
-            <Button
-              type="primary"
-              icon={<LogIn size={14} />}
-              onClick={() => impersonateLogin(record.id)}
-              loading={impersonateMutation.isPending}
-              disabled={mutationLoading || record?.status === "0" || record?.status === 0}
-              size="small"
-            />
+          <Button
+            type="primary"
+            icon={<LogIn size={14} />}
+            onClick={() => impersonateLogin(record.id)}
+            loading={impersonateMutation.isPending}
+            disabled={mutationLoading || record?.status === "0" || record?.status === 0}
+            size="small"
+          />
           {/* </Tooltip> */}
         </PermissionChecker>
 
@@ -313,7 +313,7 @@ const Organizers = () => {
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
         extraHeaderContent={
-        <PermissionChecker permission="Add User">
+          <PermissionChecker permission="Add User">
             <Tooltip title={"Add Organizer"}>
               <Button
                 type="primary"
@@ -325,7 +325,7 @@ const Organizers = () => {
         }
         enableExport={true}
         exportRoute={'export-organizers'}
-        ExportPermission={UserPermissions?.includes("Export Organizers")}
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Organizers")}
         authToken={authToken}
         loading={organizersLoading || mutationLoading}
         error={organizersError || error}

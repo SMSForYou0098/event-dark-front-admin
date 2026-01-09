@@ -185,7 +185,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       },
     },
     {
-      title: 'Quantity',
+      title: 'Qty',
       key: 'quantity',
       width: isMobile ? 200 : 250,
       align: isMobile ? 'right' : 'center',

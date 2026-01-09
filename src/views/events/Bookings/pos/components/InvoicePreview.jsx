@@ -128,22 +128,23 @@ const InvoicePreview = ({
     };
 
     const ticketData = useMemo(() => {
+        console.log("bookingData", bookingData);
         return bookingData?.map((booking, index) => ({
             key: index,
             quantity: booking.quantity || 0,
             seat: formatSeatNames(booking?.event_seat_status),
             ticketName: booking?.ticket?.name || 'N/A',
-            price: `₹${(Number(booking.amount) * Number(booking.quantity)).toFixed(2) || '0.00'}`,
+            price: `₹${Number(booking.amount).toFixed(2) || '0.00'}`,
         }));
     }, [bookingData]);
-    
+
     return (
-        <div 
-            ref={printRef} 
-            className="pos-print-body" 
-            style={{ 
-                border: '1px solid #e8e8e8', 
-                borderRadius: '6px', 
+        <div
+            ref={printRef}
+            className="pos-print-body"
+            style={{
+                border: '1px solid #e8e8e8',
+                borderRadius: '6px',
                 padding: '16px',
                 background: '#fff'
             }}
@@ -159,11 +160,11 @@ const InvoicePreview = ({
                 {/* QR Code */}
                 {qrCodeDataURL && (
                     <div className="d-flex justify-content-center my-2">
-                        <img 
-                            src={qrCodeDataURL} 
-                            alt="QR Code" 
-                            style={{ 
-                                width: '150px', 
+                        <img
+                            src={qrCodeDataURL}
+                            alt="QR Code"
+                            style={{
+                                width: '150px',
                                 height: '150px',
                                 border: '2px solid #f0f0f0',
                                 borderRadius: '8px',

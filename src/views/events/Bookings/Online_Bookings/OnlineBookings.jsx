@@ -2,18 +2,17 @@ import React, { memo, useState, useCallback, useMemo } from "react";
 import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import { CheckCircle, Send, Ticket, XCircle, AlertCircle } from "lucide-react";
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined,} from '@ant-design/icons';
+import { Send, Ticket, AlertCircle } from "lucide-react";
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, } from '@ant-design/icons';
 import DataTable from "../../common/DataTable";
 import TicketModal from "views/events/Tickets/modals/TicketModal";
 import api from "auth/FetchInterceptor";
-import { withAccess } from "../../common/withAccess";
 import BookingCount from "./BookingCount";
 import { resendTickets } from "../agent/utils";
 import { LoadingOutlined } from '@ant-design/icons';
 
 const OnlineBookings = memo(() => {
-  
+
   const {
     UserData,
     formatDateTime,
@@ -118,9 +117,9 @@ const OnlineBookings = memo(() => {
   const deleteMutation = useMutation({
     mutationFn: async ({ id, isDeleted, token }) => {
       if (isDeleted) {
-        return api.get(`restore-booking/${id}/${token}`);
+        return api.get(`restore/online/${token}`);
       } else {
-        return api.delete(`delete-booking/${id}/${token}`);
+        return api.delete(`disable/online/${token}`);
       }
     },
     onSuccess: (res, variables) => {
@@ -139,22 +138,24 @@ const OnlineBookings = memo(() => {
     },
   });
 
-    const HandleSendTicket = useCallback(async (record) => {
-      if (!record?.id) return;
-      setLoadingId(record.id);
-      try {
-        // call resendTickets; remove setLoading param if it mutates boolean
-        await resendTickets(record, 'online');
-      } catch (err) {
-        // handle error if needed
-      } finally {
-        setLoadingId(null);
-      }
-    }, []);
+  const HandleSendTicket = useCallback(async (record) => {
+    console.log(record);
+    if (!record?.id) return;
+    setLoadingId(record.id);
+    try {
+      // call resendTickets; remove setLoading param if it mutates boolean
+      await resendTickets(record, 'online');
+    } catch (err) {
+      // handle error if needed
+    } finally {
+      setLoadingId(null);
+    }
+  }, []);
 
   const DeleteBooking = useCallback(
-    (id) => {
-      const data = bookings?.find((item) => item?.id === id);
+    (data) => {
+      console.log(data);
+      // const data = bookings?.find((item) => item?.id === id);
       if (!data) return;
 
       Modal.confirm({
@@ -167,7 +168,7 @@ const OnlineBookings = memo(() => {
         cancelText: "No",
         onOk: () => {
           deleteMutation.mutate({
-            id,
+            id: data?.id,
             isDeleted: data?.is_deleted === true,
             token: data?.token || data?.order_id,
           });
@@ -277,7 +278,7 @@ const OnlineBookings = memo(() => {
       render: (_, record) => {
         const eventName =
           record?.bookings?.[0]?.event_name || record?.event_name || "";
-          
+
         return <span title={eventName}>{truncateString(eventName)}</span>;
       },
       sorter: (a, b) => {
@@ -297,29 +298,29 @@ const OnlineBookings = memo(() => {
     },
     ...(UserPermissions?.includes("View Username")
       ? [
-          {
-            title: "User Name",
-            dataIndex: ["user", "name"],
-            key: "userName",
-            align: "center",
-            searchable: true,
-            render: (_, record) =>
-              record?.bookings?.[0]?.user?.name || record?.user?.name || "",
-          },
-        ]
+        {
+          title: "User Name",
+          dataIndex: ["user", "name"],
+          key: "userName",
+          align: "center",
+          searchable: true,
+          render: (_, record) =>
+            record?.bookings?.[0]?.user?.name || record?.user?.name || "",
+        },
+      ]
       : []),
     ...(UserPermissions?.includes("View Contact")
       ? [
-          {
-            title: "Number",
-            dataIndex: "number",
-            key: "number",
-            align: "center",
-            // searchable: true,
-            render: (_, record) =>
-              record?.bookings?.[0]?.number || record?.number || "",
-          },
-        ]
+        {
+          title: "Number",
+          dataIndex: "number",
+          key: "number",
+          align: "center",
+          // searchable: true,
+          render: (_, record) =>
+            record?.bookings?.[0]?.number || record?.number || "",
+        },
+      ]
       : []),
     {
       title: "Ticket",
@@ -329,15 +330,6 @@ const OnlineBookings = memo(() => {
       // searchable: true,
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
-    },
-    {
-      title: "Transaction ID",
-      dataIndex: "payment_id",
-      key: "payment_id",
-      align: "center",
-      // searchable: true,
-      render: (_, record) =>
-        record?.payment_id || record?.bookings?.[0]?.payment_id || "",
     },
     {
       title: "Mode",
@@ -351,13 +343,23 @@ const OnlineBookings = memo(() => {
         "",
     },
     {
-      title: "Gateway",
+      title: "PG",
       dataIndex: "gateway",
       key: "gateway",
       align: "center",
       render: (_, record) =>
         record?.gateway || record?.bookings?.[0]?.gateway || "",
     },
+    {
+      title: "Tran ID",
+      dataIndex: "payment_id",
+      key: "payment_id",
+      align: "center",
+      // searchable: true,
+      render: (_, record) =>
+        record?.payment_id || record?.bookings?.[0]?.payment_id || "",
+    },
+
     {
       title: "Qty",
       dataIndex: "quantity",
@@ -398,16 +400,52 @@ const OnlineBookings = memo(() => {
       align: "center",
     },
     {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      align: "center",
+      render: (_, record) => {
+        if (record.is_deleted) {
+          return (
+            <Tooltip title="Disabled">
+              <Tag icon={<CloseCircleOutlined className='m-0' />} color="error" />
+            </Tooltip>
+          );
+        }
+        const status =
+          record.status || (record.bookings && record.bookings[0]?.status);
+
+        return status === "0" ? (
+          <Tooltip title="Pending">
+            <Tag icon={<ClockCircleOutlined className='m-0' />} color="warning" />
+          </Tooltip>
+        ) : (
+          <Tooltip title="Scanned">
+            <Tag icon={<CheckCircleOutlined className='m-0' />} color="success" />
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: "Purchase Date",
+      dataIndex: "created_at",
+      key: "created_at",
+      align: "center",
+      render: (date) => formatDateTime(date),
+      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+    },
+    {
       title: "Action",
       key: "action",
       align: "center",
+      // fixed: 'right',
       render: (_, record) => {
         const isDisabled =
           record?.is_deleted === true ||
           (record?.bookings && record?.bookings[0]?.status) === "1";
 
         return (
-          <Space size="small">
+          <Space size="small" className="p-0">
             <Button
               type="primary"
               size="small"
@@ -431,67 +469,25 @@ const OnlineBookings = memo(() => {
               disabled={isDisabled}
               title="Generate Ticket"
             />
-            <Button
-              type={record?.is_deleted ? "primary" : "default"}
-              danger={!record?.is_deleted}
+            <Switch
               size="small"
-              icon={
-                record?.is_deleted ? (
-                  <CheckCircle size={14} />
-                ) : (
-                  <XCircle size={14} />
-                )
-              }
-              onClick={() => DeleteBooking(record.id)}
-              title={record?.is_deleted ? "Enable Ticket" : "Disable Ticket"}
+              checked={!record?.is_deleted}
+              onChange={() => DeleteBooking(record)}
+              checkedChildren="Active"
+              unCheckedChildren="Disabled"
             />
           </Space>
         );
       },
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      align: "center",
-      render: (_, record) => {
-          if (record.is_deleted) {
-              return (
-                  <Tooltip title="Disabled">
-                      <Tag icon={<CloseCircleOutlined className='m-0'/>} color="error" />
-                  </Tooltip>
-              );
-          }
-          const status =
-              record.status || (record.bookings && record.bookings[0]?.status);
-
-          return status === "0" ? (
-              <Tooltip title="Pending">
-                  <Tag icon={<ClockCircleOutlined className='m-0'/>} color="warning" />
-              </Tooltip>
-          ) : (
-              <Tooltip title="Scanned">
-                  <Tag icon={<CheckCircleOutlined className='m-0'/>} color="success" />
-              </Tooltip>
-          );
-      },
-  },
-    {
-      title: "Purchase Date",
-      dataIndex: "created_at",
-      key: "created_at",
-      align: "center",
-      render: (date) => formatDateTime(date),
-      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
     },
   ];
 
   return (
     <>
       {showGatewayReport && (
-         <BookingCount data={bookings} date={dateRange} type={'online'} showGatewayAmount={true}/>
+        <BookingCount data={bookings} date={dateRange} type={'online'} showGatewayAmount={true} />
       )}
-      
+
       <DataTable
         title="Online Bookings"
         data={bookings}

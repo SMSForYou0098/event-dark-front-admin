@@ -216,7 +216,7 @@ const bookingsSubmenu = [
         path: 'bookings/pos/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Create POS Bookings"]
+        permissions: ["Add POS Booking"]
       }
     ]
   },
@@ -417,9 +417,19 @@ const reportingSubmenu = [
     icon: UserOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"],
+    // roles: ["Admin"],
     permissions: ["View Agent Reports"],
-  }
+  },
+  {
+    key: 'organizer-report',
+    path: 'reports/organizer',
+    title: 'Organizer Report',
+    icon: UserOutlined,
+    breadcrumb: false,
+    submenu: [],
+    // roles: ["Admin"],
+    permissions: ["View Organizer Reports"],
+  },
 ];
 
 const reportingNav = {
@@ -668,6 +678,15 @@ const promotionSubMenu = [
     key: 'orgs-promotion',
     path: 'promotion/orgs',
     title: 'Promote Orgs',
+    icon: TeamOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'events-intimations',
+    path: '/intimation',
+    title: 'Events Intimations',
     icon: TeamOutlined,
     breadcrumb: false,
     submenu: [],

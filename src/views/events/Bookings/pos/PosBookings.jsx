@@ -30,7 +30,7 @@ const { Text } = Typography;
 
 const PosBooking = memo(() => {
   const navigate = useNavigate();
-  const { api, UserData, formatDateTime, authToken } = useMyContext();
+  const { api, UserData, formatDateTime, authToken, UserPermissions, userRole } = useMyContext();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState(null);
   const [showPrintModel, setShowPrintModel] = useState(false);
@@ -95,7 +95,7 @@ const PosBooking = memo(() => {
         }
 
         const bookings = response.data.bookings || [];
-        
+
         // Extract pagination data from response
         const paginationData = response.data.pagination || {
           current_page: currentPage,
@@ -222,48 +222,48 @@ const PosBooking = memo(() => {
       Boolean(selectedBooking.is_set) &&
       Array.isArray(selectedBooking.bookings) &&
       selectedBooking.bookings.length > 0;
-  
+
     const hasRelatedBookings =
       Array.isArray(selectedBooking.bookings) &&
       selectedBooking.bookings.length > 0;
-  
+
     // Build the unified list of bookings to compute from
     const allBookings = isSetWithBookings
       ? selectedBooking.bookings
       : hasRelatedBookings
         ? [selectedBooking, ...(selectedBooking.related ?? [])]
         : [selectedBooking];
-  
+
     // Totals
     const subtotal = allBookings.reduce((sum, b) => {
-      const baseAmount = parseFloat( b?.price ?? 0);
+      const baseAmount = parseFloat(b?.price ?? 0);
       const qty = parseInt(b?.quantity ?? 0, 10);
       return sum + baseAmount * qty;
     }, 0);
-  
+
     const totalDiscount = allBookings.reduce((sum, b) => {
       return sum + parseFloat(b?.discount ?? 0);
     }, 0);
-  
+
     const totalTax = allBookings.reduce((sum, b) => {
-      return sum + parseFloat(b?.booking_tax?.total_tax ?? 0) + Number(b?.booking_tax?.convenience_fee );
+      return sum + parseFloat(b?.booking_tax?.total_tax ?? 0) + Number(b?.booking_tax?.convenience_fee);
     }, 0);
-  
+
     const totalConvenienceFee = allBookings.reduce((sum, b) => {
       return sum + parseFloat(b?.booking_tax?.convenience_fee ?? 0);
     }, 0);
-  
+
     // Grand total logic:
     // - For sets or bookings with related items, prefer the provided total_amount on the "parent".
     // - For a single booking, fall back to its amount.
     const grandTotal = parseFloat(selectedBooking?.total_amount ?? 0)
-  
+
     // Event to show: prefer parent, else first booking’s event
     const event =
       selectedBooking?.ticket?.event ??
       allBookings?.[0]?.ticket?.event ??
       null;
-  
+
     // Lightweight array (one entry per booking)
     const bookingData = allBookings.map((b) => ({
       id: b.id,
@@ -279,7 +279,7 @@ const PosBooking = memo(() => {
         name: b?.ticket?.name,
       },
     }));
-  
+
     return {
       event,
       bookingData, // array with 1+ items (set => multiple)
@@ -307,170 +307,183 @@ const PosBooking = memo(() => {
     },
   ], []);
 
-
   // Main table columns
-  const columns = useMemo(() => [
-    {
-      title: 'Event',
-      dataIndex: ['ticket', 'event', 'name'],
-      align:'center',
-      key: 'event',
-      sorter: (a, b) => a.ticket?.event?.name?.localeCompare(b.ticket?.event?.name),
-    },
-    {
-      title: 'User',
-      dataIndex: 'user_name',
-      key: 'posUser',
-      align:'center',
-      sorter: (a, b) => a.user_name?.localeCompare(b.user_name),
-    },
-
-    {
-      title: 'Tkt',
-      dataIndex: ['ticket', 'name'],
-      key: 'ticket',
-      align: 'center',
-      width : 90,
-      sorter: (a, b) => a.ticket?.name?.localeCompare(b.ticket?.name),
-      render: (_, record) => {
-        if (record.is_set === true) {
-          return <Tag color="blue">M Tkts</Tag>;
-        }
-
-        const ticketName = record?.ticket?.name || record?.bookings?.[0]?.ticket?.name || '-';
-        return <span>{ticketName}</span>;
+  const columns = useMemo(() => {
+    const baseColumns = [
+      {
+        title: 'Event',
+        dataIndex: ['ticket', 'event', 'name'],
+        align: 'center',
+        key: 'event',
+        sorter: (a, b) => a.ticket?.event?.name?.localeCompare(b.ticket?.event?.name),
       },
-    },
-    {
-      title: 'QTY',
-      dataIndex: 'quantity',
-      key: 'quantity',
-      width: 80,
-      align: 'center',
-      sorter: (a, b) => a.quantity - b.quantity,
-    },
-    {
-      title: 'Disc',
-      dataIndex: 'discount',
-      key: 'discount',
-      width: 100,
-      align: 'center',
-      render: (discount) => (
-        <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
-      ),
-      sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
-    },
-    {
-      title: 'T Amount',
-      dataIndex: 'total_amount',
-      key: 'total_amount',
-      align: 'center',
-      render: (totalAmount) => (
-        <Text strong style={{ color: '#52c41a' }}>
-          ₹{Number(totalAmount || 0).toFixed(2)}
-        </Text>
-      ),
-      sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      align: 'center',
-      width:80,
-      render: (status) => (
-        <Tag color={status === "0" ? "warning" : "success"}>
-          {status === "0" ? <ClockCircleOutlined className="m-0"/> : <CheckOutlined className="m-0"/>}
-        </Tag>
-        //   {status === "0" ? "Unchecked" : "Checked"}
-        // </Tag>
-      ),
-      filters: [
-        { text: 'Unchecked', value: '0' },
-        { text: 'Checked', value: '1' },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-
-    {
-      title: 'Customer',
-      dataIndex: 'name',
-      key: 'customer',
-      align:'center',
-      sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
-    },
-    {
-      title: 'Contact',
-      dataIndex: 'number',
-      key: 'contact',
-      width: 120,
-      align:'center',
-    },
-    {
-      title: 'Purchase Date',
-      dataIndex: 'created_at',
-      key: 'purchaseDate',
-      align:'center',
-      render: (date) => formatDateTime?.(date) || date,
-      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
-    },
-    {
-      title: 'Ticket Status',
-      dataIndex: 'is_deleted',
-      key: 'ticketStatus',
-      align: 'center',
-      width: 120,
-      render: (isDeleted, record) => (
-        <Switch
-          checked={!isDeleted}
-          onChange={() => handleToggleStatus(record)}
-          checkedChildren="Active"
-          unCheckedChildren="Disabled"
-          loading={toggleStatusMutation.isPending}
-          disabled={record.status === "1"}
-        />
-      ),
-    },
-    {
-      title: 'Organizer',
-      dataIndex: 'reporting_user_name',
-      key: 'organizer',
-      align:'center',
-      sorter: (a, b) => a.reporting_user_name?.localeCompare(b.reporting_user_name),
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      align: 'center',
-      fixed: 'right',
-      width: 80,
-      render: (_, record) => {
-        const isDisabled = record.is_deleted === true || record.status === "1";
-
-        return (
-          <Tooltip title="Print Ticket">
-            <Button
-              size="small"
-              icon={<PrinterOutlined />}
-              onClick={() => handlePrintBooking(record)}
-              disabled={isDisabled}
-            />
-          </Tooltip>
-        );
+      {
+        title: 'User',
+        dataIndex: 'user_name',
+        key: 'posUser',
+        align: 'center',
+        sorter: (a, b) => a.user_name?.localeCompare(b.user_name),
       },
-    },
-    {
-      title: '#',
-      key: 'index',
-      align: 'center',
-      width: 20,
-      render: (_, __, index) => index + 1,
-    },
-  ], [
+
+      {
+        title: 'Tkt',
+        dataIndex: ['ticket', 'name'],
+        key: 'ticket',
+        align: 'center',
+        width: 90,
+        sorter: (a, b) => a.ticket?.name?.localeCompare(b.ticket?.name),
+        render: (_, record) => {
+          if (record.is_set === true) {
+            return <Tag color="blue">M Tkts</Tag>;
+          }
+
+          const ticketName = record?.ticket?.name || record?.bookings?.[0]?.ticket?.name || '-';
+          return <span>{ticketName}</span>;
+        },
+      },
+      {
+        title: 'QTY',
+        dataIndex: 'quantity',
+        key: 'quantity',
+        width: 80,
+        align: 'center',
+        sorter: (a, b) => a.quantity - b.quantity,
+      },
+      {
+        title: 'Disc',
+        dataIndex: 'discount',
+        key: 'discount',
+        width: 100,
+        align: 'center',
+        render: (discount) => (
+          <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
+        ),
+        sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
+      },
+      {
+        title: 'T Amt',
+        dataIndex: 'total_amount',
+        key: 'total_amount',
+        align: 'center',
+        render: (totalAmount) => (
+          <Text strong style={{ color: '#52c41a' }}>
+            ₹{Number(totalAmount || 0).toFixed(2)}
+          </Text>
+        ),
+        sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
+      },
+      {
+        title: 'Status',
+        dataIndex: 'status',
+        key: 'status',
+        align: 'center',
+        width: 80,
+        render: (status) => (
+          <Tag color={status === "0" ? "warning" : "success"}>
+            {status === "0" ? <ClockCircleOutlined className="m-0" /> : <CheckOutlined className="m-0" />}
+          </Tag>
+          //   {status === "0" ? "Unchecked" : "Checked"}
+          // </Tag>
+        ),
+        filters: [
+          { text: 'Unchecked', value: '0' },
+          { text: 'Checked', value: '1' },
+        ],
+        onFilter: (value, record) => record.status === value,
+      },
+
+      {
+        title: 'Customer',
+        dataIndex: 'name',
+        key: 'customer',
+        align: 'center',
+        sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
+      },
+      {
+        title: 'P Date',
+        dataIndex: 'created_at',
+        key: 'purchaseDate',
+        align: 'center',
+        render: (date) => formatDateTime?.(date) || date,
+        sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+      },
+      {
+        title: 'Organizer',
+        dataIndex: 'reporting_user_name',
+        key: 'organizer',
+        align: 'center',
+        sorter: (a, b) => a.reporting_user_name?.localeCompare(b.reporting_user_name),
+      },
+
+      {
+        title: 'Status',
+        dataIndex: 'is_deleted',
+        key: 'ticketStatus',
+        align: 'center',
+        fixed: 'right',
+        width: 120,
+        render: (isDeleted, record) => (
+          <Switch
+            checked={!isDeleted}
+            onChange={() => handleToggleStatus(record)}
+            checkedChildren="Active"
+            unCheckedChildren="Disabled"
+            loading={toggleStatusMutation.isPending}
+            disabled={record.status === "1"}
+          />
+        ),
+      },
+      {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+        fixed: 'right',
+        width: 80,
+        render: (_, record) => {
+          const isDisabled = record.is_deleted === true || record.status === "1";
+
+          return (
+            <Tooltip title="Print Ticket">
+              <Button
+                size="small"
+                icon={<PrinterOutlined />}
+                onClick={() => handlePrintBooking(record)}
+                disabled={isDisabled}
+              />
+            </Tooltip>
+          );
+        },
+      },
+      {
+        title: '#',
+        key: 'index',
+        align: 'center',
+        width: 20,
+        render: (_, __, index) => index + 1,
+      },
+    ];
+
+    // Conditionally add Contact column if user is Admin or has 'View Contact Number' permission
+    const canViewContact = userRole === 'Admin' || UserPermissions?.includes('View Contact Number');
+    if (canViewContact) {
+      baseColumns.splice(baseColumns.length - 3, 0, {
+        title: 'Contact',
+        dataIndex: 'number',
+        key: 'contact',
+        width: 120,
+        align: 'center',
+        fixed: 'right',
+      });
+    }
+
+    return baseColumns;
+  }, [
     formatDateTime,
     handlePrintBooking,
     handleToggleStatus,
-    toggleStatusMutation.isPending
+    toggleStatusMutation.isPending,
+    userRole,
+    UserPermissions
   ]);
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -503,7 +516,7 @@ const PosBooking = memo(() => {
     <>
       {/* Always render POSPrinterManager to maintain connection state */}
       <POSPrinterManager ref={printerRef} />
-      
+
       {showPrintModel && printModalData && (
         <POSPrintModal
           showPrintModel={showPrintModel}
@@ -514,7 +527,7 @@ const PosBooking = memo(() => {
       )}
 
       <ExpandDataTable
-        title={"POS Bookings"}
+        title={"POS"}
         emptyText={`No POS bookings found`}
         onRefresh={refetch}
         innerColumns={expandedRowColumns}
@@ -523,14 +536,14 @@ const PosBooking = memo(() => {
         // exportRoute={config.exportRoute}
         // ExportPermission={UserPermissions?.includes(config.exportPermission)}
         extraHeaderContent={
-          <PermissionChecker permission={["Create POS Bookings"]}>
-          <Tooltip title="Add Booking">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => navigate('new')}
-            />
-          </Tooltip>
+          <PermissionChecker permission={["Add POS Booking"]}>
+            <Tooltip title="Add Booking">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => navigate('new')}
+              />
+            </Tooltip>
           </PermissionChecker>
         }
         showDateRange={true}
@@ -549,9 +562,10 @@ const PosBooking = memo(() => {
         loading={isLoading}
         error={error}
         enableExport={true}
+        exportRoute={'/bookings/pos/export'}
         type={'pos'}
       />
-      
+
     </>
   );
 

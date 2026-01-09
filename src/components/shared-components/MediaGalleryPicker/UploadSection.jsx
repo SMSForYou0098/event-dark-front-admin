@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, message, Progress, Typography, Space, Button } from 'antd';
+import { Upload, message, Progress, Typography, Space, Button, Alert } from 'antd';
 import {
     InboxOutlined,
     FileImageOutlined,
@@ -20,6 +20,7 @@ const UploadSection = ({
 }) => {
     const [fileList, setFileList] = useState([]);
     const [uploading, setUploading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(null);
 
     // Allowed file types
     const allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -29,10 +30,14 @@ const UploadSection = ({
     const uploadProps = {
         multiple: true,
         fileList,
+        accept: 'image/*',
         beforeUpload: (file) => {
+            // Clear previous errors
+            setErrorMessage(null);
+
             // Check file type
             if (!allowedTypes.includes(file.type)) {
-                message.error(`${file.name} is not a supported file type`);
+                setErrorMessage(`${file.name} is not a supported file type`);
                 return Upload.LIST_IGNORE;
             }
 
@@ -41,7 +46,7 @@ const UploadSection = ({
             const isValidSize = file.size / 1024 / 1024 < maxSize;
 
             if (!isValidSize) {
-                message.error(`${file.name} must be smaller than ${maxSize}MB`);
+                setErrorMessage(`${file.name} must be smaller than ${maxSize}MB`);
                 return Upload.LIST_IGNORE;
             }
 
@@ -61,10 +66,11 @@ const UploadSection = ({
 
     const handleUpload = async () => {
         if (fileList.length === 0) {
-            message.warning('Please select files to upload');
+            setErrorMessage('Please select files to upload');
             return;
         }
 
+        setErrorMessage(null);
         setUploading(true);
 
         try {
@@ -90,6 +96,17 @@ const UploadSection = ({
     if (compact) {
         return (
             <div style={{ marginBottom: 16 }}>
+                {errorMessage && (
+                    <Alert
+                        message={errorMessage}
+                        type="error"
+                        showIcon
+                        closable
+                        onClose={() => setErrorMessage(null)}
+                        style={{ marginBottom: 12 }}
+                    />
+                )}
+
                 <Dragger
                     {...uploadProps}
                     style={{
@@ -130,6 +147,17 @@ const UploadSection = ({
 
     return (
         <div style={{ marginBottom: 16 }}>
+            {errorMessage && (
+                <Alert
+                    message={errorMessage}
+                    type="error"
+                    showIcon
+                    closable
+                    onClose={() => setErrorMessage(null)}
+                    style={{ marginBottom: 12 }}
+                />
+            )}
+
             <Dragger
                 {...uploadProps}
                 style={{

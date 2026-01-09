@@ -1,6 +1,7 @@
 import React, { Fragment, useState, useCallback } from "react";
-import { Button, Tabs, Form, Spin } from "antd";
-import { ArrowLeftOutlined, UserOutlined, ShoppingOutlined, WalletOutlined, TransactionOutlined, SafetyOutlined } from "@ant-design/icons";
+import { Button, Tabs, Form, Spin, message } from "antd";
+import { ArrowLeftOutlined, UserOutlined, ShoppingOutlined, WalletOutlined, TransactionOutlined, SafetyOutlined, ReloadOutlined } from "@ant-design/icons";
+import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from "Context/MyContextProvider";
 import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
 import Flex from "components/shared-components/Flex";
@@ -19,6 +20,29 @@ const ManageUser = ({ mode = "edit" }) => {
   const { id } = useParams()
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
+  const [userNumber, setUserNumber] = useState(null);
+  const [resetOtpLoading, setResetOtpLoading] = useState(false);
+
+  // Reset OTP limits API call
+  const handleResetOtpLimits = async () => {
+    if (!userNumber) {
+      message.warning('User phone number not available');
+      return;
+    }
+    setResetOtpLoading(true);
+    try {
+      const response = await apiClient.post('reset-otp-limits', { number: userNumber });
+      if (response?.status) {
+        message.success(response?.message || 'OTP limits reset successfully');
+      } else {
+        message.error(response?.message || 'Failed to reset OTP limits');
+      }
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to reset OTP limits');
+    } finally {
+      setResetOtpLoading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -36,8 +60,8 @@ const ManageUser = ({ mode = "edit" }) => {
           <UserOutlined /> Profile
         </span>
       ),
-      children: <ProfileTab setSelectedRole={setSelectedRole} mode={mode} id={id} />,
-       permission: "Update User",
+      children: <ProfileTab setSelectedRole={setSelectedRole} setUserNumber={setUserNumber} mode={mode} id={id} />,
+      permission: "Update User",
     },
     {
       key: "2",
@@ -98,24 +122,34 @@ const ManageUser = ({ mode = "edit" }) => {
 
   return (
     <Fragment>
-      {mode !== "create" ? 
-      <>
-      <PageHeaderAlt overlap>
-        <div className="container-fluid">
-          <Flex className="pb-4" justifyContent="space-between" alignItems="center">
-            <Flex alignItems="center" gap="1rem">
-              <Button type="text" icon={<ArrowLeftOutlined />} onClick={HandleBack} style={{ width: 'inherit' }} />
-              <h2 className="mb-0">{mode === "create" ? "Create User" : "Manage User"}</h2>
-            </Flex>
-          </Flex>
-        </div>
-      </PageHeaderAlt>
-      <div className="container-fluid" style={{ marginTop: 30 }}>
-        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
-      </div>
-      </>
-       :
-       <ProfileTab mode={mode}/>
+      {mode !== "create" ?
+        <>
+          <PageHeaderAlt overlap>
+            <div className="container-fluid">
+              <Flex className="pb-4" justifyContent="space-between" alignItems="center">
+                <Flex alignItems="center" gap="1rem">
+                  <Button type="text" icon={<ArrowLeftOutlined />} onClick={HandleBack} style={{ width: 'inherit' }} />
+                  <h2 className="mb-0">{mode === "create" ? "Create User" : "Manage User"}</h2>
+                </Flex>
+                {mode === "edit" && userNumber && userRole === "Admin" && (
+                  <Button
+                    type="primary"
+                    icon={<ReloadOutlined />}
+                    loading={resetOtpLoading}
+                    onClick={handleResetOtpLimits}
+                  >
+                    Reset OTP Limits
+                  </Button>
+                )}
+              </Flex>
+            </div>
+          </PageHeaderAlt>
+          <div className="container-fluid" style={{ marginTop: 30 }}>
+            <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+          </div>
+        </>
+        :
+        <ProfileTab mode={mode} />
       }
     </Fragment>
   );

@@ -13,7 +13,6 @@ import {
   Table,
   Space,
   Popconfirm,
-  notification,
   Spin,
   message,
   Image,
@@ -45,7 +44,9 @@ const Category = () => {
     queryFn: async () => {
       const res = await api.get('category');
       return res.categoryData || [];
-    }
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevents refetching on every render
+    refetchOnWindowFocus: false,
   });
 
   // ========================= MUTATIONS =========================
@@ -100,15 +101,29 @@ const Category = () => {
     },
     onSuccess: (data) => {
       if (data.status) {
-        notification.success({ message: data.message || "Category saved" });
-        queryClient.invalidateQueries(['categories']);
+        message.success(data.message || "Category saved");
+
+        // Update cache directly instead of refetching
+        queryClient.setQueryData(['categories'], (oldData) => {
+          if (!oldData) return [data.categoryData];
+
+          // If editing, update the existing category
+          if (editRecord) {
+            return oldData.map(cat =>
+              cat.id === data.categoryData.id ? data.categoryData : cat
+            );
+          }
+          // If creating, add to beginning of list
+          return [data.categoryData, ...oldData];
+        });
+
         handleModalClose();
       } else {
-        notification.error({ message: data.message || "Failed to save" });
+        message.error(data.message || "Failed to save");
       }
     },
     onError: (err) => {
-      notification.error({ message: err.message || "Error saving category" });
+      message.error(err.message || "Error saving category");
     }
   });
 
@@ -116,12 +131,17 @@ const Category = () => {
     mutationFn: async (id) => {
       return await api.delete(`category-destroy/${id}`);
     },
-    onSuccess: () => {
-      notification.success({ message: "Category deleted successfully" });
-      queryClient.invalidateQueries(['categories']);
+    onSuccess: (_, deletedId) => {
+      message.success("Category deleted successfully");
+
+      // Remove from cache directly instead of refetching
+      queryClient.setQueryData(['categories'], (oldData) => {
+        if (!oldData) return [];
+        return oldData.filter(cat => cat.id !== deletedId);
+      });
     },
     onError: () => {
-      notification.error({ message: "Failed to delete category" });
+      message.error("Failed to delete category");
     }
   });
 
@@ -136,9 +156,9 @@ const Category = () => {
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = useCallback((id) => {
     deleteMutation.mutate(id);
-  };
+  }, [deleteMutation]);
 
   const handleModalClose = useCallback(() => {
     setModalVisible(false);
@@ -235,6 +255,17 @@ const Category = () => {
           ),
       },
       {
+        title: "Status",
+        dataIndex: "status",
+        align: "center",
+        render: (val) =>
+          val ? (
+            <CheckOutlined style={{ color: "green" }} />
+          ) : (
+            <CloseOutlined style={{ color: "red" }} />
+          ),
+      },
+      {
         title: "Action",
         align: "center",
         render: (_, record) => (
@@ -255,7 +286,8 @@ const Category = () => {
         ),
       },
     ],
-    [handleEdit, handleDelete] // Dependencies for useCallback inside columns
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // Empty deps - handlers are stable due to useCallback
   );
 
   // ========================= UPLOAD NORMALIZATION =========================
@@ -323,12 +355,12 @@ const Category = () => {
                 name="image"
                 valuePropName="fileList"
                 getValueFromEvent={normFile}
-                rules={[
-                  {
-                    required: !editRecord,
-                    message: 'Please upload image'
-                  }
-                ]}
+              // rules={[
+              //   {
+              //     // required: !editRecord,
+              //     message: 'Please upload image'
+              //   }
+              // ]}
               >
                 <Form.Item shouldUpdate={(prev, curr) => prev.image !== curr.image} noStyle>
                   {({ getFieldValue, setFieldsValue }) => {
@@ -450,7 +482,7 @@ const Category = () => {
         onSelect={handleMediaSelect}
         multiple={false}
         title="Select Category Image"
-        dimensionValidation={{ width: 282, height: 260, strict: true }}
+        dimensionValidation={{ width: 282, height: 260, strict: false }}
       />
 
       <AssignFields

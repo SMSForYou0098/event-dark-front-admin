@@ -355,7 +355,7 @@ const PendingBookings = memo(() => {
       searchValue={searchText}
       // Export functionality
       enableExport={true}
-      exportRoute="export-pending-bookings"
+      exportRoute="booking/pending/export"
       ExportPermission={true}
       onRefresh={refetch}
       emptyText="No pending bookings found"

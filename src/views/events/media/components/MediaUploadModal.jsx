@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Upload, message, Progress, Typography, Space } from 'antd';
+import { Modal, Upload, message, Progress, Typography, Space, Alert } from 'antd';
 import {
     InboxOutlined,
     FileImageOutlined,
@@ -18,12 +18,14 @@ const MediaUploadModal = ({
     const [fileList, setFileList] = useState([]);
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const [errorMessage, setErrorMessage] = useState(null);
 
-    // Clear fileList when modal is closed
+    // Clear fileList and errors when modal is closed
     useEffect(() => {
         if (!open) {
             setFileList([]);
             setUploadProgress(0);
+            setErrorMessage(null);
         }
     }, [open]);
 
@@ -35,10 +37,14 @@ const MediaUploadModal = ({
     const uploadProps = {
         multiple: true,
         fileList,
+        accept: 'image/*',
         beforeUpload: (file) => {
+            // Clear previous errors
+            setErrorMessage(null);
+
             // Check file type
             if (!allowedTypes.includes(file.type)) {
-                message.error(`${file.name} is not a supported file type`);
+                setErrorMessage(`${file.name} is not a supported file type`);
                 return Upload.LIST_IGNORE;
             }
 
@@ -48,7 +54,7 @@ const MediaUploadModal = ({
             const isValidSize = file.size / 1024 / 1024 < maxSize;
 
             if (!isValidSize) {
-                message.error(`${file.name} must be smaller than ${maxSize}MB`);
+                setErrorMessage(`${file.name} must be smaller than ${maxSize}MB`);
                 return Upload.LIST_IGNORE;
             }
 
@@ -68,10 +74,11 @@ const MediaUploadModal = ({
 
     const handleUpload = async () => {
         if (fileList.length === 0) {
-            message.warning('Please select files to upload');
+            setErrorMessage('Please select files to upload');
             return;
         }
 
+        setErrorMessage(null);
         setUploading(true);
         setUploadProgress(0);
 
@@ -120,7 +127,20 @@ const MediaUploadModal = ({
             maskClosable={!uploading}
             closable={!uploading}
             zIndex={1050}
+            getContainer={false}
         >
+            {/* Error Alert */}
+            {errorMessage && (
+                <Alert
+                    message={errorMessage}
+                    type="error"
+                    showIcon
+                    closable
+                    onClose={() => setErrorMessage(null)}
+                    style={{ marginBottom: 16 }}
+                />
+            )}
+
             <Dragger
                 {...uploadProps}
                 style={{

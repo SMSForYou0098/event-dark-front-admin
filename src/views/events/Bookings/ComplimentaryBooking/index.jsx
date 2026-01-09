@@ -313,7 +313,7 @@ const CbList = memo(() => {
         showRefresh
         onRefresh={refetch}
         enableExport
-        exportRoute="export-complimentaryBooking"
+        exportRoute="booking/complimentary/export"
         ExportPermission={true}
         emptyText="No complimentary bookings found"
         enableSearch
