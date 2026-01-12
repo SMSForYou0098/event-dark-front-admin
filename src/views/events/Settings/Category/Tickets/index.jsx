@@ -220,7 +220,7 @@ const CategoryTickets = () => {
                                         Select from Gallery
                                     </Button>
                                     <Text type="secondary" className="d-block mt-3 small">
-                                        Recommended: 300x600px
+                                        Recommended: 300x750px
                                     </Text>
                                 </div>
                             )}
@@ -360,7 +360,7 @@ const CategoryTickets = () => {
                 multiple={false}
                 title="Select Ticket Image"
                 value={selectedMediaUrl}
-                dimensionValidation={{ width: 300, height: 600, strict: true }}
+                dimensionValidation={{ width: 300, height: 750, strict: true }}
             />
         </>
     );

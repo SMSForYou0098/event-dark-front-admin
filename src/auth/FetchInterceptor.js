@@ -107,7 +107,7 @@ api.interceptors.response.use(
           // store.dispatch(signOutSuccess());
         }
       }
-      message.error('Your session has expired or you are not authorized. Please log in again.');
+      message.error(error?.response?.data?.message || error?.response?.data?.error || 'Your session has expired or you are not authorized. Please log in again.');
 
       return Promise.reject(error);
     }

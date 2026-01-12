@@ -95,8 +95,8 @@ const AttendeesField = ({
         fieldGroupName: isCorporate ? 'corporateUser' : 'attendees',
       });
       if (initialData?.id != null) {
-  formData.append(`${isCorporate ? 'corporateUser' : 'attendees'}[0][id]`, String(initialData.id));
-}
+        formData.append(`${isCorporate ? 'corporateUser' : 'attendees'}[0][id]`, String(initialData.id));
+      }
 
       // ✅ SAME API for both create & edit
       const response = await storeAttendeesMutation.mutateAsync({
@@ -151,16 +151,16 @@ const AttendeesField = ({
     const required = field_required === 1;
 
     // Base rules for all fields
-    const baseRules = required && field_type !== 'file' 
-      ? [{ required: true, message: `${lable} is required` }] 
+    const baseRules = required && field_type !== 'file'
+      ? [{ required: true, message: `${lable} is required` }]
       : [];
 
     // ✅ Special handling for phone number field
-    const isMobileField = field_name === 'Mo' || 
-                          field_name === 'mobile' || 
-                          field_name === 'phone' ||
-                          lable?.toLowerCase().includes('mobile') ||
-                          lable?.toLowerCase().includes('phone');
+    const isMobileField = field_name === 'Mo' ||
+      field_name === 'mobile' ||
+      field_name === 'phone' ||
+      lable?.toLowerCase().includes('mobile') ||
+      lable?.toLowerCase().includes('phone');
 
     switch (field_type) {
       case 'text':
@@ -189,8 +189,8 @@ const AttendeesField = ({
                 },
               ]}
             >
-              <Input 
-                placeholder={`Enter ${lable}`} 
+              <Input
+                placeholder={`Enter ${lable}`}
                 maxLength={10}
                 onKeyPress={(e) => {
                   if (!/[0-9]/.test(e.key)) {
@@ -251,8 +251,8 @@ const AttendeesField = ({
                 },
               ]}
             >
-              <InputNumber 
-                placeholder={`Enter ${lable}`} 
+              <InputNumber
+                placeholder={`Enter ${lable}`}
                 style={{ width: '100%' }}
                 maxLength={10}
                 controls={false}
@@ -370,157 +370,157 @@ const AttendeesField = ({
           </Form.Item>
         );
 
-       case 'file': {
-  const isPhotoField =
-    field_name?.toLowerCase().includes('photo') ||
-    lable?.toLowerCase().includes('photo') ||
-    field_name?.toLowerCase().includes('passport_size_photo');
+      case 'file': {
+        const isPhotoField =
+          field_name?.toLowerCase().includes('photo') ||
+          lable?.toLowerCase().includes('photo') ||
+          field_name?.toLowerCase().includes('passport_size_photo');
 
-  const uploadProps = {
-    customRequest: async ({ file, onSuccess, onError }) => {
-      try {
-        setUploadingFiles(prev => ({ ...prev, [field_name]: true }));
-        
-        if (isPhotoField) {
-          const reader = new FileReader();
-          reader.onload = async (e) => {
+        const uploadProps = {
+          customRequest: async ({ file, onSuccess, onError }) => {
             try {
-              const faceImage = await FaceDetector.cropFaceFromImage(e.target.result);
-              const finalImage = faceImage || await processImageFile(file);
-              
-              // ✅ CRITICAL: Update form value immediately
-              form.setFieldValue(field_name, finalImage);
-              
-              // Also update state for display
-              setUploadedFiles(prev => ({ ...prev, [field_name]: finalImage }));
-              setFileList(prev => ({
-                ...prev,
-                [field_name]: [{
-                  uid: '-1',
-                  name: file.name,
-                  status: 'done',
-                  url: finalImage
-                }]
-              }));
-              
-              setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
-              
-              // ✅ Trigger validation after setting value
-              form.validateFields([field_name]);
-              
-              message.success(faceImage ? 'Face detected and cropped successfully' : 'File uploaded successfully');
-              onSuccess();
-            } catch (error) {
-              console.error('Face detection error:', error);
-              const processedFile = await processImageFile(file);
-              
-              form.setFieldValue(field_name, processedFile);
-              setUploadedFiles(prev => ({ ...prev, [field_name]: processedFile }));
-              setFileList(prev => ({
-                ...prev,
-                [field_name]: [{
-                  uid: '-1',
-                  name: file.name,
-                  status: 'done',
-                  url: processedFile
-                }]
-              }));
-              
-              setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
-              form.validateFields([field_name]);
-              onSuccess();
-            }
-          };
-          reader.readAsDataURL(file);
-        } else {
-          const processedFile = await processImageFile(file);
-          
-          // ✅ Update form value immediately
-          form.setFieldValue(field_name, processedFile);
-          
-          setUploadedFiles(prev => ({ ...prev, [field_name]: processedFile }));
-          setFileList(prev => ({
-            ...prev,
-            [field_name]: [{
-              uid: '-1',
-              name: file.name,
-              status: 'done',
-              url: processedFile
-            }]
-          }));
-          
-          setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
-          
-          // ✅ Trigger validation
-          form.validateFields([field_name]);
-          
-          message.success('File uploaded successfully');
-          onSuccess();
-        }
-      } catch (error) {
-        console.error('Upload error:', error);
-        setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
-        message.error('Failed to upload file');
-        onError(error);
-      }
-    },
-    fileList: fileList[field_name] || [],
-    onRemove: () => {
-      // ✅ Clear form value and trigger validation
-      form.setFieldValue(field_name, undefined);
-      form.validateFields([field_name]);
-      
-      setUploadedFiles(prev => {
-        const newState = { ...prev };
-        delete newState[field_name];
-        return newState;
-      });
-      setFileList(prev => ({ ...prev, [field_name]: [] }));
-      setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
-    },
-    maxCount: 1,
-    accept: isPhotoField ? 'image/*' : undefined,
-  };
+              setUploadingFiles(prev => ({ ...prev, [field_name]: true }));
 
-  return (
-    <Form.Item
-      label={lable}
-      name={field_name}
-      // ✅ Simplified validator - checks form value directly
-      rules={[
-        {
-          required,
-          validator: async (_, value) => {
-            if (required && !value) {
-              throw new Error(`Please upload ${lable}`);
+              if (isPhotoField) {
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                  try {
+                    const faceImage = await FaceDetector.cropFaceFromImage(e.target.result);
+                    const finalImage = faceImage || await processImageFile(file);
+
+                    // ✅ CRITICAL: Update form value immediately
+                    form.setFieldValue(field_name, finalImage);
+
+                    // Also update state for display
+                    setUploadedFiles(prev => ({ ...prev, [field_name]: finalImage }));
+                    setFileList(prev => ({
+                      ...prev,
+                      [field_name]: [{
+                        uid: '-1',
+                        name: file.name,
+                        status: 'done',
+                        url: finalImage
+                      }]
+                    }));
+
+                    setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
+
+                    // ✅ Trigger validation after setting value
+                    form.validateFields([field_name]);
+
+                    message.success(faceImage ? 'Face detected and cropped successfully' : 'File uploaded successfully');
+                    onSuccess();
+                  } catch (error) {
+                    console.error('Face detection error:', error);
+                    const processedFile = await processImageFile(file);
+
+                    form.setFieldValue(field_name, processedFile);
+                    setUploadedFiles(prev => ({ ...prev, [field_name]: processedFile }));
+                    setFileList(prev => ({
+                      ...prev,
+                      [field_name]: [{
+                        uid: '-1',
+                        name: file.name,
+                        status: 'done',
+                        url: processedFile
+                      }]
+                    }));
+
+                    setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
+                    form.validateFields([field_name]);
+                    onSuccess();
+                  }
+                };
+                reader.readAsDataURL(file);
+              } else {
+                const processedFile = await processImageFile(file);
+
+                // ✅ Update form value immediately
+                form.setFieldValue(field_name, processedFile);
+
+                setUploadedFiles(prev => ({ ...prev, [field_name]: processedFile }));
+                setFileList(prev => ({
+                  ...prev,
+                  [field_name]: [{
+                    uid: '-1',
+                    name: file.name,
+                    status: 'done',
+                    url: processedFile
+                  }]
+                }));
+
+                setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
+
+                // ✅ Trigger validation
+                form.validateFields([field_name]);
+
+                message.success('File uploaded successfully');
+                onSuccess();
+              }
+            } catch (error) {
+              console.error('Upload error:', error);
+              setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
+              message.error('Failed to upload file');
+              onError(error);
             }
-            return Promise.resolve();
           },
-        },
-      ]}
-      extra={
-        isPhotoField && !uploadedFiles[field_name] && (
-          <Text type="secondary" style={{ fontSize: '12px' }}>
-            Please upload a clear photo with your face visible
-          </Text>
-        )
+          fileList: fileList[field_name] || [],
+          onRemove: () => {
+            // ✅ Clear form value and trigger validation
+            form.setFieldValue(field_name, undefined);
+            form.validateFields([field_name]);
+
+            setUploadedFiles(prev => {
+              const newState = { ...prev };
+              delete newState[field_name];
+              return newState;
+            });
+            setFileList(prev => ({ ...prev, [field_name]: [] }));
+            setUploadingFiles(prev => ({ ...prev, [field_name]: false }));
+          },
+          maxCount: 1,
+          accept: isPhotoField ? 'image/*' : undefined,
+        };
+
+        return (
+          <Form.Item
+            label={lable}
+            name={field_name}
+            // ✅ Simplified validator - checks form value directly
+            rules={[
+              {
+                required,
+                validator: async (_, value) => {
+                  if (required && !value) {
+                    throw new Error(`Please upload ${lable}`);
+                  }
+                  return Promise.resolve();
+                },
+              },
+            ]}
+            extra={
+              isPhotoField && !uploadedFiles[field_name] && (
+                <Text type="secondary" style={{ fontSize: '12px' }}>
+                  Please upload a clear photo with your face visible
+                </Text>
+              )
+            }
+          >
+            <div>
+              <Upload {...uploadProps}>
+                <Button icon={<UploadOutlined />} loading={uploadingFiles[field_name]}>
+                  {uploadedFiles[field_name] ? 'Change File' : `Upload ${lable}`}
+                </Button>
+              </Upload>
+              {uploadedFiles[field_name] && !uploadingFiles[field_name] && (
+                <Text type="success" style={{ marginLeft: 8, display: 'block', marginTop: 4 }}>
+                  ✓ File uploaded successfully
+                </Text>
+              )}
+            </div>
+          </Form.Item>
+        );
       }
-    >
-      <div>
-        <Upload {...uploadProps}>
-          <Button icon={<UploadOutlined />} loading={uploadingFiles[field_name]}>
-            {uploadedFiles[field_name] ? 'Change File' : `Upload ${lable}`}
-          </Button>
-        </Upload>
-        {uploadedFiles[field_name] && !uploadingFiles[field_name] && (
-          <Text type="success" style={{ marginLeft: 8, display: 'block', marginTop: 4 }}>
-            ✓ File uploaded successfully
-          </Text>
-        )}
-      </div>
-    </Form.Item>
-  );
-}
 
 
       case 'color':
@@ -555,6 +555,8 @@ const AttendeesField = ({
     return [...apiData].sort((a, b) => (a.sr_no || 0) - (b.sr_no || 0));
   }, [apiData]);
 
+
+  console.log("sortedApiData", apiData);
   return (
     <Modal
       title={
@@ -572,9 +574,9 @@ const AttendeesField = ({
         <Button key="cancel" onClick={handleCloseModal} disabled={isSaving}>
           Cancel
         </Button>,
-        <Button 
-          key="submit" 
-          type="primary" 
+        <Button
+          key="submit"
+          type="primary"
           onClick={handleAddAttendee}
           loading={isSaving || Object.values(uploadingFiles).some(uploading => uploading)}
         >
@@ -592,11 +594,11 @@ const AttendeesField = ({
       >
         <Row gutter={[16, 0]}>
           {sortedApiData.map((field, fieldIndex) => (
-            <Col 
-              xs={24} 
-              sm={field.field_type === 'textarea' ? 24 : 12} 
-              md={field.field_type === 'textarea' ? 24 : 12} 
-              lg={field.field_type === 'textarea' ? 24 : 12} 
+            <Col
+              xs={24}
+              sm={field.field_type === 'textarea' ? 24 : 12}
+              md={field.field_type === 'textarea' ? 24 : 12}
+              lg={field.field_type === 'textarea' ? 24 : 12}
               key={field.id || fieldIndex}
             >
               {renderField(field)}

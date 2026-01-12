@@ -100,6 +100,12 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     const [otpSent, setOtpSent] = useState(false);
     const [otpSending, setOtpSending] = useState(false);
 
+    // OTP verification state (for user creation)
+    const [createOtpModalVisible, setCreateOtpModalVisible] = useState(false);
+    const [createOtpValue, setCreateOtpValue] = useState('');
+    const [createOtpSessionId, setCreateOtpSessionId] = useState(null);
+    const [pendingCreateValues, setPendingCreateValues] = useState(null);
+
     // Track original email and phone for comparison
     const originalEmail = useRef(null);
     const originalNumber = useRef(null);
@@ -121,9 +127,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     const [selectedAgreementId, setSelectedAgreementId] = useState(null);
     const [createdUserId, setCreatedUserId] = useState(null);  // Store created user ID for agreement approval
 
-    // Agreement OTP verification state
-    const [agreementOtpModalVisible, setAgreementOtpModalVisible] = useState(false);
-    const [agreementOtpValue, setAgreementOtpValue] = useState('');
+    // Agreement state (OTP removed - now done at user creation)
+    // Keeping these for backward compatibility but they won't be used for new flow
 
     // Fetch user data in edit mode
     const { data: fetchedData, isLoading: loading } = useQuery({
@@ -177,59 +182,50 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     const approveMutation = useApproveOrganizerOnboarding({
         onSuccess: () => {
             setAgreementModalVisible(false);
-            setAgreementOtpModalVisible(false);
-            setAgreementOtpValue('');
             setSelectedAgreementId(null);
             setCreatedUserId(null);
             navigate(-1);
         },
     });
 
-    // Send OTP mutation for agreement verification
-    const sendAgreementOtpMutation = useMutation({
-        mutationFn: async (userId) => {
-            // Pass user id to verify-user API
-            const response = await apiClient.post('verify-user', { data: userId });
+    // Send OTP mutation for user creation
+    const sendCreateOtpMutation = useMutation({
+        mutationFn: async (number) => {
+            const response = await apiClient.post('user/otp', { number });
             return response;
         },
         onSuccess: (data) => {
             if (data?.status) {
                 message.success('OTP sent successfully!');
-                setAgreementOtpModalVisible(true);
+                setCreateOtpModalVisible(true);
             } else {
                 message.error(data?.message || 'Failed to send OTP');
             }
         },
         onError: (error) => {
             console.error('Send OTP error:', error);
-            message.error(error?.response?.data?.message || 'Failed to send OTP');
+            message.error(error?.response?.data?.message || error?.response?.data?.error || 'Failed to send OTP');
         },
     });
 
-    // Verify OTP mutation for agreement verification
-    const verifyAgreementOtpMutation = useMutation({
-        mutationFn: async ({ userId, otp }) => {
-            // Pass user id to otp-verify API
-            const response = await apiClient.post('otp-verify', { data: userId, otp });
+    // Verify OTP mutation for user creation - returns session_id
+    const verifyCreateOtpMutation = useMutation({
+        mutationFn: async ({ number, otp }) => {
+            const response = await apiClient.post('user/otp/verify', { number, otp });
             return response;
         },
-        onSuccess: (data) => {
-            if (data?.status) {
+        onSuccess: async (data) => {
+            if (data?.status && data?.session_id) {
                 message.success('OTP verified successfully!');
-                // Use createdUserId (for create mode) or id (for edit mode)
-                const userId = createdUserId || id;
-                // Now call the agreement approval API
-                approveMutation.mutate({
-                    id: userId,
-                    payload: {
-                        agreement_id: selectedAgreementId,
-                        action: 'approve',
-                        agreement_title: selectedAgreement?.title,
-                        organizer_email: formState.email,
-                        organizer_name: formState.name,
-                        organization_name: formState.organisation,
-                    },
-                });
+                setCreateOtpSessionId(data.session_id);
+                setCreateOtpModalVisible(false);
+                setCreateOtpValue('');
+
+                // Now proceed with user creation using session_id
+                if (pendingCreateValues) {
+                    await saveUserProfile(pendingCreateValues, true, data.session_id);
+                    setPendingCreateValues(null);
+                }
             } else {
                 message.error(data?.message || 'Invalid OTP');
             }
@@ -665,7 +661,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     }, [formState.roleName, formState.agreementStatus, signatureType, typedSignature, selectedFont, uploadedSignature]);
 
     // Save user profile (actual API call)
-    const saveUserProfile = async (values, isVerifiedOrganizer = false) => {
+    const saveUserProfile = async (values, isVerifiedOrganizer = false, sessionId = null) => {
         const mergedValues = {
             ...values,
             roleId: values.roleId ?? formState.roleId,
@@ -701,6 +697,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 }
             });
 
+            // Append session_id if available (from OTP verification)
+            if (sessionId) {
+                formData.append('session_id', sessionId);
+            }
+
             // Append signature data
             formData.append('signature_type', signatureData.type);
 
@@ -725,6 +726,12 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         } else {
             // No signature - use regular JSON payload
             const apiData = mapFormToApi(mergedValues);
+
+            // Add session_id if available (from OTP verification)
+            if (sessionId) {
+                apiData.session_id = sessionId;
+            }
+
             response = await axios.post(url, apiData, {
                 headers: {
                     'Authorization': 'Bearer ' + authToken,
@@ -760,7 +767,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     const onFinish = async (values) => {
         setIsSubmitting(true);
         try {
-            // Check if creating Organizer without verified email - show agreement modal
+            // Check if creating Organizer without verified email - need OTP verification first
             const isCreatingVerifiedOrganizer =
                 mode === 'create' &&
                 formState.roleName === 'Organizer' &&
@@ -774,9 +781,16 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
 
                 // Send OTP
                 await sendOtp(values);
+            } else if (isCreatingVerifiedOrganizer) {
+                // For creating organizer - send OTP first, then create user with session_id
+                setPendingCreateValues(values);
+                // setCreateOtpModalVisible(true);
+
+                // Send OTP to the mobile number
+                sendCreateOtpMutation.mutate(values.number);
             } else {
-                // Create or update user - pass flag for verified organizer
-                await saveUserProfile(values, isCreatingVerifiedOrganizer);
+                // Create or update user normally
+                await saveUserProfile(values, false);
             }
         } catch (error) {
             message.error(`Error: ${error.response?.data?.error || error.response?.data?.message || 'Something went wrong!'}`);
@@ -818,7 +832,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         setSelectedAgreementId(value);
     }, []);
 
-    // Handle approve with agreement - send OTP first
+    // Handle approve with agreement - directly assign without OTP (OTP already done at creation)
     const handleApproveWithAgreement = useCallback(() => {
         if (!selectedAgreementId) {
             message.error('Please select an agreement');
@@ -832,38 +846,47 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             return;
         }
 
-        // Send OTP using TanStack mutation - pass user id
-        sendAgreementOtpMutation.mutate(userId);
-    }, [selectedAgreementId, createdUserId, id, sendAgreementOtpMutation]);
+        // Directly call the agreement approval API (OTP was already verified during user creation)
+        approveMutation.mutate({
+            id: userId,
+            payload: {
+                agreement_id: selectedAgreementId,
+                action: 'approve',
+                agreement_title: selectedAgreement?.title,
+                organizer_email: formState.email,
+                organizer_name: formState.name,
+                organization_name: formState.organisation,
+            },
+        });
+    }, [selectedAgreementId, createdUserId, id, approveMutation, selectedAgreement, formState.email, formState.name, formState.organisation]);
 
-    // Handle OTP verification for agreement
-    const handleVerifyAgreementOtp = useCallback(() => {
-        if (!agreementOtpValue || agreementOtpValue.length < 6) {
+    // Handle OTP verification for user creation
+    const handleVerifyCreateOtp = useCallback(() => {
+        if (!createOtpValue || createOtpValue.length < 6) {
             message.error('Please enter a valid 6-digit OTP');
             return;
         }
 
-        // Use createdUserId (for create mode) or id (for edit mode)
-        const userId = createdUserId || id;
-
-        // Verify OTP using TanStack mutation
-        verifyAgreementOtpMutation.mutate({
-            userId: userId,
-            otp: agreementOtpValue,
+        // Verify OTP using TanStack mutation - this will trigger user creation with session_id
+        verifyCreateOtpMutation.mutate({
+            number: pendingCreateValues?.number,
+            otp: createOtpValue,
         });
-    }, [agreementOtpValue, createdUserId, id, verifyAgreementOtpMutation]);
+    }, [createOtpValue, pendingCreateValues, verifyCreateOtpMutation]);
 
-    // Handle resend OTP for agreement
-    const handleResendAgreementOtp = useCallback(() => {
-        // Use createdUserId (for create mode) or id (for edit mode)
-        const userId = createdUserId || id;
-        sendAgreementOtpMutation.mutate(userId);
-    }, [createdUserId, id, sendAgreementOtpMutation]);
+    // Handle resend OTP for user creation
+    const handleResendCreateOtp = useCallback(() => {
+        if (pendingCreateValues?.number) {
+            sendCreateOtpMutation.mutate(pendingCreateValues.number);
+        }
+    }, [pendingCreateValues, sendCreateOtpMutation]);
 
-    // Handle close agreement OTP modal
-    const handleAgreementOtpModalClose = useCallback(() => {
-        setAgreementOtpModalVisible(false);
-        setAgreementOtpValue('');
+    // Handle close create OTP modal
+    const handleCreateOtpModalClose = useCallback(() => {
+        setCreateOtpModalVisible(false);
+        setCreateOtpValue('');
+        setPendingCreateValues(null);
+        setIsSubmitting(false);
     }, []);
 
     // Calculate conditions for UI
@@ -1461,23 +1484,23 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 onAgreementChange={handleAgreementChange}
                 selectedAgreement={selectedAgreement}
                 processedContent={processedAgreementContent}
-                isLoading={sendAgreementOtpMutation.isPending}
+                isLoading={approveMutation.isPending}
             />
 
-            {/* Agreement OTP Verification Modal */}
+            {/* OTP Verification Modal for User Creation */}
             <OtpVerificationModal
-                open={agreementOtpModalVisible}
-                onClose={handleAgreementOtpModalClose}
-                onVerify={handleVerifyAgreementOtp}
-                onResend={handleResendAgreementOtp}
-                phoneNumber={formState.number}
+                open={createOtpModalVisible}
+                onClose={handleCreateOtpModalClose}
+                onVerify={handleVerifyCreateOtp}
+                onResend={handleResendCreateOtp}
+                phoneNumber={pendingCreateValues?.number}
                 title="Verify OTP"
-                description={`Please enter the OTP sent to ${formState.number} to complete the agreement assignment.`}
-                otpValue={agreementOtpValue}
-                onOtpChange={setAgreementOtpValue}
-                isVerifying={verifyAgreementOtpMutation.isPending || approveMutation.isPending}
-                isSending={sendAgreementOtpMutation.isPending}
-                verifyButtonText="Verify & Assign Agreement"
+                description={`Please enter the OTP sent to ${pendingCreateValues?.number} to create the user.`}
+                otpValue={createOtpValue}
+                onOtpChange={setCreateOtpValue}
+                isVerifying={verifyCreateOtpMutation.isPending || isSubmitting}
+                isSending={sendCreateOtpMutation.isPending}
+                verifyButtonText="Verify & Create User"
             />
         </Form>
     );

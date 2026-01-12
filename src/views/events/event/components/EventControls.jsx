@@ -1,18 +1,76 @@
 // EventControlsStep.jsx
-import React from 'react';
-import { Form, Select, Switch, Card, Row, Col, Space, DatePicker } from 'antd';
+import React, { useState } from 'react';
+import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography } from 'antd';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import ContentSelect from './ContentSelect';
 import { useMyContext } from 'Context/MyContextProvider';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
+const { Text } = Typography;
 
 // helpers — convert to boolean
 const toBoolean = (v) => v === true || v === 1 || v === '1';
 const toBooleanValue = (checked) => Boolean(checked);
 
-const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
+const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venueId }) => {
   const { userRole } = useMyContext();
   console.log('fom', form.getFieldValue('expected_date'));
+  const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
+
+  const navigate = useNavigate();
+  const handleBookingTypeChange = (fieldName, checked) => {
+    if (checked) {
+      // If one is turned on, turn off the other
+      if (fieldName === 'ticket_system') {
+        form.setFieldValue('bookingBySeat', false);
+      } else if (fieldName === 'bookingBySeat') {
+        form.setFieldValue('ticket_system', false);
+      }
+    }
+    return toBooleanValue(checked);
+  };
+
+  const handleManageLayoutClick = () => {
+    if (!layouts || layouts.length === 0) {
+      Modal.confirm({
+        title: 'No Layout Found',
+        content: 'There is no layout available for this venue. Would you like to create a new layout?',
+        okText: 'Create Layout',
+        cancelText: 'Cancel',
+        centered: true,
+        onOk: () => {
+          if (eventLayoutId) {
+            navigate(`/theatre/new?venueId=${eventLayoutId}`);
+          } else {
+            navigate(`/theatre/new?venueId=${venueId}`);
+          }
+        }
+      });
+      return;
+    }
+
+    if (layouts.length === 1) {
+      navigate(`/theatre/event/${eventId}/layout/${layouts[0].id}`);
+    } else {
+      setIsLayoutModalVisible(true);
+    }
+  };
+  const switchFields = [
+    { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans', initialValue: false },
+    {
+      name: 'ticket_system',
+      label: 'Booking By Ticket',
+      onChange: (checked) => handleBookingTypeChange('ticket_system', checked),
+      initialValue: true  // Default checked
+    },
+    {
+      name: 'bookingBySeat',
+      label: 'Booking By Seat',
+      onChange: (checked) => handleBookingTypeChange('bookingBySeat', checked),
+      initialValue: false
+    },
+  ];
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       {/* Top controls */}
@@ -64,10 +122,37 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
           // rules={[{ required: false }, { type: "url", message: "Please enter a valid URL" }]}
           />
         </Col>
+
+        <Col xs={24} sm={12} lg={12}>
+          <ContentSelect
+            form={form}
+            fieldName="whts_note"
+            label="WhatsApp Note"
+            contentType="note"
+            customOrgId={orgId}
+            contentList={contentList} // pass your WhatsApp note list here
+            loading={contentLoading} // loading state you get from API
+            placeholder="Select WhatsApp note"
+            rules={[{ required: false }]} // no required rule unless you want it
+          />
+        </Col>
+        <Col xs={24} sm={12} lg={12}>
+          <ContentSelect
+            form={form}
+            fieldName="booking_notice"
+            label="Booking Note"
+            contentType="description"
+            customOrgId={orgId}
+            contentList={contentList} // <-- you will pass this from parent
+            loading={contentLoading} // <-- loading state for Booking Notes
+            placeholder="Select booking note"
+            rules={[{ required: false }]} // or make required if needed
+          />
+        </Col>
       </Row>
 
       {/* Switch Section */}
-      <Card title="Event Settings" size="small">
+      <Card size="small">
         <Row gutter={ROW_GUTTER}>
           {[
             {
@@ -88,40 +173,40 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
             },
             {
               name: "online_att_sug",
-              label: "Hide Online Attendee Suggestion",
+              label: "Hide Online Att Sug",
             },
             {
               name: "offline_att_sug",
-              label: "Hide Agent Attendee Suggestion",
+              label: "Hide Agent Att Sug",
             },
-            { name: "show_on_home", label: "Display Event on Home Page" },
+            { name: "show_on_home", label: "Display on Home" },
             {
               name: "online_booking",
-              label: "Online Booking",
+              label: "Online",
               tooltip: "Allow online ticket bookings",
               defaultValue: true,
             },
             {
               name: "agent_booking",
-              label: "Agent Booking",
+              label: "Agent",
               tooltip: "Allow agent ticket bookings",
               defaultValue: true,
             },
             {
               name: "pos_booking",
-              label: "POS Booking",
+              label: "POS",
               tooltip: "Allow POS ticket bookings",
               defaultValue: true,
             },
             {
               name: "complimentary_booking",
-              label: "Complimentary Booking",
+              label: "Complimentary",
               tooltip: "Allow complimentary ticket bookings",
               defaultValue: true,
             },
             {
               name: "sponsor_booking",
-              label: "Sponsor Booking",
+              label: "Sponsor",
               tooltip: "Allow sponsor ticket bookings",
               defaultValue: true,
             },
@@ -154,7 +239,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
               const isExclusive = exclusiveFields.includes(f.name);
 
               return (
-                <Col xs={24} sm={12} lg={8} key={f.name}>
+                <Col xs={24} sm={12} lg={4} key={f.name}>
                   <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking}>
                     {({ getFieldValue }) => {
                       const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
@@ -244,17 +329,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
         />
       </Form.Item> */}
 
-      <ContentSelect
-        form={form}
-        fieldName="whts_note"
-        label="WhatsApp Note"
-        contentType="note"
-        customOrgId={orgId}
-        contentList={contentList} // pass your WhatsApp note list here
-        loading={contentLoading} // loading state you get from API
-        placeholder="Select WhatsApp note"
-        rules={[{ required: false }]} // no required rule unless you want it
-      />
+
 
       {/* <Form.Item
         name="booking_notice"
@@ -268,17 +343,83 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading }) => {
           maxLength={200}
         />
       </Form.Item> */}
-      <ContentSelect
-        form={form}
-        fieldName="booking_notice"
-        label="Booking Note"
-        contentType="description"
-        customOrgId={orgId}
-        contentList={contentList} // <-- you will pass this from parent
-        loading={contentLoading} // <-- loading state for Booking Notes
-        placeholder="Select booking note"
-        rules={[{ required: false }]} // or make required if needed
-      />
+
+      {/* Ticket Settings */}
+      <Row gutter={ROW_GUTTER}>
+        <Col span={24}>
+          <Card title="Ticket Settings">
+            <Row gutter={ROW_GUTTER}>
+              {switchFields.map((f) => (
+                <Col xs={24} sm={12} lg={4} key={f.name}>
+                  <Form.Item
+                    name={f.name}
+                    label={f.label}
+                    tooltip={f.tooltip}
+                    valuePropName="checked"
+                    getValueProps={(v) => ({ checked: toBoolean(v) })}
+                    getValueFromEvent={f.onChange || toBooleanValue}
+                    initialValue={f.initialValue}
+                  >
+                    <Switch checkedChildren="Yes" unCheckedChildren="No" />
+                  </Form.Item>
+                </Col>
+              ))}
+            </Row>
+
+            {/* show button only when Booking By Seat is selected */}
+            <Form.Item shouldUpdate noStyle>
+              {() => {
+                const bookingBySeatValue = form.getFieldValue("bookingBySeat");
+                return toBoolean(bookingBySeatValue) ? (
+                  <Button type="primary" onClick={handleManageLayoutClick}>
+                    Manage Ticket in Layout
+                  </Button>
+                ) : null;
+              }}
+            </Form.Item>
+
+          </Card>
+        </Col>
+      </Row>
+
+      <Modal
+        title="Select Layout for Event"
+        open={isLayoutModalVisible}
+        onCancel={() => setIsLayoutModalVisible(false)}
+        footer={null}
+      >
+        <List
+          dataSource={layouts}
+          renderItem={(item) => {
+            const isAssigned = Number(item.id) === Number(eventLayoutId);
+            console.log(item.id, eventLayoutId, isAssigned)
+            return (<List.Item
+              className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}
+              onClick={() => {
+                setIsLayoutModalVisible(false);
+                navigate(`/theatre/event/${eventId}/layout/${item.id}`);
+              }}
+              actions={[
+                isAssigned ? (
+                  <Tag className='cursor-pointer m-0' color="success" icon={<CheckCircleFilled />}>
+                    Currently Assigned
+                  </Tag>
+                ) : (
+                  <Button type='primary' icon={<ArrowRightOutlined />}>
+                    Select
+                  </Button>
+                )
+              ]}
+            >
+              <List.Item.Meta
+                title={<Text strong>{item.name}</Text>}
+              //description={`Venue ID: ${item.venue_id}`}
+              />
+            </List.Item>
+            )
+          }}
+        />
+      </Modal>
     </Space>
   );
 };

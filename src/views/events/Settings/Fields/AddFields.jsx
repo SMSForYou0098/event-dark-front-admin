@@ -14,7 +14,7 @@ import {
   Divider,
   message
 } from 'antd';
-import { PlusOutlined, CloseOutlined } from '@ant-design/icons';
+import { PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 

@@ -168,7 +168,7 @@ export const VanueList = ({
             loading={venueLoading}
             disabled={venueLoading && !!selectedVenueId}
             showSearch
-            style={{ width: '100%' }}
+            // style={{ width: '100%' }}
             options={venueOptions}
             optionRender={renderOption}
             filterOption={handleFilter}
@@ -183,7 +183,7 @@ export const VanueList = ({
     return (
         <>
             {/* Venues — driven by organizerId */}
-            <Col xs={24} md={span ?? 8}>
+            <Col xs={24} md={span ?? 24}>
                 {form ? (
                     <Form.Item
                         name="venue_id"

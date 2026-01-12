@@ -508,6 +508,7 @@ const NewAgentBooking = memo(({ type }) => {
     const response = await fetchCategoryData(evnt?.category);
     if (response.status) {
       const attendeeRequired = response?.categoryData?.attendy_required === true;
+      console.log("attendeeRequired", response);
       setIsAttendeeRequire(attendeeRequired);
 
       if (attendeeRequired) {

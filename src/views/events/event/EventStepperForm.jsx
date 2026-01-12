@@ -44,21 +44,20 @@ import { useMyContext } from 'Context/MyContextProvider';
 const { Step } = Steps;
 const { Title } = Typography;
 
-// Step name mapping for API queries
+// Step name mapping for API queries (tickets step removed)
 const STEP_NAMES = {
     0: 'basic',
     1: 'controls',
     2: 'timing',
-    3: 'tickets',
-    4: 'artist',
-    5: 'media',
-    6: 'seo',
-    7: 'publish',
+    3: 'artist',
+    4: 'media',
+    5: 'seo',
+    6: 'publish',
 };
 
 const EventStepperForm = () => {
     const navigate = useNavigate();
-    const { loader, } = useMyContext()
+    const { loader, UserData, userRole } = useMyContext();
     const location = useLocation();
     const { id } = useParams();
     const isEdit = !!id;
@@ -116,10 +115,14 @@ const EventStepperForm = () => {
                 city: detail?.city,
                 venue_id: detail?.venue_id,
                 description: detail?.description,
+                event_fields: detail?.event_fields || [], // For registration fields
+                // Terms & Conditions
+                online_ticket_terms: detail?.online_ticket_terms || undefined,
+                offline_ticket_terms: detail?.offline_ticket_terms || undefined,
             });
         }
 
-        // Step 1: Event Controls
+        // Step 1: Event Controls (now includes ticket settings from removed tickets step)
         if (current === 1) {
             // Helper to convert API values (could be boolean, number, or string) to boolean
             const toBool = (v) => v === true || v === 1 || v === '1';
@@ -141,6 +144,12 @@ const EventStepperForm = () => {
                     scanDetailValue = Number(controls.scan_detail);
                 }
             }
+
+            // Ticket settings (moved from tickets step)
+            // ticket_system: 1 from API means "Booking By Seat", 0 means "Booking By Ticket"
+            const ticketSystemValue = Number(controls?.ticket_system) || 0;
+            const finalTicketSystem = ticketSystemValue === 0; // true = Booking By Ticket (when API returns 0)
+            const finalBookingBySeat = ticketSystemValue === 1; // true = Booking By Seat (when API returns 1)
 
             Object.assign(patch, {
                 scan_detail: scanDetailValue,
@@ -165,7 +174,17 @@ const EventStepperForm = () => {
                 insta_whts_url: detail?.insta_whts_url || '',
                 whts_note: detail?.whts_note || undefined,
                 booking_notice: detail?.booking_notice || undefined,
+
+                // Ticket settings (moved from tickets step)
+                multi_scan: toBool(controls?.multi_scan),
+                ticket_system: finalTicketSystem,
+                bookingBySeat: finalBookingBySeat,
+                ticket_terms: detail?.ticket_terms || undefined,
             });
+
+            // Set layouts and layout ID for seat booking management
+            setEventLayoutId(detail?.event_has_layout?.layout_id);
+            setLayouts(detail?.layout);
         }
 
         // Step 2: Timing & Location
@@ -190,28 +209,8 @@ const EventStepperForm = () => {
             }
         }
 
-        // Step 3: Tickets
+        // Step 3: Artist (was step 4, tickets step removed)
         if (current === 3) {
-            const toBool = (v) => v === true || v === 1 || v === '1';
-            const ticketSystem = Number(controls?.ticket_system) || 0;
-            // If both are 0 from backend, default to ticket_system = 1
-            const finalTicketSystem = ticketSystem === 0 ? 1 : 0;
-            const finalBookingBySeat = ticketSystem === 1 ? 1 : 0;
-            Object.assign(patch, {
-                multi_scan: toBool(controls?.multi_scan),
-                ticket_system: finalTicketSystem,
-                bookingBySeat: finalBookingBySeat,
-                ticket_terms: detail?.ticket_terms || undefined,
-            });
-            setEventLayoutId(detail?.event_has_layout?.layout_id)
-            setLayouts(detail?.layout)
-            if (Array.isArray(detail?.tickets) && detail.tickets.length) {
-                setTickets(detail.tickets.map((t, idx) => ({ key: String(idx + 1), ...t })));
-            }
-        }
-
-        // Step 4: Artist
-        if (current === 4) {
             Object.assign(patch, {
                 artist_id: detail?.artist_id
                     ? detail.artist_id.split(',').map((id) => Number(id.trim()))
@@ -219,8 +218,8 @@ const EventStepperForm = () => {
             });
         }
 
-        // Step 5: Media
-        if (current === 5) {
+        // Step 4: Media (was step 5, tickets step removed)
+        if (current === 4) {
             // Now using URL strings directly (for MediaGalleryPicker)
             patch.thumbnail = event_galleries?.thumbnail || null;
             patch.insta_thumbnail = event_galleries?.insta_thumbnail || null;
@@ -245,8 +244,8 @@ const EventStepperForm = () => {
             patch.instagram_media_url = event_galleries?.insta_url; // Api returns insta_url, form expects instagram_media_url
         }
 
-        // Step 6: SEO
-        if (current === 6) {
+        // Step 5: SEO (was step 6, tickets step removed)
+        if (current === 5) {
             Object.assign(patch, {
                 meta_tag: event_seo?.meta_tag,
                 meta_keyword: event_seo?.meta_keyword,
@@ -254,6 +253,9 @@ const EventStepperForm = () => {
                 meta_description: event_seo?.meta_description,
             });
         }
+
+        // Step 6: Publish (was step 7, tickets step removed)
+        // No specific form fields to set for publish step
 
         // Only update form if we have data for this step
         if (Object.keys(patch).length > 0) {
@@ -319,30 +321,37 @@ const EventStepperForm = () => {
     // Steps configuration
     const steps = useMemo(
         () => [
-            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} />, icon: <FormOutlined /> },
-            { title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} orgId={orgId} />, icon: <ControlOutlined /> },
-            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
+            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} eventFields={detail?.event_fields} />, icon: <FormOutlined /> },
             {
-                title: 'Tickets',
-                content: (
-                    <TicketsStep
-                        tickets={tickets}
-                        layouts={layouts}
-                        eventLayoutId={eventLayoutId}
-                        form={form}
-                        orgId={orgId}
-                        embedCode={embedCode}
-                        onEmbedChange={handleEmbedChange}
-                        onAddTicket={handleAddTicket}
-                        onDeleteTicket={handleDeleteTicket}
-                        eventId={detail?.event_key}
-                        eventName={detail?.name}
-                    />
-                ),
-                icon: <TagsOutlined />,
+                title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} orgId={orgId}
+                    layouts={layouts}
+                    eventLayoutId={eventLayoutId}
+                    eventId={detail?.event_key}
+                    venue_id={detail?.venue_id}
+                />, icon: <ControlOutlined />
             },
-            { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} />, icon: <EnvironmentOutlined /> },
+            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
+            // {
+            //     title: 'Tickets',
+            //     content: (
+            //         <TicketsStep
+            //             tickets={tickets}
+            //             layouts={layouts}
+            //             eventLayoutId={eventLayoutId}
+            //             form={form}
+            //             orgId={orgId}
+            //             embedCode={embedCode}
+            //             onEmbedChange={handleEmbedChange}
+            //             onAddTicket={handleAddTicket}
+            //             onDeleteTicket={handleDeleteTicket}
+            //             eventId={detail?.event_key}
+            //             eventName={detail?.name}
+            //         />
+            //     ),
+            //     icon: <TagsOutlined />,
+            // },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
+            { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} />, icon: <EnvironmentOutlined /> },
             { title: 'SEO', content: <SEOStep form={form} eventKey={id} componentLoader={componentLoader} setComponentLoader={setComponentLoader} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
@@ -360,6 +369,8 @@ const EventStepperForm = () => {
                 const body = buildEventFormData({
                     ...formValues,
                     step: stepName,
+                    userRole,
+                    userId: UserData?.id,
                 });
                 await createEvent(body);
                 return; // Navigation handled in onSuccess
@@ -371,6 +382,8 @@ const EventStepperForm = () => {
                 const body = buildEventFormData({
                     ...formValues,
                     step: stepName,
+                    userRole,
+                    userId: UserData?.id,
                 });
                 await updateEvent({ id, body });
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -407,6 +420,8 @@ const EventStepperForm = () => {
             const body = buildEventFormData({
                 ...draftValues,
                 step: stepName,
+                userRole,
+                userId: UserData?.id,
             }, true);
 
             if (id) {
@@ -433,6 +448,8 @@ const EventStepperForm = () => {
                 ...values,
                 status: 1,
                 step: 'publish',
+                userRole,
+                userId: UserData?.id,
             });
 
             if (id) {

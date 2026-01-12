@@ -141,14 +141,25 @@ export function buildEventFormData(values, isDraft = false) {
 
   // ---------- BASIC ----------
   if (values.step === 'basic') {
-    appendIfDefined('user_id', values.org_id);
+    // For Organizer role, use their userId; otherwise use the selected org_id from form
+    const userId = values.userRole === 'Organizer' ? values.userId : values.org_id;
+    appendIfDefined('user_id', userId);
     appendIfDefined('category', values.category);
     appendIfDefined('name', values.name);
     appendIfDefined('venue_id', values.venue_id);
     appendIfDefined('description', values.description);
+
+    // Terms & Conditions
+    appendIfDefined('online_ticket_terms', values.online_ticket_terms);
+    appendIfDefined('offline_ticket_terms', values.offline_ticket_terms);
+
+    // Registration fields with notes [{id, note}] - send as stringified JSON
+    if (Array.isArray(values.fields) && values.fields.length > 0) {
+      fd.append('fields', JSON.stringify(values.fields));
+    }
   }
 
-  // ---------- CONTROLS ----------
+  // ---------- CONTROLS (now includes ticket settings from removed tickets step) ----------
   if (values.step === 'controls') {
     appendIfDefined('scan_detail', Number(values.scan_detail));
     // Send boolean values directly to API
@@ -186,6 +197,13 @@ export function buildEventFormData(values, isDraft = false) {
 
     appendIfDefined('whts_note', values.whts_note);
     appendIfDefined('booking_notice', values.booking_notice);
+
+    // Ticket settings (moved from tickets step)
+    appendIfDefined('ticket_terms', values.ticket_terms);
+    appendIfDefined('multi_scan', values.multi_scan ?? false);
+    // ticket_system: form value true = "Booking By Ticket" = API expects 0
+    // ticket_system: form value false = "Booking By Seat" = API expects 1
+    appendIfDefined('ticket_system', values.ticket_system ? 0 : 1);
   }
 
   // ---------- TIMING ----------
@@ -194,7 +212,7 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('entry_time', values.entry_time);
     appendIfDefined('start_time', values.start_time);
     appendIfDefined('end_time', values.end_time);
-    appendIfDefined('overnight_event', values.overnight_event ? 1 : 0);
+    appendIfDefined('overnight_event', values.overnight_event);
     appendIfDefined('event_type', values.event_type);
     appendIfDefined('tba', values.tba);
   }
@@ -206,6 +224,7 @@ export function buildEventFormData(values, isDraft = false) {
     }
     appendIfDefined('ticket_terms', values.ticket_terms);
     appendIfDefined('multi_scan', values.multi_scan ?? false);
+    // ticket_system: form value true = "Booking By Ticket" = API expects 0
     appendIfDefined('ticket_system', values.ticket_system ? 0 : 1);
   }
 

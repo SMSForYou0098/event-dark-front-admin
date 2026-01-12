@@ -58,51 +58,151 @@ const TimingStep = ({ form, ...props }) => {
     <Row gutter={ROW_GUTTER}>
       <Col xs={24} lg={24}>
         <Row gutter={16}>
+          {/* To Be Announced - First field */}
+          <Col xs={12} md={3}>
+            <Form.Item
+              name="tba"
+              label="To Be Announced"
+              valuePropName="checked"
+              initialValue={false}
+            >
+              <Checkbox>TBA</Checkbox>
+            </Form.Item>
+          </Col>
+
+          {/* event_type -> "daily" / "seasonal" via Switch */}
+          <Col xs={12} md={3}>
+            <Form.Item
+              name="event_type"
+              label="Event Type"
+              tooltip="Choose between Daily or Seasonal event"
+              rules={[{ required: true, message: "Please choose event type" }]}
+              initialValue="daily"
+            >
+              <Select placeholder="Select event type">
+                <Select.Option value="day">Day</Select.Option>
+                <Select.Option value="daily">Daily</Select.Option>
+                <Select.Option value="seasonal">Seasonal</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+
           <Col xs={24} md={6}>
             <Form.Item
               noStyle
-              shouldUpdate={(prev, cur) => prev.tba !== cur.tba}
+              shouldUpdate={(prev, cur) => prev.tba !== cur.tba || prev.event_type !== cur.event_type}
             >
               {({ getFieldValue }) => {
                 const isTba = getFieldValue('tba');
+                const eventType = getFieldValue('event_type');
+                const isDayEvent = eventType === 'day';
+
                 return (
                   <Form.Item
                     name="date_range"
-                    label={
-                      <span>
-                        Event Date Range
-                        <Form.Item name="tba" valuePropName="checked" noStyle initialValue={false}>
-                          <Checkbox style={{ marginLeft: 8 }}>To Be Announced</Checkbox>
-                        </Form.Item>
-                      </span>
-                    }
+                    label={isDayEvent ? 'Event Date' : 'Event Date Range'}
                     validateTrigger={['onChange', 'onBlur']}
                     rules={[
                       {
                         required: !isTba,
-                        message: 'Please select date range',
+                        message: isDayEvent ? 'Please select event date' : 'Please select date range',
                       },
                     ]}
-                    // Show RangePicker using stored dates + start/end_time for the time parts
+                    // Show picker using stored dates + start/end_time for the time parts
                     getValueProps={(value) => {
+                      if (isDayEvent) {
+                        // For day event, parse single date from date_range (first part)
+                        if (typeof value !== 'string' || !value) return { value: undefined };
+                        const dateStr = value.includes(',') ? value.split(',')[0].trim() : value.trim();
+                        const startTime = form.getFieldValue('start_time');
+                        const d = dayjs(dateStr, FMT_DATE, true);
+                        if (!d.isValid()) return { value: undefined };
+                        const st = (typeof startTime === 'string' && dayjs(startTime, FMT_T, true).isValid())
+                          ? dayjs(startTime, FMT_T)
+                          : null;
+                        return { value: st ? d.hour(st.hour()).minute(st.minute()) : d };
+                      }
+                      // For range picker
                       const startTime = form.getFieldValue('start_time');
                       const endTime = form.getFieldValue('end_time');
                       return { value: buildRangePickerValue(value, startTime, endTime) };
                     }}
                   >
-                    <RangePicker
-                      showTime
-                      style={{ width: '100%' }}
-                      placeholder={['Start Date & Time', 'End Date & Time']}
-                      format={FMT_DT}
-                      onChange={onRangeChange}
-                      disabled={isTba}
-                    />
+                    {isDayEvent ? (
+                      <DatePicker
+                        showTime
+                        style={{ width: '100%' }}
+                        placeholder="Select Date & Start Time"
+                        format={FMT_DT}
+                        onChange={(date) => {
+                          if (!date) {
+                            form.setFieldsValue({
+                              date_range: undefined,
+                              start_time: undefined,
+                            });
+                            return;
+                          }
+                          // For day event, set same date for start and end, only set start_time
+                          form.setFieldsValue({
+                            date_range: `${date.format(FMT_DATE)},${date.format(FMT_DATE)}`,
+                            start_time: date.format(FMT_T),
+                            tba: false,
+                          });
+                        }}
+                        disabled={isTba}
+                      />
+                    ) : (
+                      <RangePicker
+                        showTime
+                        style={{ width: '100%' }}
+                        placeholder={['Start Date & Time', 'End Date & Time']}
+                        format={FMT_DT}
+                        onChange={onRangeChange}
+                        disabled={isTba}
+                      />
+                    )}
                   </Form.Item>
                 );
               }}
             </Form.Item>
           </Col>
+
+          {/* End Time for Day Events */}
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.event_type !== cur.event_type || prev.tba !== cur.tba}>
+            {({ getFieldValue }) => {
+              const eventType = getFieldValue('event_type');
+              const isTba = getFieldValue('tba');
+
+              return eventType === 'day' ? (
+                <Col xs={12} md={3}>
+                  <Form.Item
+                    name="end_time"
+                    label="End Time"
+                    rules={[
+                      {
+                        required: !isTba,
+                        message: 'Please select end time',
+                      },
+                    ]}
+                    getValueProps={(value) => ({
+                      value:
+                        typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
+                          ? dayjs(value, FMT_T)
+                          : undefined,
+                    })}
+                    getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
+                  >
+                    <TimePicker
+                      style={{ width: '100%' }}
+                      format={FMT_T}
+                      placeholder="End time"
+                      disabled={isTba}
+                    />
+                  </Form.Item>
+                </Col>
+              ) : null;
+            }}
+          </Form.Item>
 
           {/* entry_time -> "HH:mm" */}
           <Col xs={12} md={3}>
@@ -132,22 +232,6 @@ const TimingStep = ({ form, ...props }) => {
                   <TimePicker style={{ width: '100%' }} format={FMT_T} placeholder="Entry time" disabled={getFieldValue('no_date_range')} />
                 </Form.Item>
               )}
-            </Form.Item>
-          </Col>
-
-          {/* event_type -> "daily" / "seasonal" via Switch */}
-          <Col xs={12} md={3}>
-            <Form.Item
-              name="event_type"
-              label="Event Type"
-              tooltip="Choose between Daily or Seasonal event"
-              rules={[{ required: true, message: "Please choose event type" }]}
-              initialValue="daily"
-            >
-              <Select placeholder="Select event type">
-                <Select.Option value="daily">Day Event</Select.Option>
-                <Select.Option value="seasonal">Season Event</Select.Option>
-              </Select>
             </Form.Item>
           </Col>
 

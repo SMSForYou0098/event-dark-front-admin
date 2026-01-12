@@ -252,6 +252,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
     // Media Selection Handler
     const handleMediaSelect = (url) => {
+        console.log('Media selected:', url);
         setSelectedMediaUrl(url);
         setMediaPickerOpen(false);
         // Clear fallback selection when custom media is chosen
@@ -307,12 +308,17 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             }
 
             // Image Logic: Custom URL OR Fallback
+            console.log('Submit - selectedMediaUrl:', selectedMediaUrl);
+            console.log('Submit - selectedFallbackTicket:', selectedFallbackTicket);
+
             if (selectedMediaUrl) {
                 formData.append('background_image', selectedMediaUrl);
+                console.log('Appending custom background_image:', selectedMediaUrl);
             } else if (selectedFallbackTicket) {
                 const fallbackImg = fallbackTickets.find(t => t.id === selectedFallbackTicket);
                 if (fallbackImg?.image) {
                     formData.append('background_image', fallbackImg.image);
+                    console.log('Appending fallback background_image:', fallbackImg.image);
                 }
             }
 
@@ -491,11 +497,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         <Input />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} md={6}>
+                                {/* <Col xs={24} md={6}>
                                     <Form.Item label="Currency" name="currency" rules={[{ required: true }]}>
                                         <Select options={currencies} />
                                     </Form.Item>
-                                </Col>
+                                </Col> */}
                                 <Col xs={24} md={6}>
                                     <Form.Item label="Price" name="price" rules={[{ required: true }]}>
                                         <Input type='number' min={0} onChange={handlePriceChange} />
@@ -506,7 +512,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     <Col xs={24}><Alert message={`~ ₹${convertedPrice}`} type="info" showIcon /></Col>
                                 )}
 
-                                <Col xs={24} md={8}>
+                                <Col xs={24} md={6}>
                                     <Form.Item label="Total Quantity" name="quantity" rules={[{ required: true }]}>
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
@@ -533,11 +539,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         <Select options={TAX_TYPES} />
                                     </Form.Item>
                                 </Col>
-                                <Col xs={24} md={8}>
+                                {/* <Col xs={24} md={8}>
                                     <Form.Item label="Access Areas" name="access_area">
                                         <Select mode="multiple" options={areas} />
                                     </Form.Item>
-                                </Col>
+                                </Col> */}
                                 <Col xs={24} md={8}>
                                     <Form.Item label="Promocodes" name="promocode_codes">
                                         <Select mode="multiple" options={promocodes} />
@@ -657,10 +663,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
             <MediaGalleryPickerModal
                 open={mediaPickerOpen}
-                onCancel={() => {
-                    setMediaPickerOpen(false);
-                    setSelectedMediaUrl('');
-                }}
+                onCancel={() => setMediaPickerOpen(false)}
                 onSelect={handleMediaSelect}
                 multiple={false}
                 title="Select Ticket Background"

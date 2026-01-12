@@ -342,44 +342,20 @@ const EventList = ({ isJunk = false }) => {
         title: 'Action',
         key: 'action',
         align: 'center',
-        ...(isMobile && { width: isJunk ? 100 : 60 }),
+        ...(isMobile && { width: isJunk ? 60 : 60 }),
         fixed: 'right',
         render: (_, row) => {
           if (isJunk) {
-            const junkActions = [
-              {
-                tooltip: 'Restore Event',
-                isButton: true,
-                onClick: () => handleRestoreEvent(row),
-                type: 'default',
-                loadig: restoreMutation.isPending,
-                icon: <UndoOutlined />,
-              },
-              {
-                tooltip: 'Delete Permanently',
-                isButton: true,
-                onClick: () => handlePermanentDelete(row),
-                type: 'primary',
-                loading: permanentDeleteMutation.isPending,
-                danger: true,
-                icon: <DeleteOutlined />,
-              },
-            ];
-
+            // Only restore action in Action column for junk
             return (
-              <Space size="small">
-                {junkActions.map((action, index) => (
-                  <Tooltip key={index} title={action.tooltip}>
-                    <Button
-                      type={action.type}
-                      danger={action.danger}
-                      icon={action.icon}
-                      onClick={action.onClick}
-                      loading={action.loading}
-                    />
-                  </Tooltip>
-                ))}
-              </Space>
+              <Tooltip title="Restore Event">
+                <Button
+                  type="default"
+                  icon={<UndoOutlined />}
+                  onClick={() => handleRestoreEvent(row)}
+                  loading={restoreMutation.isPending}
+                />
+              </Tooltip>
             );
           }
           const actions = [
@@ -393,13 +369,6 @@ const EventList = ({ isJunk = false }) => {
               permission: null,
             },
             {
-              tooltip: 'Edit Event',
-              to: `update/${row?.event_key}`,
-              type: 'default',
-              icon: <EditOutlined />,
-              permission: hasEditPermission,
-            },
-            {
               tooltip: 'Manage Tickets',
               to: `ticket/${row?.event_key}/${createSlug(row?.name)}`,
               type: 'default',
@@ -407,30 +376,13 @@ const EventList = ({ isJunk = false }) => {
               permission: null,
             },
             {
-              tooltip: 'Delete Event',
-              onClick: () => HandleDelete(row?.id, row?.name),
-              type: 'primary',
-              danger: true,
-              icon: <DeleteOutlined />,
-              isButton: true,
-              permission: hasDeletePermission,
+              tooltip: 'Edit Event',
+              to: `update/${row?.event_key}`,
+              type: 'default',
+              icon: <EditOutlined />,
+              permission: hasEditPermission,
             },
-            // {
-            //   tooltip: 'Manage Gates',
-            //   onClick: () => HandleGateModal(row?.id),
-            //   type: 'default',
-            //   icon: <MergeCellsOutlined />,
-            //   isButton: true,
-            //   permission: null,
-            // },
-            // {
-            //   tooltip: 'Manage Access Areas',
-            //   onClick: () => HandleGateModal(row?.id, true),
-            //   type: 'default',
-            //   icon: <KeyOutlined />,
-            //   isButton: true,
-            //   permission: null,
-            // },
+            // Delete moved to separate column
           ];
 
           const filteredActions = actions.filter(
@@ -546,6 +498,46 @@ const EventList = ({ isJunk = false }) => {
           );
         },
       },
+      // Separate Delete column for junk events
+      ...(isJunk ? [{
+        title: 'Delete',
+        key: 'delete',
+        align: 'center',
+        width: 80,
+        fixed: 'right',
+        render: (_, row) => (
+          <PermissionChecker permission="Delete Event Permanently">
+            <Tooltip title="Delete Permanently">
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handlePermanentDelete(row)}
+                loading={permanentDeleteMutation.isPending}
+              />
+            </Tooltip>
+          </PermissionChecker>
+        ),
+      }] : [{
+        title: 'Delete',
+        key: 'delete',
+        align: 'center',
+        width: 80,
+        fixed: 'right',
+        render: (_, row) => (
+          <PermissionChecker permission="Delete Event">
+            <Tooltip title="Delete Event">
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => HandleDelete(row?.id, row?.name)}
+                loading={deleteMutation.isPending}
+              />
+            </Tooltip>
+          </PermissionChecker>
+        ),
+      }]),
     ],
     [
       formatDateRange,

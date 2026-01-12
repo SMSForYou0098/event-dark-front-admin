@@ -35,7 +35,7 @@ const OtpVerificationModal = ({
         >
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <Alert
-                    message="OTP Verification Required"
+                    // message="OTP Verification Required"
                     description={description || defaultDescription}
                     type="info"
                     showIcon

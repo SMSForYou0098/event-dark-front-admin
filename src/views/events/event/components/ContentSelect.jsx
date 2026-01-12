@@ -16,13 +16,16 @@ export const ContentSelect = ({
   extra = '',
   contentType = null, // 'note' or 'description' - filters the list and sets default type for new content
   customOrgId = null,
+  previewMaxHeight = 200, // Max height in pixels for the preview card, enables scrolling if content overflows
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const {userRole} = useMyContext();
+  const { userRole, UserData } = useMyContext();
   // Prioritize customOrgId if provided, otherwise use org_id from form
   const formOrgId = Form.useWatch('org_id', form);
 
-  const orgId = customOrgId || formOrgId;
+
+  const orgId = userRole === 'Organizer' ? UserData?.id : customOrgId || formOrgId;
+
   // selected value will be the id
   const selectedId = Form.useWatch(fieldName, form);
   const { data: contentList = [], isLoading: contentLoading } = useGetAllContentMaster(orgId, 'Organizer');
@@ -115,7 +118,15 @@ export const ContentSelect = ({
 
       {/* Preview Card */}
       <Col xs={24}>
-        <Card size="small" title={`${label} Preview`} bordered>
+        <Card
+          size="small"
+          bordered
+          bodyStyle={{
+            maxHeight: previewMaxHeight,
+            overflowY: 'auto',
+          }}
+          className="p-0"
+        >
           {contentLoading ? (
             <div style={{ color: "#888" }}>Loading...</div>
           ) : selectedItem?.content ? (

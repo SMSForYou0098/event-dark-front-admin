@@ -1,37 +1,35 @@
-:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead >tr>td,
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead>tr>td,
 :where(.css-1u1move).ant-table-wrapper .ant-table-tbody>tr.ant-table-placeholder,
-table , 
+table,
 th,
-td
-{
-    background-color:  transparent !important;
+td {
+    background-color: transparent !important;
 }
 
-.ant-table-thead >tr>th, 
-.ant-table-thead >tr>td, 
-:where(.css-1u1move).ant-table-wrapper .ant-table-tbody >tr >td {
-    border-bottom : 1px solid var(--border-secondary) !important;
+.ant-table-thead>tr>th,
+.ant-table-thead>tr>td,
+:where(.css-1u1move).ant-table-wrapper .ant-table-tbody>tr>td {
+    border-bottom: 1px solid var(--border-secondary) !important;
 }
 
-.ant-pagination .ant-pagination-item-active{
-    border : none !important;
+.ant-pagination .ant-pagination-item-active {
+    border: none !important;
 }
 
 /* all the text in the table: default color white */
-.ant-table-wrapper .ant-table-tbody > tr > td {
+.ant-table-wrapper .ant-table-tbody>tr>td {
     color: white !important;
 }
 
 /* for header text color white with bold */
-.ant-table-wrapper .ant-table-thead > tr > th {
+.ant-table-wrapper .ant-table-thead>tr>th {
     color: white !important;
     font-weight: bold !important;
 }
 
 :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-tbody>tr.ant-table-placeholder,
 :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-cell-fix-right,
-:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-cell-fix-left
-{
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-cell-fix-left {
     background-color: transparent !important;
 }
 
@@ -39,9 +37,10 @@ td
     line-height: 0% !important;
 }
 
-.ant-table-cell-fix-right, .ant-table-cell-fix-left {
-   background-color: transparent !important;
-   backdrop-filter: blur(10px);
+.ant-table-cell-fix-right,
+.ant-table-cell-fix-left {
+    background-color: transparent !important;
+    backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
 
@@ -51,7 +50,7 @@ td
 
 /* Expanded row container - transparent background */
 .ant-table-wrapper .ant-table-expanded-row,
-.ant-table-wrapper .ant-table-expanded-row > td {
+.ant-table-wrapper .ant-table-expanded-row>td {
     background-color: transparent !important;
 }
 
@@ -66,19 +65,19 @@ td
 }
 
 /* Remove borders from nested table - matching normal table style */
-.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered > .ant-table-container {
+.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered>.ant-table-container {
     border: none !important;
 }
 
-.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered > .ant-table-container > .ant-table-content > table > thead > tr > th,
-.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered > .ant-table-container > .ant-table-content > table > tbody > tr > td {
+.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered>.ant-table-container>.ant-table-content>table>thead>tr>th,
+.ant-table-wrapper .ant-table-expanded-row .ant-table.ant-table-bordered>.ant-table-container>.ant-table-content>table>tbody>tr>td {
     border-right: none !important;
     border-left: none !important;
     border-top: none !important;
 }
 
 /* Nested table header - white text with bold */
-.ant-table-wrapper .ant-table-expanded-row .ant-table-thead > tr > th {
+.ant-table-wrapper .ant-table-expanded-row .ant-table-thead>tr>th {
     color: white !important;
     font-weight: bold !important;
     background-color: transparent !important;
@@ -89,7 +88,7 @@ td
 }
 
 /* Nested table body cells - white text, NO right borders */
-.ant-table-wrapper .ant-table-expanded-row .ant-table-tbody > tr > td {
+.ant-table-wrapper .ant-table-expanded-row .ant-table-tbody>tr>td {
     color: white !important;
     background-color: transparent !important;
     border-bottom: 1px solid var(--border-secondary) !important;
@@ -99,12 +98,12 @@ td
 }
 
 /* Nested table rows on hover */
-.ant-table-wrapper .ant-table-expanded-row .ant-table-tbody > tr:hover > td {
+.ant-table-wrapper .ant-table-expanded-row .ant-table-tbody>tr:hover>td {
     background-color: rgba(255, 255, 255, 0.05) !important;
 }
 
 /* Expanded row content padding adjustment */
-.ant-table-wrapper .ant-table-expanded-row > .ant-table-cell {
+.ant-table-wrapper .ant-table-expanded-row>.ant-table-cell {
     padding: 16px 8px !important;
 }
 
@@ -141,8 +140,8 @@ td
 }
 
 /* Additional specificity for nested table - remove ALL borders except bottom */
-.ant-table-wrapper .ant-table-expanded-row .ant-table-wrapper .ant-table-thead > tr > th,
-.ant-table-wrapper .ant-table-expanded-row .ant-table-wrapper .ant-table-tbody > tr > td {
+.ant-table-wrapper .ant-table-expanded-row .ant-table-wrapper .ant-table-thead>tr>th,
+.ant-table-wrapper .ant-table-expanded-row .ant-table-wrapper .ant-table-tbody>tr>td {
     border-bottom: 1px solid var(--border-secondary) !important;
     border-right: none !important;
     border-left: none !important;
@@ -171,9 +170,13 @@ td
 }
 
 /* Force remove all side borders from nested table cells */
-.ant-table-wrapper .ant-table-expanded-row .ant-table-bordered .ant-table-thead > tr > th,
-.ant-table-wrapper .ant-table-expanded-row .ant-table-bordered .ant-table-tbody > tr > td {
+.ant-table-wrapper .ant-table-expanded-row .ant-table-bordered .ant-table-thead>tr>th,
+.ant-table-wrapper .ant-table-expanded-row .ant-table-bordered .ant-table-tbody>tr>td {
     border-right: none !important;
     border-left: none !important;
 }
 
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead>tr>th:not(:last-child):not(.ant-table-selection-column):not(.ant-table-row-expand-icon-cell):not([colspan])::before,
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead>tr>td:not(:last-child):not(.ant-table-selection-column):not(.ant-table-row-expand-icon-cell):not([colspan])::before {
+    background-color: var(--border-secondary) !important;
+}

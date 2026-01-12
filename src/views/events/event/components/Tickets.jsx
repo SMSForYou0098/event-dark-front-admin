@@ -72,13 +72,13 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
     <Row gutter={ROW_GUTTER}>
       <Col xs={24} md={12} lg={18}>
         {/* Ticket Manager Section */}
-        <Card className="mb-4">
+        {/* <Card className="mb-4">
           <TicketManager
             eventId={eventId}
             eventName={eventName}
             showEventName={true}
           />
-        </Card>
+        </Card> */}
       </Col>
 
       {/* Ticket Settings */}

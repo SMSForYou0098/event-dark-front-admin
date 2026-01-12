@@ -1,8 +1,8 @@
 // BasicDetailsStep.jsx
-import React, { useEffect, useMemo, useState } from 'react';
-import { Form, Input, Select, Row, Col, Drawer, Button, List, Tag } from 'antd';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
+import { Form, Input, Select, Row, Col, Button, Tag, Space, Card, Empty } from 'antd';
 import { useQuery } from '@tanstack/react-query';
-import { EyeOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useEventCategories } from '../hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
@@ -10,10 +10,17 @@ import { OrganisationList } from 'utils/CommonInputs';
 import { VanueList } from './CONSTANTS';
 import { ContentSelect } from './ContentSelect';
 import apiClient from 'auth/FetchInterceptor';
+import SelectFields from 'views/events/Settings/Fields/SelectFields';
 
-const BasicDetailsStep = ({ form, isEdit }) => {
-  const [fieldsDrawerOpen, setFieldsDrawerOpen] = useState(false);
+const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
+  const [selectFieldsModalOpen, setSelectFieldsModalOpen] = useState(false);
+  const [selectedFieldIds, setSelectedFieldIds] = useState([]);
+  const [selectedFieldsData, setSelectedFieldsData] = useState([]);
+  const [fieldNotes, setFieldNotes] = useState({});
   const { UserData, } = useMyContext();
+
+  // Ref to track if we've already initialized existing fields
+  const hasInitializedFields = useRef(false);
 
   // categories
   const {
@@ -41,6 +48,117 @@ const BasicDetailsStep = ({ form, isEdit }) => {
   // Get fields from category details
   const categoryFields = categoryDetails?.fields || [];
   const hasFields = categoryFields.length > 0;
+
+  // Check if category is "Registration" type
+  const isRegistrationCategory = categoryDetails?.title?.toLowerCase() === 'registration';
+
+  // Fetch all available fields for mapping field_id to field data
+  // Enable when editing - we need this data to populate existing selections
+  const { data: allFields = [], isFetched: fieldsFetched } = useQuery({
+    queryKey: ['fields-list'],
+    queryFn: async () => {
+      const response = await apiClient.get('fields-list');
+      return response?.customFields || response?.data?.customFields || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    enabled: isEdit,
+  });
+
+  // Populate existing fields when editing - runs once when data is ready
+  useEffect(() => {
+    // Skip if already initialized or not in edit mode
+    if (hasInitializedFields.current || !isEdit) return;
+
+    // Wait for all required data to be available (using eventFields prop)
+    if (!eventFields?.length || !fieldsFetched || !allFields?.length) return;
+
+    console.log('=== Populating existing fields ===');
+
+    // Mark as initialized to prevent re-running
+    hasInitializedFields.current = true;
+
+    // Extract field_ids and notes from eventFields prop
+    const fieldIds = eventFields.map(ef => ef.field_id);
+    const notes = {};
+    eventFields.forEach(ef => {
+      if (ef.note) {
+        notes[ef.field_id] = ef.note;
+      }
+    });
+
+    console.log('fieldIds extracted:', fieldIds);
+
+    // Get field data for selected field_ids
+    const fieldsData = allFields.filter(f => fieldIds.includes(f.id));
+
+    console.log('fieldsData matched:', fieldsData);
+
+    // Update state
+    setSelectedFieldIds(fieldIds);
+    setSelectedFieldsData(fieldsData);
+    setFieldNotes(notes);
+
+    // Build fields array for payload
+    const fieldsPayload = fieldIds.map(id => ({
+      field_id: id,
+      note: notes[id] || ''
+    }));
+
+    // Store in form
+    form.setFieldsValue({
+      fields: fieldsPayload
+    });
+  }, [isEdit, eventFields, allFields, fieldsFetched, form]);
+
+  // Reset initialization flag when component unmounts or isEdit changes
+  useEffect(() => {
+    return () => {
+      hasInitializedFields.current = false;
+    };
+  }, [isEdit]);
+
+  // Handle selected fields from SelectFields modal
+  const handleFieldsSelected = (fieldIds, fieldsData, notes) => {
+    setSelectedFieldIds(fieldIds);
+    setSelectedFieldsData(fieldsData);
+    setFieldNotes(notes || {});
+
+    // Build fields array for payload: [{id, note}]
+    const fieldsPayload = fieldIds.map(id => ({
+      field_id: id,
+      note: notes?.[id] || ''
+    }));
+
+    // Store in form
+    form.setFieldsValue({
+      selected_field_ids: fieldIds,
+      field_notes: notes || {},
+      fields: fieldsPayload
+    });
+  };
+
+  // Remove a selected field
+  const handleRemoveField = (fieldId) => {
+    const newFieldIds = selectedFieldIds.filter(id => id !== fieldId);
+    const newFieldsData = selectedFieldsData.filter(f => f.id !== fieldId);
+    const newNotes = { ...fieldNotes };
+    delete newNotes[fieldId];
+
+    // Build updated fields array for payload
+    const fieldsPayload = newFieldIds.map(id => ({
+      id,
+      note: newNotes[id] || ''
+    }));
+
+    setSelectedFieldIds(newFieldIds);
+    setSelectedFieldsData(newFieldsData);
+    setFieldNotes(newNotes);
+    form.setFieldsValue({
+      selected_field_ids: newFieldIds,
+      field_notes: newNotes,
+      fields: fieldsPayload
+    });
+  };
 
   // compute the organizerId for venues:
   const selectedOrganizerFromForm = Form.useWatch('org_id', form);
@@ -100,39 +218,112 @@ const BasicDetailsStep = ({ form, isEdit }) => {
             notFoundContent={catLoading ? "Loading..." : "No categories found"}
           />
         </Form.Item>
-        {/* Category Fields Drawer Button */}
-        {hasFields && (
-          <Button
-            icon={<EyeOutlined />}
-            onClick={() => setFieldsDrawerOpen(true)}
-            loading={categoryDetailsLoading}
-            type="link"
-          >
-            View Category Fields
-          </Button>
-        )}
       </Col>
 
+      {/* Category Fields Section - Display when category is Registration */}
+      {isRegistrationCategory && (
+        <Col xs={24}>
+          <Card
+            size="small"
+            title={
+              <Space>
+                <span>Registration Fields</span>
+                {categoryDetailsLoading && <Tag>Loading...</Tag>}
+              </Space>
+            }
+            extra={
+              <Button
+                type="primary"
+                icon={selectedFieldIds.length > 0 ? <EditOutlined /> : <PlusOutlined />}
+                onClick={() => setSelectFieldsModalOpen(true)}
+                size="small"
+              >
+                {selectedFieldIds.length > 0 ? 'Edit Fields' : 'Add Fields'}
+              </Button>
+            }
+            className="mb-3"
+          >
+            {/* Show category's default fields */}
+            {hasFields && (
+              <div className={selectedFieldIds.length > 0 ? 'mb-3' : ''}>
+                <div className="mb-2 text-muted small">
+                  Default Category Fields:
+                </div>
+                <Space wrap>
+                  {categoryFields.map((field) => (
+                    <Tag
+                      key={field.id}
+                      color="blue"
+                      className="py-1 px-2"
+                    >
+                      {field.lable || field.field_name}
+                      {field.field_required && <span className="text-danger ms-1">*</span>}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            )}
 
-      {/* Category Fields Drawer */}
-      <Drawer
-        title={`Category Fields - ${categoryDetails?.title || 'Details'}`}
-        placement="right"
-        onClose={() => setFieldsDrawerOpen(false)}
-        open={fieldsDrawerOpen}
-        width={400}
-      >
-        <List
-          dataSource={categoryFields}
-          renderItem={(field) => (
-            <List.Item>
-              <Tag color="blue" style={{ fontSize: 14 }}>
-                {field.lable}
-              </Tag>
-            </List.Item>
-          )}
-        />
-      </Drawer>
+            {/* Show selected fields for Registration category */}
+            {selectedFieldIds.length > 0 && (
+              <div>
+                <div className="mb-2 text-muted small">
+                  Selected Registration Fields:
+                </div>
+                <div className="d-flex flex-column gap-2">
+                  {selectedFieldsData.map((field) => (
+                    <div key={field.id} className="d-flex align-items-center gap-2">
+                      <Tag
+                        color="green"
+                        closable
+                        onClose={() => handleRemoveField(field.id)}
+                        className="py-1 px-2 m-0"
+                      >
+                        {field.lable || field.field_name}
+                      </Tag>
+                      {fieldNotes[field.id] && (
+                        <span className="text-muted small fst-italic">
+                          — {fieldNotes[field.id]}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Show add fields prompt when no fields selected */}
+            {selectedFieldIds.length === 0 && !hasFields && (
+              <Empty
+                description="No registration fields selected"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              >
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setSelectFieldsModalOpen(true)}
+                >
+                  Add Registration Fields
+                </Button>
+              </Empty>
+            )}
+          </Card>
+
+          {/* Hidden form field for fields payload [{id, note}] */}
+          <Form.Item name="fields" hidden>
+            <Input />
+          </Form.Item>
+        </Col>
+      )}
+
+      {/* Select Fields Drawer for Registration Category */}
+      <SelectFields
+        open={selectFieldsModalOpen}
+        onClose={() => setSelectFieldsModalOpen(false)}
+        onSuccess={handleFieldsSelected}
+        initialSelectedIds={selectedFieldIds}
+        initialFieldNotes={fieldNotes}
+      />
 
       {/* Event Name */}
       <Col xs={24} md={8} className=''>
@@ -163,8 +354,11 @@ const BasicDetailsStep = ({ form, isEdit }) => {
         </Form.Item>
 
       </Col>
+      <Col xs={24} md={12}>
 
-      <VanueList form={form} />
+        <VanueList form={form} />
+      </Col>
+
       {/* Description */}
       {/* <Col xs={24}>
         <Form.Item
@@ -179,15 +373,43 @@ const BasicDetailsStep = ({ form, isEdit }) => {
         </Form.Item>
       </Col> */}
 
-      <ContentSelect
-        form={form}
-        fieldName="description"
-        contentType="description"
-        label="Event Description"
-        placeholder="Select content for event description"
-        rules={[{ required: true, message: "Please select content for event description" }]}
-      />
+      <Col xs={24} md={12} className=''>
+        <ContentSelect
+          form={form}
+          fieldName="description"
+          contentType="description"
+          label="Event Description"
+          placeholder="Select content for event description"
+          rules={[{ required: true, message: "Please select content for event description" }]}
+        />
+      </Col>
 
+      <Col xs={24} md={12}>
+        <Card title="Online T & C">
+          <ContentSelect
+            form={form}
+            fieldName="online_ticket_terms"
+            contentType="description"
+            label="Ticket Terms & Conditions"
+            placeholder="Select ticket terms"
+            rules={[{ required: true, message: "Please select ticket terms" }]}
+          />
+
+        </Card>
+      </Col>
+      <Col xs={24} md={12}>
+        <Card title="Offline T & C">
+          <ContentSelect
+            form={form}
+            fieldName="offline_ticket_terms"
+            contentType="description"
+            label="Ticket Terms & Conditions"
+            placeholder="Select ticket terms"
+            rules={[{ required: true, message: "Please select ticket terms" }]}
+          />
+
+        </Card>
+      </Col>
     </Row>
   );
 };
