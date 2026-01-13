@@ -248,7 +248,7 @@ const TimingStep = ({ form, ...props }) => {
                     initialValue={false}
                   >
                     <Checkbox>
-                      Overnight event — end time will be set to <strong>6 hours after start</strong>
+                      Overnight event — end time will be set after midnight
                     </Checkbox>
                   </Form.Item>
                 </Col>

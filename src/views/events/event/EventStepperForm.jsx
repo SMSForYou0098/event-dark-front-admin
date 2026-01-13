@@ -49,8 +49,8 @@ const STEP_NAMES = {
     0: 'basic',
     1: 'controls',
     2: 'timing',
-    3: 'artist',
-    4: 'media',
+    3: 'media',
+    4: 'artist',
     5: 'seo',
     6: 'publish',
 };
@@ -209,17 +209,8 @@ const EventStepperForm = () => {
             }
         }
 
-        // Step 3: Artist (was step 4, tickets step removed)
+        // Step 3: Media (swapped with Artist)
         if (current === 3) {
-            Object.assign(patch, {
-                artist_id: detail?.artist_id
-                    ? detail.artist_id.split(',').map((id) => Number(id.trim()))
-                    : [],
-            });
-        }
-
-        // Step 4: Media (was step 5, tickets step removed)
-        if (current === 4) {
             // Now using URL strings directly (for MediaGalleryPicker)
             patch.thumbnail = event_galleries?.thumbnail || null;
             patch.insta_thumbnail = event_galleries?.insta_thumbnail || null;
@@ -242,6 +233,15 @@ const EventStepperForm = () => {
 
             patch.youtube_url = event_galleries?.youtube_url;
             patch.instagram_media_url = event_galleries?.insta_url; // Api returns insta_url, form expects instagram_media_url
+        }
+
+        // Step 4: Artist (swapped with Media)
+        if (current === 4) {
+            Object.assign(patch, {
+                artist_id: detail?.artist_id
+                    ? detail.artist_id.split(',').map((id) => Number(id.trim()))
+                    : [],
+            });
         }
 
         // Step 5: SEO (was step 6, tickets step removed)
@@ -534,7 +534,7 @@ const EventStepperForm = () => {
                                 </Button>
                             )}
 
-                            {current < steps.length - 1 && (
+                            {current < steps.length - 2 && (
                                 <Button
                                     type="primary"
                                     onClick={next}

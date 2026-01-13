@@ -348,7 +348,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         if (selectedFallbackTicket) {
             return fallbackTickets.find(t => t.id === selectedFallbackTicket)?.image;
         }
-        return 'https://placehold.co/300x600';
+        return 'https://placehold.co/300x750';
     };
 
     const switchesConfig = [
@@ -404,7 +404,8 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
-            render: (price, record) => `${getCurrencySymbol(record.currency)}${price}`
+            // render: (price, record) => `${getCurrencySymbol(record.currency)}${price}`
+            render: (price, record) => `₹${price}`
         },
         { title: 'Quantity', dataIndex: 'ticket_quantity', key: 'ticket_quantity' },
         {
@@ -518,12 +519,12 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     </Form.Item>
                                 </Col>
                                 <Col xs={24} md={8}>
-                                    <Form.Item label="Ticket Selection Limit" name="booking_per_customer" rules={[{ required: true }]}>
+                                    <Form.Item label="Booking Limit Per User" name="user_booking_limit" rules={[{ required: true }]}>
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
                                 </Col>
                                 <Col xs={24} md={8}>
-                                    <Form.Item label="Booking Limit Per User" name="user_booking_limit" rules={[{ required: true }]}>
+                                    <Form.Item label="Ticket Selection Limit" name="booking_per_customer" rules={[{ required: true }]}>
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
                                 </Col>

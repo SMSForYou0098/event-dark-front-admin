@@ -1500,7 +1500,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 onOtpChange={setCreateOtpValue}
                 isVerifying={verifyCreateOtpMutation.isPending || isSubmitting}
                 isSending={sendCreateOtpMutation.isPending}
-                verifyButtonText="Verify & Create User"
+                verifyButtonText="Submit"
             />
         </Form>
     );
