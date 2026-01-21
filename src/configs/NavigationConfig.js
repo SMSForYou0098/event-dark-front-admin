@@ -1,4 +1,4 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined, FileImageOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined, FileImageOutlined, CheckOutlined } from '@ant-design/icons';
 
 // Dashboard
 const dashboardNav = {
@@ -125,7 +125,7 @@ const partnersClientsSubmenu = [
 const partnersClientsNav = {
   key: 'partners-clients',
   path: 'partners-clients',
-  title: 'Partner Bookings',
+  title: 'Partner',
   icon: CrownOutlined,
   breadcrumb: false,
   submenu: partnersClientsSubmenu,
@@ -148,7 +148,7 @@ const userManagementNav = {
 const bookingsSubmenu = [
   {
     key: 'online-manage',
-    title: 'Online Bookings',
+    title: 'Online',
     breadcrumb: false,
     icon: ShoppingOutlined,
     permissions: ["View Online Bookings"],
@@ -169,6 +169,22 @@ const bookingsSubmenu = [
         breadcrumb: false,
         submenu: [],
         roles: ["Admin"]
+      },
+      {
+        key: 'refund-booking',
+        title: 'Refund',
+        icon: DollarOutlined,
+        breadcrumb: false,
+        roles: ["Admin"],
+        submenu: [
+          {
+            key: 'refund-requests',
+            path: 'bookings/refund',
+            title: 'Refund Requests',
+            breadcrumb: false,
+            roles: ["Admin"]
+          }
+        ]
       },
     ]
   },
@@ -285,6 +301,15 @@ const eventManagementSubmenu = [
     submenu: [],
     // roles: ["Admin", "Organizers"],
     permissions: ["View Artists"]
+  },
+  {
+    key: 'refund-policies',
+    path: 'refund-policies',
+    title: 'Refund Policies',
+    icon: PercentageOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin"]
   },
   {
     key: 'content-master',
@@ -710,6 +735,15 @@ const onboardSubmenu = [
     path: 'onboard/organizer',
     title: 'Organizer',
     icon: TeamOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'approve-organizers',
+    path: 'approve-organizers',
+    title: 'Approve Organizers',
+    icon: CheckOutlined,
     breadcrumb: false,
     submenu: [],
     roles: ['Admin']

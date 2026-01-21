@@ -45,6 +45,8 @@ const LoginForm = ({ extra = null }) => {
   const [showResendButton, setShowResendButton] = useState(false);
   const [userEmail, setUserEmail] = useState('');
 
+  const redirect = searchParams.get('redirect');
+
   // Resend verification mutation
   const resendVerificationMutation = useMutation({
     mutationFn: async (email) => {
@@ -54,7 +56,7 @@ const LoginForm = ({ extra = null }) => {
     onSuccess: () => {
       message.success('Verification email sent successfully!');
       setShowResendButton(false);
-      navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data: userEmail } });
+      // navigate(`${AUTH_PREFIX_PATH}/two-factor?redirect=${redirect}`, { state: { data: userEmail } });
     },
     onError: (err) => {
       const errorMsg = err?.response?.data?.message || err?.response?.data?.error || 'Failed to resend verification email.';
@@ -88,6 +90,9 @@ const LoginForm = ({ extra = null }) => {
 
     setUserEmail(data);
 
+    // Extract redirect parameter from URL
+    const redirect = searchParams.get('redirect');
+
     try {
       setLoading(true);
       const response = await api.post(`${API_BASE_URL}verify-user`, { data });
@@ -97,17 +102,25 @@ const LoginForm = ({ extra = null }) => {
 
         if (pass_req) {
           const info = { data, password_required: pass_req, session_id, auth_session };
-          navigate(`${AUTH_PREFIX_PATH}/verify-password`, { state: { info } });
+          navigate(`${AUTH_PREFIX_PATH}/verify-password?redirect=${redirect}`, { state: { info } });
         } else {
-          navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data } });
+          navigate(`${AUTH_PREFIX_PATH}/two-factor?redirect=${redirect}`, { state: { data } });
         }
       }
     } catch (err) {
       const meta = err?.response?.data?.meta === 404;
       const apiMsg = err?.response?.data?.message || err?.response?.data?.error;
+      const emailNotVerified = err?.response?.data?.email_not_verified === true;
 
       if (meta) {
-        navigate(`${AUTH_PREFIX_PATH}/register`, { state: { data } });
+        navigate(`${AUTH_PREFIX_PATH}/register?redirect=${redirect}`, { state: { data } });
+      }
+
+      // Show resend button if email is not verified
+      if (emailNotVerified) {
+        setShowResendButton(true);
+      } else {
+        setShowResendButton(false);
       }
 
       setAlert({

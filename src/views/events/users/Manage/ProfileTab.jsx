@@ -851,7 +851,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             id: userId,
             payload: {
                 agreement_id: selectedAgreementId,
-                action: 'approve',
+                action: 'sign',
                 agreement_title: selectedAgreement?.title,
                 organizer_email: formState.email,
                 organizer_name: formState.name,
@@ -1055,7 +1055,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                             </Col>
 
                             {/* Verified Email Checkbox - Only for Admin creating Organizer */}
-                            {mode === 'create' && userRole === 'Admin' && formState.roleName === 'Organizer' && (
+                            {mode === 'create' && (userRole === 'Admin' || userRole === 'Organizer') && (
                                 <Col xs={24} md={8}>
                                     <Form.Item
                                         label="Email Verification Required"

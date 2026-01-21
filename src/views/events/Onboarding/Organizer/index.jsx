@@ -179,7 +179,7 @@ const OrganizerOnboarding = () => {
   }, []);
 
   const handleApproveConfirm = useCallback(() => {
-    if ( !selectedAgreementId) {
+    if (!selectedAgreementId) {
       return;
     }
 
@@ -187,7 +187,7 @@ const OrganizerOnboarding = () => {
       id: selectedRecord?.id,
       payload: {
         agreement_id: selectedAgreementId,
-        action: 'approve',
+        action: 'sign',
         email_html_content: generateEmailHTML, // Complete HTML with signatures
         agreement_title: selectedAgreement?.title,
         organizer_email: selectedRecord?.email,
@@ -276,7 +276,7 @@ const OrganizerOnboarding = () => {
 
   // ========================= RENDER =========================
   return (
-    <Card bordered={false} title="Organizer Onboarding Requests">
+    <Card bordered={false} title="Assign Agreement">
       <Spin spinning={isLoading}>
         <Table
           rowKey="id"
@@ -288,7 +288,7 @@ const OrganizerOnboarding = () => {
 
       <Modal
         open={approveModalVisible}
-        title="Approve Organizer - Agreement"
+        title="Assign Organizer - Agreement"
         onCancel={handleModalClose}
         width={1000}
         footer={[
@@ -296,8 +296,8 @@ const OrganizerOnboarding = () => {
             Cancel
           </Button>,
           <Popconfirm
-            title="Approve Agreement"
-            description="Are you sure you want to approve this agreement?"
+            title="Assign Agreement"
+            description="Are you sure you want to assign this agreement?"
             onConfirm={handleApproveConfirm}
             okText="Yes"
             cancelText="No"
@@ -309,7 +309,7 @@ const OrganizerOnboarding = () => {
               type="primary"
               disabled={!selectedAgreementId}
             >
-              Approve
+              Assign
             </Button>
           </Popconfirm>,
         ]}

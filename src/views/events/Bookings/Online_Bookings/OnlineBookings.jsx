@@ -3,11 +3,12 @@ import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { Send, Ticket, AlertCircle } from "lucide-react";
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, } from '@ant-design/icons';
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, DollarOutlined } from '@ant-design/icons';
 import DataTable from "../../common/DataTable";
 import TicketModal from "views/events/Tickets/modals/TicketModal";
 import api from "auth/FetchInterceptor";
 import BookingCount from "./BookingCount";
+import RefundModal from "./RefundModal";
 import { resendTickets } from "../agent/utils";
 import { LoadingOutlined } from '@ant-design/icons';
 
@@ -28,6 +29,7 @@ const OnlineBookings = memo(() => {
   const [loadingId, setLoadingId] = useState(null);
   const [show, setShow] = useState(false);
   const [showGatewayReport, setShowGatewayReport] = useState(false);
+  const [refundBookingData, setRefundBookingData] = useState(null);
   const queryClient = useQueryClient();
 
   // Backend pagination state
@@ -435,6 +437,36 @@ const OnlineBookings = memo(() => {
       sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
     },
     {
+      title: "Refund",
+      key: "refund",
+      align: "center",
+      render: (_, record) => {
+        const totalAmount = record?.total_amount || record?.bookings?.[0]?.total_amount || 0;
+
+        // Only show refund button if total_amount is greater than 0
+        if (totalAmount <= 0) {
+          return '-';
+        }
+
+        const isDisabled =
+          record?.is_deleted === true ||
+          (record?.bookings && record?.bookings[0]?.status) === "1";
+
+        return (
+          <Button
+            type="default"
+            size="small"
+            icon={<DollarOutlined />}
+            onClick={() => setRefundBookingData(record)}
+            disabled={isDisabled}
+            title="Refund"
+          >
+            Refund
+          </Button>
+        );
+      },
+    },
+    {
       title: "Action",
       key: "action",
       align: "center",
@@ -532,6 +564,15 @@ const OnlineBookings = memo(() => {
         ticketType={ticketType}
         ticketData={ticketData}
         formatDateRange={formatDateRange}
+      />
+
+      <RefundModal
+        bookingData={refundBookingData}
+        onClose={() => setRefundBookingData(null)}
+        onRefundComplete={() => {
+          setRefundBookingData(null);
+          refetch();
+        }}
       />
     </>
   );

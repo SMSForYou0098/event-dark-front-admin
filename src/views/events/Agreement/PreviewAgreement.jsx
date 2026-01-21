@@ -1,10 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { Button, Card, Modal, Form, Input, message, Spin, Row, Col, Space, Avatar } from 'antd';
-import { ArrowLeftOutlined, ArrowRightOutlined, BankOutlined, LockOutlined, MailOutlined, PhoneOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
+import { Button, Card, message, Row, Col, Space, Avatar } from 'antd';
+import { ArrowRightOutlined, BankOutlined, MailOutlined, PhoneOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
 import AgreementPdfViewer from 'components/shared-components/AgreementPdfViewer';
-import { useAgreementPreview, useVerifyUser } from './useAgreement';
+import { useAgreementPreview, useUpdateUserSignature, useConfirmAgreement } from './useAgreement';
 import { getBackgroundWithOpacity } from '../common/CustomUtil';
 import { PRIMARY } from 'utils/consts';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../components/shared-components/SignatureInput';
@@ -12,12 +11,21 @@ import { useMyContext } from 'Context/MyContextProvider';
 
 const PreviewAgreement = () => {
     const navigate = useNavigate();
-    const { id } = useParams();
-    const { api, authToken } = useMyContext();
+    const { id, user_id } = useParams();
+    const { UserData } = useMyContext();
 
-    const [authModalVisible, setAuthModalVisible] = useState(true); // Show modal immediately
+    // Check if this is an interactive view (with user_id) or read-only view
+    const isInteractiveView = !!user_id;
+
+    // Validate user_id matches logged-in user
+    useEffect(() => {
+        if (user_id && UserData?.id && UserData.id !== parseInt(user_id)) {
+            message.error('Unauthorized access');
+            navigate('/dashboard');
+        }
+    }, [user_id, UserData, navigate]);
+
     const [agreementData, setAgreementData] = useState(null);
-    const [form] = Form.useForm();
 
     // Signature state (for when organizer_signature is null)
     const [signatureType, setSignatureType] = useState('type');
@@ -26,49 +34,75 @@ const PreviewAgreement = () => {
     const [uploadedSignature, setUploadedSignature] = useState(null);
     const [signaturePreview, setSignaturePreview] = useState(null);
     const canvasRef = useRef(null);
-    const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
 
-    // Preview query (will be triggered after verification)
+    // Preview query - fetch agreement data
     const { refetch: fetchPreview, isFetching: isLoadingPreview } = useAgreementPreview(id, {
-        enabled: false // Don't auto-fetch
+        enabled: false
     });
 
-    // Verify user mutation
-    const { mutate: verifyUser, isPending: isVerifying } = useVerifyUser({
-        onSuccess: async (response) => {
-            if (response.status) {
-                // After verification, fetch the agreement preview
+    // Mutation for updating user signature
+    const updateSignatureMutation = useUpdateUserSignature({
+        onSuccess: async (data) => {
+            if (data?.status) {
+                message.success('Signature submitted successfully!');
+                // Refetch the preview to get updated data
                 const { data: previewData } = await fetchPreview();
-                message.success('User verified successfully');
                 if (previewData?.status) {
                     setAgreementData(previewData.data);
-                    setAuthModalVisible(false);
-                    form.resetFields();
                 }
+                // After signature is updated, confirm the agreement
+                confirmAgreementMutation.mutate({
+                    agreement_id: id,
+                    user_id: agreementData.user.id,
+                    action: 'approve'
+                });
+            } else {
+                message.error(data?.message || 'Failed to submit signature');
             }
+        },
+        onError: (error) => {
+            console.error('Signature submission error:', error);
+            message.error(error?.response?.data?.message || 'Failed to submit signature');
         }
     });
 
-    // Handle missing ID
+    // Mutation for confirming agreement
+    const confirmAgreementMutation = useConfirmAgreement({
+        onSuccess: async (data) => {
+            if (data?.status) {
+                message.success('Agreement approved successfully!');
+                // Navigate to read-only view (remove user_id from URL)
+                navigate(`/app/events/agreement/preview/${id}`, { replace: true });
+            } else {
+                message.error(data?.message || 'Agreement confirmation failed');
+            }
+        },
+        onError: (error) => {
+            console.error('Agreement confirmation error:', error);
+            message.error(error?.response?.data?.message || 'Failed to confirm agreement');
+        }
+    });
+
+    // Fetch agreement data on mount
     useEffect(() => {
         if (!id) {
             message.error('Agreement ID is missing');
             navigate(-1);
+            return;
         }
-    }, [id, navigate]);
 
-    const handleAuthentication = (values) => {
-        verifyUser({
-            user_agreement_id: id,
-            password: values.password
-        });
-    };
+        // Fetch agreement preview data
+        const loadAgreement = async () => {
+            const { data: previewData } = await fetchPreview();
+            if (previewData?.status) {
+                setAgreementData(previewData.data);
+            } else {
+                message.error('Failed to load agreement');
+            }
+        };
 
-    const handleAuthModalCancel = () => {
-        setAuthModalVisible(false);
-        form.resetFields();
-        navigate(-1);
-    };
+        loadAgreement();
+    }, [id, navigate, fetchPreview]);
 
     // Get signature data based on type
     const getSignatureData = useCallback(async () => {
@@ -101,54 +135,46 @@ const PreviewAgreement = () => {
             return;
         }
 
-        setIsSubmittingSignature(true);
-        try {
-            const formData = new FormData();
+        const formData = new FormData();
 
-            // Append signature data
-            formData.append('signature_type', signatureData.type);
+        // Append signature data
+        formData.append('signature_type', signatureData.type);
 
-            if (signatureData.type === 'type') {
-                formData.append('signature_text', signatureData.text);
-                formData.append('signature_font', signatureData.font);
-                formData.append('signature_font_style', signatureData.fontStyle);
-            } else if (signatureData.type === 'draw') {
-                // Base64 data for draw
-                formData.append('signature_image', signatureData.data);
-            } else if (signatureData.type === 'upload' && signatureData.file) {
-                // File object for upload
-                formData.append('signature_image', signatureData.file);
-            }
-
-            const url = `${api}update-user/${agreementData.user.id}`;
-            const response = await axios.post(url, formData, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                    'Content-Type': 'multipart/form-data',
-                }
-            });
-
-            if (response.data?.status) {
-                message.success('Signature submitted successfully!');
-                // Refetch the preview to get updated data
-                const { data: previewData } = await fetchPreview();
-                if (previewData?.status) {
-                    setAgreementData(previewData.data);
-                }
-            } else {
-                message.error(response.data?.message || 'Failed to submit signature');
-            }
-        } catch (error) {
-            console.error('Signature submission error:', error);
-            message.error(error?.response?.data?.message || 'Failed to submit signature');
-        } finally {
-            setIsSubmittingSignature(false);
+        if (signatureData.type === 'type') {
+            formData.append('signature_text', signatureData.text);
+            formData.append('signature_font', signatureData.font);
+            formData.append('signature_font_style', signatureData.fontStyle);
+        } else if (signatureData.type === 'draw') {
+            // Base64 data for draw
+            formData.append('signature_image', signatureData.data);
+        } else if (signatureData.type === 'upload' && signatureData.file) {
+            // File object for upload
+            formData.append('signature_image', signatureData.file);
         }
+
+        // Submit signature using mutation
+        updateSignatureMutation.mutate({
+            userId: agreementData.user.id,
+            formData
+        });
+    };
+
+    // Handle agreement approval when signature already exists
+    const handleApproveAgreement = () => {
+        if (!agreementData?.user?.id) {
+            message.error('User ID not found');
+            return;
+        }
+
+        confirmAgreementMutation.mutate({
+            agreement_id: id,
+            user_id: agreementData.user.id,
+            action: 'approve'
+        });
     };
 
     // Transform admin signature from API response
     const formattedAdminSignature = useMemo(() => {
-        console.log(agreementData);
         if (!agreementData?.agreement) return null;
 
         const adminSig = agreementData.agreement;
@@ -185,64 +211,13 @@ const PreviewAgreement = () => {
         return agreementData && !agreementData.organizer_signature;
     }, [agreementData]);
 
-    const isLoading = isVerifying || isLoadingPreview;
-
     return (
         <div className="p-4 bg-light" style={{ minHeight: '100vh' }}>
-            {/* Authentication Modal */}
-            <Modal
-                title={
-                    <div style={{ textAlign: 'center', width: '100%' }}>
-                        <LockOutlined style={{ fontSize: '24px', marginBottom: '10px', display: 'block' }} />
-                        Authentication Required
-                    </div>
-                }
-                open={authModalVisible}
-                onCancel={handleAuthModalCancel}
-                footer={null}
-                centered
-                closable={!isLoading}
-                maskClosable={false}
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleAuthentication}
-                    autoComplete="off"
-                >
-                    <Form.Item
-                        name="password"
-                        label="Password"
-                        rules={[
-                            { required: true, message: 'Please enter your password' }
-                        ]}
-                    >
-                        <Input.Password
-                            prefix={<LockOutlined />}
-                            placeholder="Enter your password"
-                            size="large"
-                            disabled={isLoading}
-                        />
-                    </Form.Item>
-
-                    <Form.Item style={{ marginBottom: 0 }}>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            size="large"
-                            block
-                            loading={isLoading}
-                        >
-                            Verify & View Agreement
-                        </Button>
-                    </Form.Item>
-                </Form>
-            </Modal>
 
             {/* Agreement Document */}
             {agreementData && (
                 <Row gutter={[16, 16]}>
-                    <Col md={18} xs={24}>
+                    <Col md={isInteractiveView ? 18 : 24} xs={24}>
                         <Card className="shadow-sm" bodyStyle={{ padding: '20px' }}>
                             <AgreementPdfViewer
                                 auto={true}
@@ -257,101 +232,126 @@ const PreviewAgreement = () => {
                             />
                         </Card>
                     </Col>
-                    <Col md={6} xs={24}>
-                        <Card title="Organizer Details" className="shadow-sm" bodyStyle={{ padding: 20 }}>
-                            <Space direction="vertical" size="large" className="w-100">
 
-                                {[
-                                    {
-                                        label: "Name",
-                                        value: agreementData.user?.name,
-                                        icon: <UserOutlined />
-                                    },
-                                    {
-                                        label: "Organization",
-                                        value: agreementData.user?.organisation,
-                                        icon: <BankOutlined />
-                                    },
-                                    {
-                                        label: "Email",
-                                        value: agreementData.user?.email,
-                                        icon: <MailOutlined />
-                                    },
-                                    {
-                                        label: "Phone",
-                                        value: agreementData.user?.number,
-                                        icon: <PhoneOutlined />
-                                    }
-                                ].map((item, index) => (
-                                    <div key={index} className="d-flex align-items-center gap-2">
+                    {/* Sidebar - Only show in interactive view */}
+                    {isInteractiveView && (
+                        <Col md={6} xs={24}>
+                            <Card title="Organizer Details" className="shadow-sm" bodyStyle={{ padding: 20 }}>
+                                <Space direction="vertical" size="large" className="w-100">
 
-                                        <Avatar
-                                            icon={item.icon}
-                                            style={{
-                                                color: PRIMARY,
-                                                backgroundColor: getBackgroundWithOpacity(PRIMARY, 0.15)
-                                            }}
-                                        />
-
-                                        <strong className="ml-2">{item.label}:</strong>
-                                        <span>{item.value || "N/A"}</span>
-
-                                    </div>
-                                ))}
-
-                            </Space>
-                        </Card>
-
-                        {/* Signature Section - Show when organizer_signature is null */}
-                        {needsOrganizerSignature && (
-                            <Card
-                                title={
-                                    <Space>
-                                        <EditOutlined />
-                                        <span>Your Signature</span>
-                                    </Space>
-                                }
-                                className="shadow-sm mt-3"
-                                bodyStyle={{ padding: 20 }}
-                            >
-                                <SignatureInput
-                                    signatureType={signatureType}
-                                    onSignatureTypeChange={setSignatureType}
-                                    selectedFont={selectedFont}
-                                    onFontChange={setSelectedFont}
-                                    typedSignature={typedSignature}
-                                    onTypedSignatureChange={setTypedSignature}
-                                    uploadedSignature={uploadedSignature}
-                                    onUploadedSignatureChange={setUploadedSignature}
-                                    signaturePreview={signaturePreview}
-                                    onSignaturePreviewChange={setSignaturePreview}
-                                    canvasRef={canvasRef}
-                                    onClearCanvas={() => {
-                                        const canvas = canvasRef.current;
-                                        if (canvas) {
-                                            const ctx = canvas.getContext('2d');
-                                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                    {[
+                                        {
+                                            label: "Name",
+                                            value: agreementData.user?.name,
+                                            icon: <UserOutlined />
+                                        },
+                                        {
+                                            label: "Organization",
+                                            value: agreementData.user?.organisation,
+                                            icon: <BankOutlined />
+                                        },
+                                        {
+                                            label: "Email",
+                                            value: agreementData.user?.email,
+                                            icon: <MailOutlined />
+                                        },
+                                        {
+                                            label: "Phone",
+                                            value: agreementData.user?.number,
+                                            icon: <PhoneOutlined />
                                         }
-                                    }}
-                                />
-                                <Button
-                                    type="primary"
-                                    block
-                                    size="large"
-                                    onClick={handleSignatureSubmit}
-                                    loading={isSubmittingSignature}
-                                    className="mt-3"
-                                    icon={<EditOutlined />}
-                                >
-                                    Submit Signature
-                                </Button>
-                            </Card>
-                        )}
+                                    ].map((item, index) => (
+                                        <div key={index} className="d-flex align-items-center gap-2">
 
-                        <div className="d-flex justify-content-end w-100 mt-3">
-                            <Button icon={<ArrowRightOutlined />} type='primary' onClick={() => navigate('/dashboard')}>Dashboard</Button>
-                        </div>
-                    </Col>
+                                            <Avatar
+                                                icon={item.icon}
+                                                style={{
+                                                    color: PRIMARY,
+                                                    backgroundColor: getBackgroundWithOpacity(PRIMARY, 0.15)
+                                                }}
+                                            />
+
+                                            <strong className="ml-2">{item.label}:</strong>
+                                            <span>{item.value || "N/A"}</span>
+
+                                        </div>
+                                    ))}
+
+                                </Space>
+                            </Card>
+
+                            {/* Signature Section - Show when organizer_signature is null */}
+                            {needsOrganizerSignature && (
+                                <Card
+                                    title={
+                                        <Space>
+                                            <EditOutlined />
+                                            <span>Your Signature</span>
+                                        </Space>
+                                    }
+                                    className="shadow-sm mt-3"
+                                    bodyStyle={{ padding: 20 }}
+                                >
+                                    <SignatureInput
+                                        signatureType={signatureType}
+                                        onSignatureTypeChange={setSignatureType}
+                                        selectedFont={selectedFont}
+                                        onFontChange={setSelectedFont}
+                                        typedSignature={typedSignature}
+                                        onTypedSignatureChange={setTypedSignature}
+                                        uploadedSignature={uploadedSignature}
+                                        onUploadedSignatureChange={setUploadedSignature}
+                                        signaturePreview={signaturePreview}
+                                        onSignaturePreviewChange={setSignaturePreview}
+                                        canvasRef={canvasRef}
+                                        onClearCanvas={() => {
+                                            const canvas = canvasRef.current;
+                                            if (canvas) {
+                                                const ctx = canvas.getContext('2d');
+                                                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                            }
+                                        }}
+                                    />
+                                    <Button
+                                        type="primary"
+                                        block
+                                        size="large"
+                                        onClick={handleSignatureSubmit}
+                                        loading={updateSignatureMutation.isPending || confirmAgreementMutation.isPending}
+                                        className="mt-3"
+                                        icon={<EditOutlined />}
+                                    >
+                                        Submit
+                                    </Button>
+                                </Card>
+                            )}
+
+                            {/* Approve Agreement Button - Show when signature already exists */}
+                            {/* {(!needsOrganizerSignature || agreementData?.status === 'pending') && ( */}
+                            {(!needsOrganizerSignature && agreementData?.status === 'pending') && (
+                                <Card
+                                    title="Agreement Actions"
+                                    className="shadow-sm mt-3"
+                                    bodyStyle={{ padding: 20 }}
+                                >
+                                    <Button
+                                        type="primary"
+                                        block
+                                        size="large"
+                                        onClick={handleApproveAgreement}
+                                        loading={confirmAgreementMutation.isPending}
+                                        icon={<EditOutlined />}
+                                    >
+                                        Approve Agreement
+                                    </Button>
+                                </Card>
+                            )}
+
+                            <div className="d-flex justify-content-end w-100 mt-3">
+                                <Button icon={<ArrowRightOutlined />} type='primary' onClick={() => navigate('/dashboard')}>Dashboard</Button>
+                            </div>
+                        </Col>
+                    )}
 
                 </Row>
             )}

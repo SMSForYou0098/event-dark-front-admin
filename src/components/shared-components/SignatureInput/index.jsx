@@ -130,7 +130,7 @@ const SignatureInput = ({
 
             <Tabs activeKey={signatureType} onChange={onSignatureTypeChange}>
                 {/* Draw Signature Tab */}
-                <Tabs.TabPane tab={<><EditOutlined /> Draw Signature</>} key="draw">
+                <Tabs.TabPane tab={<><EditOutlined /> Draw </>} key="draw">
                     <div className="text-center">
                         <div className="d-inline-block">
                             <canvas
@@ -160,7 +160,7 @@ const SignatureInput = ({
                 </Tabs.TabPane>
 
                 {/* Type Signature Tab */}
-                <Tabs.TabPane tab={<><FontSizeOutlined /> Type Signature</>} key="type">
+                <Tabs.TabPane tab={<><FontSizeOutlined /> Type</>} key="type">
                     <Row gutter={16}>
                         <Col xs={24} md={12}>
                             <div className="mb-3">
@@ -218,7 +218,7 @@ const SignatureInput = ({
                 </Tabs.TabPane>
 
                 {/* Upload Signature Tab */}
-                <Tabs.TabPane tab={<><UploadOutlined /> Select Signature</>} key="upload">
+                <Tabs.TabPane tab={<><UploadOutlined /> Select</>} key="upload">
                     <div className="text-center">
                         {!signaturePreview ? (
                             <div

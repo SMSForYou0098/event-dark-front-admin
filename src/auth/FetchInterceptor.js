@@ -120,7 +120,7 @@ api.interceptors.response.use(
 
     // Specific status messaging (404/500/508 etc)
     if (status === 404) {
-      message.error(`Resource not found: ${url}`);
+      // message.error(`Resource not found: ${url}`);
     } else if (status === 500) {
       message.error('Server Error: Something went wrong on server.');
     } else if (status === 408 || status === 508) {

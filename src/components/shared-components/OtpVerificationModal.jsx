@@ -21,6 +21,7 @@ const OtpVerificationModal = ({
     isVerifying = false,
     isSending = false,
     verifyButtonText = "Verify",
+    cooldownSeconds = 0, // Optional: remaining cooldown time in seconds
 }) => {
     const defaultDescription = `Please enter the OTP sent to ${phoneNumber} to complete the verification.`;
 
@@ -73,8 +74,12 @@ const OtpVerificationModal = ({
                                 onResend();
                             }}
                             loading={isSending}
+                            disabled={cooldownSeconds > 0}
                         >
-                            Resend OTP
+                            {cooldownSeconds > 0
+                                ? `Resend OTP (${Math.floor(cooldownSeconds / 60)}:${String(cooldownSeconds % 60).padStart(2, '0')})`
+                                : 'Resend OTP'
+                            }
                         </Button>
                         <Button
                             type="primary"

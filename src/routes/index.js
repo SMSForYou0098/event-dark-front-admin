@@ -10,32 +10,32 @@ import { lowerCase } from 'lodash';
 import PreviewAgreement from 'views/events/Agreement/PreviewAgreement';
 
 const Routes = () => {
- const {userRole , UserData} = useMyContext()
- const APP_PREFIX_PATH = '/';
+	const { userRole, UserData } = useMyContext()
+	const APP_PREFIX_PATH = '/';
 
-  // Define dashboard entry point based on role
-  let AUTHENTICATED_ENTRY = ['Admin', 'Organizer'].includes(userRole) 
-    ? `${APP_PREFIX_PATH}dashboard`
-    : `${APP_PREFIX_PATH}dashboard/${lowerCase(userRole)}`;
+	// Define dashboard entry point based on role
+	let AUTHENTICATED_ENTRY = ['Admin', 'Organizer'].includes(userRole)
+		? `${APP_PREFIX_PATH}dashboard`
+		: `${APP_PREFIX_PATH}dashboard/${lowerCase(userRole)}`;
 
-	   // If a user is logged in AND role is "User", redirect to their profile edit page
-  if (UserData?.id && userRole === 'User') {
-    AUTHENTICATED_ENTRY = `${APP_PREFIX_PATH}users/edit/${UserData.id}`;
-  }
+	// If a user is logged in AND role is "User", redirect to their profile edit page
+	if (UserData?.id && userRole === 'User') {
+		AUTHENTICATED_ENTRY = `${APP_PREFIX_PATH}users/edit/${UserData.id}`;
+	}
 	return (
 		<RouterRoutes>
 			<Route path="/" element={<ProtectedRoute />}>
 				<Route path="/" element={<Navigate replace to={AUTHENTICATED_ENTRY} />} />
 				{protectedRoutes.map((route, index) => {
 					return (
-						<Route 
-							key={route.key + index} 
+						<Route
+							key={route.key + index}
 							path={route.path}
 							element={
 								<AppRoute
-									routeKey={route.key} 
+									routeKey={route.key}
 									component={route.component}
-									{...route.meta} 
+									{...route.meta}
 								/>
 							}
 						/>
@@ -46,22 +46,22 @@ const Routes = () => {
 			<Route path="/" element={<PublicRoute />}>
 				{publicRoutes.map(route => {
 					return (
-						<Route 
-							key={route.path} 
+						<Route
+							key={route.path}
 							path={route.path}
 							element={
 								<AppRoute
-									routeKey={route.key} 
+									routeKey={route.key}
 									component={route.component}
-									{...route.meta} 
+									{...route.meta}
 								/>
 							}
-						/ >
+						/>
 					)
 				})}
 			</Route>
-			<Route path="/agreement/preview/:id" element={<PreviewAgreement />}>
-			</Route>
+			{/* <Route path="/agreement/preview/:id" element={<PreviewAgreement />}>
+			</Route> */}
 		</RouterRoutes>
 	)
 }

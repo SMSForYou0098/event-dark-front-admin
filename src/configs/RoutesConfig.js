@@ -45,12 +45,6 @@ export const publicRoutes = [
         component: React.lazy(() => import('views/auth-views/authentication/forgot-password/reset-password')),
 
     },
-    // {
-    //     key: 'agreement/preview/:id',
-    //     path: `${AUTH_PREFIX_PATH}/agreement/preview/:id`,
-    //     component: React.lazy(() => import('views/events/Agreement/PreviewAgreement')),
-    // },
-
     // Error Pages
     {
         key: 'error-page-1',
@@ -89,6 +83,16 @@ export const protectedRoutes = [
         meta: {
             permissions: ['View Dashboard'],
         }
+    },
+    {
+        key: 'agreement/preview/:id',
+        path: `/agreement/preview/:id`,
+        component: React.lazy(() => import('views/events/Agreement/PreviewAgreement')),
+    },
+    {
+        key: 'agreement/preview/:id/:user_id',
+        path: `/agreement/preview/:id/:user_id`,
+        component: React.lazy(() => import('views/events/Agreement/PreviewAgreement')),
     },
     {
         key: 'stadium',
@@ -427,6 +431,15 @@ export const protectedRoutes = [
             roles: ['admin'],
         }
     },
+    // Refund Bookings
+    {
+        key: 'refund-bookings',
+        path: `/bookings/refund`,
+        component: React.lazy(() => import('views/events/Bookings/Refund_Bookings/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
     // Agent Bookings
     {
         key: 'agent-bookings',
@@ -660,6 +673,15 @@ export const protectedRoutes = [
             permissions: ['View Artists'],
         }
     },
+    // Refund Policies
+    {
+        key: 'refund-policies',
+        path: `/refund-policies`,
+        component: React.lazy(() => import('views/events/Refund_policies/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
 
     // ==================== PAYMENT & TAX ====================
     {
@@ -838,6 +860,14 @@ export const protectedRoutes = [
         key: 'onboarding-agreement',
         path: `onboard/organizer`,
         component: React.lazy(() => import('views/events/Onboarding/Organizer/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
+    {
+        key: 'approve-organizers',
+        path: `approve-organizers`,
+        component: React.lazy(() => import('views/events/Onboarding/ApproveOrganizers/index')),
         meta: {
             roles: ['admin'],
         }

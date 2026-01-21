@@ -1,5 +1,5 @@
 // Components
-export { default as OtpVerificationModal } from './OtpVerificationModal';
+export { default as OtpVerificationModal } from 'components/shared-components/OtpVerificationModal';
 export { default as AgreementSelectionModal } from './AgreementSelectionModal';
 export { default as FormActionButtons } from './FormActionButtons';
 export { default as BasicInfoCard } from './BasicInfoCard';
