@@ -1,9 +1,6 @@
 import React from 'react';
 import { Modal, Button, Input, Space, Alert } from 'antd';
 
-// Check if Input.OTP exists (Ant Design v5.16+)
-const OTPInput = Input.OTP || Input;
-
 /**
  * Reusable OTP Verification Modal Component
  * Used for both profile edit verification and agreement assignment verification

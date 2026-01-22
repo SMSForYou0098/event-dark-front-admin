@@ -2,98 +2,167 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Modal, Input, Button, Alert, Typography, Divider, Space } from 'antd';
 import { LockOutlined, DollarOutlined } from '@ant-design/icons';
 import { useMutation } from '@tanstack/react-query';
+import { useDispatch, useSelector } from 'react-redux';
 import api from 'auth/FetchInterceptor';
+import { setRefundHashKey } from 'store/slices/refundSlice';
 
 const { Text } = Typography;
 
-// ===================== PASSWORD MODAL =====================
+// ===================== PASSWORD & OTP MODAL =====================
 const PasswordModal = ({ open, onClose, onSuccess, loading }) => {
+    const [step, setStep] = useState('password'); // 'password' | 'otp'
     const [password, setPassword] = useState('');
+    const [otp, setOtp] = useState('');
     const [error, setError] = useState('');
+    const dispatch = useDispatch();
 
-    // API call for password verification
-    const verifyPasswordMutation = useMutation({
+    // Step 1: Send password to get OTP
+    const authenticatePasswordMutation = useMutation({
         mutationFn: async (password) => {
-            // Dummy API call for password verification
-            // Replace with actual API: await api.post('refunds/verify-password', { password });
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            return { status: true, message: 'Password verified successfully' };
+            const response = await api.post('refunds/password/otp', { password });
+            return response;
         },
         onSuccess: (data) => {
             if (data.status) {
                 setError('');
-                setPassword('');
-                onSuccess();
+                // Move to OTP step
+                setStep('otp');
             } else {
-                setError(data.message || 'Invalid password');
+                setError(data.message || 'Failed to send OTP');
             }
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Password verification failed');
+            setError(err.response?.data?.message || 'Failed to send OTP');
         },
     });
 
-    const handleSubmit = () => {
+    // Step 2: Verify OTP and password to get hash_key (valid for 30 mins)
+    const verifyOtpMutation = useMutation({
+        mutationFn: async ({ otp, password }) => {
+            const response = await api.post('refunds/password/authenticate', {
+                password,
+                otp
+            });
+            return response;
+        },
+        onSuccess: (data) => {
+            console.log(data, "data");
+
+            if (data.status && data.data.hash_key) {
+                setError('');
+                // Store hash_key in Redux
+                dispatch(setRefundHashKey({ hash_key: data.data.hash_key, password }));
+                // Reset form
+                setPassword('');
+                setOtp('');
+                setStep('password');
+                // Proceed to next step
+                onSuccess();
+            } else {
+                setError(data.message || 'OTP verification failed');
+            }
+        },
+        onError: (err) => {
+            setError(err.response?.data?.message || 'OTP verification failed');
+        },
+    });
+
+    const handlePasswordSubmit = () => {
         if (!password.trim()) {
             setError('Please enter your password');
             return;
         }
-        verifyPasswordMutation.mutate(password);
+        authenticatePasswordMutation.mutate(password);
+    };
+
+    const handleOtpSubmit = () => {
+        if (!otp.trim()) {
+            setError('Please enter the OTP');
+            return;
+        }
+        verifyOtpMutation.mutate({ otp, password });
     };
 
     const handleClose = () => {
         setPassword('');
+        setOtp('');
         setError('');
+        setStep('password');
         onClose();
     };
+
+    const isLoading = authenticatePasswordMutation.isPending || verifyOtpMutation.isPending;
 
     return (
         <Modal
             title={
                 <Space>
                     <LockOutlined />
-                    <span>Verify Password</span>
+                    <span>{step === 'password' ? 'Verify Password' : 'Verify OTP'}</span>
                 </Space>
             }
             open={open}
             onCancel={handleClose}
             footer={[
-                <Button key="cancel" onClick={handleClose}>
+                <Button key="cancel" onClick={handleClose} disabled={isLoading}>
                     Cancel
                 </Button>,
                 <Button
                     key="submit"
                     type="primary"
-                    loading={verifyPasswordMutation.isPending}
-                    onClick={handleSubmit}
+                    loading={isLoading}
+                    onClick={step === 'password' ? handlePasswordSubmit : handleOtpSubmit}
                 >
-                    Verify
+                    {step === 'password' ? 'Send OTP' : 'Verify OTP'}
                 </Button>,
             ]}
             destroyOnClose
         >
-            <div className="mt-3">
-                <Text type="secondary">Enter your password to authorize the refund</Text>
-                <Input.Password
-                    placeholder="Enter password"
-                    prefix={<LockOutlined />}
-                    value={password}
-                    onChange={(e) => {
-                        setPassword(e.target.value);
-                        setError('');
-                    }}
-                    onPressEnter={handleSubmit}
+            {error && (
+                <Alert
+                    type="error"
+                    message={error}
+                    showIcon
                     className="mt-3"
-                    size="large"
                 />
-                {error && (
-                    <Alert
-                        type="error"
-                        message={error}
-                        showIcon
-                        className="mt-3"
-                    />
+            )}
+            <div className="mt-3">
+                {step === 'password' ? (
+                    <>
+                        <Text type="secondary">Enter your password to authorize the refund</Text>
+                        <Input.Password
+                            placeholder="Enter password"
+                            prefix={<LockOutlined />}
+                            value={password}
+                            onChange={(e) => {
+                                setPassword(e.target.value);
+                                setError('');
+                            }}
+                            onPressEnter={handlePasswordSubmit}
+                            className="mt-3"
+                            size="large"
+                            disabled={isLoading}
+                        />
+                    </>
+                ) : (
+                    <>
+                        <Text type="secondary">Enter the OTP sent to your registered contact</Text>
+                        <Input
+                            placeholder="Enter OTP"
+                            value={otp}
+                            onChange={(e) => {
+                                setOtp(e.target.value);
+                                setError('');
+                            }}
+                            onPressEnter={handleOtpSubmit}
+                            className="mt-3"
+                            size="large"
+                            maxLength={6}
+                            disabled={isLoading}
+                        />
+                    </>
                 )}
+
             </div>
         </Modal>
     );
@@ -105,9 +174,16 @@ const RefundPercentageModal = ({ open, onClose, bookingData, onRefundComplete })
     const [notes, setNotes] = useState('');
     const [error, setError] = useState('');
 
+    // Get hash_key and password from Redux
+    const dispatch = useDispatch();
+    const { refundHashKey: hashKey, refundPassword } = useSelector((state) => state.refund);
+
     // Get the total amount from booking data
     const currentAmount = useMemo(() => {
         return bookingData?.total_amount || bookingData?.bookings?.[0]?.total_amount || 0;
+    }, [bookingData]);
+    const gateway = useMemo(() => {
+        return bookingData?.gateway || bookingData?.bookings?.[0]?.gateway || 0;
     }, [bookingData]);
 
     // Determine if this is a master booking (has nested bookings array)
@@ -123,20 +199,23 @@ const RefundPercentageModal = ({ open, onClose, bookingData, onRefundComplete })
         },
         onSuccess: (data) => {
             if (data.status) {
-                // Modal.success({
-                //     title: data.approval_require ? 'Approval Required' : 'Refund Successful',
-                //     content: data.approval_require
-                //         ? 'Your refund request has been submitted and is pending admin approval. You will be notified once it is approved.'
-                //         : 'The refund has been processed successfully.',
-                //     onOk: () => {
-                //         onRefundComplete?.();
-                //         handleClose();
-                //     },
-                // });
+                // Success - close modal and trigger completion
+                onRefundComplete?.();
+                handleClose();
             }
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Refund processing failed');
+            const errorMessage = err.response?.data?.message || 'Refund processing failed';
+            const responseData = err.response?.data || {};
+            setError(errorMessage);
+
+            // Check if authorization has expired or new password is required
+            if (responseData.authorization_expired === true || responseData.require_new_password === true) {
+                // Clear stored credentials and re-open password modal
+                dispatch(setRefundHashKey({ hash_key: null, password: null }));
+                // Trigger parent to re-open password modal
+                onClose();
+            }
         },
     });
 
@@ -148,10 +227,13 @@ const RefundPercentageModal = ({ open, onClose, bookingData, onRefundComplete })
 
         const payload = {
             booking_id: bookingData?.id,
+            gateway,
             is_master: isMaster,
             amount: currentAmount,
             reason: reason.trim(),
-            notes: notes.trim()
+            notes: notes.trim(),
+            hash_key: hashKey, // Include hash_key from Redux
+            // password: refundPassword // Include password from Redux
         };
 
         processRefundMutation.mutate(payload);
@@ -191,6 +273,13 @@ const RefundPercentageModal = ({ open, onClose, bookingData, onRefundComplete })
             destroyOnClose
             width={450}
         >
+            {error && (
+                <Alert
+                    type="error"
+                    message={error}
+                    showIcon
+                />
+            )}
             <div className="mt-3">
                 {/* Booking Amount Display */}
                 <div className="p-3 rounded mb-4">
@@ -235,13 +324,7 @@ const RefundPercentageModal = ({ open, onClose, bookingData, onRefundComplete })
                     />
                 </div>
 
-                {error && (
-                    <Alert
-                        type="error"
-                        message={error}
-                        showIcon
-                    />
-                )}
+
             </div>
         </Modal>
     );
@@ -252,15 +335,23 @@ const RefundModal = ({ bookingData, onClose, onRefundComplete }) => {
     const [step, setStep] = useState('password'); // 'password' | 'refund'
     const [isOpen, setIsOpen] = useState(false);
 
+    // Get stored credentials from Redux
+    const { refundHashKey, refundPassword } = useSelector((state) => state.refund);
+
     // Open modal when bookingData is provided
     useEffect(() => {
         if (bookingData) {
             setIsOpen(true);
-            setStep('password');
+            // Skip password step if credentials are already stored
+            if (refundHashKey && refundPassword) {
+                setStep('refund');
+            } else {
+                setStep('password');
+            }
         } else {
             setIsOpen(false);
         }
-    }, [bookingData]);
+    }, [bookingData, refundHashKey, refundPassword]);
 
     const handlePasswordSuccess = () => {
         setStep('refund');

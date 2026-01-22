@@ -20,6 +20,7 @@ const OnlineBookings = memo(() => {
     truncateString,
     formatDateRange,
     UserPermissions,
+    userRole,
   } = useMyContext();
 
   const [dateRange, setDateRange] = useState(null);
@@ -436,36 +437,40 @@ const OnlineBookings = memo(() => {
       render: (date) => formatDateTime(date),
       sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
     },
-    {
-      title: "Refund",
-      key: "refund",
-      align: "center",
-      render: (_, record) => {
-        const totalAmount = record?.total_amount || record?.bookings?.[0]?.total_amount || 0;
+    ...(UserPermissions?.includes("Initiate Refund") || userRole?.toLowerCase() === 'admin'
+      ? [
+        {
+          title: "Refund",
+          key: "refund",
+          align: "center",
+          render: (_, record) => {
+            const totalAmount = record?.total_amount || record?.bookings?.[0]?.total_amount || 0;
 
-        // Only show refund button if total_amount is greater than 0
-        if (totalAmount <= 0) {
-          return '-';
-        }
+            // Only show refund button if total_amount is greater than 0
+            if (totalAmount <= 0) {
+              return '-';
+            }
 
-        const isDisabled =
-          record?.is_deleted === true ||
-          (record?.bookings && record?.bookings[0]?.status) === "1";
+            const isDisabled =
+              record?.is_deleted === true ||
+              (record?.bookings && record?.bookings[0]?.status) === "1";
 
-        return (
-          <Button
-            type="default"
-            size="small"
-            icon={<DollarOutlined />}
-            onClick={() => setRefundBookingData(record)}
-            disabled={isDisabled}
-            title="Refund"
-          >
-            Refund
-          </Button>
-        );
-      },
-    },
+            return (
+              <Button
+                type="default"
+                size="small"
+                icon={<DollarOutlined />}
+                onClick={() => setRefundBookingData(record)}
+                disabled={isDisabled}
+                title="Refund"
+              >
+                Refund
+              </Button>
+            );
+          },
+        },
+      ]
+      : []),
     {
       title: "Action",
       key: "action",

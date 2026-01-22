@@ -273,6 +273,26 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                                 });
                               }
 
+                              // When Event Cancelled is turned ON, turn off all appropriate switches
+                              // except: is_postponed, is_sold_out, online_att_sug, offline_att_sug
+                              if (f.name === 'is_cancelled' && checked) {
+                                const fieldsToTurnOff = [
+                                  'online_booking',
+                                  'agent_booking',
+                                  'pos_booking',
+                                  'complimentary_booking',
+                                  'sponsor_booking',
+                                  'status',
+                                  'house_full',
+                                  'show_on_home',
+                                  'event_feature'
+                                ];
+
+                                fieldsToTurnOff.forEach((fieldName) => {
+                                  form.setFieldValue(fieldName, false);
+                                });
+                              }
+
                               // Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
                               if (f.name === 'online_booking' && !checked) {
                                 form.setFieldValue('event_feature', false);
