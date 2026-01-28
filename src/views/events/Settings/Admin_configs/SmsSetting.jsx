@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import DataTable from '../../common/DataTable';
 import {
     Card,
     Row,
@@ -43,7 +44,7 @@ const SmsSetting = () => {
 
     // Tanstack Query Hooks
     const { data: smsData, isLoading: isLoadingSMS, refetch } = useSMSConfig(UserData?.id);
-    
+
     const { mutate: storeSMSConfig, isPending: isSavingConfig } = useStoreSMSConfig({
         onSuccess: (res) => {
             message.success(res?.message || 'Configuration saved successfully');
@@ -104,10 +105,10 @@ const SmsSetting = () => {
     const HandleSubmit = async () => {
         try {
             const values = await form.validateFields();
-            
-            const payload = { 
-                user_id: UserData?.id, 
-                status: status 
+
+            const payload = {
+                user_id: UserData?.id,
+                status: status
             };
 
             if (customShow) {
@@ -132,7 +133,7 @@ const SmsSetting = () => {
     const SubmitTemplate = async () => {
         try {
             const values = await templateForm.validateFields();
-            
+
             const payload = {
                 user_id: UserData?.id,
                 template_name: values.template_name.trim(),
@@ -192,6 +193,7 @@ const SmsSetting = () => {
                 dataIndex: 'template_name',
                 key: 'template_name',
                 sorter: (a, b) => a.template_name.localeCompare(b.template_name),
+                searchable: true,
             },
             {
                 title: 'Content',
@@ -478,19 +480,17 @@ const SmsSetting = () => {
                     <Row gutter={[16, 16]}>
                         {/* SMS Templates Table */}
                         <Col xs={24}>
-                            <Card title="SMS Templates">
-                                <Table
-                                    columns={columns}
-                                    dataSource={templates}
-                                    rowKey="id"
-                                    pagination={{
-                                        pageSize: 10,
-                                        showSizeChanger: true,
-                                        showTotal: (total) => `Total ${total} templates`,
-                                    }}
-                                    scroll={{ x: 600 }}
-                                />
-                            </Card>
+                            <DataTable
+                                title="SMS Templates"
+                                data={templates}
+                                columns={columns}
+                                loading={isLoadingSMS}
+                                enableSearch={true}
+                                showSearch={true}
+                                defaultPageSize={5}
+                                pageSizeOptions={['5', '10', '20', '50']}
+                                scroll={{ x: 600 }}
+                            />
                         </Col>
 
                         {/* System Variables */}

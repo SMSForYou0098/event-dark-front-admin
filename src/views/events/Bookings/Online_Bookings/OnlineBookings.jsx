@@ -306,7 +306,7 @@ const OnlineBookings = memo(() => {
           dataIndex: ["user", "name"],
           key: "userName",
           align: "center",
-          searchable: true,
+          // searchable: true,
           render: (_, record) =>
             record?.bookings?.[0]?.user?.name || record?.user?.name || "",
         },

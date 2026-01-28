@@ -17,10 +17,10 @@ import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-c
 import { useGetAllOrganizerAgreements } from '../../Agreement/Organizer/useOrganizerAgreement';
 import { useApproveOrganizerOnboarding } from '../../Onboarding/Organizer/useOrganizerOnboarding';
 import DOMPurify from 'dompurify';
+import OtpVerificationModal from 'components/shared-components/OtpVerificationModal';
 
 // Child Components
 import {
-    OtpVerificationModal,
     AgreementSelectionModal,
     FormActionButtons,
     SecurityCard,
@@ -548,20 +548,26 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     // Check if user is editing their own profile (compare as strings to handle type mismatch)
     const isEditingOwnProfile = mode === 'edit' && String(id) === String(UserData?.id);
 
-    // Check if email or phone number has changed
-    const hasEmailOrPhoneChanged = useCallback((values) => {
+    // Check if email or name has changed (Identity changed)
+    const hasIdentityChanged = useCallback((values) => {
         if (!isEditingOwnProfile) return false;
 
         const currentEmail = values.email?.trim()?.toLowerCase();
-        const currentNumber = values.number?.trim();
+        const currentName = values.name?.trim();
         const origEmail = originalEmail.current?.trim()?.toLowerCase();
-        const origNumber = originalNumber.current?.trim();
+        // Assuming originalName is tracked, otherwise comparing with formState initial values if needed
+        // But originalEmail ref is used. Let's start with what we have.
+        // Wait, originalName was NOT tracked in the original code. 
+        // I should add originalName tracking or use fetchedData.
+
+        // Let's use fetchedData directly since it's available in scope
+        const origName = fetchedData?.data?.name?.trim();
 
         const emailChanged = origEmail && currentEmail !== origEmail;
-        const phoneChanged = origNumber && currentNumber !== origNumber;
+        const nameChanged = origName && currentName !== origName;
 
-        return emailChanged || phoneChanged;
-    }, [isEditingOwnProfile]);
+        return emailChanged || nameChanged;
+    }, [isEditingOwnProfile, fetchedData]);
 
     // Send OTP for verification
     const sendOtp = async (values) => {
@@ -569,22 +575,23 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         try {
             // Determine what changed (normalize for comparison)
             const currentEmail = values.email?.trim()?.toLowerCase();
-            const currentNumber = values.number?.trim();
+            const currentName = values.name?.trim();
             const origEmail = originalEmail.current?.trim()?.toLowerCase();
-            const origNumber = originalNumber.current?.trim();
+            const origName = fetchedData?.data?.name?.trim();
 
             const emailChanged = origEmail && currentEmail !== origEmail;
-            const phoneChanged = origNumber && currentNumber !== origNumber;
+            const nameChanged = origName && currentName !== origName;
 
             const payload = {
                 user_id: id,
                 email: emailChanged ? values.email : null,
-                number: phoneChanged ? values.number : null,
-                type: emailChanged && phoneChanged ? 'both' : emailChanged ? 'email' : 'phone',
+                // number: phoneChanged ? values.number : null, // Phone not updating here
+                number: null,
+                type: 'email', // Always email for name or email change
             };
 
             // Call OTP send API
-            const response = await apiClient.post('send-profile-otp', payload);
+            const response = await apiClient.post('user/otp', payload);
 
             if (response?.status) {
                 message.success('OTP sent successfully');
@@ -612,7 +619,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         setOtpLoading(true);
         try {
             // Verify OTP
-            const verifyResponse = await apiClient.post('verify-profile-otp', {
+            const verifyResponse = await apiClient.post('user/otp/verify', {
                 user_id: id,
                 otp: otpValue,
             });
@@ -773,8 +780,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 formState.roleName === 'Organizer' &&
                 !values.verifiedEmail;
 
-            // Check if editing own profile and email/phone changed
-            if (hasEmailOrPhoneChanged(values)) {
+            // Check if editing own profile and email/name changed
+            if (hasIdentityChanged(values)) {
                 // Store values and show OTP modal
                 setPendingFormValues(values);
                 setOtpModalVisible(true);
@@ -1037,7 +1044,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                         { pattern: /^\d{10,12}$/, message: 'Must be 10-12 digits' }
                                     ]}
                                 >
-                                    <Input placeholder="Enter mobile number" />
+                                    <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} />
                                 </Form.Item>
                             </Col>
 
@@ -1437,12 +1444,22 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                         ? 'email'
                                         : 'phone'}
                             </p>
-                            <Input.OTP
-                                length={6}
-                                value={otpValue}
-                                onChange={setOtpValue}
-                                style={{ marginBottom: 16 }}
-                            />
+                            {Input.OTP ? (
+                                <Input.OTP
+                                    length={6}
+                                    value={otpValue}
+                                    onChange={setOtpValue}
+                                    style={{ marginBottom: 16 }}
+                                />
+                            ) : (
+                                <Input
+                                    maxLength={6}
+                                    value={otpValue}
+                                    onChange={(e) => setOtpValue(e.target.value)}
+                                    style={{ marginBottom: 16, width: 200, textAlign: 'center', letterSpacing: '0.5em', fontSize: 18 }}
+                                    placeholder="000000"
+                                />
+                            )}
                             <div style={{ marginTop: 24 }}>
                                 <Space>
                                     <Button onClick={handleOtpModalCancel}>

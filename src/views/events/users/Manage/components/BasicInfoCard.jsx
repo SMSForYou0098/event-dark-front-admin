@@ -87,7 +87,7 @@ const BasicInfoCard = ({
                             { pattern: /^\d{10,12}$/, message: 'Must be 10-12 digits' }
                         ]}
                     >
-                        <Input placeholder="Enter mobile number" />
+                        <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} />
                     </Form.Item>
                 </Col>
 

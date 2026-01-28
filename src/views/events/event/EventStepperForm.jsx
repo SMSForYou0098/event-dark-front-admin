@@ -402,7 +402,19 @@ const EventStepperForm = () => {
 
         } catch (error) {
             // console.error('Validation error:', error);
-            message.error('Please fill all required fields correctly');
+
+            const validationErrors = error?.response?.data?.errors || error?.errors;
+
+            if (validationErrors) {
+                const fields = Object.keys(validationErrors).map(field => ({
+                    name: field,
+                    errors: [validationErrors[field]]
+                }));
+                form.setFields(fields);
+                // message.error('Please check the highlighted fields.');
+            } else {
+                message.error(error?.response?.data?.message || 'Please fill all required fields correctly');
+            }
         }
     };
 

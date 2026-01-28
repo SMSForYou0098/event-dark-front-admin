@@ -1,20 +1,21 @@
 import React, { memo, useEffect, useState, useMemo, useRef } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Form, 
-  Input, 
-  Button, 
-  Modal, 
-  Radio, 
-  message, 
-  Table, 
+import {
+  Card,
+  Row,
+  Col,
+  Form,
+  Input,
+  Button,
+  Modal,
+  Radio,
+  message,
+  Table,
   Space,
   Tooltip,
   Spin
 } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import DataTable from '../../common/DataTable';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import JoditEditor from 'jodit-react';
 import DOMPurify from 'dompurify';
@@ -134,7 +135,7 @@ const MailSettings = memo(() => {
   const HandleTemplateSubmit = async () => {
     try {
       const values = await templateForm.validateFields();
-      
+
       if (!bodyContent || bodyContent.trim() === '' || bodyContent === '<p><br></p>') {
         message.error('Please enter body content');
         return;
@@ -208,6 +209,7 @@ const MailSettings = memo(() => {
         dataIndex: 'template_id',
         key: 'template_id',
         sorter: (a, b) => a.template_id.localeCompare(b.template_id),
+        searchable: true,
       },
       {
         title: 'Subject',
@@ -318,15 +320,15 @@ const MailSettings = memo(() => {
           <Button key="cancel" onClick={handleTemplateModalClose}>
             Discard Changes
           </Button>,
-          <Button 
-            key="submit" 
-            type="primary" 
-            loading={isTemplateLoading} 
+          <Button
+            key="submit"
+            type="primary"
+            loading={isTemplateLoading}
             onClick={HandleTemplateSubmit}
           >
-            {isTemplateLoading 
-              ? editState 
-                ? 'Updating...' 
+            {isTemplateLoading
+              ? editState
+                ? 'Updating...'
                 : 'Saving...'
               : 'Save'}
           </Button>,
@@ -364,7 +366,7 @@ const MailSettings = memo(() => {
               config={joditConfig}
               tabIndex={1}
               onBlur={(newContent) => setBodyContent(newContent)}
-              onChange={() => {}}
+              onChange={() => { }}
             />
           </Form.Item>
         </Form>
@@ -455,9 +457,9 @@ const MailSettings = memo(() => {
                 </Col>
                 <Col xs={24}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button 
-                      type="primary" 
-                      loading={isSavingConfig} 
+                    <Button
+                      type="primary"
+                      loading={isSavingConfig}
                       onClick={HandleMailConfig}
                     >
                       {isSavingConfig ? 'Saving...' : 'Submit'}
@@ -471,32 +473,27 @@ const MailSettings = memo(() => {
 
         {/* Mail Templates */}
         <Col xs={24} lg={14}>
-          <Card
+          <DataTable
             title="Mail Templates"
-            extra={
+            extraHeaderContent={
               <Button type="primary" icon={<PlusOutlined />} onClick={handleTemplateModalShow}>
                 New Template
               </Button>
             }
-          >
-            <Table
-              columns={columns}
-              dataSource={templates}
-              rowKey="id"
-              loading={isLoadingTemplates}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} templates`,
-              }}
-              scroll={{ x: 800 }}
-            />
-          </Card>
+            data={templates}
+            columns={columns}
+            loading={isLoadingTemplates}
+            enableSearch={true}
+            showSearch={true}
+            defaultPageSize={5}
+            pageSizeOptions={['5', '10', '20', '50']}
+            scroll={{ x: 800 }}
+          />
         </Col>
 
 
 
-        </Row>    </>
+      </Row>    </>
   );
 }
 );

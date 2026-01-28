@@ -17,6 +17,7 @@ import {
   Tag
 } from 'antd';
 import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
+import DataTable from '../../common/DataTable';
 import axios from 'axios';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -362,12 +363,14 @@ const WhatsAppConfig = () => {
       dataIndex: 'title',
       key: 'title',
       sorter: (a, b) => a.title.localeCompare(b.title),
+      searchable: true,
     },
     {
       title: 'Template',
       dataIndex: 'template_name',
       key: 'template_name',
       sorter: (a, b) => a.template_name.localeCompare(b.template_name),
+      searchable: true,
     },
     {
       title: 'Action',
@@ -512,7 +515,7 @@ const WhatsAppConfig = () => {
               <Col xs={24}>
                 <Form.Item label="Variables">
                   <div
-                  className='border-secondary rounded-5'
+                    className='border-secondary rounded-5'
                     style={{
                       padding: badges?.length > 0 ? '8px' : '0',
                     }}
@@ -657,27 +660,22 @@ const WhatsAppConfig = () => {
 
         {/* Right Column - WhatsApp Configs Table */}
         <Col xs={24} lg={12}>
-          <Card
+          <DataTable
             title="WhatsApp Configs"
-            extra={
+            extraHeaderContent={
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setShow(true)}>
                 New Config
               </Button>
             }
-          >
-            <Table
-              columns={columns}
-              dataSource={apisData}
-              rowKey="id"
-              loading={isLoadingApis}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} configs`,
-              }}
-              scroll={{ x: 600 }}
-            />
-          </Card>
+            data={apisData}
+            columns={columns}
+            loading={isLoadingApis}
+            enableSearch={true}
+            showSearch={true}
+            defaultPageSize={10}
+            pageSizeOptions={['5', '10', '20', '50']}
+            scroll={{ x: 600 }}
+          />
         </Col>
       </Row>
     </DndProvider>

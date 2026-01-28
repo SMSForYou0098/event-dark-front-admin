@@ -264,80 +264,107 @@ const DataTable = ({
     setSearchText("");
   };
 
-  const getColumnSearchProps = (dataIndex) => ({
-    filterDropdown: ({
-      setSelectedKeys,
-      selectedKeys,
-      confirm,
-      clearFilters,
-    }) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInput}
-          placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0]}
-          onChange={(e) =>
-            setSelectedKeys(e.target.value ? [e.target.value] : [])
-          }
-          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ width: 188, marginBottom: 8, display: "block" }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-            icon={<SearchOutlined />}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Search
-          </Button>
-          <Button
-            onClick={() => handleReset(clearFilters)}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Reset
-          </Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: (filtered) => (
-      <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
-    ),
-    onFilter: (value, record) => {
-      const recordValue = record[dataIndex];
-      if (recordValue === null || recordValue === undefined) return false;
-      const str =
-        typeof recordValue === "object"
-          ? JSON.stringify(recordValue)
-          : String(recordValue);
-      return str.toLowerCase().includes(String(value).toLowerCase());
-    },
-    onFilterDropdownOpenChange: (visible) => {
-      if (visible) {
-        setTimeout(() => searchInput.current?.select(), 100);
-      }
-    },
-    render: (text) =>
-      searchedColumn === dataIndex ? (
-        <Highlighter
-          highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
-          searchWords={[searchText]}
-          autoEscape
-          textToHighlight={text ? String(text) : ""}
-        />
-      ) : (
-        text
+  const getColumnSearchProps = (column) => {
+    const { dataIndex } = column;
+    return {
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            ref={searchInput}
+            placeholder={`Search ${Array.isArray(dataIndex) ? dataIndex.join(".") : dataIndex}`}
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Search
+            </Button>
+            <Button
+              onClick={() => handleReset(clearFilters)}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Reset
+            </Button>
+          </Space>
+        </div>
       ),
-  });
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        let recordValue;
+        if (Array.isArray(dataIndex)) {
+          recordValue = dataIndex.reduce((obj, key) => obj?.[key], record);
+        } else {
+          recordValue = record[dataIndex];
+        }
+
+        if (recordValue === null || recordValue === undefined) return false;
+        const str =
+          typeof recordValue === "object"
+            ? JSON.stringify(recordValue)
+            : String(recordValue);
+        return str.toLowerCase().includes(String(value).toLowerCase());
+      },
+      onFilterDropdownOpenChange: (visible) => {
+        if (visible) {
+          setTimeout(() => searchInput.current?.select(), 100);
+        }
+      },
+      render: (text, record, index) => {
+        let displayValue = text;
+        if (column.render) {
+          displayValue = column.render(text, record, index);
+        }
+
+        // Simple equality check for primitive dataIndex, or JSON stringify for array
+        const isSearched = Array.isArray(searchedColumn) && Array.isArray(dataIndex)
+          ? JSON.stringify(searchedColumn) === JSON.stringify(dataIndex)
+          : searchedColumn === dataIndex;
+
+        return isSearched ? (
+          <Highlighter
+            highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+            searchWords={[searchText]}
+            autoEscape
+            // Ensure we only highlight strings/numbers to avoid [object Object]
+            textToHighlight={displayValue && ['string', 'number'].includes(typeof displayValue) ? String(displayValue) : ""}
+          >
+            {/* If displayValue is a React Element (not string/number), Highlighter renders children if textToHighlight is empty? 
+                 Actually Highlighter renders 'textToHighlight' with highlights. 
+                 If custom render returns a Component, we can't use Highlighter easily on it. 
+                 If we fallback to just returning displayValue when not string/number:
+             */}
+          </Highlighter>
+        ) : (
+          displayValue
+        );
+      },
+    };
+  };
 
   const enhancedColumns = enableSearch
     ? columns.map((column) => {
       if (column.searchable) {
         return {
           ...column,
-          ...getColumnSearchProps(column.dataIndex),
+          ...getColumnSearchProps(column),
         };
       }
       return column;

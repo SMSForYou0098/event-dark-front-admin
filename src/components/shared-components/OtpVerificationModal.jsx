@@ -22,6 +22,15 @@ const OtpVerificationModal = ({
 }) => {
     const defaultDescription = `Please enter the OTP sent to ${phoneNumber} to complete the verification.`;
 
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            // Prevent default if needed, though usually fine for Enter in inputs unless in a form
+            if (otpValue && otpValue.length >= 6) {
+                onVerify();
+            }
+        }
+    };
+
     return (
         <Modal
             open={open}
@@ -48,6 +57,7 @@ const OtpVerificationModal = ({
                         length={6}
                         value={otpValue}
                         onChange={onOtpChange}
+                        onKeyDown={handleKeyDown}
                         style={{ marginBottom: 16 }}
                     />
                 ) : (
@@ -55,6 +65,7 @@ const OtpVerificationModal = ({
                         maxLength={6}
                         value={otpValue}
                         onChange={(e) => onOtpChange(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         style={{ marginBottom: 16, width: 200, textAlign: 'center', letterSpacing: '0.5em', fontSize: 18 }}
                         placeholder="000000"
                     />

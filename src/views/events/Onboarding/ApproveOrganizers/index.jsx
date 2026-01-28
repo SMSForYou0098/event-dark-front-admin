@@ -33,10 +33,20 @@ const ApproveOrganizers = () => {
     });
 
     // ========================= HANDLERS =========================
+    const handleCancel = () => {
+        setRemarkModalVisible(false);
+        setSelectedRecord(null);
+        setRemark('');
+        setActionType(null);
+    };
+
     const handleActionClick = (record, type) => {
+        // If clicking the same button that's already open, do nothing (Popconfirm handles close via onCancel/onConfirm)
+        // But for switching, we open:
         setSelectedRecord(record);
         setActionType(type);
         setRemarkModalVisible(true);
+        setRemark(''); // Clear remark on new open
     };
 
     const handleConfirmAction = () => {
@@ -52,6 +62,7 @@ const ApproveOrganizers = () => {
             },
         });
     };
+
 
     // ========================= TABLE COLUMNS =========================
     const columns = useMemo(
@@ -123,32 +134,76 @@ const ApproveOrganizers = () => {
                 fixed: 'right',
                 render: (_, record) => {
                     const isActionTaken = record.status !== 'pending';
+                    const isApproveOpen = remarkModalVisible && selectedRecord?.id === record.id && actionType === 'approve';
+                    const isRejectOpen = remarkModalVisible && selectedRecord?.id === record.id && actionType === 'reject';
+
+                    const popconfirmContent = (
+                        <div style={{ width: 300 }}>
+                            <p style={{ marginBottom: 8 }}>
+                                Are you sure you want to {actionType} this request?
+                            </p>
+                            <TextArea
+                                placeholder="Enter remark (optional)"
+                                value={remark}
+                                onChange={(e) => setRemark(e.target.value)}
+                                rows={3}
+                                maxLength={500}
+                                showCount
+                            />
+                        </div>
+                    );
+
                     return (
                         <Space>
-                            <Tooltip title={isActionTaken ? 'Action already taken' : 'Approve'}>
-                                <Button
-                                    type="primary"
-                                    size="small"
-                                    icon={<CheckOutlined />}
-                                    onClick={() => handleActionClick(record, 'approve')}
-                                disabled={isActionTaken}
-                                />
-                            </Tooltip>
-                            <Tooltip title={isActionTaken ? 'Action already taken' : 'Reject'}>
-                                <Button
-                                    danger
-                                    size="small"
-                                    icon={<CloseOutlined />}
-                                    onClick={() => handleActionClick(record, 'reject')}
-                                disabled={isActionTaken}
-                                />
-                            </Tooltip>
+                            <Popconfirm
+                                open={isApproveOpen}
+                                title="Approve Request"
+                                description={popconfirmContent}
+                                onConfirm={handleConfirmAction}
+                                onCancel={handleCancel}
+                                okText="Confirm"
+                                cancelText="Cancel"
+                                okButtonProps={{ loading: updateStatusMutation.isPending }}
+                                placement="topRight"
+                            >
+                                <Tooltip title={isActionTaken ? 'Action already taken' : 'Approve'}>
+                                    <Button
+                                        type="primary"
+                                        size="small"
+                                        icon={<CheckOutlined />}
+                                        onClick={() => handleActionClick(record, 'approve')}
+                                        disabled={isActionTaken}
+                                    />
+                                </Tooltip>
+                            </Popconfirm>
+
+                            <Popconfirm
+                                open={isRejectOpen}
+                                title="Reject Request"
+                                description={popconfirmContent}
+                                onConfirm={handleConfirmAction}
+                                onCancel={handleCancel}
+                                okText="Confirm"
+                                cancelText="Cancel"
+                                okButtonProps={{ loading: updateStatusMutation.isPending }}
+                                placement="topRight"
+                            >
+                                <Tooltip title={isActionTaken ? 'Action already taken' : 'Reject'}>
+                                    <Button
+                                        danger
+                                        size="small"
+                                        icon={<CloseOutlined />}
+                                        onClick={() => handleActionClick(record, 'reject')}
+                                        disabled={isActionTaken}
+                                    />
+                                </Tooltip>
+                            </Popconfirm>
                         </Space>
                     );
                 },
             },
         ],
-        []
+        [onboardingRequests, remarkModalVisible, selectedRecord, actionType, remark, updateStatusMutation.isPending] // Added dependencies
     );
 
     // ========================= RENDER =========================
@@ -163,43 +218,6 @@ const ApproveOrganizers = () => {
                 showSearch={true}
                 emptyText="No onboarding requests found"
             />
-
-            {/* Remark Modal using Popconfirm */}
-            <Popconfirm
-                open={remarkModalVisible}
-                title={`${actionType === 'approve' ? 'Approve' : 'Reject'} Request`}
-                description={
-                    <div style={{ width: 300 }}>
-                        <p style={{ marginBottom: 8 }}>
-                            Are you sure you want to {actionType} this request?
-                        </p>
-                        <TextArea
-                            placeholder="Enter remark (optional)"
-                            value={remark}
-                            onChange={(e) => setRemark(e.target.value)}
-                            rows={3}
-                            maxLength={500}
-                            showCount
-                        />
-                    </div>
-                }
-                onConfirm={handleConfirmAction}
-                onCancel={() => {
-                    setRemarkModalVisible(false);
-                    setSelectedRecord(null);
-                    setRemark('');
-                    setActionType(null);
-                }}
-                okText="Confirm"
-                cancelText="Cancel"
-                okButtonProps={{
-                    loading: updateStatusMutation.isPending,
-                }}
-                placement="topRight"
-            >
-                {/* Hidden trigger - controlled by state */}
-                <span />
-            </Popconfirm>
         </>
     );
 };
