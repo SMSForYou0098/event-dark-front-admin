@@ -1,9 +1,7 @@
 // Impersonate.jsx
 import React from 'react';
 import { Button, message } from 'antd'; // <-- use message instead of notification
-import { UserMinus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { persistor } from 'store';
 import { authenticated, logout, updateUser } from 'store/slices/authSlice';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -17,14 +15,6 @@ const extractBody = (res) => {
   return (typeof res === 'object' && 'data' in res) ? res.data : res;
 };
 
-const getErrorMessage = (err) => {
-  if (!err) return 'Unknown error';
-  if (err.response && err.response.data) {
-    return err.response.data.message || err.response.data.error || JSON.stringify(err.response.data);
-  }
-  if (err.message) return err.message;
-  return String(err);
-};
 
 const Impersonate = () => {
   const navigate = useNavigate()
@@ -75,23 +65,12 @@ const Impersonate = () => {
       // navigate to desired page
       navigate('/dashboard/organizers');
     },
-    onError: (err) => {
-      const msg = getErrorMessage(err);
-
+    onError: () => {
       // If session expired, force logout and redirect
-      if (msg === 'Session expired. Please login again.') {
-        dispatch(logout());
-        try {
-          persistor?.purge?.();
-        } catch (e) {
-          // ignore
-        }
-        navigate('/sign-in');
-        return;
-      }
+      dispatch(logout());
 
       // Show error to user
-      message.error(msg);
+      message.error('Session expired. Please login again.');
     },
   });
 

@@ -383,19 +383,7 @@ const OnlineBookings = memo(() => {
         return `₹${discount}`;
       },
     },
-    // {
-    //   title: "B Amt",
-    //   dataIndex: "base_amount",
-    //   key: "base_amount",
-    //   align: "center",
-    //   render: (_, record) => {
-    //     const baseAmount =
-    //       (record?.bookings && record?.bookings[0]?.base_amount) ||
-    //       record?.base_amount ||
-    //       0;
-    //     return `₹${baseAmount}`;
-    //   },
-    // },
+
     {
       title: "Total",
       dataIndex: "total_amount",
@@ -430,7 +418,7 @@ const OnlineBookings = memo(() => {
       },
     },
     {
-      title: "Purchase Date",
+      title: "Booking Date",
       dataIndex: "created_at",
       key: "created_at",
       align: "center",
@@ -526,7 +514,7 @@ const OnlineBookings = memo(() => {
       )}
 
       <DataTable
-        title="Online Bookings"
+        title={<span style={{ fontSize: 14 }}>Online Bookings</span>}
         data={bookings}
         columns={columns}
         showDateRange={true}

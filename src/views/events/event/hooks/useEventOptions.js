@@ -261,7 +261,17 @@ export function buildEventFormData(values, isDraft = false) {
 
   // ---------- PUBLISH ----------
   if (values.step === 'publish') {
+    // For Organizer role, use their userId; otherwise use the selected org_id from form
+    const userId = values.userRole === 'Organizer' ? values.userId : values.org_id;
+    appendIfDefined('user_id', userId);
     appendIfDefined('status', values.status ?? 1);
+
+    // Include SEO fields
+    appendIfDefined('meta_title', values.meta_title);
+    appendIfDefined('meta_description', values.meta_description);
+    appendIfDefined('meta_tag', values.meta_tag);
+    appendIfDefined('meta_keyword', values.meta_keyword);
+    appendIfDefined('seo_type', 'event');
   }
 
   // Always append the step identifier

@@ -72,7 +72,7 @@ const PreviewAgreement = () => {
             if (data?.status) {
                 message.success('Agreement approved successfully!');
                 // Navigate to read-only view (remove user_id from URL)
-                navigate(`/app/events/agreement/preview/${id}`, { replace: true });
+                navigate(`/agreement/preview/${id}`, { replace: true });
             } else {
                 message.error(data?.message || 'Agreement confirmation failed');
             }

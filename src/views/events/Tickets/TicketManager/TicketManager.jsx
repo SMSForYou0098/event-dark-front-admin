@@ -16,6 +16,7 @@ import dayjs from 'dayjs';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { useQuery } from '@tanstack/react-query';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import usePermission from 'utils/hooks/usePermission';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -29,6 +30,9 @@ const TAX_TYPES = [
 const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     const { UserData, getCurrencySymbol } = useMyContext();
     const [form] = Form.useForm();
+
+    // Check if user can view booking counts (Admin OR has "View Tickets Overview" permission)
+    const canViewBookingCounts = usePermission('View Tickets Overview', 'Admin', 'OR');
 
     // State management
     const [modalVisible, setModalVisible] = useState(false);
@@ -188,7 +192,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             price: ticket.price,
             quantity: ticket.ticket_quantity,
             currency: ticket.currency || 'INR',
-            user_booking_limit: ticket?.user_booking_limit,
+            selection_limit: ticket?.selection_limit,
             booking_per_customer: ticket?.booking_per_customer,
             ticket_description: ticket.ticket_description || ticket?.description,
             taxes: ticket.taxes,
@@ -280,7 +284,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             formData.append('currency', values.currency);
             formData.append('ticket_quantity', values.quantity);
             formData.append('booking_per_customer', values.booking_per_customer);
-            formData.append('user_booking_limit', values.user_booking_limit);
+            formData.append('selection_limit', values.selection_limit);
             formData.append('ticket_description', values.ticket_description || '');
             formData.append('taxes', values.taxes);
 
@@ -342,6 +346,19 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
     };
 
+    // Get event date range from ticket object (works for both create and edit mode)
+    const getEventDateRange = useCallback(() => {
+        // For edit mode, get from editingTicket
+        if (editMode && editingTicket?.event?.date_range) {
+            return editingTicket.event.date_range;
+        }
+        // For create mode, get from first ticket in tickets array
+        if (tickets.length > 0 && tickets[0]?.event?.date_range) {
+            return tickets[0].event.date_range;
+        }
+        return null;
+    }, [editMode, editingTicket, tickets]);
+
     // Determine current preview image
     const getCurrentPreviewImage = () => {
         if (selectedMediaUrl) return selectedMediaUrl;
@@ -392,7 +409,56 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         }
     }, [saleValue]);
 
-    // Table columns (same as before)
+    // Booking count columns (only for Admin or users with "View Tickets Overview" permission)
+    const bookingCountColumns = canViewBookingCounts ? [
+        {
+            title: 'Total Bookings',
+            key: 'total_bookings',
+            render: (_, record) => record.total_bookings_count ?? 0
+        },
+        {
+            title: 'Online',
+            key: 'online_bookings',
+            render: (_, record) => record.online_bookings_count ?? 0
+        },
+        {
+            title: 'Offline',
+            key: 'offline_bookings',
+            render: (_, record) => (record.pos_bookings_count ?? 0) + (record.agent_bookings_count ?? 0)
+        },
+        {
+            title: 'Agent',
+            key: 'agent_bookings',
+            render: (_, record) => record.agent_bookings_count ?? 0
+        },
+        {
+            title: 'POS',
+            key: 'pos_bookings',
+            render: (_, record) => record.pos_bookings_count ?? 0
+        },
+        {
+            title: 'Sponsor',
+            key: 'sponsor_bookings',
+            render: (_, record) => record.sponsor_bookings_count ?? 0
+        },
+        // {
+        //     title: 'Complimentary',
+        //     key: 'complimentary_bookings',
+        //     render: (_, record) => (record.complimentary_bookings_count ?? 0) + (record.complimentary_table_bookings_count ?? 0)
+        // },
+        // {
+        //     title: 'Corporate',
+        //     key: 'corporate_bookings',
+        //     render: (_, record) => record.corporate_bookings_count ?? 0
+        // },
+        // {
+        //     title: 'Pending',
+        //     key: 'pending_bookings',
+        //     render: (_, record) => (record.pending_bookings_count ?? 0) + (record.pending_registration_bookings_count ?? 0)
+        // },
+    ] : [];
+
+    // Table columns
     const columns = [
         {
             title: 'Ticket',
@@ -424,6 +490,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             key: 'remaining',
             render: (_, record) => record.remaining_count ?? record.remaining_quantity
         },
+        ...bookingCountColumns,
         {
             title: 'Sale',
             render: (_, record) => record.sale ? <Tag color="green">{getCurrencySymbol(record.currency)}{record.sale_price}</Tag> : <Tag>No Sale</Tag>
@@ -514,17 +581,91 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 )}
 
                                 <Col xs={24} md={6}>
-                                    <Form.Item label="Total Quantity" name="quantity" rules={[{ required: true }]}>
+                                    <Form.Item
+                                        label="Total Quantity"
+                                        name="quantity"
+                                        rules={[
+                                            { required: true, message: 'Please enter total quantity' },
+                                            ({ getFieldValue }) => ({
+                                                validator(_, value) {
+                                                    const selectionLimit = getFieldValue('selection_limit');
+                                                    const bookingPerCustomer = getFieldValue('booking_per_customer');
+
+                                                    if (!value) return Promise.resolve();
+
+                                                    if (selectionLimit && value < selectionLimit) {
+                                                        return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to booking limit per user (${selectionLimit})`));
+                                                    }
+
+                                                    if (bookingPerCustomer && value < bookingPerCustomer) {
+                                                        return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to ticket selection limit (${bookingPerCustomer})`));
+                                                    }
+
+                                                    return Promise.resolve();
+                                                },
+                                            }),
+                                        ]}
+                                    >
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
                                 </Col>
                                 <Col xs={24} md={8}>
-                                    <Form.Item label="Booking Limit Per User" name="user_booking_limit" rules={[{ required: true }]}>
+                                    <Form.Item
+                                        label="Booking Limit Per User"
+                                        name="selection_limit"
+                                        rules={[
+                                            { required: true, message: 'Please enter booking limit per user' },
+                                            ({ getFieldValue }) => ({
+                                                validator(_, value) {
+                                                    const quantity = getFieldValue('quantity');
+                                                    const bookingPerCustomer = getFieldValue('booking_per_customer');
+
+                                                    if (!value) return Promise.resolve();
+
+                                                    if (quantity && quantity < value) {
+                                                        return Promise.reject(new Error(`Booking limit per user (${value}) must be less than or equal to total quantity (${quantity})`));
+                                                    }
+
+                                                    if (bookingPerCustomer && bookingPerCustomer > value) {
+                                                        return Promise.reject(new Error(`Booking limit per user (${value}) must be greater than or equal to ticket selection limit (${bookingPerCustomer})`));
+                                                    }
+
+                                                    return Promise.resolve();
+                                                },
+                                            }),
+                                        ]}
+                                        dependencies={['quantity', 'booking_per_customer']}
+                                    >
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
                                 </Col>
                                 <Col xs={24} md={8}>
-                                    <Form.Item label="Ticket Selection Limit" name="booking_per_customer" rules={[{ required: true }]}>
+                                    <Form.Item
+                                        label="Ticket Selection Limit"
+                                        name="booking_per_customer"
+                                        rules={[
+                                            { required: true, message: 'Please enter ticket selection limit' },
+                                            ({ getFieldValue }) => ({
+                                                validator(_, value) {
+                                                    const quantity = getFieldValue('quantity');
+                                                    const selectionLimit = getFieldValue('selection_limit');
+
+                                                    if (!value) return Promise.resolve();
+
+                                                    if (quantity && quantity < value) {
+                                                        return Promise.reject(new Error(`Ticket selection limit (${value}) must be less than or equal to total quantity (${quantity})`));
+                                                    }
+
+                                                    if (selectionLimit && value > selectionLimit) {
+                                                        return Promise.reject(new Error(`Ticket selection limit (${value}) must be less than or equal to booking limit per user (${selectionLimit})`));
+                                                    }
+
+                                                    return Promise.resolve();
+                                                },
+                                            }),
+                                        ]}
+                                        dependencies={['quantity', 'selection_limit']}
+                                    >
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
                                 </Col>
@@ -631,12 +772,89 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 {saleEnabled && (
                                     <>
                                         <Col xs={24} md={12}>
-                                            <Form.Item label="Sale Period" name="sale_dates" rules={[{ required: saleEnabled }]}>
-                                                <RangePicker style={{ width: '100%' }} />
+                                            <Form.Item
+                                                label="Sale Period"
+                                                name="sale_dates"
+                                                rules={[
+                                                    { required: saleEnabled, message: 'Please select sale period' },
+                                                    ({ getFieldValue }) => ({
+                                                        validator(_, value) {
+                                                            if (!value || !value.length) {
+                                                                return Promise.resolve();
+                                                            }
+
+                                                            const eventDateRange = getEventDateRange();
+                                                            if (!eventDateRange) {
+                                                                return Promise.resolve();
+                                                            }
+
+                                                            const [eventStartStr] = eventDateRange.split(',');
+                                                            const eventStart = dayjs(eventStartStr.trim()).startOf('day');
+                                                            const [saleStart, saleEnd] = value;
+
+                                                            if (!saleStart || !saleEnd) {
+                                                                return Promise.resolve();
+                                                            }
+
+                                                            const saleStartDate = dayjs(saleStart).startOf('day');
+                                                            const saleEndDate = dayjs(saleEnd).startOf('day');
+
+                                                            // Check if sale end date is on or after event start date
+                                                            if (saleEndDate.isAfter(eventStart) || saleEndDate.isSame(eventStart)) {
+                                                                return Promise.reject(new Error(`Sale period must end before event date (${eventStart.format('YYYY-MM-DD')})`));
+                                                            }
+
+                                                            // Check if sale start date is on or after event start date
+                                                            if (saleStartDate.isAfter(eventStart) || saleStartDate.isSame(eventStart)) {
+                                                                return Promise.reject(new Error(`Sale period must start before event date (${eventStart.format('YYYY-MM-DD')})`));
+                                                            }
+
+                                                            return Promise.resolve();
+                                                        },
+                                                    }),
+                                                ]}
+                                            >
+                                                <RangePicker
+                                                    style={{ width: '100%' }}
+                                                    disabledDate={(current) => {
+                                                        if (!current) return false;
+
+                                                        const eventDateRange = getEventDateRange();
+                                                        if (!eventDateRange) return false;
+
+                                                        const [startDate] = eventDateRange.split(',');
+                                                        const eventStart = dayjs(startDate.trim()).startOf('day');
+                                                        const currentDate = dayjs(current).startOf('day');
+
+                                                        // Disable dates on or after event start date
+                                                        // Sale period must be before the event starts
+                                                        return currentDate.isAfter(eventStart) || currentDate.isSame(eventStart);
+                                                    }}
+                                                />
                                             </Form.Item>
                                         </Col>
                                         <Col xs={24} md={12}>
-                                            <Form.Item label="Sale Price" name="sale_price" rules={[{ required: saleEnabled }]}>
+                                            <Form.Item
+                                                label="Sale Price"
+                                                name="sale_price"
+                                                rules={[
+                                                    { required: saleEnabled, message: 'Please enter sale price' },
+                                                    ({ getFieldValue }) => ({
+                                                        validator(_, value) {
+                                                            const regularPrice = getFieldValue('price');
+
+                                                            if (!value) return Promise.resolve();
+
+                                                            if (regularPrice && parseFloat(value) > parseFloat(regularPrice)) {
+                                                                return Promise.reject(new Error(`Sale price (${value}) cannot be greater than regular price (${regularPrice})`));
+                                                            }
+
+                                                            return Promise.resolve();
+                                                        },
+                                                    }),
+                                                ]}
+                                                dependencies={['price']}
+                                            >
                                                 <Input type='number' min={0} />
                                             </Form.Item>
                                         </Col>

@@ -245,7 +245,7 @@ const EventStepperForm = () => {
         }
 
         // Step 5: SEO (was step 6, tickets step removed)
-        if (current === 5) {
+        if (current === 5 || current === 6) {
             Object.assign(patch, {
                 meta_tag: event_seo?.meta_tag,
                 meta_keyword: event_seo?.meta_keyword,
@@ -454,7 +454,7 @@ const EventStepperForm = () => {
 
             if (id) {
                 await updateEvent({ id, body });
-                message.success('Event published successfully!');
+                // message.success('Event published successfully!');
                 setCurrent((c) => c + 1);
                 //   setTimeout(() => navigate('/app/apps/events'), 1500);
             } else {

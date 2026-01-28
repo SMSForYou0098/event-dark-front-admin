@@ -246,20 +246,17 @@ const RefundBookings = () => {
             {
                 title: 'Gateway',
                 dataIndex: 'gateway',
-                render: (gateway) => gateway ? <Tag>{gateway.toUpperCase()}</Tag> : '-',
+                render: (gateway) => gateway ? gateway.toUpperCase() : '-',
+            },
+            {
+                title: 'ARN',
+                dataIndex: 'refund_arn',
+                render: (arn) => arn || '-',
             },
             {
                 title: 'Initiated By',
                 dataIndex: 'initiated_by',
-                render: (initiatedBy) => {
-                    const typeMap = {
-                        admin: { text: 'Admin', color: 'purple' },
-                        user: { text: 'User', color: 'cyan' },
-                        system: { text: 'System', color: 'default' },
-                    };
-                    const typeInfo = typeMap[initiatedBy] || { text: initiatedBy, color: 'default' };
-                    return <Tag color={typeInfo.color}>{typeInfo.text}</Tag>;
-                },
+                render: (initiatedBy) => initiatedBy || '-',
             },
             {
                 title: 'Initiated At',

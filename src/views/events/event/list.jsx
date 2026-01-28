@@ -85,8 +85,8 @@ const EventList = ({ isJunk = false }) => {
       }
     },
     enabled: !!UserData?.id,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    // refetchOnWindowFocus: false,
+    // staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Extract events and pagination from query data
@@ -100,8 +100,7 @@ const EventList = ({ isJunk = false }) => {
     },
     onSuccess: (res) => {
       if (res.status) {
-        queryClient.invalidateQueries(['eventList']);
-        refetch()
+        queryClient.invalidateQueries({ queryKey: ['eventList'] });
         message.success('Event deleted successfully');
       } else {
         message.error(res?.message || 'Failed to delete event');
@@ -211,9 +210,8 @@ const EventList = ({ isJunk = false }) => {
     mutationFn: permanentDeleteEvent,
     onSuccess: (data, variables) => {
       message.success('Event permanently deleted');
-      refetch()
-      // Invalidate and refetch junk events list
-      queryClient.invalidateQueries({ queryKey: ['junkEvents'] });
+      // Invalidate and refetch events list
+      queryClient.invalidateQueries({ queryKey: ['eventList'] });
     },
     onError: (error) => {
       message.error(error?.response?.data?.message || 'Failed to delete event permanently');
@@ -223,10 +221,8 @@ const EventList = ({ isJunk = false }) => {
   const restoreMutation = useMutation({
     mutationFn: restoreEvent,
     onSuccess: (data, variables) => {
-      // message.success('Event restored successfully');
       // Invalidate and refetch events list
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['junkEvents'] });
+      queryClient.invalidateQueries({ queryKey: ['eventList'] });
     },
     onError: (error) => {
       message.error(error?.response?.data?.message || 'Failed to restore event');

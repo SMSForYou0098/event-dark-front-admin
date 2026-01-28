@@ -131,7 +131,7 @@ const ApproveOrganizers = () => {
                                     size="small"
                                     icon={<CheckOutlined />}
                                     onClick={() => handleActionClick(record, 'approve')}
-                                // disabled={isActionTaken}
+                                disabled={isActionTaken}
                                 />
                             </Tooltip>
                             <Tooltip title={isActionTaken ? 'Action already taken' : 'Reject'}>
@@ -140,7 +140,7 @@ const ApproveOrganizers = () => {
                                     size="small"
                                     icon={<CloseOutlined />}
                                     onClick={() => handleActionClick(record, 'reject')}
-                                // disabled={isActionTaken}
+                                disabled={isActionTaken}
                                 />
                             </Tooltip>
                         </Space>

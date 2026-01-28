@@ -5,7 +5,7 @@ import { TEMPLATE } from 'constants/ThemeConstant';
 import { GlobalOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined } from '@ant-design/icons';
 import Logo from '../Logo';
 import NavProfile from '../NavProfile';
-import NavSearch  from '../NavSearch';
+import NavSearch from '../NavSearch';
 import SearchInput from '../NavSearch/SearchInput';
 import Header from './Header';
 import HeaderWrapper from './HeaderWrapper';
@@ -17,6 +17,7 @@ import { NAV_TYPE_TOP, SIDE_NAV_COLLAPSED_WIDTH, SIDE_NAV_WIDTH } from 'constant
 import utils from 'utils'
 import Impersonate from '../Impersonate';
 import { Tag } from 'antd';
+import { useNavigate } from 'react-router-dom';
 
 export const HeaderNav = props => {
 
@@ -25,6 +26,7 @@ export const HeaderNav = props => {
 	const [searchActive, setSearchActive] = useState(false);
 
 	const dispatch = useDispatch()
+	const navigate = useNavigate();
 
 	const navCollapsed = useSelector(state => state.theme.navCollapsed)
 	const mobileNav = useSelector(state => state.theme.mobileNav)
@@ -41,19 +43,19 @@ export const HeaderNav = props => {
 	}
 
 	const onToggle = () => {
-		if(!isMobile) {
+		if (!isMobile) {
 			dispatch(toggleCollapsedNav(!navCollapsed))
 		} else {
 			dispatch(onMobileNavToggle(!mobileNav))
 		}
 	}
 
-	const isNavTop = navType === NAV_TYPE_TOP 
+	const isNavTop = navType === NAV_TYPE_TOP
 	const isDarkTheme = currentTheme === 'dark'
 
-    const navMode = useMemo(() => {
-		if(!headerNavColor) {
-			return utils.getColorContrast(isDarkTheme ? '#000000' : '#ffffff' )
+	const navMode = useMemo(() => {
+		if (!headerNavColor) {
+			return utils.getColorContrast(isDarkTheme ? '#000000' : '#ffffff')
 		}
 		return utils.getColorContrast(headerNavColor);
 	}, [isDarkTheme, headerNavColor])
@@ -61,10 +63,10 @@ export const HeaderNav = props => {
 	const navBgColor = isDarkTheme ? TEMPLATE.HEADER_BG_DEFAULT_COLOR_DARK : TEMPLATE.HEADER_BG_DEFAULT_COLOR_LIGHT;
 
 	const getNavWidth = () => {
-		if(isNavTop || isMobile) {
+		if (isNavTop || isMobile) {
 			return '0px';
 		}
-		if(navCollapsed) {
+		if (navCollapsed) {
 			return `${SIDE_NAV_COLLAPSED_WIDTH}px`;
 		} else {
 			return `${SIDE_NAV_WIDTH}px`;
@@ -72,15 +74,17 @@ export const HeaderNav = props => {
 	}
 
 	useEffect(() => {
-		if(!isMobile) {
+		if (!isMobile) {
 			onSearchClose();
 		}
 	})
-	
+
 	return (
 		<Header className='glassmorphism-card border-0 rounded-0' isDarkTheme={isDarkTheme} headerNavColor={headerNavColor || navBgColor}>
 			<HeaderWrapper isNavTop={isNavTop}>
-				<Logo logoType={navMode}/>
+				<div className="nav" onClick={() => navigate('/dashboard')} style={{ cursor: 'pointer' }}>
+					<Logo logoType={navMode} />
+				</div>
 				<Nav navWidth={getNavWidth()}>
 					<NavEdge left>
 						{
@@ -93,25 +97,25 @@ export const HeaderNav = props => {
 							)
 						}
 						{isMobile ?
-                            <div className="" onClick={() => {onSearchActive()}}>
-                                <SearchOutlined />
-                            </div>
-                            :
-                            <div className="" style={{cursor: 'auto'}}>
-                                <SearchInput mode={navMode} isMobile={isMobile} />
-                            </div>
-                        }
+							<div className="" onClick={() => { onSearchActive() }}>
+								<SearchOutlined />
+							</div>
+							:
+							<div className="" style={{ cursor: 'auto' }}>
+								<SearchInput mode={navMode} isMobile={isMobile} />
+							</div>
+						}
 					</NavEdge>
 					<NavEdge right>
-						 <a href="https://t.getyourticket.in" target='__blank'>
-						 	<Tag color='blue'><GlobalOutlined style={{fontSize:'14px'}}/>Visit Website</Tag>
-						 </a>
+						<a href="https://t.getyourticket.in" target='__blank'>
+							<Tag color='blue'><GlobalOutlined style={{ fontSize: '14px' }} />Visit Website</Tag>
+						</a>
 						<Impersonate />
 						<NavProfile mode={navMode} />
 					</NavEdge>
-					<NavSearch 
-						active={searchActive} 
-						close={onSearchClose} 
+					<NavSearch
+						active={searchActive}
+						close={onSearchClose}
 						headerNavColor={headerNavColor}
 						currentTheme={currentTheme}
 						mode={navMode}

@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 
 const { Panel } = Collapse;
-const PosEvents = ({ type, handleButtonClick, isScanner }) => {
+const PosEvents = ({ type = 'pos', handleButtonClick, isScanner }) => {
     const { UserData, truncateString } = useMyContext();
     const screens = Grid.useBreakpoint();
     const scrollerRef = useRef(null);
@@ -18,10 +18,10 @@ const PosEvents = ({ type, handleButtonClick, isScanner }) => {
 
     // Fetch events using TanStack Query
     const { data: events = [], isLoading, isError } = useQuery({
-        queryKey: ['pos-events', UserData?.id],
+        queryKey: ['pos-events', UserData?.id, type],
         queryFn: async () => {
             if (!UserData?.id) return [];
-            const res = await api.get(`pos-events/${UserData?.id}`);
+            const res = await api.get(`pos-events/${UserData?.id}?type=${type}`);
             return res.events || [];
         },
         enabled: !!UserData?.id,
