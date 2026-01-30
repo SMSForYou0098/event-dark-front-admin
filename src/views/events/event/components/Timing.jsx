@@ -1,5 +1,5 @@
 // TimingStep.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Form, DatePicker, TimePicker, Row, Col, Input, Select, Checkbox } from 'antd';
 import dayjs from 'dayjs';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
@@ -13,6 +13,8 @@ const FMT_DT = 'YYYY-MM-DD HH:mm';
 const FMT_T = 'HH:mm';
 
 const TimingStep = ({ form, ...props }) => {
+  // State to track first selected date for overnight range picker
+  const [overnightFirstDate, setOvernightFirstDate] = useState(null);
   // helper to build the picker value from stored fields
   const buildRangePickerValue = (dateRangeStr, startTimeStr, endTimeStr) => {
     if (typeof dateRangeStr !== 'string' || !dateRangeStr.includes(',')) return undefined;
@@ -52,6 +54,8 @@ const TimingStep = ({ form, ...props }) => {
       end_time: end.format(FMT_T),
       tba: false, // Auto-uncheck when date is selected
     });
+    // Re-validate entry_time when start_time changes
+    setTimeout(() => form.validateFields(['entry_time']), 0);
   };
 
   return (
@@ -90,28 +94,89 @@ const TimingStep = ({ form, ...props }) => {
           <Col xs={24} md={6}>
             <Form.Item
               noStyle
-              shouldUpdate={(prev, cur) => prev.tba !== cur.tba || prev.event_type !== cur.event_type}
+              shouldUpdate={(prev, cur) => prev.tba !== cur.tba || prev.event_type !== cur.event_type || prev.overnight_event !== cur.overnight_event}
             >
               {({ getFieldValue }) => {
                 const isTba = getFieldValue('tba');
                 const eventType = getFieldValue('event_type');
                 const isDayEvent = eventType === 'day';
+                const isOvernight = getFieldValue('overnight_event');
+
+                // Disable past dates (and for overnight mode, disable non-consecutive dates)
+                const disabledDate = (current) => {
+                  // Always disable past dates
+                  if (current && current < dayjs().startOf('day')) {
+                    return true;
+                  }
+
+                  // For overnight day event, disable non-consecutive dates after first date is selected
+                  if (isDayEvent && isOvernight && overnightFirstDate) {
+                    const nextDay = overnightFirstDate.add(1, 'day');
+                    // Only allow the first date and the next consecutive day
+                    return !current.isSame(overnightFirstDate, 'day') && !current.isSame(nextDay, 'day');
+                  }
+
+                  return false;
+                };
+
+                // Handle calendar changes for overnight mode (track first selected date)
+                const handleOvernightCalendarChange = (dates) => {
+                  if (dates && dates[0] && !dates[1]) {
+                    // First date selected, track it to disable other dates
+                    setOvernightFirstDate(dates[0]);
+                  } else if (!dates || (!dates[0] && !dates[1])) {
+                    // Both cleared
+                    setOvernightFirstDate(null);
+                  }
+                };
+
+                // Clear first date state when picker closes
+                const handleOvernightOpenChange = (open) => {
+                  if (!open) {
+                    setOvernightFirstDate(null);
+                  }
+                };
+
+                // Custom onChange handler for overnight day event
+                const handleOvernightRangeChange = (range) => {
+                  setOvernightFirstDate(null); // Clear state on complete selection
+
+                  if (!Array.isArray(range) || !range[0] || !range[1]) {
+                    form.setFieldsValues({
+                      date_range: undefined,
+                      start_time: undefined,
+                      end_time: undefined,
+                    });
+                    return;
+                  }
+
+                  const [start, end] = range;
+                  // Valid consecutive dates (guaranteed by disabledDate)
+                  form.setFieldsValue({
+                    date_range: `${start.format(FMT_DATE)},${end.format(FMT_DATE)}`,
+                    start_time: start.format(FMT_T),
+                    end_time: end.format(FMT_T),
+                    tba: false,
+                  });
+                  // Re-validate entry_time when start_time changes
+                  setTimeout(() => form.validateFields(['entry_time']), 0);
+                };
 
                 return (
                   <Form.Item
                     name="date_range"
-                    label={isDayEvent ? 'Event Date' : 'Event Date Range'}
+                    label={isDayEvent && !isOvernight ? 'Event Date' : 'Event Date Range'}
                     validateTrigger={['onChange', 'onBlur']}
                     rules={[
                       {
                         required: !isTba,
-                        message: isDayEvent ? 'Please select event date' : 'Please select date range',
+                        message: isDayEvent && !isOvernight ? 'Please select event date' : 'Please select date range',
                       },
                     ]}
                     // Show picker using stored dates + start/end_time for the time parts
                     getValueProps={(value) => {
-                      if (isDayEvent) {
-                        // For day event, parse single date from date_range (first part)
+                      if (isDayEvent && !isOvernight) {
+                        // For day event without overnight, parse single date from date_range (first part)
                         if (typeof value !== 'string' || !value) return { value: undefined };
                         const dateStr = value.includes(',') ? value.split(',')[0].trim() : value.trim();
                         const startTime = form.getFieldValue('start_time');
@@ -122,18 +187,19 @@ const TimingStep = ({ form, ...props }) => {
                           : null;
                         return { value: st ? d.hour(st.hour()).minute(st.minute()) : d };
                       }
-                      // For range picker
+                      // For range picker (daily, seasonal, or day with overnight)
                       const startTime = form.getFieldValue('start_time');
                       const endTime = form.getFieldValue('end_time');
                       return { value: buildRangePickerValue(value, startTime, endTime) };
                     }}
                   >
-                    {isDayEvent ? (
+                    {isDayEvent && !isOvernight ? (
                       <DatePicker
                         showTime
                         style={{ width: '100%' }}
                         placeholder="Select Date & Start Time"
                         format={FMT_DT}
+                        disabledDate={disabledDate}
                         onChange={(date) => {
                           if (!date) {
                             form.setFieldsValue({
@@ -148,6 +214,8 @@ const TimingStep = ({ form, ...props }) => {
                             start_time: date.format(FMT_T),
                             tba: false,
                           });
+                          // Re-validate entry_time when start_time changes
+                          setTimeout(() => form.validateFields(['entry_time']), 0);
                         }}
                         disabled={isTba}
                       />
@@ -155,9 +223,14 @@ const TimingStep = ({ form, ...props }) => {
                       <RangePicker
                         showTime
                         style={{ width: '100%' }}
-                        placeholder={['Start Date & Time', 'End Date & Time']}
+                        placeholder={isDayEvent && isOvernight
+                          ? ['Day 1 Start Time', 'Day 2 End Time']
+                          : ['Start Date & Time', 'End Date & Time']}
                         format={FMT_DT}
-                        onChange={onRangeChange}
+                        disabledDate={disabledDate}
+                        onCalendarChange={isDayEvent && isOvernight ? handleOvernightCalendarChange : undefined}
+                        onOpenChange={isDayEvent && isOvernight ? handleOvernightOpenChange : undefined}
+                        onChange={isDayEvent && isOvernight ? handleOvernightRangeChange : onRangeChange}
                         disabled={isTba}
                       />
                     )}
@@ -167,13 +240,15 @@ const TimingStep = ({ form, ...props }) => {
             </Form.Item>
           </Col>
 
-          {/* End Time for Day Events */}
-          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.event_type !== cur.event_type || prev.tba !== cur.tba}>
+          {/* End Time for Day Events (only show when overnight is NOT checked, because RangePicker includes end time) */}
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.event_type !== cur.event_type || prev.tba !== cur.tba || prev.overnight_event !== cur.overnight_event}>
             {({ getFieldValue }) => {
               const eventType = getFieldValue('event_type');
               const isTba = getFieldValue('tba');
+              const isOvernight = getFieldValue('overnight_event');
 
-              return eventType === 'day' ? (
+              // Show End Time only for day events WITHOUT overnight (RangePicker already has end time when overnight is checked)
+              return eventType === 'day' && !isOvernight ? (
                 <Col xs={12} md={3}>
                   <Form.Item
                     name="end_time"
@@ -208,52 +283,117 @@ const TimingStep = ({ form, ...props }) => {
           <Col xs={12} md={3}>
             <Form.Item
               noStyle
-              shouldUpdate={(prev, cur) => prev.tba !== cur.tba}
+              shouldUpdate={(prev, cur) => prev.tba !== cur.tba || prev.start_time !== cur.start_time}
             >
-              {({ getFieldValue }) => (
-                <Form.Item
-                  name="entry_time"
-                  label="Entry Time"
-                  dependencies={['tba']}
-                  rules={[
-                    {
-                      required: !getFieldValue('tba'),
-                      message: 'Please select entry time',
-                    },
-                  ]}
-                  getValueProps={(value) => ({
-                    value:
-                      typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
-                        ? dayjs(value, FMT_T)
-                        : undefined,
-                  })}
-                  getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
-                >
-                  <TimePicker style={{ width: '100%' }} format={FMT_T} placeholder="Entry time" disabled={getFieldValue('no_date_range')} />
-                </Form.Item>
-              )}
+              {({ getFieldValue }) => {
+                const isTba = getFieldValue('tba');
+                const startTime = getFieldValue('start_time');
+
+                return (
+                  <Form.Item
+                    name="entry_time"
+                    label="Entry Time"
+                    dependencies={['tba', 'start_time']}
+                    rules={[
+                      {
+                        required: !isTba,
+                        message: 'Please select entry time',
+                      },
+                      {
+                        validator: (_, value) => {
+                          if (!value || !startTime) {
+                            return Promise.resolve();
+                          }
+                          const entryTimeObj = typeof value === 'string'
+                            ? dayjs(value, FMT_T, true)
+                            : value;
+                          const startTimeObj = dayjs(startTime, FMT_T, true);
+
+                          if (entryTimeObj.isValid() && startTimeObj.isValid()) {
+                            if (entryTimeObj.isBefore(startTimeObj) || entryTimeObj.isSame(startTimeObj)) {
+                              return Promise.resolve();
+                            }
+                            return Promise.reject(new Error('Entry time must be earlier than or equal to start time'));
+                          }
+                          return Promise.resolve();
+                        },
+                      },
+                    ]}
+                    getValueProps={(value) => ({
+                      value:
+                        typeof value === 'string' && dayjs(value, FMT_T, true).isValid()
+                          ? dayjs(value, FMT_T)
+                          : undefined,
+                    })}
+                    getValueFromEvent={(val) => (val ? val.format(FMT_T) : undefined)}
+                  >
+                    <TimePicker
+                      style={{ width: '100%' }}
+                      format={FMT_T}
+                      placeholder="Entry time"
+                      disabled={isTba}
+                      disabledTime={() => {
+                        if (!startTime) return {};
+
+                        const startTimeObj = dayjs(startTime, FMT_T, true);
+                        if (!startTimeObj.isValid()) return {};
+
+                        const startHour = startTimeObj.hour();
+                        const startMinute = startTimeObj.minute();
+
+                        return {
+                          disabledHours: () => {
+                            // Disable all hours after start hour
+                            const hours = [];
+                            for (let i = startHour + 1; i < 24; i++) {
+                              hours.push(i);
+                            }
+                            return hours;
+                          },
+                          disabledMinutes: (selectedHour) => {
+                            // If selected hour equals start hour, disable minutes after start minute
+                            if (selectedHour === startHour) {
+                              const minutes = [];
+                              for (let i = startMinute + 1; i < 60; i++) {
+                                minutes.push(i);
+                              }
+                              return minutes;
+                            }
+                            return [];
+                          },
+                        };
+                      }}
+                    />
+                  </Form.Item>
+                );
+              }}
             </Form.Item>
           </Col>
 
-          {/* Overnight event -> shown only when event_type is 'daily' */}
+          {/* Overnight event -> shown when event_type is 'daily' or 'day' */}
           <Form.Item noStyle shouldUpdate={(prev, cur) => prev.event_type !== cur.event_type}>
-            {({ getFieldValue }) =>
-              getFieldValue('event_type') === 'daily' ? (
+            {({ getFieldValue }) => {
+              const eventType = getFieldValue('event_type');
+              return (eventType === 'daily' || eventType === 'day') ? (
                 <Col xs={12} md={12}>
                   <Form.Item
                     name="overnight_event"
                     valuePropName="checked"
                     label="Overnight Event"
-                    tooltip="Check if the daily event runs past midnight"
+                    tooltip={eventType === 'day'
+                      ? "Check if the event runs past midnight (allows selecting 2 consecutive dates)"
+                      : "Check if the daily event runs past midnight"}
                     initialValue={false}
                   >
                     <Checkbox>
-                      Overnight event — end time will be set after midnight
+                      {eventType === 'day'
+                        ? "Overnight event — allows selecting 2 consecutive dates"
+                        : "Overnight event — end time will be set after midnight"}
                     </Checkbox>
                   </Form.Item>
                 </Col>
-              ) : null
-            }
+              ) : null;
+            }}
           </Form.Item>
 
           {/* hidden to force rerender when only time changes */}

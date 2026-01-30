@@ -2,6 +2,7 @@ import React, { memo, useState, useEffect, useCallback } from 'react';
 import { Row, Col, message, Modal, Button, Card, Space, Typography, Divider } from 'antd';
 import { ExclamationCircleOutlined, CheckCircleOutlined, ReloadOutlined, ClockCircleOutlined, EnvironmentOutlined, TeamOutlined } from '@ant-design/icons';
 import useSound from 'use-sound';
+import { useMutation } from '@tanstack/react-query';
 
 import beepSound from '../../../assets/event/stock/tik.mp3';
 import errorSound from '../../../assets/event/stock/error.mp3';
@@ -23,13 +24,15 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         UserData,
         fetchCategoryData,
         handleWhatsappAlert,
-        formatDateRange
+        formatDateRange,
+        convertTo12HourFormat,
     } = useMyContext();
 
     // ─── State ───────────────────────────────
     const [QRdata, setQRData] = useState('');
     const [ticketData, setTicketData] = useState([]);
     const [event, setEvent] = useState();
+    const [selectedEventIds, setSelectedEventIds] = useState([]); // For multiple event selection
     const [type, setType] = useState('');
     const [categoryData, setCategoryData] = useState(null);
     const [attendees, setAttendees] = useState([]);
@@ -55,7 +58,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [playError] = useSound(errorSound);
 
     // ─── Error Modal ─────────────────────────
-    const showErrorModal = (errorMsg, checkInTime = null) => {
+    const showErrorModal = (errorMsg, checkInTime = null, checkpoints = null) => {
         playError();
 
         Modal.error({
@@ -68,7 +71,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             icon: <ExclamationCircleOutlined style={{ fontSize: '3rem' }} />,
             content: (
                 <div style={{ fontSize: '1.2rem', marginTop: '1rem' }}>
-                    <p style={{ marginBottom: checkInTime ? '1rem' : 0 }}>
+                    <p style={{ marginBottom: (checkInTime || checkpoints) ? '1rem' : 0 }}>
                         {errorMsg || 'Invalid Ticket'}
                     </p>
                     {checkInTime && (
@@ -76,6 +79,35 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                             <strong>Previous Check-In:</strong>
                             <br />
                             {formatDateTime(checkInTime)}
+                        </div>
+                    )}
+                    {checkpoints && checkpoints.length > 0 && (
+                        <div style={{ marginTop: checkInTime ? '1rem' : 0 }}>
+                            {/* <Divider orientation="left" style={{ margin: '12px 0' }}>
+                                <Space>
+                                    <ClockCircleOutlined />
+                                    <span style={{ fontSize: '14px' }}>Available Checkpoints</span>
+                                </Space>
+                            </Divider> */}
+                            <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                                {checkpoints.map((cp, index) => (
+                                    <Card 
+                                        key={index} 
+                                        size="small" 
+                                        style={{ marginBottom: 8 }}
+                                        bodyStyle={{ padding: '8px 12px' }}
+                                    >
+                                        <Space direction="vertical" size={0} style={{ width: '100%' }}>
+                                            <Typography.Text strong style={{ fontSize: '14px' }}>
+                                                {cp.label}
+                                            </Typography.Text>
+                                            <Typography.Text type="secondary" style={{ fontSize: '12px' }}>
+                                                {convertTo12HourFormat(cp.start_time)} - {convertTo12HourFormat(cp.end_time)}
+                                            </Typography.Text>
+                                        </Space>
+                                    </Card>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -140,11 +172,44 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     }, [getTokenLength]);
 
     // ─── Load Category Data ──────────────────
-    const loadCategoryData = async (event) => {
-        if (!event) return;
-        setEvent(event)
-        const data = await fetchCategoryData(event?.category);
-        setCategoryData(data);
+    // Supports both single event (original) and multiple events selection
+    const loadCategoryData = async (eventOrEvents, ticketsOrEventIds) => {
+        // Check if this is multiple mode (second param is an array of IDs)
+        if (Array.isArray(ticketsOrEventIds) && typeof ticketsOrEventIds[0] === 'number') {
+            // Multiple mode: eventOrEvents = array of events, ticketsOrEventIds = array of event IDs
+            setSelectedEventIds(ticketsOrEventIds);
+            if (eventOrEvents.length > 0) {
+                const firstEvent = eventOrEvents[0];
+                setEvent(firstEvent);
+                // Only fetch category data if category exists and changed
+                const newCategory = firstEvent?.category;
+                if (newCategory && newCategory !== event?.category) {
+                    const data = await fetchCategoryData(newCategory);
+                    setCategoryData(data);
+                }
+            } else {
+                // Deselecting all events - just clear state, no API call needed
+                setEvent(null);
+                setSelectedEventIds([]);
+                setCategoryData(null);
+            }
+        } else if (Array.isArray(ticketsOrEventIds) && ticketsOrEventIds.length === 0) {
+            // Empty array passed - clear selection, no API call
+            setEvent(null);
+            setSelectedEventIds([]);
+            setCategoryData(null);
+        } else {
+            // Single mode: eventOrEvents = single event, ticketsOrEventIds = tickets
+            if (!eventOrEvents) return;
+            const newCategory = eventOrEvents?.category;
+            setEvent(eventOrEvents);
+            setSelectedEventIds([eventOrEvents?.id]); // Store as single-item array for API consistency
+            // Only fetch category data if category exists and changed
+            if (newCategory && newCategory !== event?.category) {
+                const data = await fetchCategoryData(newCategory);
+                setCategoryData(data);
+            }
+        }
     };
 
     // ─── Handle Attendees ────────────────────
@@ -158,52 +223,64 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         }
     };
 
-    // ─── Get Ticket Detail ───────────────────
-    const getTicketDetail = async (data) => {
-        setLoading(prev => ({ ...prev, fetching: true }));
-        setShow(true);
-        try {
-            const res = await api.post(`verify-ticket/${data}`, {
-                user_id: UserData?.reporting_user,
-                event_id: event?.id
-            });
-
+    // ─── Get Ticket Detail (TanStack Query Mutation) ───────────────────
+    const verifyTicketMutation = useMutation({
+        mutationFn: (token) => api.post(`verify-ticket/${token}`, {
+            user_id: UserData?.reporting_user,
+            event_ids: selectedEventIds
+        }),
+        onMutate: () => {
+            setLoading(prev => ({ ...prev, fetching: true }));
+            setShow(true);
+        },
+        onSuccess: (res) => {
             if (res.status) {
                 showSuccess('Ticket Found');
-                const mainBookings = res.data;
-                setTicketData(mainBookings);
-                setSessionId(mainBookings?.session_id)
-                // setEvent(res.data.event);
-                setType(res.data.type);
-                //await loadCategoryData(res.data.event);
-                handleAttendees(res.data);
+                console.log(res, 'suvv');
+                const mainBookings = res.bookings || res.data;
+                console.log(mainBookings, 'suvv');
+                setTicketData(res);
+                setSessionId(res.session_id || mainBookings?.session_id);
+                setType(res.type || res.data?.type);
+                handleAttendees(res);
             }
-        } catch (err) {
-            setShow(false)
-            const { message: msg, time } = err.response?.data ?? {};
-            showErrorModal(msg, time);
-        } finally {
-            //setShow(false)
+        },
+        onError: (err) => {
+            setShow(false);
+            const { message: msg, time, checkpoints } = err.response?.data ?? {};
+            showErrorModal(msg, time, checkpoints);
+        },
+        onSettled: () => {
             setLoading(prev => ({ ...prev, fetching: false }));
         }
-    };
+    });
 
-    // ─── ShopKeeper Verification ─────────────
-    const handleShopKeeperVerification = async (data) => {
-        setLoading(prev => ({ ...prev, verifying: true }));
-        try {
-            const res = await api.post(`wallet-user/${data}`);
+    // Wrapper function for backward compatibility
+    const getTicketDetail = (token) => verifyTicketMutation.mutate(token);
+
+    // ─── ShopKeeper Verification (TanStack Query Mutation) ─────────────
+    const shopKeeperMutation = useMutation({
+        mutationFn: (token) => api.post(`wallet-user/${token}`),
+        onMutate: () => {
+            setLoading(prev => ({ ...prev, verifying: true }));
+        },
+        onSuccess: (res) => {
             if (res.status) {
                 showSuccess('Wallet Verified');
                 setTicketData(res.data);
                 setShow(true);
             }
-        } catch (err) {
+        },
+        onError: (err) => {
             showErrorModal(err?.response?.data?.message ?? 'Verification failed');
-        } finally {
+        },
+        onSettled: () => {
             setLoading(prev => ({ ...prev, verifying: false }));
         }
-    };
+    });
+
+    // Wrapper function for backward compatibility
+    const handleShopKeeperVerification = (token) => shopKeeperMutation.mutate(token);
 
     // ─── Admin Action ────────────────────────
     const handleAdminAction = async (actionType, data) => {
@@ -251,41 +328,49 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         }
     }, [show, autoCheck]);
 
-    // ─── Verify Ticket ───────────────────────
-    const handleVerify = async () => {
-        if (!QRdata || isProcessing) return;
-        setLoading(prev => ({ ...prev, verifying: true }));
-        setIsProcessing(true);
-        try {
-            const res = await api.get(`chek-in/${sessionId}`);
+    // ─── Check-In Mutation (TanStack Query) ───────────────────
+    const checkInMutation = useMutation({
+        mutationFn: (sessionIdParam) => api.get(`chek-in/${sessionIdParam}`),
+        onMutate: () => {
+            setLoading(prev => ({ ...prev, verifying: true }));
+            setIsProcessing(true);
+        },
+        onSuccess: (res) => {
             if (res.status) {
                 showSuccessModal('Ticket Scanned Successfully!');
                 setQRData('');
                 setShow(false);
             }
-        } catch (err) {
-
+        },
+        onError: (err) => {
             showErrorModal(err?.response?.data?.message);
-        } finally {
-
+        },
+        onSettled: () => {
             setLoading(prev => ({ ...prev, verifying: false }));
             setIsProcessing(false);
         }
+    });
+
+    // Wrapper function for verify ticket
+    const handleVerify = () => {
+        if (!QRdata || isProcessing) return;
+        checkInMutation.mutate(sessionId);
     };
 
-    // ─── Debit Function ──────────────────────
-    const handleDebit = async (amount, remarks) => {
-        try {
+    // ─── Debit Wallet Mutation (TanStack Query) ──────────────────
+    const debitWalletMutation = useMutation({
+        mutationFn: ({ amount, remarks }) => api.post(`debit-wallet`, {
+            amount,
+            description: remarks,
+            token: QRdata,
+            shopKeeper_id: UserData?.id,
+            session_id: ticketData.session_id,
+            user_id: ticketData.booking.user?.id,
+        }),
+        onMutate: () => {
             setIsProcessing(true);
-            const res = await api.post(`debit-wallet`, {
-                amount,
-                description: remarks,
-                token: QRdata,
-                shopKeeper_id: UserData?.id,
-                session_id: ticketData.session_id,
-                user_id: ticketData.user?.id,
-            });
-
+        },
+        onSuccess: (res) => {
             if (res.status) {
                 const tx = res.data;
                 setResData(tx);
@@ -293,14 +378,19 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 setShow(false);
                 setQRData('');
                 showSuccessModal('Amount Debited Successfully!');
-                await HandleSendAlerts(tx);
+                HandleSendAlerts(tx);
             }
-        } catch (err) {
+        },
+        onError: (err) => {
             showErrorModal(err?.response?.data?.message);
-        } finally {
+        },
+        onSettled: () => {
             setIsProcessing(false);
         }
-    };
+    });
+
+    // Wrapper function for debit
+    const handleDebit = (amount, remarks) => debitWalletMutation.mutate({ amount, remarks });
 
     // ─── WhatsApp Notification ───────────────
     const HandleSendAlerts = async (tx) => {
@@ -366,9 +456,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             {(userRole === 'Scanner' || selectedAction === 'verify') && (
                 <ScanedUserData
                     show={show}
-                    event={event}
                     ticketData={ticketData}
-                    type={type}
                     setShow={setShow}
                     attendees={attendees}
                     loading={loading}
@@ -392,7 +480,11 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                         </StickyBottom>
                     </div>
                     <Col span={24}>
-                        <PosEvents handleButtonClick={loadCategoryData} isScanner={userRole === 'Scanner'} />
+                        <PosEvents
+                            handleButtonClick={loadCategoryData}
+                            isScanner={userRole === 'Scanner'}
+                            multiple={true}
+                        />
                     </Col>
                     {event &&
                         <>

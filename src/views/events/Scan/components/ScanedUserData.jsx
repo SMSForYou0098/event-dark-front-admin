@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Descriptions, List, Tag, Button, Divider, Space, Typography, Drawer, Card, Image, Row, Col, Carousel, Badge, Modal } from 'antd';
+import DataTable from 'views/events/common/DataTable';
 import {
   CheckCircleOutlined,
   UserOutlined,
@@ -25,16 +26,22 @@ const { Text, Title } = Typography;
 const ScanedUserData = ({
   show,
   setShow,
-  event,
   ticketData,
-  type,
   showAttendeee,
   attendees = [],
   handleVerify,
   loading
 }) => {
+  console.log('tttt',ticketData)
+const {
+  bookings = {},
+  is_master = false,
+  type = '',
+  event = {},
+  scan_history = []
+} = ticketData ?? {};
   const { isMobile } = useMyContext();
-    const attendeesPrintRef = useRef(null);
+  const attendeesPrintRef = useRef(null);
   useEffect(() => {
     if (show && isMobile) {
       const dotsElement = document.querySelector('ul.slick-dots.slick-dots-bottom.custom-dots');
@@ -48,18 +55,16 @@ const ScanedUserData = ({
 
   const handleClose = () => setShow(false);
 
-  const { bookings, is_master } = ticketData;
-  const eventData = ticketData?.event || event;
+  const eventData = event;
   // Determine if this is a master booking or regular booking
-  const isMasterBooking = is_master === true;
 
   // Get ticket data based on type
-  const ticket = isMasterBooking
+  const ticket = is_master
     ? bookings?.tickets?.[0] // For master booking, get first ticket from array
-    : bookings?.tickets ; // For regular booking, get single ticket
+    : bookings?.tickets; // For regular booking, get single ticket
 
   // Get attendees data
-  const attendeesList = isMasterBooking
+  const attendeesList = is_master
     ? bookings?.attendees || []
     : attendees;
 
@@ -74,6 +79,8 @@ const ScanedUserData = ({
 
   const customerInfo = getCustomerInfo();
 
+  console.log(customerInfo);
+
   // Status color mapping
   const getStatusTag = (status) => {
     const statusMap = {
@@ -86,6 +93,47 @@ const ScanedUserData = ({
 
   const statusInfo = getStatusTag(bookings?.status);
 
+  // Scan history table columns
+  const scanHistoryColumns = [
+    {
+      title: '#',
+      key: 'index',
+      align: 'center',
+      width: 50,
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: 'Checkpoint',
+      dataIndex: 'checkpoint_name',
+      key: 'checkpoint_name',
+      align: 'center',
+      render: (name) => <Tag color="purple">{name || '-'}</Tag>,
+    },
+    {
+      title: 'Scanned By',
+      dataIndex: 'scanner_name',
+      key: 'scanner_name',
+      align: 'center',
+      render: (name) => name || '-',
+    },
+    {
+  title: 'Scanned At',
+  dataIndex: 'scanned_at',
+  key: 'scanned_at',
+  align: 'center',
+  render: (scannedAt) => {
+    if (!scannedAt) return '-';
+
+    const date = dayjs(scannedAt);
+
+    return date.isSame(dayjs(), 'day')
+      ? `Today, ${date.format('hh:mm A')}`
+      : date.format('DD MMM YYYY, hh:mm A');
+  },
+}
+
+  ];
+
   // Booking Information
   const bookingInfo = [
     {
@@ -96,7 +144,7 @@ const ScanedUserData = ({
     },
     {
       label: <>
-        <PhoneOutlined className='text-primary mr-2' style={{transform : 'rotate(100deg)'}}/> Number
+        <PhoneOutlined className='text-primary mr-2' style={{ transform: 'rotate(100deg)' }} /> Number
       </>,
       value: <Text copyable>{customerInfo.phone}</Text>,
     },
@@ -118,8 +166,8 @@ const ScanedUserData = ({
       label: <>
         <TagOutlined className='text-primary mr-2' /> Booking Type
       </>,
-      value: <Tag color={ticketData?.type === 'POS' ? 'blue' : 'green'}>
-        {ticketData?.type || bookings?.booking_type || type || 'N/A'}
+      value: <Tag color={bookings?.type === 'POS' ? 'blue' : 'green'}>
+        {bookings?.type || type || 'N/A'}
       </Tag>,
     },
     ...(bookings?.status ? [{
@@ -242,81 +290,96 @@ const ScanedUserData = ({
   };
 
   const buttonsCount = [
-  isMasterBooking && attendeesList.length > 0,
-  true // verify button is always shown
-].filter(Boolean).length;
+    is_master && attendeesList.length > 0,
+    true // verify button is always shown
+  ].filter(Boolean).length;
 
   return (
     <>
-    <Drawer
-      open={show}
-      closable={false}
-      placement={isMobile ? 'bottom' : "right"}
-      height="85vh"
-      width="95vh"
-      title={
-        <Space size="small">
-          <CheckCircleOutlined style={{ color: '#52c41a' }} />
-          <span>Scanned Ticket Details</span>
-        </Space>
-      }
-      extra={
-        <CloseOutlined onClick={handleClose} />
-      }
-      footer={
-        <Space
-  className={`w-100 ${buttonsCount === 1 ? 'single-btn' : ''}`}
-  size="middle"
-  direction={isMobile ? 'vertical' : 'horizontal'}
->
-  { attendeesList.length > 0 && (
-  // {true && attendeesList.length > 0 && (
-    <Button
-      type="default"
-      className='btn-tertiary w-100'
-      onClick={() => attendeesPrintRef.current?.handlePrintAllAttendees()}
-      icon={<PrinterOutlined />}
-      size="large"
-      block={isMobile || buttonsCount === 1}
-    >
-      Print Attendees ({attendeesList.length})
-    </Button>
-  )}
+      <Drawer
+        open={show}
+        closable={false}
+        placement={isMobile ? 'bottom' : "right"}
+        height="85vh"
+        width="95vh"
+        title={
+          <Space size="small">
+            <CheckCircleOutlined style={{ color: '#52c41a' }} />
+            <span>Scanned Ticket Details</span>
+          </Space>
+        }
+        extra={
+          <CloseOutlined onClick={handleClose} />
+        }
+        footer={
+          <Space
+            className={`w-100 ${buttonsCount === 1 ? 'single-btn' : ''}`}
+            size="middle"
+            direction={isMobile ? 'vertical' : 'horizontal'}
+          >
+            {attendeesList.length > 0 && (
+              // {true && attendeesList.length > 0 && (
+              <Button
+                type="default"
+                className='btn-tertiary w-100'
+                onClick={() => attendeesPrintRef.current?.handlePrintAllAttendees()}
+                icon={<PrinterOutlined />}
+                size="large"
+                block={isMobile || buttonsCount === 1}
+              >
+                Print Attendees ({attendeesList.length})
+              </Button>
+            )}
 
-  <Button
-    type="primary"
-    onClick={handleVerify}
-    icon={loading?.verifying ? <LoadingOutlined spin /> : <CheckCircleOutlined />}
-    disabled={bookings?.is_scaned || loading?.verifying}
-    size="large"
-    block={isMobile || buttonsCount === 1}
-  >
-    {bookings?.is_scaned ? 'Already Verified' : 'Verify Ticket'}
-  </Button>
-</Space>
+            <Button
+              type="primary"
+              onClick={handleVerify}
+              icon={loading?.verifying ? <LoadingOutlined spin /> : <CheckCircleOutlined />}
+              disabled={bookings?.is_scaned || loading?.verifying}
+              size="large"
+              block={isMobile || buttonsCount === 1}
+            >
+              {bookings?.is_scaned ? 'Already Verified' : 'Verify Ticket'}
+            </Button>
+          </Space>
 
-      }
-      footerStyle={{ textAlign: 'center', padding: '16px' }}
-      styles={{
-        body: { paddingBottom: 80 }
-      }}
-    >
-      {loading?.fetching ? (
-        <Loader />
-      ) : (
-        <>
-          {/* Booking Details */}
-          {/* <Title level={5}>Booking Information</Title> */}
-          <Descriptions bordered column={1} size="small">
-            {bookingInfo.map((item, idx) => (
-              <Descriptions.Item key={idx} label={item.label}>
-                {item.value}
-              </Descriptions.Item>
-            ))}
-          </Descriptions>
+        }
+        footerStyle={{ textAlign: 'center', padding: '16px' }}
+        styles={{
+          body: { paddingBottom: 80 }
+        }}
+      >
+        {loading?.fetching ? (
+          <Loader />
+        ) : (
+          <>
+            {/* Booking Details */}
+            {/* <Title level={5}>Booking Information</Title> */}
+            <Descriptions bordered column={1} size="small">
+              {bookingInfo.map((item, idx) => (
+                <Descriptions.Item key={idx} label={item.label}>
+                  {item.value}
+                </Descriptions.Item>
+              ))}
+            </Descriptions>
 
-          {/* Event Details */}
-          {/* <Title level={5}>Event Information</Title>
+            {/* Scan History Table */}
+            {scan_history && scan_history.length > 0 && (
+              <DataTable
+                title={`Scan History (${scan_history.length})`}
+                data={scan_history}
+                columns={scanHistoryColumns}
+                emptyText="No scan history"
+                tableProps={{
+                  rowKey: (record, index) => `scan-${index}`,
+                  pagination: false,
+                  size: 'small',
+                }}
+              />
+            )}
+
+            {/* Event Details */}
+            {/* <Title level={5}>Event Information</Title>
           <Descriptions bordered column={1} size="small">
             {eventInfo.map((item, idx) => (
               <Descriptions.Item key={idx} label={item.label}>
@@ -325,60 +388,60 @@ const ScanedUserData = ({
             ))}
           </Descriptions> */}
 
-          {/* Attendees List - Enhanced for Master Bookings */}
-          {(showAttendeee || isMasterBooking) && Boolean(attendeesList?.length) && ( 
-            <>
-              <Divider orientation="left" className='mt-0'>
-                <TeamOutlined /> Attendees ({attendeesList.length})
-              </Divider>
+            {/* Attendees List - Enhanced for Master Bookings */}
+            {(showAttendeee || is_master) && Boolean(attendeesList?.length) && (
+              <>
+                <Divider orientation="left" className='mt-0'>
+                  <TeamOutlined /> Attendees ({attendeesList.length})
+                </Divider>
 
-              {attendeesList.length > 0 ? (
-                // Rich attendee cards for master bookings
-                <div>
-                  {renderAttendeesSection()}
-                </div>
-              ) : (
+                {attendeesList.length > 0 ? (
+                  // Rich attendee cards for master bookings
+                  <div>
+                    {renderAttendeesSection()}
+                  </div>
+                ) : (
 
-                // Simple list for regular bookings
-                <List
-                  bordered
-                  dataSource={attendeesList}
-                  renderItem={(attendee, idx) => (
-                    <List.Item>
-                      <div className="d-flex align-items-center w-100 justify-content-between">
-                        <div className="d-flex align-items-center gap-2">
-                          <UserOutlined />
-                          <span>
-                            {attendee?.name || `Attendee ${idx + 1}`} (
-                            {attendee?.phone || 'N/A'})
-                          </span>
+                  // Simple list for regular bookings
+                  <List
+                    bordered
+                    dataSource={attendeesList}
+                    renderItem={(attendee, idx) => (
+                      <List.Item>
+                        <div className="d-flex align-items-center w-100 justify-content-between">
+                          <div className="d-flex align-items-center gap-2">
+                            <UserOutlined />
+                            <span>
+                              {attendee?.name || `Attendee ${idx + 1}`} (
+                              {attendee?.phone || 'N/A'})
+                            </span>
+                          </div>
+                          <Tag color={attendee?.status ? 'success' : 'default'}>
+                            {attendee?.status ? 'Checked In' : 'Pending'}
+                          </Tag>
                         </div>
-                        <Tag color={attendee?.status ? 'success' : 'default'}>
-                          {attendee?.status ? 'Checked In' : 'Pending'}
-                        </Tag>
-                      </div>
-                    </List.Item>
-                  )}
-                />
-              )}
-            </>
-          )}
-        </>
+                      </List.Item>
+                    )}
+                  />
+                )}
+              </>
+            )}
+          </>
+        )}
+      </Drawer>
+      {attendeesList.length > 0 && (
+        //  {true && attendeesList.length > 0 && (
+        <AttendeesPrint
+          ref={attendeesPrintRef}
+          attendeesList={attendeesList}
+          eventData={eventData}
+          ticket={ticket}
+          bookings={bookings}
+          primaryColor="#B51515"
+        />
       )}
-    </Drawer>
-     {attendeesList.length > 0 && (
-    //  {true && attendeesList.length > 0 && (
-      <AttendeesPrint
-        ref={attendeesPrintRef}
-        attendeesList={attendeesList}
-        eventData={eventData}
-        ticket={ticket}
-        bookings={bookings}
-        primaryColor="#B51515"
-      />
-    )}
     </>
-    
+
   );
 };
 

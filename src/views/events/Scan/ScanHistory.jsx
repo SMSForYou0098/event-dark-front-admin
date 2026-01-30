@@ -1,34 +1,74 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tag, Typography } from "antd";
+import { Tag, Typography, Tooltip } from "antd";
 import apiClient from "auth/FetchInterceptor";
-import DataTable from "views/events/common/DataTable";
+import { ExpandDataTable } from "views/events/common/ExpandDataTable";
 import { useMyContext } from "Context/MyContextProvider";
 
 const { Text } = Typography;
 
+// Helper component to truncate text with tooltip
+const TruncatedText = ({ text, maxLength = 20 }) => {
+  if (!text) return "-";
+
+  const shouldTruncate = text.length > maxLength;
+  const displayText = shouldTruncate ? `${text.substring(0, maxLength)}...` : text;
+
+  return shouldTruncate ? (
+    <Tooltip title={text}>
+      <Text>{displayText}</Text>
+    </Tooltip>
+  ) : (
+    <Text>{text}</Text>
+  );
+};
+
 const ScanHistory = () => {
   const [dateRange, setDateRange] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { userRole, UserPermissions } = useMyContext();
-  // Fetch scan history using TanStack Query
+
+  // Fetch scan history using TanStack Query with pagination
   const {
-    data: scanHistory = [],
+    data: response,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["scanHistory", dateRange],
+    queryKey: ["scanHistory", dateRange, currentPage, pageSize],
     queryFn: async () => {
-      const dateParam = dateRange
-        ? `${dateRange.startDate},${dateRange.endDate}`
-        : "";
-      const response = await apiClient.get(
-        `scan-histories${dateParam ? `?date=${dateParam}` : ""}`
-      );
-      return response?.data || [];
+      const params = new URLSearchParams();
+      params.append("page", currentPage);
+      params.append("per_page", pageSize);
+
+      if (dateRange?.startDate && dateRange?.endDate) {
+        params.append("date", `${dateRange.startDate},${dateRange.endDate}`);
+      }
+
+      const res = await apiClient.get(`scan-histories?${params.toString()}`);
+      return res;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Extract data and pagination from response
+  const scanHistory = response?.data || [];
+  const pagination = response ? {
+    current_page: response.current_page,
+    per_page: response.per_page,
+    total: response.total,
+    last_page: response.last_page,
+  } : null;
+
+  // Handle pagination change
+  const handlePaginationChange = (page, size) => {
+    setCurrentPage(page);
+    if (size !== pageSize) {
+      setPageSize(size);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  };
 
   // Handle date range change
   const handleDateRangeChange = (dates) => {
@@ -42,125 +82,228 @@ const ScanHistory = () => {
     }
   };
 
-  // Format booking source
-  const formatBookingSource = (source) => {
-    if (!source) return "-";
-    return source
-      .replace(/([A-Z])/g, " $1")
-      .replace(/^./, (str) => str.toUpperCase())
-      .trim();
-  };
-
-  // Format scan times
-  const renderScanTimes = (scanTimesJson) => {
-    try {
-      const times = JSON.parse(scanTimesJson);
-      const timeCounts = {};
-
-      // Count occurrences of each time
-      times.forEach((time) => {
-        timeCounts[time] = (timeCounts[time] || 0) + 1;
-      });
-
-      return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {Object.entries(timeCounts).map(([time, count]) => (
-            <div key={time}>
-              <Text>{time}</Text>
-              {count > 1 && (
-                <Tag color="blue" style={{ marginLeft: 4 }}>
-                  {count}x
-                </Tag>
-              )}
-            </div>
-          ))}
+  // Format date time helper
+  const formatDateTime = (dateString) => {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return (
+      <div>
+        <Text>{date.toLocaleDateString()}</Text>
+        <div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {date.toLocaleTimeString()}
+          </Text>
         </div>
-      );
-    } catch (e) {
-      return <Text type="secondary">Invalid data</Text>;
-    }
+      </div>
+    );
   };
 
-  // Define columns
-  const columns = [
+  // Transform data to add scan_history as "bookings" for ExpandDataTable compatibility
+  const transformedData = useMemo(() => {
+    return scanHistory.map(item => ({
+      ...item,
+      id: item.booking_id,
+      set_id: `scan-${item.booking_id}`,
+      is_set: item.scan_history && item.scan_history.length > 0,
+      bookings: (item.scan_history || []).map(scan => ({
+        ...scan,
+        id: scan.scan_id,
+      })),
+    }));
+  }, [scanHistory]);
+
+  // Inner columns for expanded scan history details
+  const innerColumns = [
     {
       title: "#",
-      dataIndex: "id",
-      key: "id",
+      dataIndex: "scan_id",
+      key: "scan_id",
       align: "center",
       width: 60,
       render: (_, __, index) => index + 1,
     },
     {
-      title: "Token",
-      dataIndex: "token",
-      key: "token",
+      title: "Checkpoint",
+      dataIndex: ["checkpoint", "label"],
+      key: "checkpoint",
+      align: "center",
+      render: (_, record) => (
+        <div>
+          <Text strong>{record.checkpoint?.label || "-"}</Text>
+          {/* {record.checkpoint?.code && (
+            <div>
+              <Tag color="purple" style={{ fontSize: 10 }}>
+                {record.checkpoint.code}
+              </Tag>
+            </div>
+          )} */}
+        </div>
+      ),
+    },
+    {
+      title: "Status",
+      dataIndex: "scan_result",
+      key: "scan_result",
+      align: "center",
+      render: (result) => (
+        <Tag color={result === 'success' ? 'success' : 'error'}>
+          {result ? result.charAt(0).toUpperCase() + result.slice(1) : '-'}
+        </Tag>
+      ),
+    },
+    {
+      title: "Scanned At",
+      dataIndex: "scanned_at",
+      key: "scanned_at",
       align: "center",
       width: 150,
-      searchable: true,
-      ellipsis: {
-        showTitle: true,
+      render: (scannedAt) => formatDateTime(scannedAt),
+    },
+    {
+      title: "Scanned By",
+      dataIndex: ["scanned_by", "name"],
+      key: "scanned_by",
+      align: "center",
+      render: (_, record) => record.scanned_by?.name || "-",
+    },
+    {
+      title: "Device Info",
+      dataIndex: "device_info",
+      key: "device_info",
+      align: "center",
+      width: 150,
+      ellipsis: true,
+      render: (deviceInfo) => {
+        if (!deviceInfo) return "-";
+        const browserMatch = deviceInfo.match(/(Chrome|Firefox|Safari|Edge|Opera)[\/\s](\d+)/i);
+        const browser = browserMatch ? `${browserMatch[1]} ${browserMatch[2]}` : 'Unknown';
+        return (
+          <Tooltip title={deviceInfo}>
+            <Text style={{ maxWidth: 150 }}>{browser}</Text>
+          </Tooltip>
+        );
       },
-      render: (token) => (
-        <Text ellipsis={{ tooltip: token }} style={{ maxWidth: 150 }}>
-          {token}
-        </Text>
-      ),
+    },
+    {
+      title: "IP Address",
+      dataIndex: "ip_address",
+      key: "ip_address",
+      align: "center",
+      render: (ip) => ip || "-",
+    },
+  ];
+
+  // Define columns based on new API structure
+  const columns = [
+    {
+      title: "#",
+      dataIndex: "booking_id",
+      key: "booking_id",
+      align: "center",
+      width: 60,
+      render: (_, __, index) => index + 1,
     },
     {
       title: "Attendee",
-      dataIndex: ["user", "name"],
+      dataIndex: ["booking_details", "name"],
       key: "attendee",
-      align: "center",
+      align: "left",
       searchable: true,
-      render: (_, record) => record.user?.name || "-",
-    },
-    {
-      title: "Scanner",
-      dataIndex: ["scanner", "name"],
-      key: "scanner",
-      align: "center",
-      searchable: true,
-      render: (_, record) => record.scanner?.name || "-",
-    },
-    {
-      title: "Booking Source",
-      dataIndex: "booking_source",
-      key: "booking_source",
-      align: "center",
-      searchable: true,
-      render: (source) => (
-        <Tag color="geekblue">{formatBookingSource(source)}</Tag>
+      render: (_, record) => (
+        <div>
+          <Text strong>{record.booking_details?.name || "-"}</Text>
+          {record.booking_details?.number && (
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                {record.booking_details.number}
+              </Text>
+            </div>
+          )}
+          {record.booking_details?.email && (
+            <div>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {record.booking_details.email}
+              </Text>
+            </div>
+          )}
+        </div>
       ),
     },
     {
-      title: "Scan Time(s)",
-      dataIndex: "scan_time",
-      key: "scan_time",
+      title: "Event",
+      dataIndex: ["event", "name"],
+      key: "event",
       align: "center",
-      width: 200,
-      render: renderScanTimes,
+      searchable: true,
+      render: (_, record) => (
+        <div>
+          <TruncatedText text={record.event?.name} maxLength={25} />
+          {record.event?.event_key && (
+            <div>
+              <Tag color="purple" style={{ fontSize: 10 }}>
+                {record.event.event_key}
+              </Tag>
+            </div>
+          )}
+        </div>
+      ),
     },
     {
-      title: "Scan Count",
-      dataIndex: "count",
-      key: "count",
+      title: "Booking Type",
+      dataIndex: "booking_type",
+      key: "booking_type",
       align: "center",
-      width: 120,
-      sorter: (a, b) => a.count - b.count,
-      render: (count) => (
-        <Tag color={count > 1 ? "red" : "green"} style={{ fontSize: 14 }}>
-          {count}
+      render: (type) => (
+        <Tag color={type === 'pos' ? 'blue' : type === 'online' ? 'green' : 'default'}>
+          {type ? type.charAt(0).toUpperCase() + type.slice(1) : '-'}
         </Tag>
       ),
+    },
+    // {
+    //   title: "Scans",
+    //   dataIndex: "total_scans",
+    //   key: "total_scans",
+    //   align: "center",
+    //   width: 120,
+    //   render: (_, record) => (
+    //     <div>
+    //       <Text strong>{record.total_scans || 0}</Text>
+    //       <div style={{ fontSize: 11 }}>
+    //         <Text type="success">{record.successful_scans || 0} ✓</Text>
+    //         {record.failed_scans > 0 && (
+    //           <Text type="danger" style={{ marginLeft: 8 }}>{record.failed_scans} ✗</Text>
+    //         )}
+    //       </div>
+    //     </div>
+    //   ),
+    // },
+    {
+      title: "First Scan",
+      dataIndex: "first_scan_at",
+      key: "first_scan_at",
+      align: "center",
+      width: 150,
+      sorter: (a, b) => new Date(a.first_scan_at) - new Date(b.first_scan_at),
+      render: (firstScanAt) => formatDateTime(firstScanAt),
+    },
+    {
+      title: "Last Scan",
+      dataIndex: "last_scan_at",
+      key: "last_scan_at",
+      align: "center",
+      width: 150,
+      sorter: (a, b) => new Date(a.last_scan_at) - new Date(b.last_scan_at),
+      defaultSortOrder: 'descend',
+      render: (lastScanAt) => formatDateTime(lastScanAt),
     },
   ];
 
   return (
-    <DataTable
+    <ExpandDataTable
       title="Scan History"
-      data={scanHistory}
+      data={transformedData}
       columns={columns}
+      innerColumns={innerColumns}
       loading={isLoading}
       error={error}
       showDateRange
@@ -174,6 +317,10 @@ const ScanHistory = () => {
       emptyText="No scan history found"
       enableSearch
       showSearch
+      // Server-side pagination props
+      serverSide
+      pagination={pagination}
+      onPaginationChange={handlePaginationChange}
       tableProps={{
         bordered: false,
       }}

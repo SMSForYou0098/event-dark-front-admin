@@ -201,6 +201,37 @@ export function buildEventFormData(values, isDraft = false) {
     // Ticket settings (moved from tickets step)
     appendIfDefined('ticket_terms', values.ticket_terms);
     appendIfDefined('multi_scan', values.multi_scan ?? false);
+    // Multi-scan checkpoint configuration
+    appendIfDefined('scan_mode', values.scan_mode ?? false);
+    appendIfDefined('max_scan_count', values.max_scan_count);
+    if (Array.isArray(values.checkpoints) && values.checkpoints.length > 0) {
+      // Helper to convert time string to minutes for sorting
+      const timeToMinutes = (timeStr) => {
+        if (!timeStr) return Infinity; // Put items without time at the end
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      // Sort checkpoints by start_time before sending to API
+      const sortedCheckpoints = [...values.checkpoints].sort((a, b) => {
+        return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
+      });
+
+      // Include id only for existing checkpoints (updates), exclude for new ones
+      const checkpointsPayload = sortedCheckpoints.map(cp => {
+        const checkpoint = {
+          label: cp.label,
+          start_time: cp.start_time,
+          end_time: cp.end_time,
+        };
+        // Include id only if it exists (for updating existing checkpoints)
+        if (cp.id) {
+          checkpoint.id = cp.id;
+        }
+        return checkpoint;
+      });
+      fd.append('checkpoints', JSON.stringify(checkpointsPayload));
+    }
     // ticket_system: form value true = "Booking By Ticket" = API expects 0
     // ticket_system: form value false = "Booking By Seat" = API expects 1
     appendIfDefined('ticket_system', values.ticket_system ? 0 : 1);

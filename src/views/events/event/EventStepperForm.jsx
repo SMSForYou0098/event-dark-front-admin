@@ -177,6 +177,23 @@ const EventStepperForm = () => {
 
                 // Ticket settings (moved from tickets step)
                 multi_scan: toBool(controls?.multi_scan),
+                scan_mode: toBool(controls?.scan_mode),
+                max_scan_count: controls?.max_scan_count ? Number(controls.max_scan_count) : 1,
+                checkpoints: (() => {
+                    // Checkpoints come from scan_checkpoints at event level, not controls
+                    const scanCheckpoints = detail?.scan_checkpoints;
+                    if (!Array.isArray(scanCheckpoints) || scanCheckpoints.length === 0) {
+                        return [];
+                    }
+                    // Map API format to form format (convert HH:mm:ss to HH:mm)
+                    // Include id for existing checkpoints so it can be sent in update payload
+                    return scanCheckpoints.map(cp => ({
+                        id: cp.id, // Preserve id for updates
+                        label: cp.label || '',
+                        start_time: cp.start_time ? cp.start_time.substring(0, 5) : null, // "03:00:00" -> "03:00"
+                        end_time: cp.end_time ? cp.end_time.substring(0, 5) : null,
+                    }));
+                })(),
                 ticket_system: finalTicketSystem,
                 bookingBySeat: finalBookingBySeat,
                 ticket_terms: detail?.ticket_terms || undefined,
@@ -507,7 +524,7 @@ const EventStepperForm = () => {
         <div>
             <Card bordered={false}>
                 <Title level={2} style={{ textAlign: 'center', marginBottom: 32 }}>
-                    {isEdit ? 'Edit Event' : 'Create New Event'}
+                    {isEdit ? `Edit Event - ${form.getFieldValue('name')}` : 'Create New Event'}
                 </Title>
 
                 <Steps current={current} style={{ marginBottom: 32 }} responsive>

@@ -11,9 +11,6 @@ const MediaStep = ({ form }) => {
   const [layoutImageModalOpen, setLayoutImageModalOpen] = useState(false);
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
 
-
-  console.log('form',form.getFieldValue()
-)
   // Watch form values for previews
   const thumbnailValue = Form.useWatch('thumbnail', form);
   const instaThumbValue = Form.useWatch('insta_thumbnail', form);
@@ -288,7 +285,7 @@ const MediaStep = ({ form }) => {
               />
             </Col>
           ))}
-          
+
           {/* Add more button (only if less than 5) */}
           {(!galleryImages || galleryImages.length < 5) && (
             <Col>
