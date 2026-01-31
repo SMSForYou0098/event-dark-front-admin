@@ -15,6 +15,7 @@ const FMT_T = 'HH:mm';
  * - form: Ant Design form instance
  */
 const MultiScanCheckpoints = ({ form }) => {
+    const checkpoints = Form.useWatch('checkpoints', form);
     // Parse time string to dayjs object
     const parseTime = (timeStr) => {
         if (!timeStr) return null;
@@ -91,7 +92,7 @@ const MultiScanCheckpoints = ({ form }) => {
 
             if (currentStart === null || currentEnd === null) return Promise.resolve();
 
-            for (let i = 0; i < checkpoints.length; i++) {
+            for (let i = 0; i < checkpoints?.length; i++) {
                 if (i === index) continue;
 
                 const otherStart = timeToMinutes(checkpoints[i]?.start_time);
@@ -141,19 +142,19 @@ const MultiScanCheckpoints = ({ form }) => {
     };
 
     return (
-        <Card size="small" title="Checkpoint Configuration" style={{ marginTop: 16 }}
-            extra={
-                <Tooltip title="Sort checkpoints by start time">
-                    <Button
-                        type="text"
-                        icon={<SortAscendingOutlined />}
-                        onClick={sortCheckpointsByTime}
-                        size="small"
-                    >
-                        Sort by Time
-                    </Button>
-                </Tooltip>
-            }
+        <Card size="small" title={`Checkpoint Configuration ${checkpoints?.length > 0 ? `(${checkpoints?.length})` : ''}`} style={{ marginTop: 16 }}
+        // extra={
+        //     <Tooltip title="Sort checkpoints by start time">
+        //         <Button
+        //             type="text"
+        //             icon={<SortAscendingOutlined />}
+        //             onClick={sortCheckpointsByTime}
+        //             size="small"
+        //         >
+        //             Sort by Time
+        //         </Button>
+        //     </Tooltip>
+        // }
         >
             <Form.List
                 name="checkpoints"
@@ -161,7 +162,7 @@ const MultiScanCheckpoints = ({ form }) => {
                 rules={[
                     {
                         validator: async (_, checkpoints) => {
-                            if (!checkpoints || checkpoints.length < 1) {
+                            if (!checkpoints || checkpoints?.length < 1) {
                                 return Promise.reject(new Error('At least 1 checkpoint is required'));
                             }
                         },
@@ -194,14 +195,14 @@ const MultiScanCheckpoints = ({ form }) => {
                                         </Form.Item>
                                     </Col>
 
-                                    <Col xs={12} sm={6}>
+                                    <Col xs={checkpoints?.length > 1 ? 10 : 12} sm={6}>
                                         <Form.Item
                                             {...restField}
                                             name={[name, 'start_time']}
                                             label={index === 0 ? 'Start Time' : undefined}
                                             rules={[
                                                 { required: true, message: 'Start time required' },
-                                                validateNoOverlap(index, true),
+                                                // validateNoOverlap(index, true),
                                             ]}
                                             getValueProps={(value) => ({
                                                 value: parseTime(value),
@@ -217,7 +218,7 @@ const MultiScanCheckpoints = ({ form }) => {
                                         </Form.Item>
                                     </Col>
 
-                                    <Col xs={12} sm={6}>
+                                    <Col xs={checkpoints?.length > 1 ? 10 : 12} sm={6}>
                                         <Form.Item
                                             {...restField}
                                             name={[name, 'end_time']}
@@ -225,7 +226,7 @@ const MultiScanCheckpoints = ({ form }) => {
                                             rules={[
                                                 { required: true, message: 'End time required' },
                                                 validateEndTimeAfterStart(index),
-                                                validateNoOverlap(index, false),
+                                                // validateNoOverlap(index, false),
                                             ]}
                                             getValueProps={(value) => ({
                                                 value: parseTime(value),
@@ -241,36 +242,43 @@ const MultiScanCheckpoints = ({ form }) => {
                                         </Form.Item>
                                     </Col>
 
-                                    <Col xs={24} sm={4} style={{ display: 'flex', alignItems: 'center', paddingTop: index === 0 ? 30 : 0 }}>
-                                        {fields.length > 1 && (
-                                            <Button
-                                                type="text"
-                                                danger
-                                                icon={<DeleteOutlined />}
-                                                onClick={() => {
-                                                    remove(name);
-                                                    setTimeout(revalidateAll, 50);
-                                                }}
-                                            />
-                                        )}
-                                    </Col>
+                                    {fields?.length > 1 && (
+                                        <Col xs={4} sm={4} >
+                                            <Form.Item
+                                                label={index === 0 ? '\u00A0' : undefined}
+                                                className='d-flex align-items-center justify-content-start'
+                                            >
+                                                {/* <Col xs={4} sm={4} style={{ display: 'flex', alignItems: 'end' }}> */}
+                                                <Button
+                                                    type="text"
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                    onClick={() => {
+                                                        remove(name);
+                                                        setTimeout(revalidateAll, 50);
+                                                    }}
+                                                />
+                                            </Form.Item>
+                                        </Col>
+                                    )}
                                 </Row>
                             </div>
                         ))}
 
                         <Form.ErrorList errors={errors} />
 
-                        <Button
-                            type="dashed"
-                            onClick={() => add({ label: '', start_time: null, end_time: null })}
-                            block
-                            icon={<PlusOutlined />}
-                            style={{ marginTop: 16 }}
-                        >
-                            Add Checkpoint
-                        </Button>
+                        <div style={{ textAlign: 'center', marginTop: 16 }}>
+                            <Button
+                                type="primary"
+                                onClick={() => add({ label: '', start_time: null, end_time: null })}
+                                icon={<PlusOutlined />}
+                                style={{ width: 200 }}
+                            >
+                                Add Checkpoint
+                            </Button>
+                        </div>
 
-                        <Text type="secondary" style={{ display: 'block', marginTop: 8, fontSize: 12 }}>
+                        <Text type="secondary" className='text-center bg-none w-full' style={{ display: 'block', textAlign: 'center', marginTop: 8 }}>
                             Add checkpoints in any order, then click "Sort by Time" to arrange them chronologically.
                         </Text>
                     </>

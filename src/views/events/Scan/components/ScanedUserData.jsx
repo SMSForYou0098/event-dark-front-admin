@@ -20,6 +20,7 @@ import dayjs from 'dayjs';
 import { useMyContext } from 'Context/MyContextProvider';
 import Loader from 'utils/Loader';
 import AttendeesPrint from './AttendeesPrint';
+import { MdProductionQuantityLimits } from 'react-icons/md';
 
 const { Text, Title } = Typography;
 
@@ -32,14 +33,14 @@ const ScanedUserData = ({
   handleVerify,
   loading
 }) => {
-  console.log('tttt',ticketData)
-const {
-  bookings = {},
-  is_master = false,
-  type = '',
-  event = {},
-  scan_history = []
-} = ticketData ?? {};
+  console.log('tttt', ticketData)
+  const {
+    bookings = {},
+    is_master = false,
+    type = '',
+    event = {},
+    scan_history = []
+  } = ticketData ?? {};
   const { isMobile } = useMyContext();
   const attendeesPrintRef = useRef(null);
   useEffect(() => {
@@ -117,20 +118,20 @@ const {
       render: (name) => name || '-',
     },
     {
-  title: 'Scanned At',
-  dataIndex: 'scanned_at',
-  key: 'scanned_at',
-  align: 'center',
-  render: (scannedAt) => {
-    if (!scannedAt) return '-';
+      title: 'Scanned At',
+      dataIndex: 'scanned_at',
+      key: 'scanned_at',
+      align: 'center',
+      render: (scannedAt) => {
+        if (!scannedAt) return '-';
 
-    const date = dayjs(scannedAt);
+        const date = dayjs(scannedAt);
 
-    return date.isSame(dayjs(), 'day')
-      ? `Today, ${date.format('hh:mm A')}`
-      : date.format('DD MMM YYYY, hh:mm A');
-  },
-}
+        return date.isSame(dayjs(), 'day')
+          ? `Today, ${date.format('hh:mm A')}`
+          : date.format('DD MMM YYYY, hh:mm A');
+      },
+    }
 
   ];
 
@@ -149,7 +150,9 @@ const {
       value: <Text copyable>{customerInfo.phone}</Text>,
     },
     {
-      label: 'Quantity',
+      label: <>
+        <MdProductionQuantityLimits className='text-primary mr-2' /> Quantity
+      </>,
       value: <Text strong>{bookings?.quantity || 0} Ticket(s)</Text>,
     },
     {

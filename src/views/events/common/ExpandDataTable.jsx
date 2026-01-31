@@ -40,6 +40,9 @@ export const ExpandDataTable = ({
   onSearch,
   onSortChange,
   searchValue = "",
+  // Custom stats component props
+  statsComponent: StatsComponent = null,
+  showReportSwitch = true,
 }) => {
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -101,15 +104,18 @@ export const ExpandDataTable = ({
     }
 
     return (
-      <Table
-        columns={innerColumns}
-        dataSource={record.bookings}
-        pagination={false}
-        rowKey={(booking) => booking.id} // Individual bookings should have their own id
-        size="small"
-        bordered
-        showHeader={true}
-      />
+      <div style={{ overflowX: 'auto', width: '100%' }}>
+        <Table
+          columns={innerColumns}
+          dataSource={record.bookings}
+          pagination={false}
+          rowKey={(booking) => booking.id}
+          size="small"
+          bordered
+          showHeader={true}
+          scroll={{ x: 'max-content' }}
+        />
+      </div>
     );
   }, [innerColumns]);
 
@@ -377,12 +383,14 @@ export const ExpandDataTable = ({
         </Tooltip>
       )}
       {extraHeaderContent}
-      <Switch
-        checked={showGatewayReport}
-        onChange={(checked) => setShowGatewayReport(checked)}
-        checkedChildren="Hide"
-        unCheckedChildren="Show Report"
-      />
+      {showReportSwitch && (
+        <Switch
+          checked={showGatewayReport}
+          onChange={(checked) => setShowGatewayReport(checked)}
+          checkedChildren="Hide"
+          unCheckedChildren="Show Report"
+        />
+      )}
     </Space>
   );
 
@@ -424,7 +432,9 @@ export const ExpandDataTable = ({
   return (
     <>
       {showGatewayReport && (
-        <BookingCount date={dateRange} showGatewayAmount={showGatewayReport} type={type} />
+        StatsComponent 
+          ? <StatsComponent dateRange={dateRange} />
+          : <BookingCount date={dateRange} showGatewayAmount={showGatewayReport} type={type} />
       )}
       <Card
         bordered={false}

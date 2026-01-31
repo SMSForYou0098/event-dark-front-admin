@@ -119,7 +119,8 @@ const ScanHistory = () => {
       dataIndex: "scan_id",
       key: "scan_id",
       align: "center",
-      width: 60,
+      width: 50,
+      fixed: 'left',
       render: (_, __, index) => index + 1,
     },
     {
@@ -127,17 +128,9 @@ const ScanHistory = () => {
       dataIndex: ["checkpoint", "label"],
       key: "checkpoint",
       align: "center",
+      width: 120,
       render: (_, record) => (
-        <div>
-          <Text strong>{record.checkpoint?.label || "-"}</Text>
-          {/* {record.checkpoint?.code && (
-            <div>
-              <Tag color="purple" style={{ fontSize: 10 }}>
-                {record.checkpoint.code}
-              </Tag>
-            </div>
-          )} */}
-        </div>
+        <Text strong>{record.checkpoint?.label || "-"}</Text>
       ),
     },
     {
@@ -145,6 +138,7 @@ const ScanHistory = () => {
       dataIndex: "scan_result",
       key: "scan_result",
       align: "center",
+      width: 90,
       render: (result) => (
         <Tag color={result === 'success' ? 'success' : 'error'}>
           {result ? result.charAt(0).toUpperCase() + result.slice(1) : '-'}
@@ -156,7 +150,7 @@ const ScanHistory = () => {
       dataIndex: "scanned_at",
       key: "scanned_at",
       align: "center",
-      width: 150,
+      width: 140,
       render: (scannedAt) => formatDateTime(scannedAt),
     },
     {
@@ -164,31 +158,32 @@ const ScanHistory = () => {
       dataIndex: ["scanned_by", "name"],
       key: "scanned_by",
       align: "center",
+      width: 100,
       render: (_, record) => record.scanned_by?.name || "-",
     },
     {
-      title: "Device Info",
+      title: "Device",
       dataIndex: "device_info",
       key: "device_info",
       align: "center",
-      width: 150,
-      ellipsis: true,
+      width: 100,
       render: (deviceInfo) => {
         if (!deviceInfo) return "-";
         const browserMatch = deviceInfo.match(/(Chrome|Firefox|Safari|Edge|Opera)[\/\s](\d+)/i);
         const browser = browserMatch ? `${browserMatch[1]} ${browserMatch[2]}` : 'Unknown';
         return (
           <Tooltip title={deviceInfo}>
-            <Text style={{ maxWidth: 150 }}>{browser}</Text>
+            <Text>{browser}</Text>
           </Tooltip>
         );
       },
     },
     {
-      title: "IP Address",
+      title: "IP",
       dataIndex: "ip_address",
       key: "ip_address",
       align: "center",
+      width: 110,
       render: (ip) => ip || "-",
     },
   ];
@@ -200,7 +195,8 @@ const ScanHistory = () => {
       dataIndex: "booking_id",
       key: "booking_id",
       align: "center",
-      width: 60,
+      width: 50,
+      fixed: 'left',
       render: (_, __, index) => index + 1,
     },
     {
@@ -208,6 +204,7 @@ const ScanHistory = () => {
       dataIndex: ["booking_details", "name"],
       key: "attendee",
       align: "left",
+      width: 150,
       searchable: true,
       render: (_, record) => (
         <div>
@@ -219,14 +216,19 @@ const ScanHistory = () => {
               </Text>
             </div>
           )}
-          {record.booking_details?.email && (
-            <div>
-              <Text type="secondary" style={{ fontSize: 11 }}>
-                {record.booking_details.email}
-              </Text>
-            </div>
-          )}
         </div>
+      ),
+    },
+    {
+      title: "Ticket",
+      dataIndex: ["booking_details", "ticket", "name"],
+      key: "ticket",
+      align: "center",
+      width: 130,
+      render: (_, record) => (
+        <Tag color="cyan">
+          {record.booking_details?.ticket?.name || "-"}
+        </Tag>
       ),
     },
     {
@@ -234,6 +236,7 @@ const ScanHistory = () => {
       dataIndex: ["event", "name"],
       key: "event",
       align: "center",
+      width: 180,
       searchable: true,
       render: (_, record) => (
         <div>
@@ -249,10 +252,11 @@ const ScanHistory = () => {
       ),
     },
     {
-      title: "Booking Type",
+      title: "Type",
       dataIndex: "booking_type",
       key: "booking_type",
       align: "center",
+      width: 80,
       render: (type) => (
         <Tag color={type === 'pos' ? 'blue' : type === 'online' ? 'green' : 'default'}>
           {type ? type.charAt(0).toUpperCase() + type.slice(1) : '-'}
@@ -321,6 +325,9 @@ const ScanHistory = () => {
       serverSide
       pagination={pagination}
       onPaginationChange={handlePaginationChange}
+      // Custom stats component for scan statistics
+      // statsComponent={ScanStatistics}
+      showReportSwitch={false}
       tableProps={{
         bordered: false,
       }}

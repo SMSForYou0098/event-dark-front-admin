@@ -455,6 +455,15 @@ const reportingSubmenu = [
     // roles: ["Admin"],
     permissions: ["View Organizer Reports"],
   },
+  {
+    key: 'scanner-report',
+    path: 'reports/scanner',
+    title: 'Scanner Report',
+    icon: FileSearchOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: ["View Scanner Reports"],
+  },
 ];
 
 const reportingNav = {

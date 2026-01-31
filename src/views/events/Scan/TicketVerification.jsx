@@ -33,6 +33,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [ticketData, setTicketData] = useState([]);
     const [event, setEvent] = useState();
     const [selectedEventIds, setSelectedEventIds] = useState([]); // For multiple event selection
+    const [selectedEventsList, setSelectedEventsList] = useState([]); // For multiple event selection with full data
+    const [selectedCheckpoints, setSelectedCheckpoints] = useState([]); // Array of { event_id, checkpoint_id }
     const [type, setType] = useState('');
     const [categoryData, setCategoryData] = useState(null);
     const [attendees, setAttendees] = useState([]);
@@ -91,9 +93,9 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                             </Divider> */}
                             <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
                                 {checkpoints.map((cp, index) => (
-                                    <Card 
-                                        key={index} 
-                                        size="small" 
+                                    <Card
+                                        key={index}
+                                        size="small"
                                         style={{ marginBottom: 8 }}
                                         bodyStyle={{ padding: '8px 12px' }}
                                     >
@@ -178,6 +180,10 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         if (Array.isArray(ticketsOrEventIds) && typeof ticketsOrEventIds[0] === 'number') {
             // Multiple mode: eventOrEvents = array of events, ticketsOrEventIds = array of event IDs
             setSelectedEventIds(ticketsOrEventIds);
+            setSelectedEventsList(eventOrEvents);
+            // Reset selected checkpoints when events change
+            setSelectedCheckpoints([]);
+
             if (eventOrEvents.length > 0) {
                 const firstEvent = eventOrEvents[0];
                 setEvent(firstEvent);
@@ -191,12 +197,16 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 // Deselecting all events - just clear state, no API call needed
                 setEvent(null);
                 setSelectedEventIds([]);
+                setSelectedEventsList([]);
+                setSelectedCheckpoints([]);
                 setCategoryData(null);
             }
         } else if (Array.isArray(ticketsOrEventIds) && ticketsOrEventIds.length === 0) {
             // Empty array passed - clear selection, no API call
             setEvent(null);
             setSelectedEventIds([]);
+            setSelectedEventsList([]);
+            setSelectedCheckpoints([]);
             setCategoryData(null);
         } else {
             // Single mode: eventOrEvents = single event, ticketsOrEventIds = tickets
@@ -204,6 +214,10 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             const newCategory = eventOrEvents?.category;
             setEvent(eventOrEvents);
             setSelectedEventIds([eventOrEvents?.id]); // Store as single-item array for API consistency
+            setSelectedEventsList([eventOrEvents]);
+            // Reset selected checkpoints when events change
+            setSelectedCheckpoints([]);
+
             // Only fetch category data if category exists and changed
             if (newCategory && newCategory !== event?.category) {
                 const data = await fetchCategoryData(newCategory);
@@ -211,6 +225,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             }
         }
     };
+
+    // 
 
     // ─── Handle Attendees ────────────────────
     const handleAttendees = (data) => {
@@ -227,7 +243,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const verifyTicketMutation = useMutation({
         mutationFn: (token) => api.post(`verify-ticket/${token}`, {
             user_id: UserData?.reporting_user,
-            event_ids: selectedEventIds
+            event_ids: selectedEventIds,
+            checkpoints: selectedCheckpoints
         }),
         onMutate: () => {
             setLoading(prev => ({ ...prev, fetching: true }));
@@ -302,9 +319,66 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         }
     };
 
+    // ─── Checkpoint Validation ──────────────
+    const validateCheckpointSelection = () => {
+        // Helper to check if a checkpoint is active based on current time
+        const isCheckpointActive = (checkpoint) => {
+            if (!checkpoint?.start_time || !checkpoint?.end_time) return true;
+
+            const now = new Date();
+            const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+            const parseTime = (timeStr) => {
+                const [h, m] = timeStr.split(':').map(Number);
+                return h * 60 + m;
+            };
+
+            const startMinutes = parseTime(checkpoint.start_time);
+            const endMinutes = parseTime(checkpoint.end_time);
+
+            return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+        };
+
+        // Get events that have checkpoints configured with at least one ACTIVE checkpoint
+        const eventsWithActiveCheckpoints = selectedEventsList.filter(event => {
+            const checkpoints = event?.scan_checkpoints;
+            if (!Array.isArray(checkpoints) || checkpoints.length === 0) return false;
+            // Only include event if it has at least one active checkpoint
+            return checkpoints.some(cp => cp?.id && isCheckpointActive(cp));
+        });
+
+        if (eventsWithActiveCheckpoints.length === 0) {
+            // No events require checkpoints (either no checkpoints or all inactive)
+            return { valid: true };
+        }
+
+        // Check if each event with active checkpoints has a selected checkpoint
+        const missingCheckpoints = eventsWithActiveCheckpoints.filter(
+            event => !selectedCheckpoints.some(cp => cp.event_id === event.id)
+        );
+
+        if (missingCheckpoints.length > 0) {
+            const eventNames = missingCheckpoints.map(e => e.name).join(', ');
+            return {
+                valid: false,
+                message: `Please select a checkpoint for: ${eventNames}`
+            };
+        }
+
+        return { valid: true };
+    };
+
     // ─── Handle QR Data Length ───────────────
     useEffect(() => {
         if (QRdata?.length === tokenLength) {
+            // Validate checkpoint selection first
+            const validation = validateCheckpointSelection();
+            if (!validation.valid) {
+                showErrorModal(validation.message);
+                setQRData('');
+                return;
+            }
+
             if (userRole === 'Admin') {
                 if (scanType === 'verify' || scanType === 'shopkeeper') {
                     handleAdminAction(scanType, QRdata);
@@ -501,6 +575,9 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                                     eventId={event?.id}
                                     setScanType={setScanType}
                                     userRole={userRole}
+                                    selectedEventsList={selectedEventsList}
+                                    selectedCheckpoints={selectedCheckpoints}
+                                    setSelectedCheckpoints={setSelectedCheckpoints}
                                 />
                             </Col>
                             <Col xs={24} sm={24} lg={12}>

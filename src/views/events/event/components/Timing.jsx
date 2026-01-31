@@ -172,6 +172,25 @@ const TimingStep = ({ form, ...props }) => {
                         required: !isTba,
                         message: isDayEvent && !isOvernight ? 'Please select event date' : 'Please select date range',
                       },
+                      {
+                        validator: (_, value) => {
+                          // For daily and seasonal events, start and end dates must be different
+                          if (!value || typeof value !== 'string' || !value.includes(',')) {
+                            return Promise.resolve();
+                          }
+
+                          const currentEventType = form.getFieldValue('event_type');
+                          if (currentEventType === 'daily' || currentEventType === 'seasonal') {
+                            const [startDate, endDate] = value.split(',').map(s => s.trim());
+                            if (startDate === endDate) {
+                              return Promise.reject(
+                                new Error(`${currentEventType === 'daily' ? 'Daily' : 'Seasonal'} events must have different start and end dates`)
+                              );
+                            }
+                          }
+                          return Promise.resolve();
+                        },
+                      },
                     ]}
                     // Show picker using stored dates + start/end_time for the time parts
                     getValueProps={(value) => {

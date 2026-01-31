@@ -239,11 +239,11 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               label: "High Demand",
               tooltip: "Mark this event as high demand",
             },
-            {
-              name: "house_full",
-              label: "House Full",
-              tooltip: "Mark event as sold out",
-            },
+            // {
+            //   name: "house_full",
+            //   label: "House Full",
+            //   tooltip: "Mark event as sold out",
+            // },
             {
               name: "is_sold_out",
               label: "Sold Out",
@@ -334,6 +334,30 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               );
             })}
         </Row>
+        {/* Expected Date - Only show when event is postponed */}
+        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.is_postponed !== curr.is_postponed}>
+          {({ getFieldValue }) => {
+            const isPostponed = toBoolean(getFieldValue('is_postponed'));
+
+            return isPostponed ? (
+              <Row gutter={ROW_GUTTER}>
+                <Col xs={24} sm={4} lg={4}>
+                  <Form.Item
+                    name="expected_date"
+                    label="Expected Date"
+                    tooltip="Expected date for postponed or rescheduled events"
+                  >
+                    <DatePicker
+                      style={{ width: '100%' }}
+                      format="YYYY-MM-DD"
+                      placeholder="Select expected date"
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+            ) : null;
+          }}
+        </Form.Item>
       </Card>
 
       {/* Group 3: Display Settings */}
@@ -383,30 +407,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
         </Row>
       </Card>
 
-      {/* Expected Date - Only show when event is postponed */}
-      <Form.Item noStyle shouldUpdate={(prev, curr) => prev.is_postponed !== curr.is_postponed}>
-        {({ getFieldValue }) => {
-          const isPostponed = toBoolean(getFieldValue('is_postponed'));
 
-          return isPostponed ? (
-            <Row gutter={ROW_GUTTER}>
-              <Col xs={24} sm={4} lg={4}>
-                <Form.Item
-                  name="expected_date"
-                  label="Expected Date"
-                  tooltip="Expected date for postponed or rescheduled events"
-                >
-                  <DatePicker
-                    style={{ width: '100%' }}
-                    format="YYYY-MM-DD"
-                    placeholder="Select expected date"
-                  />
-                </Form.Item>
-              </Col>
-            </Row>
-          ) : null;
-        }}
-      </Form.Item>
 
       {/* WhatsApp Note */}
       {/* <Form.Item
@@ -457,25 +458,25 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                   </Form.Item>
                 </Col>
               ))}
-            </Row>
+              {/* </Row> */}
 
-            {/* show button only when Booking By Seat is selected */}
-            <Form.Item shouldUpdate noStyle>
-              {() => {
-                const bookingBySeatValue = form.getFieldValue("bookingBySeat");
-                return toBoolean(bookingBySeatValue) ? (
-                  <Button type="primary" onClick={handleManageLayoutClick}>
-                    Manage Ticket in Layout
-                  </Button>
-                ) : null;
-              }}
-            </Form.Item>
+              {/* show button only when Booking By Seat is selected */}
+              <Form.Item shouldUpdate noStyle>
+                {() => {
+                  const bookingBySeatValue = form.getFieldValue("bookingBySeat");
+                  return toBoolean(bookingBySeatValue) ? (
+                    <Button type="primary" onClick={handleManageLayoutClick}>
+                      Manage Ticket in Layout
+                    </Button>
+                  ) : null;
+                }}
+              </Form.Item>
 
-            {/* Multi-Scan Configuration Section */}
-            {/* <Card size="small" title="Multi-Scan Configuration" style={{ marginTop: 16 }}> */}
-            <Row gutter={ROW_GUTTER}>
+              {/* Multi-Scan Configuration Section */}
+              {/* <Card size="small" title="Multi-Scan Configuration" style={{ marginTop: 16 }}> */}
+              {/* <Row gutter={ROW_GUTTER}> */}
               {/* Multi-Scan Master Switch */}
-              <Col xs={24} sm={12} lg={6}>
+              <Col xs={24} sm={12} lg={4}>
                 <Form.Item
                   name="multi_scan"
                   label="Enable Multi-Scan"
@@ -511,7 +512,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                       <Col xs={24} sm={12} lg={6}>
                         <Form.Item
                           name="scan_mode"
-                          label="Timezone / Checkpoint Mode"
+                          label="Checkpoint Mode"
                           tooltip="Enable sequential checkpoint validation with time slots"
                           valuePropName="checked"
                           getValueProps={(v) => ({ checked: toBoolean(v) })}
@@ -565,7 +566,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                       </Form.Item>
 
                       {/* Checkpoint Count - only show when scan_mode is ON */}
-                      <Form.Item noStyle shouldUpdate={(prev, curr) => prev.scan_mode !== curr.scan_mode || prev.checkpoints !== curr.checkpoints}>
+                      {/* <Form.Item noStyle shouldUpdate={(prev, curr) => prev.scan_mode !== curr.scan_mode || prev.checkpoints !== curr.checkpoints}>
                         {({ getFieldValue: gfv }) => {
                           const isSequential = toBoolean(gfv('scan_mode'));
                           const checkpoints = gfv('checkpoints') || [];
@@ -582,7 +583,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                             </Col>
                           ) : null;
                         }}
-                      </Form.Item>
+                      </Form.Item> */}
                     </>
                   ) : null;
                 }}

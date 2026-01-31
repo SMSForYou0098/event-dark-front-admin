@@ -822,6 +822,11 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/Reports/AgentReport')),
     },
     {
+        key: 'scanner-reports',
+        path: `/reports/scanner`,
+        component: React.lazy(() => import('views/events/Reports/ScannerReport')),
+    },
+    {
         key: 'organizer-reports',
         path: `/reports/organizer`,
         component: React.lazy(() => import('views/events/Reports/OrganizerReport')),
