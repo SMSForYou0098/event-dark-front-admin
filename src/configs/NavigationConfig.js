@@ -1,15 +1,38 @@
 import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined, FileImageOutlined, CheckOutlined } from '@ant-design/icons';
 
 // Dashboard
+
+const dashboarSubmenuNav = [
+  {
+    key: 'dashboard',
+    path: 'dashboard',
+    title: 'Dashboard',
+    icon: DashboardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: ["View Dashboard"]
+  }, {
+    key: 'gateway',
+    path: '/dashboard/gateway',
+    title: 'Gateway',
+    icon: DashboardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: ["View Gateway"]
+  }];
+
+
 const dashboardNav = {
   key: 'dashboard',
   path: 'dashboard',
   title: 'Dashboard',
   icon: DashboardOutlined,
   breadcrumb: false,
-  submenu: [],
+  submenu: dashboarSubmenuNav,
   permissions: ["View Dashboard"]
 };
+
+
 
 // User Management Submenu
 const userManagementSubmenu = [

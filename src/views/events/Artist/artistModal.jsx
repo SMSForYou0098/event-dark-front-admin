@@ -1,7 +1,7 @@
 // components/ArtistCrewModal.js
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Select, Switch, Row, Col, message, Space, Button, Image } from 'antd';
-import { UserOutlined, TeamOutlined, PictureOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Modal, Form, Input, Select, Radio, Row, Col, message, Space, Button, Image } from 'antd';
+import { UserOutlined, TeamOutlined, StarOutlined, PictureOutlined, DeleteOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import apiClient from 'auth/FetchInterceptor';
 import { useMyContext } from 'Context/MyContextProvider';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
@@ -51,7 +51,7 @@ const ArtistCrewModal = ({
                 description: initialValues.description,
                 category: [initialValues.category],
                 event_id: initialValues.event_id,
-                contact_number: initialValues.contact_number,
+                number: initialValues.number,
                 photo: initialValues?.photo,
             });
             setSelectedCategory([initialValues.category]);
@@ -65,10 +65,17 @@ const ArtistCrewModal = ({
         }
     }, [open, mode, initialValues, form]);
 
-    const handleTypeChange = (checked) => {
-        setType(checked ? 'Crew' : 'Artist');
-        if (!checked) {
-            form.setFieldValue('contact_number', undefined);
+    const handleTypeChange = (e) => {
+        const newType = e.target.value;
+        setType(newType);
+        // Reset fields when switching types
+        if (newType === 'Artist') {
+            form.setFieldValue('number', undefined);
+            form.setFieldValue('email', undefined);
+        } else if (newType === 'Influencer') {
+            form.setFieldValue('description', undefined);
+            form.setFieldValue('category', undefined);
+            setSelectedCategory([]);
         }
     };
 
@@ -83,8 +90,8 @@ const ArtistCrewModal = ({
     };
 
     const handleSubmit = async (values) => {
-        // Validate photo selection
-        if (!selectedPhotoUrl) {
+        // Validate photo selection (required for Artist and Crew, optional for Influencer)
+        if ((type === 'Artist' || type === 'Crew') && !selectedPhotoUrl) {
             message.error('Please select a photo');
             return;
         }
@@ -94,18 +101,24 @@ const ArtistCrewModal = ({
             const formData = new FormData();
             formData.append('user_id', UserData?.id);
             formData.append('name', values.name);
-            formData.append('description', values.description || '');
-            formData.append('category', values.category);
             formData.append('type', type);
 
-            // Add contact number only if Crew type
-            if (type === 'Crew' && values.contact_number) {
-                formData.append('contact_number', values.contact_number);
-            }
+            // Add type-specific fields
+            if (type === 'Influencer') {
+                // Influencer: email, phone number, photo (all optional)
+                if (values.email) formData.append('email', values.email);
+                if (values.number) formData.append('number', values.number);
+                if (selectedPhotoUrl) formData.append('photo', selectedPhotoUrl);
+            } else {
+                // Artist/Crew: description, category, photo (required)
+                formData.append('description', values.description || '');
+                formData.append('category', values.category);
+                if (selectedPhotoUrl) formData.append('photo', selectedPhotoUrl);
 
-            // Append photo URL from gallery
-            if (selectedPhotoUrl) {
-                formData.append('photo', selectedPhotoUrl);
+                // Add contact number only for Crew
+                if (type === 'Crew' && values.number) {
+                    formData.append('number', values.number);
+                }
             }
 
             // API call
@@ -168,92 +181,153 @@ const ArtistCrewModal = ({
                     layout="vertical"
                     onFinish={handleSubmit}
                 >
-                    <Space className='justify-content-center w-100 py-2'>
-                        <UserOutlined style={{ color: !type || type === 'Artist' ? 'var(--primary-color)' : 'var(--text-white)' }} />
-                        <Switch
-                            checked={type === 'Crew'}
+                    <div className='d-flex justify-content-center w-100 py-3'>
+                        <Radio.Group
+                            value={type}
                             onChange={handleTypeChange}
-                            checkedChildren="Crew"
-                            style={{ width: '7rem' }}
-                            unCheckedChildren="Artist"
-                        />
-                        <TeamOutlined style={{ color: type === 'Crew' ? 'var(--primary-color)' : 'var(--text-white)' }} />
-                    </Space>
+                            buttonStyle="solid"
+                            size="middle"
+                        >
+                            <Radio.Button value="Artist">
+                                <UserOutlined style={{ marginRight: 6 }} />
+                                Artist
+                            </Radio.Button>
+                            <Radio.Button value="Crew">
+                                <TeamOutlined style={{ marginRight: 6 }} />
+                                Crew
+                            </Radio.Button>
+                            <Radio.Button value="Influencer">
+                                <StarOutlined style={{ marginRight: 6 }} />
+                                Influencer
+                            </Radio.Button>
+                        </Radio.Group>
+                    </div>
                     <Row gutter={12}>
-                        <Col xs={24} md={type === 'Crew' ? 8 : 12}>
+                        {/* Common Name field for all types */}
+                        <Col xs={24} md={type === 'Influencer' ? 8 : (type === 'Crew' ? 8 : 12)}>
                             <Form.Item
                                 label="Name"
                                 name="name"
                                 rules={[{ required: true, message: 'Please enter name' }]}
                             >
-                                <Input placeholder={`Enter ${type.toLowerCase()} name`} />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={type === 'Crew' ? 8 : 12}>
-                            <Form.Item
-                                label="Category"
-                                name="category"
-                                rules={[{ required: true, message: 'Please select category' }]}
-                            >
-                                <Select
-                                    showSearch
-                                    value={selectedCategory}
-                                    placeholder="Select category"
-                                    options={PREDEFINED_CATEGORIES.map(cat => ({ value: cat, label: cat }))}
-                                    mode="tags"
-                                    maxTagCount={1}
-                                    maxCount={1}
-                                    onChange={(value) => {
-                                        const newValue = value.length > 0 ? [value[value.length - 1]] : [];
-                                        setSelectedCategory(newValue);
-                                        form.setFieldValue('category', newValue);
-                                    }}
-                                    allowClear
-                                    onClear={() => {
-                                        setSelectedCategory([]);
-                                        form.setFieldValue('category', []);
-                                    }}
+                                <Input
+                                    prefix={<UserOutlined />}
+                                    placeholder={`Enter ${type.toLowerCase()} name`}
                                 />
                             </Form.Item>
                         </Col>
 
-                        {/* Show contact number only for Crew */}
-                        {type === 'Crew' && (
-                            <Col xs={24} md={8}>
-                                <Form.Item
-                                    label="Contact Number"
-                                    name="contact_number"
-                                    rules={[
-                                        {
-                                            pattern: /^\d{10,12}$/,
-                                            message: 'Contact number must be 10-12 digits'
-                                        }
-                                    ]}
-                                >
-                                    <Input placeholder="Enter contact number" />
-                                </Form.Item>
-                            </Col>
+                        {/* Influencer specific fields */}
+                        {type === 'Influencer' ? (
+                            <>
+                                <Col xs={24} md={8}>
+                                    <Form.Item
+                                        label="Email"
+                                        name="email"
+                                        rules={[
+                                            {
+                                                type: 'email',
+                                                message: 'Please enter a valid email'
+                                            }
+                                        ]}
+                                    >
+                                        <Input
+                                            prefix={<MailOutlined />}
+                                            placeholder="Enter email address"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                                <Col xs={24} md={8}>
+                                    <Form.Item
+                                        label="Phone Number"
+                                        name="number"
+                                        rules={[
+                                            {
+                                                pattern: /^\d{10,12}$/,
+                                                message: 'Phone number must be 10-12 digits'
+                                            }
+                                        ]}
+                                    >
+                                        <Input
+                                            prefix={<PhoneOutlined />}
+                                            placeholder="Enter phone number"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </>
+                        ) : (
+                            <>
+                                {/* Artist/Crew fields */}
+                                <Col xs={24} md={type === 'Crew' ? 8 : 12}>
+                                    <Form.Item
+                                        label="Category"
+                                        name="category"
+                                        rules={[{ required: true, message: 'Please select category' }]}
+                                    >
+                                        <Select
+                                            showSearch
+                                            value={selectedCategory}
+                                            placeholder="Select category"
+                                            options={PREDEFINED_CATEGORIES.map(cat => ({ value: cat, label: cat }))}
+                                            mode="tags"
+                                            maxTagCount={1}
+                                            maxCount={1}
+                                            onChange={(value) => {
+                                                const newValue = value.length > 0 ? [value[value.length - 1]] : [];
+                                                setSelectedCategory(newValue);
+                                                form.setFieldValue('category', newValue);
+                                            }}
+                                            allowClear
+                                            onClear={() => {
+                                                setSelectedCategory([]);
+                                                form.setFieldValue('category', []);
+                                            }}
+                                        />
+                                    </Form.Item>
+                                </Col>
+
+                                {/* Show contact number only for Crew */}
+                                {type === 'Crew' && (
+                                    <Col xs={24} md={8}>
+                                        <Form.Item
+                                            label="Contact Number"
+                                            name="number"
+                                            rules={[
+                                                {
+                                                    pattern: /^\d{10,12}$/,
+                                                    message: 'Contact number must be 10-12 digits'
+                                                }
+                                            ]}
+                                        >
+                                            <Input
+                                                prefix={<PhoneOutlined />}
+                                                placeholder="Enter contact number"
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                )}
+
+                                <Col xs={24}>
+                                    <Form.Item
+                                        label="Description"
+                                        name="description"
+                                    >
+                                        <TextArea
+                                            rows={2}
+                                            placeholder={`Enter ${type.toLowerCase()} description, bio, or responsibilities`}
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            </>
                         )}
 
                         <Col xs={24}>
                             <Form.Item
-                                label="Description"
-                                name="description"
-                            >
-                                <TextArea
-                                    rows={2}
-                                    placeholder={`Enter ${type.toLowerCase()} description, bio, or responsibilities`}
-                                />
-                            </Form.Item>
-                        </Col>
-
-                        <Col xs={24}>
-                            <Form.Item
-                                label="Photo"
+                                label={type === 'Influencer' ? 'Image' : 'Photo'}
                                 name="photo"
                                 rules={[
                                     {
-                                        required: true,
+                                        required: type !== 'Influencer',
                                         message: 'Please select a photo'
                                     }
                                 ]}

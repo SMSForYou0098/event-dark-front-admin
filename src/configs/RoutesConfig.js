@@ -85,6 +85,15 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'dashboard',
+        path: `/dashboard/gateway`,
+        component: React.lazy(() => import('views/events/Dashboard/Gateway/GatewayReport')),
+        meta: {
+            // permissions: ['View Dashboard'],
+            roles: ['Admin'],
+        }
+    },
+    {
         key: 'agreement/preview/:id',
         path: `/agreement/preview/:id`,
         component: React.lazy(() => import('views/events/Agreement/PreviewAgreement')),

@@ -555,6 +555,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                     </div>
                     <Col span={24}>
                         <PosEvents
+                            type='scan'
                             handleButtonClick={loadCategoryData}
                             isScanner={userRole === 'Scanner'}
                             multiple={true}

@@ -44,7 +44,7 @@ const Artist = () => {
 
     const url = `/artist-list/${UserData?.id}?${params.toString()}`;
     const response = await api.get(url);
-    
+
     // Extract pagination data from response
     const paginationData = response.pagination || {
       current_page: currentPage,
@@ -52,7 +52,7 @@ const Artist = () => {
       total: response.data?.length || 0,
       last_page: 1,
     };
-    
+
     return { artists: response.data || [], pagination: paginationData };
   };
 
@@ -120,9 +120,23 @@ const Artist = () => {
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
       render: (name) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'left', gap: 8, justifyContent: 'left' }}>
           <User size={16} className="text-primary" />
           <span>{name}</span>
+        </div>
+      )
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      align: 'center',
+      sorter: (a, b) => a.type?.localeCompare(b.type),
+      searchable: true,
+      render: (type) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          <User size={16} className="text-primary" />
+          <span>{type}</span>
         </div>
       )
     },
@@ -130,6 +144,7 @@ const Artist = () => {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
+      align: 'center',
       sorter: (a, b) => a.category?.localeCompare(b.category),
       searchable: true,
     },

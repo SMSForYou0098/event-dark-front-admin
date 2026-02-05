@@ -178,6 +178,7 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('pos_booking', values.pos_booking ?? true);
     appendIfDefined('complimentary_booking', values.complimentary_booking ?? true);
     appendIfDefined('sponsor_booking', values.sponsor_booking ?? true);
+    appendIfDefined('is_approval_required', values.is_approval_required ?? false);
 
     // Convert expected_date to string format if it's a moment/dayjs object
     if (values.expected_date) {
@@ -262,6 +263,7 @@ export function buildEventFormData(values, isDraft = false) {
   // ---------- ARTIST ----------
   if (values.step === 'artist') {
     appendIfDefined('artist_id', values.artist_id);
+    appendIfDefined('influencer_ids', values.influencer_ids);
   }
 
   // ---------- MEDIA ----------
@@ -415,6 +417,41 @@ export const useArtists = (options = {}) =>
       return status >= 500 && count < 2;
     },
     ...options, // allow overrides
+  });
+
+// ------- event influencers api call --------
+// Fetch influencers assigned to a specific event
+export const useEventInfluencers = (eventId, enabled = true) =>
+  useQuery({
+    queryKey: ['event-influencers', eventId],
+    queryFn: async () => {
+      const res = await api.get(`event/${eventId}/influencers`);
+      const rawData = res?.influencers || res?.data?.influencers || res?.data || [];
+
+      return Array.isArray(rawData) ? rawData : [];
+    },
+    enabled: !!eventId && enabled, // Only fetch when eventId exists and enabled is true
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+  });
+
+// ------- assign influencers to event --------
+// POST influencer_ids to assign influencers to an event
+export const useAssignEventInfluencers = (options = {}) =>
+  useMutation({
+    mutationFn: async ({ eventId, influencer_ids }) => {
+      const res = await api.post(`event/${eventId}/influencers/bulk-assign`, { influencer_ids });
+      if (res?.status === false) {
+        const err = new Error(res?.message || 'Failed to assign influencers');
+        err.server = res;
+        throw err;
+      }
+      return res;
+    },
+    ...options,
   });
 
 

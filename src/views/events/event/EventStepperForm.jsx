@@ -38,6 +38,7 @@ import {
     useCreateEvent,
     useUpdateEvent,
     useEventDetail,
+    useAssignEventInfluencers,
 } from './hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
 
@@ -98,6 +99,7 @@ const EventStepperForm = () => {
         const event_seo = detail?.event_seo ?? {};
 
         const patch = {};
+        const toBool = (v) => v === true || v === 1 || v === '1';
 
         // Always set org_id if available (needed for ContentSelect components in all steps)
         if (detail?.user_id) {
@@ -125,7 +127,6 @@ const EventStepperForm = () => {
         // Step 1: Event Controls (now includes ticket settings from removed tickets step)
         if (current === 1) {
             // Helper to convert API values (could be boolean, number, or string) to boolean
-            const toBool = (v) => v === true || v === 1 || v === '1';
 
             // Parse expected_date if it exists (from controls object)
             let expectedDateValue = undefined;
@@ -169,6 +170,7 @@ const EventStepperForm = () => {
                 pos_booking: controls?.pos_booking !== undefined ? toBool(controls.pos_booking) : true,
                 complimentary_booking: controls?.complimentary_booking !== undefined ? toBool(controls.complimentary_booking) : true,
                 sponsor_booking: controls?.sponsor_booking !== undefined ? toBool(controls.sponsor_booking) : true,
+                is_approval_required: toBool(controls?.is_approval_required),
 
                 // storing instagram post id from url
                 insta_whts_url: detail?.insta_whts_url || '',
@@ -258,6 +260,8 @@ const EventStepperForm = () => {
                 artist_id: detail?.artist_id
                     ? detail.artist_id.split(',').map((id) => Number(id.trim()))
                     : [],
+                // Need to set is_approval_required here too since form patching is per-step
+                is_approval_required: toBool(controls?.is_approval_required),
             });
         }
 
@@ -309,6 +313,16 @@ const EventStepperForm = () => {
         },
         onError: (error) => {
             message.error(error?.message || 'Failed to update event');
+        },
+    });
+
+    // Assign influencers mutation
+    const { mutateAsync: assignInfluencers, isPending: assigningInfluencers } = useAssignEventInfluencers({
+        onSuccess: () => {
+            // Silent success - main update already shows success message
+        },
+        onError: (error) => {
+            message.error(error?.message || 'Failed to assign influencers');
         },
     });
 
@@ -368,7 +382,7 @@ const EventStepperForm = () => {
             //     icon: <TagsOutlined />,
             // },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
-            { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} />, icon: <EnvironmentOutlined /> },
+            { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} isEdit={isEdit} eventId={detail?.event_key} id={detail?.id} />, icon: <EnvironmentOutlined /> },
             { title: 'SEO', content: <SEOStep form={form} eventKey={id} componentLoader={componentLoader} setComponentLoader={setComponentLoader} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
@@ -403,6 +417,20 @@ const EventStepperForm = () => {
                     userId: UserData?.id,
                 });
                 await updateEvent({ id, body });
+
+                // Assign influencers when on Artist step (step 4) and is_approval_required is true
+                if (current === 4) {
+                    const isApprovalRequired = form.getFieldValue('is_approval_required');
+                    const influencerIds = form.getFieldValue('influencer_ids') || [];
+
+                    if (isApprovalRequired && influencerIds.length > 0) {
+                        await assignInfluencers({
+                            eventId: detail?.id,
+                            influencer_ids: influencerIds
+                        });
+                    }
+                }
+
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 if (current === 6) {
                     message.success('Event ready to publish!');

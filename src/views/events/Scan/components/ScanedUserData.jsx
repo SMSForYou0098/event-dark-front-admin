@@ -373,10 +373,13 @@ const ScanedUserData = ({
                 data={scan_history}
                 columns={scanHistoryColumns}
                 emptyText="No scan history"
+
                 tableProps={{
                   rowKey: (record, index) => `scan-${index}`,
                   pagination: false,
                   size: 'small',
+                  scroll: { x: 700 },
+                  size: "middle",
                 }}
               />
             )}

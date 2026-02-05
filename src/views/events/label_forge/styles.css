@@ -1,0 +1,202 @@
+/* Label Forge Custom Styles */
+
+.label-forge-container {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Draggable Element Styles */
+.draggable-element {
+    transition: box-shadow 0.2s ease;
+}
+
+.draggable-element:hover {
+    z-index: 20 !important;
+}
+
+/* Resize Handle Styles */
+.resize-handle {
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.resize-handle:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 4px rgba(24, 144, 255, 0.5);
+}
+
+/* Context Menu Item Hover */
+.context-menu-item:hover {
+    background-color: #f5f5f5;
+}
+
+/* Scrollbar Styles */
+.label-forge-container ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.label-forge-container ::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.label-forge-container ::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.label-forge-container ::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Tag/Variable Chip Hover */
+.label-forge-container .ant-tag {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.label-forge-container .ant-tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Canvas Shadow */
+.canvas-transform-wrapper > div {
+    transition: box-shadow 0.3s ease;
+}
+
+/* Button Transitions */
+.label-forge-container .ant-btn {
+    transition: all 0.2s ease;
+}
+
+/* Layer Item Hover */
+.layer-item:hover {
+    background-color: #fafafa;
+}
+
+/* Toolbox Button Active State */
+.label-forge-container .toolbox-btn:active {
+    transform: scale(0.95);
+}
+
+/* Selection Border Animation */
+@keyframes pulse-border {
+    0% {
+        border-color: rgba(24, 144, 255, 0.8);
+    }
+    50% {
+        border-color: rgba(24, 144, 255, 0.4);
+    }
+    100% {
+        border-color: rgba(24, 144, 255, 0.8);
+    }
+}
+
+/* Modal Backdrop */
+.label-forge-container .ant-modal-mask {
+    background-color: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(2px);
+}
+
+/* Input Focus States */
+.label-forge-container .ant-input:focus,
+.label-forge-container .ant-input-number:focus,
+.label-forge-container .ant-input-number-focused,
+.label-forge-container .ant-select-focused .ant-select-selector {
+    border-color: #1890ff !important;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* Slider styles */
+.label-forge-container .ant-slider-track {
+    background-color: #1890ff;
+}
+
+.label-forge-container .ant-slider-handle {
+    border-color: #1890ff;
+}
+
+/* Properties Panel */
+.properties-panel-enter {
+    opacity: 0;
+    transform: translateX(20px);
+}
+
+.properties-panel-enter-active {
+    opacity: 1;
+    transform: translateX(0);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Tooltip overrides */
+.label-forge-container .ant-tooltip-inner {
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+/* Empty state */
+.label-forge-container .ant-empty-description {
+    font-size: 12px;
+    color: #999;
+}
+
+/* Button group dividers */
+.button-group-divider {
+    width: 1px;
+    height: 20px;
+    background-color: #d9d9d9;
+    margin: 0 4px;
+}
+
+/* Header shadow */
+.label-forge-container > header {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    z-index: 20;
+    position: relative;
+}
+
+/* Sidebar shadow */
+.label-forge-container .bg-white.border-end {
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.02);
+}
+
+/* Properties panel shadow */
+.label-forge-container .bg-white.border-start {
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.04);
+}
+
+/* Print preview paper effect */
+.preview-paper {
+    position: relative;
+}
+
+.preview-paper::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    background-color: #f0f4f8;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    z-index: -1;
+}
+
+/* Zoom indicator click style */
+.zoom-indicator {
+    cursor: pointer;
+    user-select: none;
+}
+
+.zoom-indicator:hover {
+    color: #1890ff;
+}
+
+/* Code preview styles */
+.code-preview {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+}
+
+.code-preview pre {
+    color: #4ade80;
+    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+}

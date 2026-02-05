@@ -259,6 +259,11 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               label: "Event Postponed",
               tooltip: "Mark event as postponed",
             },
+            {
+              name: "is_approval_required",
+              label: "Approval Required",
+              tooltip: "Require admin approval for bookings",
+            },
           ]
             .filter((f) => {
               // Only show "High Demand" field to Admin users

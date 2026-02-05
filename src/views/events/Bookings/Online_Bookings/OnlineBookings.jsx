@@ -263,6 +263,58 @@ const OnlineBookings = memo(() => {
     setSortOrder(order || null);
   }, []);
 
+  // Approval mutation
+  // Approval mutation
+  const approvalMutation = useMutation({
+    mutationFn: async ({ id, is_master, status }) => {
+      // Using generic endpoint or sticking to ID-based if preferred. 
+      // User asked to pass payload: { is_master, id, status }
+      return api.post(`/update-approval-status`, { is_master, id, status });
+    },
+    onSuccess: (res, variables) => {
+      if (res.status) {
+        queryClient.invalidateQueries(["onlineBookings"]);
+        message.success(
+          variables.status === 'approved'
+            ? 'Booking approved successfully!'
+            : 'Booking rejected successfully!'
+        );
+      }
+    },
+    onError: (err) => {
+      message.error(err.response?.data?.message || 'Approval action failed');
+    },
+  });
+
+  // Handle approval action
+  const handleApproval = useCallback((record, actionStatus) => {
+    // Determine is_master based on if record has nested bookings
+    // If record.bookings exists and has length, assume it's a master/grouped record
+    const is_master = record?.bookings && record?.bookings.length > 0 ? true : false;
+    const bookingId = record?.id;
+
+    // Map actionStatus ('approved'/'rejected') to API status ('approved'/'rejected')
+    const apiStatus = actionStatus === 'approved' ? 'approved' : 'rejected';
+
+    Modal.confirm({
+      title: actionStatus === 'approved' ? 'Approve Booking?' : 'Reject Booking?',
+      content: actionStatus === 'approved'
+        ? 'Are you sure you want to approve this booking?'
+        : 'Are you sure you want to reject this booking?',
+      icon: <AlertCircle size={24} color={actionStatus === 'approved' ? '#52c41a' : '#ff4d4f'} />,
+      okText: 'Yes',
+      cancelText: 'No',
+      okButtonProps: {
+        danger: actionStatus === 'rejected',
+        style: actionStatus === 'approved' ? { background: '#52c41a', borderColor: '#52c41a' } : {}
+      },
+      onOk: () => {
+        approvalMutation.mutate({ id: bookingId, is_master, status: apiStatus });
+      },
+    });
+  }, [approvalMutation]);
+
+
   const columns = [
     {
       title: "#",
@@ -354,6 +406,49 @@ const OnlineBookings = memo(() => {
         record?.gateway || record?.bookings?.[0]?.gateway || "",
     },
     {
+      title: "Approval",
+      key: "approval",
+      align: "center",
+      render: (_, record) => {
+        const approvalStatus = record?.approval_status || record?.bookings?.[0]?.approval_status;
+
+        // Only show buttons if approval_status is "pending"
+        if (approvalStatus === "pending") {
+          return (
+            <Space size="small">
+              <Tooltip title="Approve">
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => handleApproval(record, 'approved')}
+                  style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                />
+              </Tooltip>
+              <Tooltip title="Reject">
+                <Button
+                  danger
+                  size="small"
+                  icon={<CloseCircleOutlined />}
+                  onClick={() => handleApproval(record, 'rejected')}
+                />
+              </Tooltip>
+            </Space>
+          );
+        }
+
+        // Show status tag for non-pending statuses
+        if (approvalStatus === "approved") {
+          return <Tag color="success">Approved</Tag>;
+        }
+        if (approvalStatus === "rejected") {
+          return <Tag color="error">Rejected</Tag>;
+        }
+
+        return "-";
+      },
+    },
+    {
       title: "Tran ID",
       dataIndex: "payment_id",
       key: "payment_id",
@@ -389,6 +484,13 @@ const OnlineBookings = memo(() => {
       dataIndex: "total_amount",
       key: "total_amount",
       align: "center",
+      render: (_, record) => {
+        const totalAmount =
+          record?.total_amount ||
+          (record?.bookings && record?.bookings[0]?.total_amount) ||
+          0;
+        return `₹${totalAmount}`;
+      },
     },
     {
       title: "Status",
