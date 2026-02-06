@@ -1,7 +1,8 @@
 // Label Forge - Main Component
 // Thermal Printer Label Design Suite
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
+import { message } from 'antd';
 import {
     Header,
     Sidebar,
@@ -10,9 +11,13 @@ import {
     ContextMenu,
     ConfirmationModal,
     CodeModal,
-    VariableModal
+    VariableModal,
+    ZPLPrintButton
 } from './components';
 import { useLabelForge } from './useLabelForge';
+import { usePrinter } from '../../../Context/PrinterContext';
+import { generatePrinterCode } from './codeGenerators';
+import { captureAndGeneratePrintCommands } from './bitmapPrinter';
 
 import './styles.css';
 
@@ -105,6 +110,47 @@ const LabelForge = () => {
         copyCodeToClipboard,
     } = useLabelForge();
 
+    // Printer context for direct printing
+    const { isConnected, sendData, connectUSB, connectBluetooth, status, deviceName } = usePrinter();
+
+    // Ref for preview canvas (used for bitmap capture)
+    const previewRef = useRef(null);
+    const [isPrinting, setIsPrinting] = useState(false);
+
+    // Handle direct print to thermal printer (bypasses browser print dialog)
+    // Uses bitmap mode - captures the hidden clean print canvas as an image
+    const handlePrint = useCallback(async () => {
+        if (!isConnected) {
+            message.warning('Printer not connected. Please connect a printer first.');
+            return;
+        }
+
+        if (!previewRef.current) {
+            message.error('Print canvas not available. Please try again.');
+            return;
+        }
+
+        setIsPrinting(true);
+        try {
+            // Capture hidden clean print canvas as bitmap and generate printer commands
+            const printData = await captureAndGeneratePrintCommands(
+                previewRef.current,
+                printerLang,
+                labelSize,
+                1 // copies
+            );
+            
+            // Send to printer
+            await sendData(printData);
+            message.success('Label printed successfully!');
+        } catch (err) {
+            console.error('Print error:', err);
+            message.error(`Print failed: ${err.message}`);
+        } finally {
+            setIsPrinting(false);
+        }
+    }, [isConnected, printerLang, labelSize, sendData]);
+
     // Handle keyboard shortcuts
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -185,6 +231,14 @@ const LabelForge = () => {
                 handleExportTemplate={handleExportTemplate}
                 onImportClick={() => fileInputRef.current?.click()}
                 handleGenerateCode={handleGenerateCode}
+                // Printer props
+                handlePrint={handlePrint}
+                isPrinting={isPrinting}
+                isConnected={isConnected}
+                connectUSB={connectUSB}
+                connectBluetooth={connectBluetooth}
+                printerStatus={status}
+                deviceName={deviceName}
             />
 
             {/* Main Content */}
@@ -236,6 +290,7 @@ const LabelForge = () => {
                     handleAlign={handleAlign}
                     centerView={centerView}
                     allVariables={allVariables}
+                    previewRef={previewRef}
                 />
 
                 {/* Right Properties Panel */}
@@ -294,6 +349,7 @@ const LabelForge = () => {
                 onVarValueChange={setNewVarValue}
                 onAdd={handleAddCustomVar}
             />
+            <ZPLPrintButton />
         </div>
     );
 };

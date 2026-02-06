@@ -11,7 +11,7 @@ import { FONTS } from '../constants';
  */
 const PropertiesPanel = ({
     primarySelection,
-    selectedIds,
+    selectedIds,    
     onUpdate,
     onInteractionEnd,
     onDelete
@@ -19,14 +19,14 @@ const PropertiesPanel = ({
     if (!primarySelection) {
         return (
             <div 
-                className="bg-light border-start h-100 d-flex flex-column align-items-center justify-content-center text-center p-4"
-                style={{ width: 256 }}
+                className="lf-panel border-start h-100 d-flex flex-column align-items-center justify-content-center text-center p-4"
+                style={{ width: 256, borderColor: 'var(--lf-border-secondary)' }}
             >
-                <MousePointer2 size={48} className="text-muted mb-3" style={{ opacity: 0.3 }} />
-                <p className="text-muted small fw-medium mb-1">
+                <MousePointer2 size={48} className="lf-text-muted mb-3" style={{ opacity: 0.3 }} />
+                <p className="lf-text-muted small fw-medium mb-1">
                     Select elements to edit
                 </p>
-                <p className="text-muted" style={{ fontSize: 12 }}>
+                <p className="lf-text-muted" style={{ fontSize: 12 }}>
                     Hold Ctrl/Cmd to select multiple
                 </p>
             </div>
@@ -44,12 +44,12 @@ const PropertiesPanel = ({
 
     return (
         <div 
-            className="bg-white border-start h-100 d-flex flex-column p-3"
-            style={{ width: 256 }}
+            className="lf-panel border-start h-100 d-flex flex-column p-3"
+            style={{ width: 256, borderColor: 'var(--lf-border-secondary)' }}
         >
             {/* Header */}
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h6 className="mb-0 fw-bold">
+                <h6 className="mb-0 fw-bold lf-text-heading">
                     Properties {selectedIds.length > 1 && `(${selectedIds.length})`}
                 </h6>
                 <Button
@@ -65,7 +65,7 @@ const PropertiesPanel = ({
             <div className="overflow-auto flex-fill">
                 {/* Content / Variable */}
                 <div className="mb-3">
-                    <label className="d-block small text-muted mb-1">
+                    <label className="d-block small lf-text-muted mb-1">
                         Content / Variable
                     </label>
                     <Input
@@ -79,7 +79,7 @@ const PropertiesPanel = ({
                 {/* Position */}
                 <div className="row g-2 mb-3">
                     <div className="col-6">
-                        <label className="d-block small text-muted mb-1">
+                        <label className="d-block small lf-text-muted mb-1">
                             X (mm)
                         </label>
                         <InputNumber
@@ -91,7 +91,7 @@ const PropertiesPanel = ({
                         />
                     </div>
                     <div className="col-6">
-                        <label className="d-block small text-muted mb-1">
+                        <label className="d-block small lf-text-muted mb-1">
                             Y (mm)
                         </label>
                         <InputNumber
@@ -108,7 +108,7 @@ const PropertiesPanel = ({
                 {primarySelection.type === 'text' && (
                     <>
                         <div className="mb-3">
-                            <label className="d-block small text-muted mb-1">
+                            <label className="d-block small lf-text-muted mb-1">
                                 Font Family
                             </label>
                             <Select
@@ -122,8 +122,8 @@ const PropertiesPanel = ({
 
                         <div className="mb-3">
                             <div className="d-flex justify-content-between mb-1">
-                                <label className="small text-muted">Font Size</label>
-                                <span className="small text-muted">{primarySelection.fontSize}px</span>
+                                <label className="small lf-text-muted">Font Size</label>
+                                <span className="small lf-text-muted">{primarySelection.fontSize}px</span>
                             </div>
                             <div className="d-flex gap-2 align-items-center">
                                 <Slider
@@ -167,7 +167,7 @@ const PropertiesPanel = ({
                   primarySelection.type === 'box') && (
                     <div className="row g-2 mb-3">
                         <div className="col-6">
-                            <label className="d-block small text-muted mb-1">
+                            <label className="d-block small lf-text-muted mb-1">
                                 Width
                             </label>
                             <InputNumber
@@ -179,7 +179,7 @@ const PropertiesPanel = ({
                             />
                         </div>
                         <div className="col-6">
-                            <label className="d-block small text-muted mb-1">
+                            <label className="d-block small lf-text-muted mb-1">
                                 Height
                             </label>
                             <InputNumber
@@ -206,7 +206,7 @@ const PropertiesPanel = ({
                         </div>
 
                         <div className="mb-3">
-                            <label className="d-block small text-muted mb-1">
+                            <label className="d-block small lf-text-muted mb-1">
                                 Clearance (Padding)
                             </label>
                             <InputNumber
@@ -225,7 +225,7 @@ const PropertiesPanel = ({
                 {/* Box specific properties */}
                 {primarySelection.type === 'box' && (
                     <div className="mb-3">
-                        <label className="d-block small text-muted mb-1">
+                        <label className="d-block small lf-text-muted mb-1">
                             Thickness (mm)
                         </label>
                         <InputNumber

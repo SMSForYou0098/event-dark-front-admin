@@ -1,7 +1,244 @@
-/* Label Forge Custom Styles */
+/* Label Forge Custom Styles - Dark Theme */
 
+/* Dark Theme Variables */
 .label-forge-container {
+    --lf-primary: #b51515;
+    --lf-bg-body: #000;
+    --lf-bg-component: rgba(255, 255, 255, 0.06);
+    --lf-bg-elevated: rgba(255, 255, 255, 0.1);
+    --lf-bg-hover: rgba(255, 255, 255, 0.12);
+    --lf-text-color: #b4bed2;
+    --lf-text-heading: #d6d7dc;
+    --lf-text-muted: rgba(114, 132, 154, 0.9);
+    --lf-border-color: #4d5b75;
+    --lf-border-secondary: #2c2f34;
+    --lf-success: #04d182;
+    --lf-warning: #ffc542;
+    --lf-danger: #ff6b72;
+    
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background-color: var(--lf-bg-body);
+    color: var(--lf-text-color);
+}
+
+/* Dark Panel Backgrounds */
+.lf-panel {
+    background-color: var(--lf-bg-component) !important;
+    border-color: var(--lf-border-secondary) !important;
+}
+
+.lf-header {
+    background-color: var(--lf-bg-component) !important;
+    border-color: var(--lf-border-secondary) !important;
+}
+
+.lf-sidebar {
+    background-color: var(--lf-bg-component) !important;
+    border-color: var(--lf-border-secondary) !important;
+}
+
+.lf-toolbar {
+    background-color: rgba(0, 0, 0, 0.9) !important;
+    border-color: var(--lf-border-secondary) !important;
+}
+
+.lf-canvas-area {
+    background-color: #1a1a1a !important;
+}
+
+/* Text Colors */
+.lf-text {
+    color: var(--lf-text-color) !important;
+}
+
+.lf-text-heading {
+    color: var(--lf-text-heading) !important;
+}
+
+.lf-text-muted {
+    color: var(--lf-text-muted) !important;
+}
+
+/* Toolbox Buttons - Dark Theme */
+.lf-toolbox-btn {
+    background-color: var(--lf-bg-elevated) !important;
+    border-color: var(--lf-border-secondary) !important;
+    color: var(--lf-text-color) !important;
+    transition: all 0.2s ease;
+}
+
+.lf-toolbox-btn:hover {
+    background-color: var(--lf-bg-hover) !important;
+    border-color: var(--lf-border-color) !important;
+}
+
+.lf-toolbox-btn.lf-btn-text {
+    background-color: rgba(181, 21, 21, 0.15) !important;
+    border-color: rgba(181, 21, 21, 0.4) !important;
+}
+
+.lf-toolbox-btn.lf-btn-text:hover {
+    background-color: rgba(181, 21, 21, 0.25) !important;
+}
+
+.lf-toolbox-btn.lf-btn-barcode {
+    background-color: rgba(114, 46, 209, 0.15) !important;
+    border-color: rgba(114, 46, 209, 0.4) !important;
+}
+
+.lf-toolbox-btn.lf-btn-barcode:hover {
+    background-color: rgba(114, 46, 209, 0.25) !important;
+}
+
+.lf-toolbox-btn.lf-btn-qrcode {
+    background-color: rgba(4, 209, 130, 0.15) !important;
+    border-color: rgba(4, 209, 130, 0.4) !important;
+}
+
+.lf-toolbox-btn.lf-btn-qrcode:hover {
+    background-color: rgba(4, 209, 130, 0.25) !important;
+}
+
+.lf-toolbox-btn.lf-btn-box {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    border-color: var(--lf-border-secondary) !important;
+}
+
+/* Variables Section */
+.lf-variables-section {
+    background-color: rgba(255, 197, 66, 0.1) !important;
+    border-color: rgba(255, 197, 66, 0.3) !important;
+}
+
+/* Tab Buttons */
+.lf-tab-btn {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--lf-text-muted) !important;
+    transition: all 0.2s ease;
+}
+
+.lf-tab-btn.active {
+    color: var(--lf-primary) !important;
+    border-bottom: 2px solid var(--lf-primary) !important;
+}
+
+.lf-tab-btn:hover:not(.active) {
+    color: var(--lf-text-color) !important;
+}
+
+/* Tab Switcher Container */
+.lf-tab-switcher {
+    background-color: var(--lf-bg-elevated) !important;
+    border-radius: 6px;
+    padding: 4px;
+}
+
+/* Layer Item */
+.lf-layer-item {
+    background-color: transparent;
+    border-color: transparent !important;
+    transition: all 0.15s ease;
+}
+
+.lf-layer-item:hover {
+    background-color: var(--lf-bg-hover) !important;
+}
+
+.lf-layer-item.selected {
+    background-color: rgba(181, 21, 21, 0.2) !important;
+    border-color: var(--lf-primary) !important;
+}
+
+/* Inputs */
+.label-forge-container .ant-input,
+.label-forge-container .ant-input-number,
+.label-forge-container .ant-select-selector {
+    background-color: var(--lf-bg-elevated) !important;
+    border-color: var(--lf-border-secondary) !important;
+    color: var(--lf-text-color) !important;
+}
+
+.label-forge-container .ant-input:focus,
+.label-forge-container .ant-input-number:focus,
+.label-forge-container .ant-input-number-focused,
+.label-forge-container .ant-select-focused .ant-select-selector {
+    border-color: var(--lf-primary) !important;
+    box-shadow: 0 0 0 2px rgba(181, 21, 21, 0.2) !important;
+}
+
+.label-forge-container .ant-input::placeholder {
+    color: var(--lf-text-muted) !important;
+}
+
+.label-forge-container .ant-select-arrow,
+.label-forge-container .ant-input-number-handler-wrap {
+    color: var(--lf-text-muted) !important;
+    background-color: var(--lf-bg-component) !important;
+}
+
+/* Slider */
+.label-forge-container .ant-slider-track {
+    background-color: var(--lf-primary) !important;
+}
+
+.label-forge-container .ant-slider-handle {
+    border-color: var(--lf-primary) !important;
+    background-color: var(--lf-bg-body) !important;
+}
+
+.label-forge-container .ant-slider-rail {
+    background-color: var(--lf-bg-hover) !important;
+}
+
+/* Tags */
+.label-forge-container .ant-tag {
+    background-color: var(--lf-bg-elevated) !important;
+    border-color: var(--lf-border-secondary) !important;
+    color: var(--lf-text-color) !important;
+}
+
+/* Checkbox */
+.label-forge-container .ant-checkbox-inner {
+    background-color: var(--lf-bg-elevated) !important;
+    border-color: var(--lf-border-secondary) !important;
+}
+
+.label-forge-container .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: var(--lf-primary) !important;
+    border-color: var(--lf-primary) !important;
+}
+
+/* Buttons */
+.label-forge-container .ant-btn-default {
+    background-color: var(--lf-bg-elevated) !important;
+    border-color: var(--lf-border-secondary) !important;
+    color: var(--lf-text-color) !important;
+}
+
+.label-forge-container .ant-btn-default:hover {
+    background-color: var(--lf-bg-hover) !important;
+    border-color: var(--lf-border-color) !important;
+    color: var(--lf-text-heading) !important;
+}
+
+.label-forge-container .ant-btn-primary {
+    background-color: var(--lf-primary) !important;
+    border-color: var(--lf-primary) !important;
+}
+
+.label-forge-container .ant-btn-primary:hover {
+    background-color: #d41919 !important;
+    border-color: #d41919 !important;
+}
+
+.label-forge-container .ant-btn-text {
+    color: var(--lf-text-color) !important;
+}
+
+.label-forge-container .ant-btn-text:hover {
+    background-color: var(--lf-bg-hover) !important;
+    color: var(--lf-text-heading) !important;
 }
 
 /* Draggable Element Styles */
@@ -20,32 +257,42 @@
 
 .resize-handle:hover {
     transform: scale(1.2);
-    box-shadow: 0 0 4px rgba(24, 144, 255, 0.5);
+    box-shadow: 0 0 4px rgba(181, 21, 21, 0.5);
 }
 
-/* Context Menu Item Hover */
+/* Context Menu */
+.lf-context-menu {
+    background-color: rgba(0, 0, 0, 0.95) !important;
+    border-color: var(--lf-border-secondary) !important;
+}
+
+.context-menu-item {
+    color: var(--lf-text-color) !important;
+}
+
 .context-menu-item:hover {
-    background-color: #f5f5f5;
+    background-color: var(--lf-bg-hover) !important;
+    color: var(--lf-text-heading) !important;
 }
 
-/* Scrollbar Styles */
+/* Scrollbar Styles - Dark Theme */
 .label-forge-container ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
 .label-forge-container ::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: var(--lf-bg-component);
     border-radius: 4px;
 }
 
 .label-forge-container ::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
+    background: var(--lf-border-color);
     border-radius: 4px;
 }
 
 .label-forge-container ::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
+    background: var(--lf-text-muted);
 }
 
 /* Tag/Variable Chip Hover */

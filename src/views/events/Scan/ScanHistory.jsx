@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tag, Typography, Tooltip } from "antd";
+import { Tag, Typography, Tooltip, Select, Space } from "antd";
 import apiClient from "auth/FetchInterceptor";
 import { ExpandDataTable } from "views/events/common/ExpandDataTable";
 import { useMyContext } from "Context/MyContextProvider";
+import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 
 const { Text } = Typography;
 
@@ -27,7 +28,14 @@ const ScanHistory = () => {
   const [dateRange, setDateRange] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const { userRole, UserPermissions } = useMyContext();
+  const [selectedEventId, setSelectedEventId] = useState(null);
+  const { userRole, UserPermissions, UserData } = useMyContext();
+
+  // Fetch events for dropdown
+  const { data: events = [], isLoading: eventsLoading } = useOrganizerEvents(
+    UserData?.id,
+    UserData?.role
+  );
 
   // Fetch scan history using TanStack Query with pagination
   const {
@@ -36,7 +44,7 @@ const ScanHistory = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["scanHistory", dateRange, currentPage, pageSize],
+    queryKey: ["scanHistory", dateRange, currentPage, pageSize, selectedEventId],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append("page", currentPage);
@@ -46,11 +54,17 @@ const ScanHistory = () => {
         params.append("date", `${dateRange.startDate},${dateRange.endDate}`);
       }
 
+      if (selectedEventId) {
+        params.append("event_id", selectedEventId);
+      }
+
       const res = await apiClient.get(`scan-histories?${params.toString()}`);
       return res;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+
 
   // Extract data and pagination from response
   const scanHistory = response?.data || [];
@@ -302,6 +316,27 @@ const ScanHistory = () => {
     },
   ];
 
+  // Event filter dropdown component
+  const eventFilterDropdown = (
+    <Space wrap>
+      <Typography.Text strong style={{ color: 'inherit' }}>Event:</Typography.Text>
+      <Select
+        placeholder="All Events"
+        allowClear
+        showSearch
+        loading={eventsLoading}
+        value={selectedEventId}
+        onChange={(value) => {
+          setSelectedEventId(value);
+          setCurrentPage(1); // Reset to first page when event changes
+        }}
+        style={{ minWidth: 200 }}
+        optionFilterProp="label"
+        options={events}
+      />
+    </Space>
+  );
+
   return (
     <ExpandDataTable
       title="Scan History"
@@ -331,6 +366,7 @@ const ScanHistory = () => {
       tableProps={{
         bordered: false,
       }}
+      extraHeaderContent={eventFilterDropdown}
     />
   );
 };

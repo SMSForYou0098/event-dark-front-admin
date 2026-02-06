@@ -202,6 +202,11 @@ export function buildEventFormData(values, isDraft = false) {
     // Ticket settings (moved from tickets step)
     appendIfDefined('ticket_terms', values.ticket_terms);
     appendIfDefined('multi_scan', values.multi_scan ?? false);
+    appendIfDefined('attendee_required', values.attendee_required ?? false);
+    // Attendee fields - send as JSON array [{field_id, note}]
+    if (Array.isArray(values.attendee_fields) && values.attendee_fields.length > 0) {
+      fd.append('attendee_fields', JSON.stringify(values.attendee_fields));
+    }
     // Multi-scan checkpoint configuration
     appendIfDefined('scan_mode', values.scan_mode ?? false);
     appendIfDefined('max_scan_count', values.max_scan_count);

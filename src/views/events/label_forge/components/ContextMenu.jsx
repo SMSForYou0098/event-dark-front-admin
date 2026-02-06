@@ -41,12 +41,12 @@ const ContextMenu = ({
         <div
             style={{
                 ...menuItemStyle,
-                color: danger ? '#ff4d4f' : '#333'
+                color: danger ? '#ff6b72' : '#b4bed2'
             }}
             className="context-menu-item"
             onClick={() => { onClick(); onClose(); }}
             onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = danger ? '#fff1f0' : '#f5f5f5';
+                e.currentTarget.style.backgroundColor = danger ? 'rgba(255, 107, 114, 0.1)' : 'rgba(255, 255, 255, 0.1)';
             }}
             onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
@@ -58,7 +58,7 @@ const ContextMenu = ({
     );
 
     const Divider = () => (
-        <div style={{ height: 1, backgroundColor: '#f0f0f0', margin: '4px 0' }} />
+        <div style={{ height: 1, backgroundColor: '#2c2f34', margin: '4px 0' }} />
     );
 
     return (
@@ -67,14 +67,15 @@ const ContextMenu = ({
                 position: 'fixed',
                 top: contextMenu.y,
                 left: contextMenu.x,
-                backgroundColor: 'white',
-                border: '1px solid #e8e8e8',
+                backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                border: '1px solid #2c2f34',
                 borderRadius: 8,
-                boxShadow: '0 6px 16px rgba(0,0,0,0.12)',
+                boxShadow: '0 6px 16px rgba(0,0,0,0.4)',
                 zIndex: 1000,
                 minWidth: 160,
                 padding: '4px 0'
             }}
+            className="lf-context-menu"
             onClick={(e) => e.stopPropagation()}
         >
             {contextMenu.type === 'element' ? (

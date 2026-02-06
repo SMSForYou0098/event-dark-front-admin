@@ -263,11 +263,11 @@ const DraggableElement = memo(({
                 style={{
                     position: 'absolute',
                     inset: '-4px',
-                    border: `2px solid ${isSelected ? '#1890ff' : 'transparent'}`,
+                    border: `2px solid ${isSelected ? '#b51515' : 'transparent'}`,
                     borderRadius: '4px',
                     transition: 'border-color 0.2s',
                     pointerEvents: 'none',
-                    backgroundColor: isSelected ? 'rgba(24, 144, 255, 0.05)' : 'transparent'
+                    backgroundColor: isSelected ? 'rgba(181, 21, 21, 0.05)' : 'transparent'
                 }}
             />
             {/* Position indicator */}
@@ -280,12 +280,12 @@ const DraggableElement = memo(({
                             position: 'absolute',
                             top: '-24px',
                             left: 0,
-                            backgroundColor: '#1890ff',
+                            backgroundColor: '#b51515',
                             color: 'white',
                             fontSize: '10px',
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
                             whiteSpace: 'nowrap',
                             zIndex: 50,
                             fontFamily: 'monospace',

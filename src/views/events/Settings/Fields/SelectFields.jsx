@@ -66,6 +66,9 @@ const SelectFields = ({
     }
   }, [api, authToken, open]);
 
+  // Default fields that should be pre-selected (by field_name)
+  const defaultSelectedFieldNames = ['name', 'number', 'email'];
+
   // Fetch fields when modal opens
   useEffect(() => {
     if (open) {
@@ -74,6 +77,19 @@ const SelectFields = ({
       setFieldNotes(initialFieldNotes);
     }
   }, [open, fetchAvailableFields, initialSelectedIds, initialFieldNotes]);
+
+  // Pre-select default fields (name, number, email) when no initial selection and fields are loaded
+  useEffect(() => {
+    if (open && availableFields.length > 0 && initialSelectedIds.length === 0 && selectedFieldIds.length === 0) {
+      const defaultFieldIds = availableFields
+        .filter(field => defaultSelectedFieldNames.includes(field.field_name?.toLowerCase()))
+        .map(field => field.id);
+
+      if (defaultFieldIds.length > 0) {
+        setSelectedFieldIds(defaultFieldIds);
+      }
+    }
+  }, [open, availableFields, initialSelectedIds.length, selectedFieldIds.length]);
 
   // Reset on close
   useEffect(() => {

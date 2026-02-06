@@ -46,8 +46,8 @@ const Toolbar = ({
                 onClick={onClick}
                 disabled={disabled}
                 style={{
-                    backgroundColor: active ? '#e6f7ff' : 'transparent',
-                    color: active ? '#1890ff' : '#666',
+                    backgroundColor: active ? 'rgba(181, 21, 21, 0.2)' : 'transparent',
+                    color: active ? '#b51515' : 'var(--lf-text-color)',
                     width: 32,
                     height: 32
                 }}
@@ -59,17 +59,18 @@ const Toolbar = ({
 
     return (
         <div 
-            className="position-absolute d-flex align-items-center gap-2 bg-white border rounded shadow-sm p-2"
+            className="position-absolute d-flex align-items-center gap-2 lf-toolbar border rounded shadow-sm p-2"
             style={{ 
                 top: 16, 
                 left: '50%', 
                 transform: 'translateX(-50%)',
-                zIndex: 50 
+                zIndex: 50,
+                borderColor: 'var(--lf-border-secondary)'
             }}
             onMouseDown={(e) => e.stopPropagation()}
         >
             {/* Grid & Snap Controls */}
-            <div className="d-flex align-items-center gap-1 pe-2 border-end">
+            <div className="d-flex align-items-center gap-1 pe-2 border-end" style={{ borderColor: 'var(--lf-border-secondary)' }}>
                 <IconButton
                     icon={<Magnet size={16} />}
                     active={snapEnabled}
@@ -94,7 +95,7 @@ const Toolbar = ({
             {/* Alignment Controls */}
             <div 
                 className={`d-flex gap-1 px-2 border-end ${!hasSelection ? 'opacity-50' : ''}`}
-                style={{ pointerEvents: hasSelection ? 'auto' : 'none' }}
+                style={{ pointerEvents: hasSelection ? 'auto' : 'none', borderColor: 'var(--lf-border-secondary)' }}
             >
                 <IconButton
                     icon={<AlignStartVertical size={16} />}
@@ -157,7 +158,7 @@ const Toolbar = ({
                     title="Zoom Out"
                 />
                 <div 
-                    className="text-center px-2 small fw-medium"
+                    className="text-center px-2 small fw-medium lf-text"
                     style={{ width: 48, fontFamily: 'monospace', cursor: 'pointer' }}
                     onClick={centerView}
                 >

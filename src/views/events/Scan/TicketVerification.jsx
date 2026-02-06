@@ -563,7 +563,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                     </Col>
                     {event &&
                         <>
-                            <Col xs={24} sm={24} lg={12}>
+                            <Col xs={24} sm={24} lg={18}>
                                 <TickeScanFeilds
                                     scanMode={scanMode}
                                     categoryData={categoryData}
@@ -581,7 +581,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                                     setSelectedCheckpoints={setSelectedCheckpoints}
                                 />
                             </Col>
-                            <Col xs={24} sm={24} lg={12}>
+                            <Col xs={24} sm={24} lg={6}>
                                 <Card>
                                     <Space direction="vertical" size={12} className='w-100'>
                                         <div>

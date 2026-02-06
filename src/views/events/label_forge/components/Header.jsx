@@ -1,7 +1,7 @@
 // Header Component for Label Forge
 
-import React from 'react';
-import { Button, Select, Tooltip } from 'antd';
+import React, { useState } from 'react';
+import { Button, Select, Tooltip, Dropdown, Badge } from 'antd';
 import {
     UndoOutlined,
     RedoOutlined,
@@ -9,7 +9,12 @@ import {
     SaveOutlined,
     UploadOutlined,
     ReloadOutlined,
-    LayoutOutlined
+    LayoutOutlined,
+    PrinterOutlined,
+    UsbOutlined,
+    WifiOutlined,
+    DisconnectOutlined,
+    CheckCircleFilled
 } from '@ant-design/icons';
 import { Printer, PenTool, Eye } from 'lucide-react';
 import { PRINTER_LANGUAGES } from '../constants';
@@ -30,10 +35,59 @@ const Header = ({
     handleLoadDemo,
     handleExportTemplate,
     onImportClick,
-    handleGenerateCode
+    handleGenerateCode,
+    // Printer props
+    handlePrint,
+    isPrinting,
+    isConnected,
+    connectUSB,
+    connectBluetooth,
+    printerStatus,
+    deviceName
 }) => {
+    const [connecting, setConnecting] = useState(false);
+
+    // Handle USB connection
+    const onConnectUSB = async () => {
+        setConnecting(true);
+        try {
+            await connectUSB();
+        } catch (err) {
+            console.error('USB connect error:', err);
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    // Handle Bluetooth connection
+    const onConnectBluetooth = async () => {
+        setConnecting(true);
+        try {
+            await connectBluetooth();
+        } catch (err) {
+            console.error('Bluetooth connect error:', err);
+        } finally {
+            setConnecting(false);
+        }
+    };
+
+    // Dropdown menu items for printer connection
+    const printerMenuItems = [
+        {
+            key: 'usb',
+            icon: <UsbOutlined />,
+            label: 'Connect via USB',
+            onClick: onConnectUSB,
+        },
+        {
+            key: 'bluetooth',
+            icon: <WifiOutlined />,
+            label: 'Connect via Bluetooth',
+            onClick: onConnectBluetooth,
+        },
+    ];
     return (
-        <header className="bg-white border-bottom px-4 py-3 d-flex align-items-center justify-content-between">
+        <header className="lf-header border-bottom px-4 py-3 d-flex align-items-center justify-content-between" style={{ borderColor: 'var(--lf-border-secondary)' }}>
             {/* Left side - Logo & Tabs */}
             <div className="d-flex align-items-center gap-4">
                 {/* Logo */}
@@ -43,16 +97,16 @@ const Header = ({
                         style={{ 
                             width: 40, 
                             height: 40, 
-                            backgroundColor: '#1890ff' 
+                            backgroundColor: '#b51515' 
                         }}
                     >
                         <Printer size={22} color="white" />
                     </div>
                     <div>
-                        <h5 className="mb-0 fw-bold" style={{ fontSize: 16 }}>
+                        <h5 className="mb-0 fw-bold lf-text-heading" style={{ fontSize: 16 }}>
                             LabelForge
                         </h5>
-                        <small className="text-muted" style={{ fontSize: 11 }}>
+                        <small className="lf-text-muted" style={{ fontSize: 11 }}>
                             Thermal Printer Design Suite
                         </small>
                     </div>
@@ -60,8 +114,7 @@ const Header = ({
 
                 {/* Tabs */}
                 <div 
-                    className="d-flex rounded p-1"
-                    style={{ backgroundColor: '#f5f5f5' }}
+                    className="d-flex rounded p-1 lf-tab-switcher"
                 >
                     <Button
                         type={activeTab === 'editor' ? 'primary' : 'text'}
@@ -69,7 +122,7 @@ const Header = ({
                         icon={<PenTool size={14} />}
                         onClick={() => setActiveTab('editor')}
                         style={{ 
-                            boxShadow: activeTab === 'editor' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
+                            boxShadow: activeTab === 'editor' ? '0 1px 4px rgba(0,0,0,0.3)' : 'none'
                         }}
                     >
                         Editor
@@ -80,7 +133,7 @@ const Header = ({
                         icon={<Eye size={14} />}
                         onClick={() => setActiveTab('preview')}
                         style={{ 
-                            boxShadow: activeTab === 'preview' ? '0 1px 4px rgba(0,0,0,0.1)' : 'none'
+                            boxShadow: activeTab === 'preview' ? '0 1px 4px rgba(0,0,0,0.3)' : 'none'
                         }}
                     >
                         Preview
@@ -92,8 +145,7 @@ const Header = ({
             <div className="d-flex align-items-center gap-3">
                 {/* File Operations */}
                 <div 
-                    className="d-flex align-items-center gap-1 rounded p-1"
-                    style={{ backgroundColor: '#f5f5f5' }}
+                    className="d-flex align-items-center gap-1 rounded p-1 lf-tab-switcher"
                 >
                     <Tooltip title="Reset Canvas">
                         <Button
@@ -108,7 +160,7 @@ const Header = ({
                         style={{ 
                             width: 1, 
                             height: 20, 
-                            backgroundColor: '#d9d9d9', 
+                            backgroundColor: 'var(--lf-border-secondary)', 
                             margin: '0 4px' 
                         }} 
                     />
@@ -126,7 +178,7 @@ const Header = ({
                             size="small"
                             icon={<SaveOutlined />}
                             onClick={handleExportTemplate}
-                            style={{ color: '#52c41a' }}
+                            style={{ color: '#04d182' }}
                         />
                     </Tooltip>
                     <Tooltip title="Import Template">
@@ -135,15 +187,14 @@ const Header = ({
                             size="small"
                             icon={<UploadOutlined />}
                             onClick={onImportClick}
-                            style={{ color: '#fa8c16' }}
+                            style={{ color: '#ffc542' }}
                         />
                     </Tooltip>
                 </div>
 
                 {/* Undo/Redo */}
                 <div 
-                    className="d-flex align-items-center gap-1 rounded p-1"
-                    style={{ backgroundColor: '#f5f5f5' }}
+                    className="d-flex align-items-center gap-1 rounded p-1 lf-tab-switcher"
                 >
                     <Tooltip title="Undo (Ctrl+Z)">
                         <Button
@@ -167,10 +218,9 @@ const Header = ({
 
                 {/* Printer Language */}
                 <div 
-                    className="d-flex align-items-center gap-2 rounded p-1 px-2"
-                    style={{ backgroundColor: '#f5f5f5' }}
+                    className="d-flex align-items-center gap-2 rounded p-1 px-2 lf-tab-switcher"
                 >
-                    <span className="small fw-semibold text-muted">
+                    <span className="small fw-semibold lf-text-muted">
                         Language:
                     </span>
                     <Select
@@ -184,16 +234,57 @@ const Header = ({
 
                 {/* Generate Code Button */}
                 <Button
-                    type="primary"
+                    type="default"
                     icon={<CodeOutlined />}
                     onClick={handleGenerateCode}
-                    style={{ 
-                        backgroundColor: '#1f2937',
-                        borderColor: '#1f2937'
-                    }}
                 >
                     Generate Code
                 </Button>
+
+                {/* Printer Connection & Print */}
+                <div className="d-flex align-items-center gap-2">
+                    {isConnected ? (
+                        <Tooltip title={`Connected: ${deviceName || 'Printer'}`}>
+                            <Badge 
+                                status="success" 
+                                text={
+                                    <span className="small lf-text-muted">
+                                        <CheckCircleFilled style={{ color: '#52c41a', marginRight: 4 }} />
+                                        {deviceName || 'Connected'}
+                                    </span>
+                                } 
+                            />
+                        </Tooltip>
+                    ) : (
+                        <Dropdown
+                            menu={{ items: printerMenuItems }}
+                            placement="bottomRight"
+                            trigger={['click']}
+                        >
+                            <Button
+                                type="default"
+                                icon={<DisconnectOutlined />}
+                                loading={connecting}
+                            >
+                                {connecting ? 'Connecting...' : 'Connect Printer'}
+                            </Button>
+                        </Dropdown>
+                    )}
+
+                    <Button
+                        type="primary"
+                        icon={<PrinterOutlined />}
+                        onClick={handlePrint}
+                        disabled={!isConnected}
+                        loading={isPrinting}
+                        style={{ 
+                            backgroundColor: isConnected ? '#52c41a' : undefined,
+                            borderColor: isConnected ? '#52c41a' : undefined
+                        }}
+                    >
+                        {isPrinting ? 'Printing...' : 'Print'}
+                    </Button>
+                </div>
             </div>
         </header>
     );

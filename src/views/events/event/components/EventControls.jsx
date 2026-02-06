@@ -1,13 +1,16 @@
 // EventControlsStep.jsx
-import React, { useState } from 'react';
-import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber } from 'antd';
+import React, { useState, useCallback } from 'react';
+import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty } from 'antd';
+import { useQuery } from '@tanstack/react-query';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import ContentSelect from './ContentSelect';
 import { useMyContext } from 'Context/MyContextProvider';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
+import { ArrowRightOutlined, CheckCircleFilled, PlusOutlined, EditOutlined } from '@ant-design/icons';
 import MultiScanCheckpoints from './MultiScanCheckpoints';
+import SelectFields from 'views/events/Settings/Fields/SelectFields';
+import apiClient from 'auth/FetchInterceptor';
 const { Text } = Typography;
 
 // helpers — convert to boolean
@@ -16,8 +19,92 @@ const toBooleanValue = (checked) => Boolean(checked);
 
 const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venueId }) => {
   const { userRole } = useMyContext();
-  console.log('fom', form.getFieldValue('expected_date'));
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
+  const [selectFieldsModalOpen, setSelectFieldsModalOpen] = useState(false);
+  const [selectedFieldIds, setSelectedFieldIds] = useState([]);
+  const [selectedFieldsData, setSelectedFieldsData] = useState([]);
+  const [fieldNotes, setFieldNotes] = useState({});
+
+  // Watch attendee_required switch value (from Ticket Controls section)
+  const attendeeRequired = Form.useWatch('attendee_required', form);
+  const isAttendeeRequired = toBoolean(attendeeRequired);
+
+  // Get categoryId from form - 'category' field is set in both BasicDetails and Controls steps
+  const categoryId = Form.useWatch('category', form);
+
+  // Fetch category details whenever categoryId is available (not dependent on switch)
+  const {
+    data: categoryDetails,
+    isLoading: categoryDetailsLoading,
+  } = useQuery({
+    queryKey: ['category-show', categoryId],
+    queryFn: async () => {
+      const response = await apiClient.get(`category-show/${categoryId}`);
+      return response?.data || response;
+    },
+    enabled: !!categoryId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Check category conditions from API response:
+  // - If title is "Registration" → DON'T show SelectFields
+  // - If category's attendy_required is true → DON'T show SelectFields  
+  const isRegistrationCategory = categoryDetails?.title?.toLowerCase() === 'Registration';
+  const categoryHasAttendyRequired = toBoolean(categoryDetails?.attendy_required);
+
+  // Show SelectFields component when ALL conditions are met:
+  // 1. Event's attendee_required switch is ON (from Ticket Controls)
+  // 2. Category title is NOT "Registration"
+  // 3. Category's attendy_required is NOT true
+  // 4. categoryId exists and category data is loaded
+  const shouldShowSelectFields = isAttendeeRequired &&
+    !isRegistrationCategory &&
+    !categoryHasAttendyRequired &&
+    !!categoryId &&
+    !!categoryDetails;
+
+  // Handle selected fields from SelectFields modal
+  const handleFieldsSelected = useCallback((fieldIds, fieldsData, notes) => {
+    setSelectedFieldIds(fieldIds);
+    setSelectedFieldsData(fieldsData);
+    setFieldNotes(notes || {});
+
+    // Build fields array for payload: [{field_id, note}]
+    const fieldsPayload = fieldIds.map(id => ({
+      field_id: id,
+      note: notes?.[id] || ''
+    }));
+
+    // Store in form
+    form.setFieldsValue({
+      selected_field_ids: fieldIds,
+      field_notes: notes || {},
+      attendee_fields: fieldsPayload
+    });
+  }, [form]);
+
+  // Remove a selected field
+  const handleRemoveField = useCallback((fieldId) => {
+    const newFieldIds = selectedFieldIds.filter(id => id !== fieldId);
+    const newFieldsData = selectedFieldsData.filter(f => f.id !== fieldId);
+    const newNotes = { ...fieldNotes };
+    delete newNotes[fieldId];
+
+    // Build updated fields array for payload
+    const fieldsPayload = newFieldIds.map(id => ({
+      field_id: id,
+      note: newNotes[id] || ''
+    }));
+
+    setSelectedFieldIds(newFieldIds);
+    setSelectedFieldsData(newFieldsData);
+    setFieldNotes(newNotes);
+    form.setFieldsValue({
+      selected_field_ids: newFieldIds,
+      field_notes: newNotes,
+      attendee_fields: fieldsPayload
+    });
+  }, [selectedFieldIds, selectedFieldsData, fieldNotes, form]);
 
   const navigate = useNavigate();
   const handleBookingTypeChange = (fieldName, checked) => {
@@ -70,9 +157,20 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       onChange: (checked) => handleBookingTypeChange('bookingBySeat', checked),
       initialValue: false
     },
+    {
+      name: 'attendee_required',
+      label: 'Attendee Required',
+      // onChange: (checked) => handleBookingTypeChange('attendee_required', checked),
+      initialValue: false
+    },
   ];
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
+      {/* Hidden category field for Form.useWatch to work */}
+      <Form.Item name="category" hidden>
+        <input />
+      </Form.Item>
+
       {/* Top controls */}
       <Row gutter={ROW_GUTTER}>
         <Col xs={24} sm={12} lg={12}>
@@ -614,6 +712,80 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
           </Form.Item>
         </Col>
       </Row>
+
+      {/* Attendee Fields Section - Show when attendee_required is ON and category has no fields */}
+      {shouldShowSelectFields && (
+        <Card
+          size="small"
+          title={
+            <Space>
+              <span>Attendee Fields</span>
+              {categoryDetailsLoading && <Tag>Loading...</Tag>}
+            </Space>
+          }
+          extra={
+            <Button
+              type="primary"
+              icon={selectedFieldIds.length > 0 ? <EditOutlined /> : <PlusOutlined />}
+              onClick={() => setSelectFieldsModalOpen(true)}
+              size="small"
+            >
+              {selectedFieldIds.length > 0 ? 'Edit Fields' : 'Add Fields'}
+            </Button>
+          }
+          style={{ marginTop: 16 }}
+        >
+          {/* Show selected fields */}
+          {selectedFieldIds.length > 0 ? (
+            <div className="d-flex flex-column gap-2">
+              {selectedFieldsData.map((field) => (
+                <div key={field.id} className="d-flex align-items-center gap-2">
+                  <Tag
+                    color="green"
+                    closable
+                    onClose={() => handleRemoveField(field.id)}
+                    className="py-1 px-2 m-0"
+                  >
+                    {field.lable || field.field_name}
+                  </Tag>
+                  {fieldNotes[field.id] && (
+                    <span className="text-muted small fst-italic">
+                      — {fieldNotes[field.id]}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <Empty
+              description="No attendee fields selected"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            >
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={() => setSelectFieldsModalOpen(true)}
+              >
+                Add Attendee Fields
+              </Button>
+            </Empty>
+          )}
+
+          {/* Hidden form field for attendee_fields payload */}
+          <Form.Item name="attendee_fields" hidden>
+            <input />
+          </Form.Item>
+        </Card>
+      )}
+
+      {/* Select Fields Drawer for Attendee Fields */}
+      <SelectFields
+        open={selectFieldsModalOpen}
+        onClose={() => setSelectFieldsModalOpen(false)}
+        onSuccess={handleFieldsSelected}
+        initialSelectedIds={selectedFieldIds}
+        initialFieldNotes={fieldNotes}
+      />
 
       <Modal
         title="Select Layout for Event"

@@ -921,6 +921,38 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'label-forge',
+        path: `/label-forge`,
+        component: React.lazy(() => import('views/events/label_forge/LabelForge')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
+    {
+        key: 'dynamic-label-print',
+        path: `/dynamic-label-print`,
+        component: React.lazy(() => import('views/events/label_printing/DynamicLabelPrint')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
+    {
+        key: 'label-designer',
+        path: `/label-designer`,
+        component: React.lazy(() => import('views/events/label_printing/LabelDesigner')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
+    {
+        key: 'printer-testing',
+        path: `/printer-testing`,
+        component: React.lazy(() => import('views/events/Settings/PrinterTesting/index')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
+    {
         key: 'intimation',
         path: `/intimation`,
         component: React.lazy(() => import('views/events/Intimations/index')),

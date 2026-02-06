@@ -42,17 +42,15 @@ const Sidebar = ({
 
     return (
         <div 
-            className="bg-white border-end h-100 d-flex flex-column"
-            style={{ width: 280 }}
+            className="lf-sidebar border-end h-100 d-flex flex-column"
+            style={{ width: 280, borderColor: 'var(--lf-border-secondary)' }}
         >
             {/* Tabs */}
-            <div className="border-bottom">
+            <div className="border-bottom" style={{ borderColor: 'var(--lf-border-secondary)' }}>
                 <div className="d-flex">
                     <button
-                        className={`flex-fill py-2 border-0 bg-transparent small fw-semibold text-uppercase ${
-                            activeSidebarTab === 'create' 
-                                ? 'text-primary border-bottom border-2 border-primary' 
-                                : 'text-muted'
+                        className={`flex-fill py-2 border-0 bg-transparent small fw-semibold text-uppercase lf-tab-btn ${
+                            activeSidebarTab === 'create' ? 'active' : ''
                         }`}
                         onClick={() => setActiveSidebarTab('create')}
                         style={{ letterSpacing: '0.5px' }}
@@ -60,10 +58,8 @@ const Sidebar = ({
                         Create
                     </button>
                     <button
-                        className={`flex-fill py-2 border-0 bg-transparent small fw-semibold text-uppercase ${
-                            activeSidebarTab === 'layers' 
-                                ? 'text-primary border-bottom border-2 border-primary' 
-                                : 'text-muted'
+                        className={`flex-fill py-2 border-0 bg-transparent small fw-semibold text-uppercase lf-tab-btn ${
+                            activeSidebarTab === 'layers' ? 'active' : ''
                         }`}
                         onClick={() => setActiveSidebarTab('layers')}
                         style={{ letterSpacing: '0.5px' }}
@@ -77,8 +73,8 @@ const Sidebar = ({
             {activeSidebarTab === 'create' && (
                 <>
                     {/* Label Configuration */}
-                    <div className="p-3 border-bottom">
-                        <h6 className="text-muted small fw-bold text-uppercase mb-3" style={{ letterSpacing: '0.5px' }}>
+                    <div className="p-3 border-bottom" style={{ borderColor: 'var(--lf-border-secondary)' }}>
+                        <h6 className="lf-text-muted small fw-bold text-uppercase mb-3" style={{ letterSpacing: '0.5px' }}>
                             Label Configuration
                         </h6>
                         <Select
@@ -93,7 +89,7 @@ const Sidebar = ({
                         />
                         <div className="row g-2">
                             <div className="col-6">
-                                <label className="d-block small text-muted mb-1" style={{ fontSize: 10 }}>
+                                <label className="d-block small lf-text-muted mb-1" style={{ fontSize: 10 }}>
                                     WIDTH (MM)
                                 </label>
                                 <InputNumber
@@ -107,7 +103,7 @@ const Sidebar = ({
                                 />
                             </div>
                             <div className="col-6">
-                                <label className="d-block small text-muted mb-1" style={{ fontSize: 10 }}>
+                                <label className="d-block small lf-text-muted mb-1" style={{ fontSize: 10 }}>
                                     HEIGHT (MM)
                                 </label>
                                 <InputNumber
@@ -127,59 +123,54 @@ const Sidebar = ({
                     <div className="p-3 flex-fill overflow-auto">
                         {activeTab === 'editor' ? (
                             <>
-                                <h6 className="text-muted small fw-bold text-uppercase mb-3" style={{ letterSpacing: '0.5px' }}>
+                                <h6 className="lf-text-muted small fw-bold text-uppercase mb-3" style={{ letterSpacing: '0.5px' }}>
                                     Toolbox
                                 </h6>
                                 <div className="row g-2 mb-4">
                                     <div className="col-6">
                                         <button
-                                            className="btn w-100 d-flex flex-column align-items-center py-3 border"
-                                            style={{ backgroundColor: '#e6f7ff', borderColor: '#91d5ff' }}
+                                            className="btn w-100 d-flex flex-column align-items-center py-3 lf-toolbox-btn lf-btn-text"
                                             onClick={() => addElement('text')}
                                         >
-                                            <Type size={24} className="mb-2 text-primary" />
-                                            <span className="small fw-semibold text-primary">Text</span>
+                                            <Type size={24} className="mb-2" style={{ color: '#b51515' }} />
+                                            <span className="small fw-semibold" style={{ color: '#b51515' }}>Text</span>
                                         </button>
                                     </div>
                                     <div className="col-6">
                                         <button
-                                            className="btn w-100 d-flex flex-column align-items-center py-3 border"
-                                            style={{ backgroundColor: '#f9f0ff', borderColor: '#d3adf7' }}
+                                            className="btn w-100 d-flex flex-column align-items-center py-3 lf-toolbox-btn lf-btn-barcode"
                                             onClick={() => addElement('barcode')}
                                         >
-                                            <Barcode size={24} className="mb-2" style={{ color: '#722ed1' }} />
-                                            <span className="small fw-semibold" style={{ color: '#722ed1' }}>Barcode</span>
+                                            <Barcode size={24} className="mb-2" style={{ color: '#a855f7' }} />
+                                            <span className="small fw-semibold" style={{ color: '#a855f7' }}>Barcode</span>
                                         </button>
                                     </div>
                                     <div className="col-6">
                                         <button
-                                            className="btn w-100 d-flex flex-column align-items-center py-3 border"
-                                            style={{ backgroundColor: '#f6ffed', borderColor: '#b7eb8f' }}
+                                            className="btn w-100 d-flex flex-column align-items-center py-3 lf-toolbox-btn lf-btn-qrcode"
                                             onClick={() => addElement('qrcode')}
                                         >
-                                            <QrCode size={24} className="mb-2" style={{ color: '#52c41a' }} />
-                                            <span className="small fw-semibold" style={{ color: '#52c41a' }}>QR Code</span>
+                                            <QrCode size={24} className="mb-2" style={{ color: '#04d182' }} />
+                                            <span className="small fw-semibold" style={{ color: '#04d182' }}>QR Code</span>
                                         </button>
                                     </div>
                                     <div className="col-6">
                                         <button
-                                            className="btn w-100 d-flex flex-column align-items-center py-3 border"
-                                            style={{ backgroundColor: '#fafafa', borderColor: '#d9d9d9' }}
+                                            className="btn w-100 d-flex flex-column align-items-center py-3 lf-toolbox-btn lf-btn-box"
                                             onClick={() => addElement('box')}
                                         >
-                                            <Square size={24} className="mb-2 text-secondary" />
-                                            <span className="small fw-semibold text-secondary">Box</span>
+                                            <Square size={24} className="mb-2 lf-text-muted" />
+                                            <span className="small fw-semibold lf-text-muted">Box</span>
                                         </button>
                                     </div>
                                 </div>
 
                                 {/* Variables */}
                                 <div 
-                                    className="p-3 rounded"
-                                    style={{ backgroundColor: '#fffbe6', border: '1px solid #ffe58f' }}
+                                    className="p-3 rounded lf-variables-section"
                                 >
                                     <div className="d-flex justify-content-between align-items-center mb-2">
-                                        <h6 className="mb-0 small fw-bold" style={{ color: '#d48806' }}>
+                                        <h6 className="mb-0 small fw-bold" style={{ color: '#ffc542' }}>
                                             Variables
                                         </h6>
                                         <Button
@@ -187,7 +178,7 @@ const Sidebar = ({
                                             size="small"
                                             icon={<PlusCircleOutlined />}
                                             onClick={onOpenVarModal}
-                                            style={{ color: '#d48806' }}
+                                            style={{ color: '#ffc542' }}
                                         />
                                     </div>
                                     <div className="d-flex flex-wrap gap-1">
@@ -210,13 +201,13 @@ const Sidebar = ({
                             </>
                         ) : (
                             <>
-                                <h6 className="text-muted small fw-bold text-uppercase mb-3" style={{ letterSpacing: '0.5px' }}>
+                                <h6 className="lf-text-muted small fw-bold text-uppercase mb-3" style={{ letterSpacing: '0.5px' }}>
                                     Preview Data
                                 </h6>
                                 <div style={{ maxHeight: 400, overflowY: 'auto' }}>
                                     {Object.entries(allVariables).map(([key, value]) => (
-                                        <div key={key} className="border-bottom pb-2 mb-2">
-                                            <div className="small fw-bold text-muted" style={{ fontSize: 10 }}>
+                                        <div key={key} className="border-bottom pb-2 mb-2" style={{ borderColor: 'var(--lf-border-secondary)' }}>
+                                            <div className="small fw-bold lf-text-muted" style={{ fontSize: 10 }}>
                                                 {key}
                                             </div>
                                             <div 
@@ -243,25 +234,23 @@ const Sidebar = ({
                             {[...elements].reverse().map((el) => (
                                 <div
                                     key={el.id}
-                                    className={`d-flex align-items-center gap-2 p-2 rounded cursor-pointer border ${
-                                        selectedIds.includes(el.id) 
-                                            ? 'bg-primary bg-opacity-10 border-primary' 
-                                            : 'bg-white border-light'
+                                    className={`d-flex align-items-center gap-2 p-2 rounded cursor-pointer border lf-layer-item ${
+                                        selectedIds.includes(el.id) ? 'selected' : ''
                                     }`}
                                     onClick={(e) => onSelect(el.id, e.ctrlKey || e.metaKey)}
-                                    style={{ cursor: 'pointer' }}
+                                    style={{ cursor: 'pointer', borderColor: 'var(--lf-border-secondary)' }}
                                 >
-                                    <div className="text-muted">
+                                    <div className="lf-text-muted">
                                         {getElementIcon(el.type)}
                                     </div>
                                     <div className="flex-fill min-w-0">
                                         <div 
-                                            className="small fw-medium text-truncate" 
+                                            className="small fw-medium text-truncate lf-text" 
                                             style={{ fontSize: 12 }}
                                         >
                                             {el.content || el.type}
                                         </div>
-                                        <div className="text-muted" style={{ fontSize: 10 }}>
+                                        <div className="lf-text-muted" style={{ fontSize: 10 }}>
                                             ID: {el.id}
                                         </div>
                                     </div>

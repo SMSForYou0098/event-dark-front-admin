@@ -130,6 +130,7 @@ const EventStepperForm = () => {
 
             // Parse expected_date if it exists (from controls object)
             let expectedDateValue = undefined;
+
             if (controls?.expected_date) {
                 const parsed = dayjs(controls.expected_date);
                 expectedDateValue = parsed.isValid() ? parsed : undefined;
@@ -181,6 +182,7 @@ const EventStepperForm = () => {
                 multi_scan: toBool(controls?.multi_scan),
                 scan_mode: toBool(controls?.scan_mode),
                 max_scan_count: controls?.max_scan_count ? Number(controls.max_scan_count) : 1,
+                category: detail?.category,  // Use 'category' to match BasicDetails Form.Item
                 checkpoints: (() => {
                     // Checkpoints come from scan_checkpoints at event level, not controls
                     const scanCheckpoints = detail?.scan_checkpoints;

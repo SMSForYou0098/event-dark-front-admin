@@ -38,7 +38,8 @@ const Canvas = ({
     setContextMenu,
     handleAlign,
     centerView,
-    allVariables
+    allVariables,
+    previewRef
 }) => {
     // Get canvas coordinates from mouse event
     const getCanvasCoordinates = useCallback((e) => {
@@ -168,9 +169,8 @@ const Canvas = ({
     return (
         <div
             ref={mainRef}
-            className="flex-fill position-relative overflow-hidden d-flex align-items-center justify-content-center"
+            className="flex-fill position-relative overflow-hidden d-flex align-items-center justify-content-center lf-canvas-area"
             style={{ 
-                backgroundColor: '#e8e8e8',
                 cursor: isPanning ? 'grabbing' : 'default'
             }}
             onMouseDown={handleCanvasMouseDown}
@@ -200,10 +200,10 @@ const Canvas = ({
             <div 
                 className="position-absolute w-100 h-100"
                 style={{ 
-                    backgroundImage: 'radial-gradient(#9ca3af 1px, transparent 1px)', 
+                    backgroundImage: 'radial-gradient(#4d5b75 1px, transparent 1px)', 
                     backgroundSize: '20px 20px', 
                     backgroundPosition: `${viewTransform.x}px ${viewTransform.y}px`,
-                    opacity: 0.2,
+                    opacity: 0.3,
                     pointerEvents: 'none'
                 }} 
             />
@@ -222,13 +222,14 @@ const Canvas = ({
                     /* Editor Canvas */
                     <div 
                         ref={containerRef} 
-                        className="bg-white position-relative"
+                        className="position-relative"
                         style={{ 
                             width: `${labelSize.width * SCREEN_SCALE}px`, 
                             height: `${labelSize.height * SCREEN_SCALE}px`,
-                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+                            backgroundColor: '#ffffff',
                             backgroundImage: showGrid 
-                                ? 'radial-gradient(#e5e7eb 1px, transparent 1px)' 
+                                ? 'radial-gradient(#ddd 1px, transparent 1px)' 
                                 : 'none', 
                             backgroundSize: `${gridSize * SCREEN_SCALE}px ${gridSize * SCREEN_SCALE}px`
                         }}
@@ -256,8 +257,8 @@ const Canvas = ({
                             <div 
                                 style={{
                                     position: 'absolute',
-                                    border: '1px solid #1890ff',
-                                    backgroundColor: 'rgba(24, 144, 255, 0.1)',
+                                    border: '1px solid #b51515',
+                                    backgroundColor: 'rgba(181, 21, 21, 0.1)',
                                     left: Math.min(marquee.startX, marquee.currentX),
                                     top: Math.min(marquee.startY, marquee.currentY),
                                     width: Math.abs(marquee.currentX - marquee.startX),
@@ -270,7 +271,7 @@ const Canvas = ({
 
                         {/* Rulers */}
                         <div 
-                            className="position-absolute d-flex justify-content-between text-muted"
+                            className="position-absolute d-flex justify-content-between lf-text-muted"
                             style={{ 
                                 top: -28, 
                                 left: 0, 
@@ -285,7 +286,7 @@ const Canvas = ({
                             <span>{labelSize.width}mm</span>
                         </div>
                         <div 
-                            className="position-absolute d-flex flex-column justify-content-between text-muted"
+                            className="position-absolute d-flex flex-column justify-content-between lf-text-muted"
                             style={{ 
                                 top: 0, 
                                 left: -28, 
@@ -350,6 +351,29 @@ const Canvas = ({
                         </div>
                     </div>
                 )}
+            </div>
+
+            {/* Hidden Print Canvas - Clean version without effects for bitmap capture */}
+            <div
+                ref={previewRef}
+                style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    top: '-9999px',
+                    width: `${labelSize.width * SCREEN_SCALE}px`,
+                    height: `${labelSize.height * SCREEN_SCALE}px`,
+                    backgroundColor: '#ffffff',
+                    overflow: 'hidden',
+                    zIndex: -1
+                }}
+            >
+                {elements.map(el => (
+                    <PreviewElement 
+                        key={el.id} 
+                        element={el} 
+                        variableMap={allVariables} 
+                    />
+                ))}
             </div>
         </div>
     );
