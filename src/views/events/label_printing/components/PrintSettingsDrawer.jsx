@@ -1,5 +1,5 @@
 import React from "react";
-import { Drawer, Card, Form, Slider, Select, Checkbox, Space, Row, Col, Typography, Divider } from "antd";
+import { Drawer, Card, Form, InputNumber, Select, Checkbox, Space, Typography, Divider } from "antd";
 import { SettingsIcon } from "lucide-react";
 import { AVAILABLE_FIELDS, FONT_FAMILIES } from "./constants";
 
@@ -20,26 +20,14 @@ const PrintSettingsDrawer = ({
     setFontSizeMultiplier,
     lineGapMultiplier,
     setLineGapMultiplier,
+    letterSpacing = 0,
+    setLetterSpacing,
     fieldFontSizes,
     setFieldFontSizes,
     isMobile,
 }) => {
     const drawerWidth = isMobile ? "100%" : 520;
-
-    // Custom marks for sliders - only show key points to avoid overlap
-    const globalMarks = {
-        0.5: { style: { fontSize: '11px' }, label: '50%' },
-        1.0: { style: { fontSize: '11px' }, label: '100%' },
-        1.5: { style: { fontSize: '11px' }, label: '150%' },
-        2.0: { style: { fontSize: '11px' }, label: '200%' },
-    };
-
-    const fieldMarks = {
-        0.5: { style: { fontSize: '10px' }, label: '50%' },
-        1.0: { style: { fontSize: '10px' }, label: '100%' },
-        2.0: { style: { fontSize: '10px' }, label: '200%' },
-        3.0: { style: { fontSize: '10px' }, label: '300%' },
-    };
+    const BASE_FONT_SIZE = 16; // Base font size in pixels
 
     return (
         <Drawer
@@ -108,23 +96,26 @@ const PrintSettingsDrawer = ({
 
                         <Divider className="my-2" />
 
-                        <Form.Item
-                            label={
-                                <Text>
-                                    Line Spacing: <Text strong style={{ color: '#1677ff' }}>{Math.round(lineGapMultiplier * 100)}%</Text>
-                                </Text>
-                            }
-                        >
-                            <Slider
-                                min={0.5}
-                                max={2.0}
-                                step={0.1}
-                                value={lineGapMultiplier}
-                                onChange={setLineGapMultiplier}
-                                marks={globalMarks}
-                                tooltip={{
-                                    formatter: (value) => `${Math.round(value * 100)}%`
-                                }}
+                        <Form.Item label={<Text>Line Spacing</Text>}>
+                            <InputNumber
+                                min={4}
+                                max={64}
+                                value={Math.round(lineGapMultiplier * BASE_FONT_SIZE)}
+                                onChange={(value) => setLineGapMultiplier(value / BASE_FONT_SIZE)}
+                                addonAfter="px"
+                                style={{ width: 120 }}
+                            />
+                        </Form.Item>
+
+                        <Form.Item label={<Text>Letter Spacing</Text>}>
+                            <InputNumber
+                                min={0}
+                                max={10}
+                                step={0.5}
+                                value={letterSpacing}
+                                onChange={setLetterSpacing}
+                                addonAfter="px"
+                                style={{ width: 120 }}
                             />
                         </Form.Item>
                     </Space>
@@ -140,37 +131,29 @@ const PrintSettingsDrawer = ({
                             header: { padding: '12px 16px' }
                         }}
                     >
-                        <Space direction="vertical" size="large" className="w-100">
+                        <Space direction="vertical" size="middle" className="w-100">
                             {selectedFields.map((fieldValue) => {
                                 const field = AVAILABLE_FIELDS.find(f => f.key === fieldValue);
                                 if (!field) return null;
 
                                 const currentSize = fieldFontSizes[fieldValue] || field.defaultSize || 1.0;
-                                const percentage = Math.round(currentSize * 100);
+                                const pxValue = Math.round(currentSize * BASE_FONT_SIZE);
 
                                 return (
-                                    <div key={fieldValue} style={{ width: '100%' }}>
-                                        <div className="d-flex justify-content-between align-items-center mb-2">
-                                            <Text strong>{field.label}</Text>
-                                            <Text type="secondary" style={{ fontSize: 12 }}>
-                                                {percentage}%
-                                            </Text>
-                                        </div>
-                                        <Slider
-                                            min={0.5}
-                                            max={3.0}
-                                            step={0.1}
-                                            value={currentSize}
+                                    <div key={fieldValue} className="d-flex justify-content-between align-items-center">
+                                        <Text>{field.label}</Text>
+                                        <InputNumber
+                                            min={8}
+                                            max={72}
+                                            value={pxValue}
                                             onChange={(value) => {
                                                 setFieldFontSizes(prev => ({
                                                     ...prev,
-                                                    [fieldValue]: value
+                                                    [fieldValue]: value / BASE_FONT_SIZE
                                                 }));
                                             }}
-                                            marks={fieldMarks}
-                                            tooltip={{
-                                                formatter: (value) => `${Math.round(value * 100)}%`
-                                            }}
+                                            addonAfter="px"
+                                            style={{ width: 120 }}
                                         />
                                     </div>
                                 );

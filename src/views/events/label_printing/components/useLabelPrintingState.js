@@ -67,9 +67,11 @@ export const useLabelPrintingState = () => {
     const [isPrinting, setIsPrinting] = useState(false);
     const [showConfig, setShowConfig] = useState(false);
     const [showPrintSettings, setShowPrintSettings] = useState(false);
+    const [showCodePreview, setShowCodePreview] = useState(false);
     const [labelSize, setLabelSize] = useState("2x2");
     const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1.0);
     const [lineGapMultiplier, setLineGapMultiplier] = useState(1.0);
+    const [letterSpacing, setLetterSpacing] = useState(0);
     const [fontFamily, setFontFamily] = useState(FONT_FAMILIES[0]?.value || "Arial, sans-serif");
     const [fieldFontSizes, setFieldFontSizes] = useState(() => {
         const sizes = {};
@@ -486,6 +488,53 @@ export const useLabelPrintingState = () => {
         }
     }, [connectionMode, selectedRows, selectedFields, handleBrowserPrint, fieldFontSizes, bulkUpdateStatusMutation, UserData?.id, isConnected, connectUSB, connectBluetooth, sendRawBytes, printerType, labelSize, fontSizeMultiplier, lineGapMultiplier, setSelectedRows]);
 
+    /**
+     * Handle printing with custom code (from code preview modal)
+     * @param {Uint8Array|Uint8Array[]} codeBytes - The printer command bytes
+     * @param {number} labelCount - Number of labels
+     * @param {boolean} isMultiple - Whether codeBytes is an array of multiple labels
+     */
+    const handlePrintCustomCode = useCallback(async (codeBytes, labelCount = 1, isMultiple = false) => {
+        if (!isConnected) {
+            message.loading({ content: "Connecting to printer...", key: "connect" });
+            try {
+                if (connectionMode === "usb") {
+                    await connectUSB();
+                } else {
+                    await connectBluetooth();
+                }
+                message.success({ content: "Printer connected!", key: "connect" });
+                await new Promise((r) => setTimeout(r, 500));
+            } catch (err) {
+                message.error({ content: err.message || "Failed to connect", key: "connect" });
+                return;
+            }
+        }
+
+        setIsPrinting(true);
+        message.loading({ content: "Printing...", key: "print" });
+
+        try {
+            if (isMultiple && Array.isArray(codeBytes)) {
+                // Print multiple labels
+                for (const bytes of codeBytes) {
+                    await sendRawBytes(bytes);
+                    await new Promise((r) => setTimeout(r, 300));
+                }
+            } else {
+                // Print single label
+                await sendRawBytes(codeBytes);
+            }
+            message.success({ content: `Printed ${labelCount} label(s)`, key: "print" });
+            setShowCodePreview(false);
+        } catch (err) {
+            console.error("Print error:", err);
+            message.error({ content: err.message || "Print failed", key: "print" });
+        } finally {
+            setIsPrinting(false);
+        }
+    }, [isConnected, connectionMode, connectUSB, connectBluetooth, sendRawBytes]);
+
     const handleSavePrintSettings = useCallback(async () => {
         dispatch(
             setPrinterConfig({
@@ -584,12 +633,16 @@ export const useLabelPrintingState = () => {
         setShowConfig,
         showPrintSettings,
         setShowPrintSettings,
+        showCodePreview,
+        setShowCodePreview,
         labelSize,
         setLabelSize,
         fontSizeMultiplier,
         setFontSizeMultiplier,
         lineGapMultiplier,
         setLineGapMultiplier,
+        letterSpacing,
+        setLetterSpacing,
         fontFamily,
         setFontFamily,
         fieldFontSizes,
@@ -611,6 +664,7 @@ export const useLabelPrintingState = () => {
         handleUpdateLabel,
         handleCancelEdit,
         handlePrint,
+        handlePrintCustomCode,
         handleSavePrintSettings,
         handleDisconnect,
         handleViewBatch,

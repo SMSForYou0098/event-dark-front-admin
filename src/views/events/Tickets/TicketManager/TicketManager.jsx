@@ -1,10 +1,11 @@
 // TicketManager.jsx
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-    Modal, Form, Input, Select, Button, Table, Space,
+    Modal, Form, Input, Select, Button, Space,
     Switch, DatePicker, InputNumber, Row, Col, Alert, message,
     Tag, Tooltip, Image, Card, Typography
 } from 'antd';
+import DataTable from 'views/events/common/DataTable';
 import {
     PlusOutlined, EditOutlined, DeleteOutlined,
     CheckOutlined, PictureOutlined, CloseOutlined
@@ -412,7 +413,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     // Booking count columns (only for Admin or users with "View Tickets Overview" permission)
     const bookingCountColumns = canViewBookingCounts ? [
         {
-            title: 'Total Bookings',
+            title: 'T Booking',
             key: 'total_bookings',
             render: (_, record) => record.total_bookings_count ?? 0
         },
@@ -464,19 +465,22 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             title: 'Ticket',
             dataIndex: 'name',
             key: 'name',
+            align: 'center',
             render: (text) => <span className="fw-semibold">{text}</span>
         },
         {
             title: 'Price',
             dataIndex: 'price',
             key: 'price',
+            align: 'center',
             // render: (price, record) => `${getCurrencySymbol(record.currency)}${price}`
             render: (price, record) => `₹${price}`
         },
-        { title: 'Quantity', dataIndex: 'ticket_quantity', key: 'ticket_quantity' },
+        { title: 'Quantity', dataIndex: 'ticket_quantity', key: 'ticket_quantity', align: 'center' },
         {
             title: 'Sold',
             key: 'sold',
+            align: 'center',
             render: (_, record) => {
                 const soldExplicit = record.sold_count ?? record.sold_tickets ?? record.sold ?? null;
                 if (soldExplicit !== null) return soldExplicit;
@@ -488,15 +492,18 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         {
             title: 'Remaining',
             key: 'remaining',
+            align: 'center',
             render: (_, record) => record.remaining_count ?? record.remaining_quantity
         },
         ...bookingCountColumns,
         {
             title: 'Sale',
+            align: 'center',
             render: (_, record) => record.sale ? <Tag color="green">{getCurrencySymbol(record.currency)}{record.sale_price}</Tag> : <Tag>No Sale</Tag>
         },
         {
             title: 'Status',
+            align: 'center',
             render: (_, record) => (
                 <Space>
                     {record.sold_out && <Tag color="red">Sold Out</Tag>}
@@ -508,6 +515,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         {
             title: 'Action',
             key: 'action',
+            align: 'center',
             fixed: 'right',
             render: (_, record) => (
                 <Space>
@@ -526,20 +534,40 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
     return (
         <>
-            <Row justify="space-between" align="middle" className="mb-3">
-                <Col>{showEventName && <h4 className="mb-0">Tickets for {eventName}</h4>}</Col>
-                <Col>
-                    <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>New Ticket</Button>
-                </Col>
-            </Row>
-
-            <Table
+            <DataTable
+                title={showEventName ? `${eventName} - Tickets` : 'Tickets'}
+                data={tickets}
                 columns={columns}
-                dataSource={tickets}
                 loading={ticketsLoading}
-                rowKey="id"
-                pagination={{ pageSize: 10 }}
+                showSearch={true}
+                enableSearch={true}
+                defaultPageSize={10}
+                extraHeaderContent={
+                    <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>New</Button>
+                }
+                tableProps={{
+                    rowKey: 'id',
+                    scroll: { x: 'max-content' },
+                    size: 'small',
+                    className: 'compact-ticket-table',
+                }}
             />
+            <style>{`
+                .compact-ticket-table .ant-table-thead > tr > th {
+                    font-size: 12px !important;
+                    // padding: 8px !important;
+                }
+                .compact-ticket-table .ant-table-tbody > tr > td {
+                    // padding: 8px !important;
+                    font-size: 13px;
+                }
+                .compact-ticket-table .ant-table-thead > tr.ant-table-row-filter {
+                    display: none;
+                }
+                .compact-ticket-table .ant-table-filter-trigger-container {
+                    display: none !important;
+                }
+            `}</style>
 
             <Modal
                 title={editMode ? 'Edit Ticket' : 'Create New Ticket'}

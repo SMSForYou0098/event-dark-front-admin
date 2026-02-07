@@ -177,7 +177,7 @@ const EventStepperForm = () => {
                 insta_whts_url: detail?.insta_whts_url || '',
                 whts_note: detail?.whts_note || undefined,
                 booking_notice: detail?.booking_notice || undefined,
-
+                attendee_required: toBool(controls?.attendee_required),
                 // Ticket settings (moved from tickets step)
                 multi_scan: toBool(controls?.multi_scan),
                 scan_mode: toBool(controls?.scan_mode),
@@ -354,13 +354,14 @@ const EventStepperForm = () => {
     // Steps configuration
     const steps = useMemo(
         () => [
-            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} eventFields={detail?.event_fields} />, icon: <FormOutlined /> },
+            { title: 'Details', content: <BasicDetailsStep isEdit={isEdit} form={form} eventFields={detail?.event_fields} />, icon: <FormOutlined /> },
             {
-                title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} orgId={orgId}
+                title: 'Controls', content: <EventControlsStep isEdit={isEdit} form={form} orgId={orgId}
                     layouts={layouts}
                     eventLayoutId={eventLayoutId}
                     eventId={detail?.event_key}
                     venue_id={detail?.venue_id}
+                    eventHasAttendee={detail?.event_has_attendee}
                 />, icon: <ControlOutlined />
             },
             { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },

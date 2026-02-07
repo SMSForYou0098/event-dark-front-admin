@@ -180,11 +180,13 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                 width={900}
                 style={{ top: 20 }}
                 okText={mode === 'edit' ? 'Update' : 'Create'}
+                className="compact-venue-modal"
             >
                 <Form
                     form={form}
                     layout="vertical"
                     onFinish={handleSubmit}
+                    className="compact-venue-form"
                 >
                     <Row gutter={16} style={{ maxHeight: isMobile ? '30rem' : '100%', overflowX: 'auto' }}>
                         <Col xs={24} md={12}>
@@ -412,6 +414,23 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                         </Col>
                     </Row>
                 </Form>
+                <style>{`
+                    .compact-venue-form .ant-form-item-label > label {
+                        font-size: 12px !important;
+                    }
+                    .compact-venue-form .ant-input,
+                    .compact-venue-form .ant-select-selector,
+                    .compact-venue-form .ant-input-textarea textarea,
+                    .compact-venue-form .ant-btn {
+                        font-size: 12px !important;
+                    }
+                    .compact-venue-form .ant-select-selection-item {
+                        font-size: 12px !important;
+                    }
+                    .compact-venue-form .ant-form-item {
+                        margin-bottom: 12px;
+                    }
+                `}</style>
             </Modal>
 
             {/* Thumbnail Picker Modal */}

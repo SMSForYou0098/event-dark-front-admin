@@ -158,7 +158,7 @@ const partnersClientsNav = {
 const userManagementNav = {
   key: 'user-management',
   path: 'user-management',
-  title: 'User Management',
+  title: 'User MGT',
   icon: TeamOutlined,
   breadcrumb: false,
   submenu: userManagementSubmenu,
@@ -358,7 +358,7 @@ const eventManagementSubmenu = [
 const eventManagementNav = {
   key: 'event-management',
   path: 'event-management',
-  title: 'Event Management',
+  title: 'Event MGT',
   icon: CalendarOutlined,
   breadcrumb: false,
   submenu: eventManagementSubmenu,
@@ -544,7 +544,7 @@ const financialManagementSubmenu = [
 const financialManagementNav = {
   key: 'financial-management',
   path: 'financial-management',
-  title: 'Finance Management',
+  title: 'Finance MGT',
   icon: DollarOutlined,
   breadcrumb: false,
   submenu: financialManagementSubmenu,

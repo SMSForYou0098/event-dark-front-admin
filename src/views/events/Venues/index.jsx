@@ -122,6 +122,7 @@ const Venues = () => {
       width: isMobile ? 20 : 50,
       render: (_, __, index) => index + 1,
       searchable: false,
+      align: 'center',
     },
     {
       title: 'Thumb',
@@ -130,6 +131,7 @@ const Venues = () => {
       width: 80,
       render: (thumbnail) => thumbnail ? <Image src={thumbnail} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       searchable: false,
+      align: 'center',
     },
     {
       title: 'Name',
@@ -137,6 +139,7 @@ const Venues = () => {
       key: 'name',
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
+      align: 'center',
       render: (name) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
           <User size={16} className="text-primary" />
@@ -150,6 +153,7 @@ const Venues = () => {
       key: 'organisation',
       sorter: (a, b) => a.user?.organisation?.localeCompare(b.user?.organisation),
       searchable: true,
+      align: 'center',
       render: (organisation) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
           <User size={16} className="text-primary" />
@@ -162,6 +166,7 @@ const Venues = () => {
       dataIndex: 'address',
       key: 'address',
       searchable: true,
+      align: 'center',
       render: (address) => address || 'N/A'
     },
     {
@@ -169,12 +174,14 @@ const Venues = () => {
       dataIndex: 'city',
       key: 'city',
       searchable: true,
+      align: 'center',
       render: (city) => city || 'N/A'
     },
     {
       title: 'State',
       dataIndex: 'state',
       key: 'state',
+      align: 'center',
       searchable: true,
       render: (state) => state || 'N/A'
     },
@@ -182,6 +189,7 @@ const Venues = () => {
       title: "Actions",
       key: "actions",
       fixed: "right",
+      align: 'center',
       width: 150,
       render: (_, record) => {
         const isDeleted = record?.is_deleted || record?.status === "1";

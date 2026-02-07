@@ -6,7 +6,8 @@ import {
     Layers,
     Printer,
     CheckCircle,
-    Zap
+    Zap,
+    Code
 } from "lucide-react";
 import printLoader from "assets/event/stock/print_loader.gif";
 import Loader from "utils/Loader";
@@ -19,6 +20,7 @@ import {
     InstantPrintTab,
     PrinterConfigDrawer,
     PrintSettingsDrawer,
+    PrintCodePreview,
     EditLabelModal,
     PrintPreview,
     useLabelPrintingState,
@@ -68,12 +70,16 @@ const LabelPrinting = () => {
         setShowConfig,
         showPrintSettings,
         setShowPrintSettings,
+        showCodePreview,
+        setShowCodePreview,
         labelSize,
         setLabelSize,
         fontSizeMultiplier,
         setFontSizeMultiplier,
         lineGapMultiplier,
         setLineGapMultiplier,
+        letterSpacing,
+        setLetterSpacing,
         fontFamily,
         setFontFamily,
         fieldFontSizes,
@@ -95,6 +101,7 @@ const LabelPrinting = () => {
         handleUpdateLabel,
         handleCancelEdit,
         handlePrint,
+        handlePrintCustomCode,
         handleSavePrintSettings,
         handleDisconnect,
         handleViewBatch,
@@ -302,9 +309,28 @@ const LabelPrinting = () => {
                 setFontSizeMultiplier={setFontSizeMultiplier}
                 lineGapMultiplier={lineGapMultiplier}
                 setLineGapMultiplier={setLineGapMultiplier}
+                letterSpacing={letterSpacing}
+                setLetterSpacing={setLetterSpacing}
                 fieldFontSizes={fieldFontSizes}
                 setFieldFontSizes={setFieldFontSizes}
                 isMobile={isMobile}
+            />
+
+            {/* Print Code Preview Modal */}
+            <PrintCodePreview
+                open={showCodePreview}
+                onClose={() => setShowCodePreview(false)}
+                printerType={printerType}
+                selectedRows={selectedRows}
+                selectedFields={selectedFields}
+                labelSize={labelSize}
+                fontSizeMultiplier={fontSizeMultiplier}
+                fieldFontSizes={fieldFontSizes}
+                lineGapMultiplier={lineGapMultiplier}
+                letterSpacing={letterSpacing}
+                onPrintCustomCode={handlePrintCustomCode}
+                isConnected={isConnected}
+                isPrinting={isPrinting}
             />
 
             {/* Main Content */}
@@ -321,6 +347,14 @@ const LabelPrinting = () => {
                             <Tag color="success" icon={<CheckCircle size={12} />}>
                                 Printer Connected
                             </Tag>
+                        )}
+                        {selectedRows.length > 0 && connectionMode !== "browser" && (
+                            <Tooltip title="View Printer Code">
+                                <Button
+                                    icon={<Code size={16} />}
+                                    onClick={() => setShowCodePreview(true)}
+                                />
+                            </Tooltip>
                         )}
                         <Tooltip title="Printer Setup">
                             <Button

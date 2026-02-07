@@ -1065,7 +1065,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                             {mode === 'create' && (userRole === 'Admin' || userRole === 'Organizer') && (
                                 <Col xs={24} md={8}>
                                     <Form.Item
-                                        label="Email Verification Required"
+                                        label="Email Required"
                                         name="verifiedEmail"
                                         valuePropName="checked"
                                     >

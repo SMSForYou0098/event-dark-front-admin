@@ -1,5 +1,5 @@
 // EventControlsStep.jsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { CONSTANTS } from './CONSTANTS';
@@ -17,13 +17,14 @@ const { Text } = Typography;
 const toBoolean = (v) => v === true || v === 1 || v === '1';
 const toBooleanValue = (checked) => Boolean(checked);
 
-const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venueId }) => {
+const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venueId, eventHasAttendee }) => {
   const { userRole } = useMyContext();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
   const [selectFieldsModalOpen, setSelectFieldsModalOpen] = useState(false);
   const [selectedFieldIds, setSelectedFieldIds] = useState([]);
   const [selectedFieldsData, setSelectedFieldsData] = useState([]);
   const [fieldNotes, setFieldNotes] = useState({});
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Watch attendee_required switch value (from Ticket Controls section)
   const attendeeRequired = Form.useWatch('attendee_required', form);
@@ -46,10 +47,38 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
     staleTime: 5 * 60 * 1000,
   });
 
+  // Initialize selected fields from eventHasAttendee when editing
+  useEffect(() => {
+    if (eventHasAttendee && eventHasAttendee.length > 0 && categoryDetails?.fields && !isInitialized) {
+      // Extract field IDs from event_has_attendee
+      const existingFieldIds = eventHasAttendee.map(item => item.field_id);
+
+      // Match with category fields to get full field data
+      const existingFieldsData = categoryDetails.fields.filter(field =>
+        existingFieldIds.includes(field.id)
+      );
+
+      setSelectedFieldIds(existingFieldIds);
+      setSelectedFieldsData(existingFieldsData);
+      setIsInitialized(true);
+
+      // Build fields payload for form
+      const fieldsPayload = existingFieldIds.map(id => ({
+        field_id: id,
+        note: ''
+      }));
+
+      form.setFieldsValue({
+        selected_field_ids: existingFieldIds,
+        attendee_fields: fieldsPayload
+      });
+    }
+  }, [eventHasAttendee, categoryDetails, isInitialized, form]);
+
   // Check category conditions from API response:
   // - If title is "Registration" → DON'T show SelectFields
   // - If category's attendy_required is true → DON'T show SelectFields  
-  const isRegistrationCategory = categoryDetails?.title?.toLowerCase() === 'Registration';
+  const isRegistrationCategory = categoryDetails?.title?.toLowerCase() === 'registration';
   const categoryHasAttendyRequired = toBoolean(categoryDetails?.attendy_required);
 
   // Show SelectFields component when ALL conditions are met:
