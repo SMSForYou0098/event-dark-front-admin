@@ -203,6 +203,9 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('ticket_terms', values.ticket_terms);
     appendIfDefined('multi_scan', values.multi_scan ?? false);
     appendIfDefined('attendee_required', values.attendee_required ?? false);
+    appendIfDefined('ticket_transfer', values.ticket_transfer ?? false);
+    appendIfDefined('ticket_transfer_otp', values.ticket_transfer_otp ?? false);
+    appendIfDefined('use_preprinted_cards', values.use_preprinted_cards ?? false);
     // Attendee fields - send as JSON array [{field_id, note}]
     if (Array.isArray(values.attendee_fields) && values.attendee_fields.length > 0) {
       fd.append('attendee_fields', JSON.stringify(values.attendee_fields));

@@ -178,6 +178,9 @@ const EventStepperForm = () => {
                 whts_note: detail?.whts_note || undefined,
                 booking_notice: detail?.booking_notice || undefined,
                 attendee_required: toBool(controls?.attendee_required),
+                ticket_transfer: toBool(controls?.ticket_transfer),
+                ticket_transfer_otp: toBool(controls?.ticket_transfer_otp),
+                use_preprinted_cards: toBool(controls?.use_preprinted_cards),
                 // Ticket settings (moved from tickets step)
                 multi_scan: toBool(controls?.multi_scan),
                 scan_mode: toBool(controls?.scan_mode),

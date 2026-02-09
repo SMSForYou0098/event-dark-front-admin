@@ -55,6 +55,7 @@ const DataTable = ({
   searchValue = "", // Controlled search value for server-side
   pageSizeOptions = ["10", "20", "50", "100"], // Options for items per page
   defaultPageSize = 10, // Default page size for client-side pagination
+  size, // Table size: 'small' | 'middle' | 'large' - overrides responsive default
 }) => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
@@ -537,7 +538,7 @@ const DataTable = ({
               x: isMobile ? "max-content" : 1200,
               y: isMobile ? undefined : undefined,
             }}
-            size={isSmallMobile ? "small" : isMobile ? "middle" : "middle"}
+            size={size || (isSmallMobile ? "small" : "middle")}
             sticky={!isMobile}
             {...tableProps}
           />

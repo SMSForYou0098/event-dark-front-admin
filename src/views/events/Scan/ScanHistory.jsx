@@ -351,7 +351,7 @@ const ScanHistory = () => {
       showRefresh
       onRefresh={refetch}
       enableExport
-      exportRoute="export-scan-history"
+      exportRoute="/export/scan-logs"
       ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Scan History")}
       emptyText="No scan history found"
       enableSearch

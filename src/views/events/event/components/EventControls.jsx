@@ -173,6 +173,10 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       setIsLayoutModalVisible(true);
     }
   };
+  // Watch ticket_transfer value to conditionally show ticket_transfer_otp
+  const ticketTransferEnabled = Form.useWatch('ticket_transfer', form);
+  const isTicketTransferEnabled = toBoolean(ticketTransferEnabled);
+
   const switchFields = [
     {
       name: 'ticket_system',
@@ -184,12 +188,6 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       name: 'bookingBySeat',
       label: 'Booking By Seat',
       onChange: (checked) => handleBookingTypeChange('bookingBySeat', checked),
-      initialValue: false
-    },
-    {
-      name: 'attendee_required',
-      label: 'Attendee Required',
-      // onChange: (checked) => handleBookingTypeChange('attendee_required', checked),
       initialValue: false
     },
   ];
@@ -216,26 +214,6 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
         </Col>
 
         <Col xs={24} sm={12} lg={12}>
-          {/* <Form.Item
-            name="insta_whts_url"
-            label="Instagram URL"
-            rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
-          >
-            <Input placeholder="https://www.instagram.com/p/DM2a-hmI9i4/t" />
-          </Form.Item> */}
-          {/* {instaUrl ? (
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <Eye size={20} className="text-success" /> &nbsp;
-              <a
-               className="text-success"
-                href={instaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {instaUrl}
-              </a>
-            </div>
-          ) : null} */}
           <ContentSelect
             form={form}
             fieldName="insta_whts_url" // form will store only the id
@@ -391,6 +369,21 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               label: "Approval Required",
               tooltip: "Require admin approval for bookings",
             },
+            {
+              name: "attendee_required",
+              label: "Attendee Required",
+              // onChange: (checked) => handleBookingTypeChange('attendee_required', checked),
+            },
+            {
+              name: "ticket_transfer",
+              label: "Ticket Transfer",
+              tooltip: "Allow users to transfer their tickets to others",
+            },
+            {
+              name: "use_preprinted_cards",
+              label: "Use Preprinted Cards",
+              tooltip: "Enable use of preprinted cards for this event",
+            },
           ]
             .filter((f) => {
               // Only show "High Demand" field to Admin users
@@ -490,6 +483,31 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
             ) : null;
           }}
         </Form.Item>
+
+        {/* Ticket Transfer OTP - Only show when ticket_transfer is ON */}
+        <Form.Item noStyle shouldUpdate={(prev, curr) => prev.ticket_transfer !== curr.ticket_transfer}>
+          {({ getFieldValue }) => {
+            const isTicketTransferEnabled = toBoolean(getFieldValue('ticket_transfer'));
+
+            return isTicketTransferEnabled ? (
+              <Row gutter={ROW_GUTTER}>
+                <Col xs={24} sm={12} lg={4}>
+                  <Form.Item
+                    name="ticket_transfer_otp"
+                    label="Transfer OTP"
+                    tooltip="Require OTP verification for ticket transfers"
+                    valuePropName="checked"
+                    getValueProps={(v) => ({ checked: toBoolean(v) })}
+                    getValueFromEvent={toBooleanValue}
+                    initialValue={false}
+                  >
+                    <Switch checkedChildren="Yes" unCheckedChildren="No" />
+                  </Form.Item>
+                </Col>
+              </Row>
+            ) : null;
+          }}
+        </Form.Item>
       </Card>
 
       {/* Group 3: Display Settings */}
@@ -573,7 +591,21 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       {/* Ticket Settings */}
       <Row gutter={ROW_GUTTER}>
         <Col span={24}>
-          <Card title="Ticket Settings">
+          <Card
+            title="Ticket Settings"
+            extra={
+              <Form.Item shouldUpdate noStyle>
+                {() => {
+                  const bookingBySeatValue = form.getFieldValue("bookingBySeat");
+                  return toBoolean(bookingBySeatValue) ? (
+                    <Button type="primary" onClick={handleManageLayoutClick} size="small">
+                      Manage Ticket in Layout
+                    </Button>
+                  ) : null;
+                }}
+              </Form.Item>
+            }
+          >
             <Row gutter={ROW_GUTTER}>
               {switchFields.map((f) => (
                 <Col xs={24} sm={12} lg={4} key={f.name}>
@@ -590,19 +622,13 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                   </Form.Item>
                 </Col>
               ))}
+
+              {/* Ticket Transfer OTP - only show when ticket_transfer is ON */}
+
               {/* </Row> */}
 
               {/* show button only when Booking By Seat is selected */}
-              <Form.Item shouldUpdate noStyle>
-                {() => {
-                  const bookingBySeatValue = form.getFieldValue("bookingBySeat");
-                  return toBoolean(bookingBySeatValue) ? (
-                    <Button type="primary" onClick={handleManageLayoutClick}>
-                      Manage Ticket in Layout
-                    </Button>
-                  ) : null;
-                }}
-              </Form.Item>
+
 
               {/* Multi-Scan Configuration Section */}
               {/* <Card size="small" title="Multi-Scan Configuration" style={{ marginTop: 16 }}> */}

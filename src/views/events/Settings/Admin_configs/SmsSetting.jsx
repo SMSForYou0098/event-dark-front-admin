@@ -17,7 +17,7 @@ import {
     Modal,
     Spin
 } from 'antd';
-import { EditOutlined, DeleteOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, SaveOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import SytemVariables from './SytemVariables';
 import {
@@ -41,6 +41,7 @@ const SmsSetting = () => {
     const [editState, setEditState] = useState(false);
     const [status, setStatus] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
+    const [searchText, setSearchText] = useState('');
 
     // Tanstack Query Hooks
     const { data: smsData, isLoading: isLoadingSMS, refetch } = useSMSConfig(UserData?.id);
@@ -480,17 +481,39 @@ const SmsSetting = () => {
                     <Row gutter={[16, 16]}>
                         {/* SMS Templates Table */}
                         <Col xs={24}>
-                            <DataTable
+                            <Card
                                 title="SMS Templates"
-                                data={templates}
-                                columns={columns}
-                                loading={isLoadingSMS}
-                                enableSearch={true}
-                                showSearch={true}
-                                defaultPageSize={5}
-                                pageSizeOptions={['5', '10', '20', '50']}
-                                scroll={{ x: 600 }}
-                            />
+                                size="small"
+                                extra={
+                                    <Input
+                                        placeholder="Search..."
+                                        prefix={<SearchOutlined />}
+                                        allowClear
+                                        onChange={(e) => setSearchText(e.target.value)}
+                                        style={{ width: 150 }}
+                                        size="small"
+                                    />
+                                }
+                            >
+                                <Table
+                                    dataSource={templates.filter(item =>
+                                        !searchText ||
+                                        item.template_name?.toLowerCase().includes(searchText.toLowerCase()) ||
+                                        item.content?.toLowerCase().includes(searchText.toLowerCase())
+                                    )}
+                                    columns={columns}
+                                    loading={isLoadingSMS}
+                                    size="small"
+                                    pagination={{
+                                        pageSize: 5,
+                                        showSizeChanger: true,
+                                        pageSizeOptions: ['5', '10', '20', '50'],
+                                        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                                    }}
+                                    scroll={{ x: 600 }}
+                                    rowKey="id"
+                                />
+                            </Card>
                         </Col>
 
                         {/* System Variables */}

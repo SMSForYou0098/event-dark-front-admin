@@ -16,7 +16,7 @@ import {
   Spin,
   Tag
 } from 'antd';
-import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import DataTable from '../../common/DataTable';
 import axios from 'axios';
 import { useMyContext } from '../../../../Context/MyContextProvider';
@@ -53,6 +53,7 @@ const WhatsAppConfig = () => {
   const [previewData, setPreviewData] = useState();
   const [dynamicFields, setDynamicFields] = useState({});
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
+  const [searchText, setSearchText] = useState('');
 
   // Tanstack Query Hooks
   const { data: configData, isLoading: isLoadingConfig } = useWhatsAppConfig(UserData?.id);
@@ -660,22 +661,44 @@ const WhatsAppConfig = () => {
 
         {/* Right Column - WhatsApp Configs Table */}
         <Col xs={24} lg={12}>
-          <DataTable
+          <Card
             title="WhatsApp Configs"
-            extraHeaderContent={
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setShow(true)}>
-                New Config
-              </Button>
+            size="small"
+            extra={
+              <Space>
+                <Input
+                  placeholder="Search..."
+                  prefix={<SearchOutlined />}
+                  allowClear
+                  onChange={(e) => setSearchText(e.target.value)}
+                  style={{ width: 150 }}
+                  size="small"
+                />
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setShow(true)} size="small">
+                  New Config
+                </Button>
+              </Space>
             }
-            data={apisData}
-            columns={columns}
-            loading={isLoadingApis}
-            enableSearch={true}
-            showSearch={true}
-            defaultPageSize={10}
-            pageSizeOptions={['5', '10', '20', '50']}
-            scroll={{ x: 600 }}
-          />
+          >
+            <Table
+              dataSource={apisData.filter(item =>
+                !searchText ||
+                item.title?.toLowerCase().includes(searchText.toLowerCase()) ||
+                item.template_name?.toLowerCase().includes(searchText.toLowerCase())
+              )}
+              columns={columns}
+              loading={isLoadingApis}
+              size="small"
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                pageSizeOptions: ['5', '10', '20', '50'],
+                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+              }}
+              scroll={{ x: 200 }}
+              rowKey="id"
+            />
+          </Card>
         </Col>
       </Row>
     </DndProvider>

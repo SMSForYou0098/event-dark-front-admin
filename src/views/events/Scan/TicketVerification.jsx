@@ -533,6 +533,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                     ticketData={ticketData}
                     setShow={setShow}
                     attendees={attendees}
+                    setAttendees={setAttendees}
                     loading={loading}
                     categoryData={categoryData}
                     handleVerify={handleVerify}

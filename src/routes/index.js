@@ -14,9 +14,7 @@ const Routes = () => {
 	const APP_PREFIX_PATH = '/';
 
 	// Define dashboard entry point based on role
-	let AUTHENTICATED_ENTRY = ['Admin', 'Organizer'].includes(userRole)
-		? `${APP_PREFIX_PATH}dashboard`
-		: `${APP_PREFIX_PATH}dashboard/${lowerCase(userRole)}`;
+	let AUTHENTICATED_ENTRY = `${APP_PREFIX_PATH}dashboard`;
 
 	// If a user is logged in AND role is "User", redirect to their profile edit page
 	if (UserData?.id && userRole === 'User') {

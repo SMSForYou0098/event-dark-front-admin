@@ -27,6 +27,7 @@ const { Text, Title } = Typography;
 const ScanedUserData = ({
   show,
   setShow,
+  setAttendees,
   ticketData,
   showAttendeee,
   attendees = [],
@@ -53,7 +54,10 @@ const ScanedUserData = ({
   if (!ticketData) return null;
 
 
-  const handleClose = () => setShow(false);
+  const handleClose = () => {
+    setShow(false);
+    setAttendees([]);
+  };
 
   const eventData = event;
   // Determine if this is a master booking or regular booking
@@ -66,7 +70,7 @@ const ScanedUserData = ({
   // Get attendees data
   const attendeesList = is_master === true
     ? bookings?.attendees || []
-    : attendees;
+    : attendees || [];
 
 
   // Get customer name and phone
