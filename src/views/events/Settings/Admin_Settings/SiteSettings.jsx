@@ -13,7 +13,7 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   const getFileList = (fieldName) => {
     const file = fileUploads[fieldName];
     if (!file) return [];
-    
+
     if (typeof file === 'string') {
       return [{
         uid: '-1',
@@ -22,7 +22,7 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
         url: file,
       }];
     }
-    
+
     if (file instanceof File) {
       return [{
         uid: '-1',
@@ -32,7 +32,7 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
         url: URL.createObjectURL(file),
       }];
     }
-    
+
     return [];
   };
 
@@ -140,8 +140,8 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
             ))}
 
             <Col xs={24} lg={12}>
-              <Form.Item 
-                label="App Name" 
+              <Form.Item
+                label="App Name"
                 name="app_name"
                 rules={[{ required: true, message: 'Please enter app name' }]}
               >
@@ -181,8 +181,8 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
           <h4 style={{ marginBottom: '16px' }}>Feature Toggles</h4>
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
-              <Form.Item 
-                label="User Notification Permission" 
+              <Form.Item
+                label="User Notification Permission"
                 name="notify_req"
                 valuePropName="checked"
               >
@@ -193,8 +193,8 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
               </Form.Item>
             </Col>
             <Col xs={24} lg={12}>
-              <Form.Item 
-                label="Complimentary User Validation" 
+              <Form.Item
+                label="Complimentary User Validation"
                 name="complimentary_attendee_validation"
                 valuePropName="checked"
               >
@@ -220,9 +220,9 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
                 <Upload {...getImageUploadProps('homeDivider')}>
                   {getFileList('homeDivider').length < 1 && (
                     <div>
-                        <UploadOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
-                      </div>
+                      <UploadOutlined />
+                      <div style={{ marginTop: 8 }}>Upload</div>
+                    </div>
                   )}
                 </Upload>
               </Form.Item>
@@ -242,49 +242,6 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
             <Col xs={24} lg={12}>
               <Form.Item name="new_tab" valuePropName="checked">
                 <Checkbox>Open in New Tab</Checkbox>
-              </Form.Item>
-            </Col>
-          </Row>
-        </>
-      )
-    },
-    {
-      key: 'agreement',
-      label: 'Agreement',
-      children: (
-        <>
-          <h4 style={{ marginBottom: '16px' }}>Agreement Settings</h4>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} lg={12}>
-              <Form.Item label="Agreement PDF">
-                <Upload {...getPdfUploadProps('agreementPdf')}>
-                  <Button icon={<UploadOutlined />} block>
-                    Upload PDF
-                  </Button>
-                </Upload>
-                {getFileList('agreementPdf').length > 0 && (
-                  <Button
-                    type="link"
-                    icon={<EyeOutlined />}
-                    onClick={() => setShowPdfModal(true)}
-                    style={{ marginTop: 8 }}
-                  >
-                    Preview PDF
-                  </Button>
-                )}
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Form.Item label="E-Signature Image">
-                <Upload {...getImageUploadProps('eSignature')}>
-                  {getFileList('eSignature').length < 1 && (
-                    <div>
-                      <UploadOutlined />
-                      <div style={{ marginTop: 8 }}>Upload Signature</div>
-                    </div>
-                  )}
-                </Upload>
               </Form.Item>
             </Col>
           </Row>
@@ -330,12 +287,12 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
     {
       label: 'FAQs',
       key: 'faq',
-      children: <DynamicOptions type={'faq'} heading={'FAQ'}/>
+      children: <DynamicOptions type={'faq'} heading={'FAQ'} />
     },
     {
       label: 'Contact Us',
       key: 'contact_us',
-      children: <DynamicOptions type={'contact_us'} heading={'Contact Us'}/>
+      children: <DynamicOptions type={'contact_us'} heading={'Contact Us'} />
     }
   ];
 

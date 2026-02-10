@@ -185,7 +185,7 @@ const SytemVariables = () => {
       title: 'Actions',
       key: 'actions',
       width: 120,
-      align: 'center',
+      align: 'left',
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Edit">

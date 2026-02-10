@@ -792,7 +792,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
         >
           {/* Show selected fields */}
           {selectedFieldIds.length > 0 ? (
-            <div className="d-flex flex-column gap-2">
+            <div className="d-flex flex-wrap gap-2">
               {selectedFieldsData.map((field) => (
                 <div key={field.id} className="d-flex align-items-center gap-2">
                   <Tag

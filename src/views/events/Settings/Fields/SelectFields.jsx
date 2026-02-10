@@ -115,6 +115,8 @@ const SelectFields = ({
   const handleFieldSelection = useCallback((fieldId, checked) => {
     setSelectedFieldIds(prev => {
       if (checked) {
+        // Prevent duplicates
+        if (prev.includes(fieldId)) return prev;
         return [...prev, fieldId];
       } else {
         return prev.filter(id => id !== fieldId);
@@ -141,15 +143,22 @@ const SelectFields = ({
   // Handle select all fields
   const handleSelectAll = useCallback((checked) => {
     if (checked) {
-      setSelectedFieldIds(filteredFields.map(field => field.id));
+      // Merge with existing selections, deduplicate using Set
+      const filteredIds = filteredFields.map(field => field.id);
+      setSelectedFieldIds(prev => [...new Set([...prev, ...filteredIds])]);
     } else {
-      setSelectedFieldIds([]);
+      // Only remove filtered fields from selection, keep others
+      const filteredIds = new Set(filteredFields.map(field => field.id));
+      setSelectedFieldIds(prev => prev.filter(id => !filteredIds.has(id)));
     }
   }, [filteredFields]);
 
   // Submit selected fields
   const handleSubmit = useCallback(async () => {
-    if (selectedFieldIds.length === 0) {
+    // Deduplicate before submitting
+    const uniqueFieldIds = [...new Set(selectedFieldIds)];
+
+    if (uniqueFieldIds.length === 0) {
       setError('Please select at least one field');
       return;
     }
@@ -158,12 +167,12 @@ const SelectFields = ({
     setError(null);
 
     try {
-      // Get selected field objects for parent
+      // Get selected field objects for parent (deduplicated)
       const selectedFields = availableFields.filter(f =>
-        selectedFieldIds.includes(f.id)
+        uniqueFieldIds.includes(f.id)
       );
 
-      onSuccess?.(selectedFieldIds, selectedFields, fieldNotes);
+      onSuccess?.(uniqueFieldIds, selectedFields, fieldNotes);
       message.success('Fields selected successfully');
       onClose();
     } catch (error) {

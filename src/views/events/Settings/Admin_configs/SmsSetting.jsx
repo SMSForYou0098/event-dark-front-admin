@@ -208,7 +208,7 @@ const SmsSetting = () => {
                 title: 'Action',
                 key: 'action',
                 width: 120,
-                align: 'center',
+                align: 'left',
                 render: (_, record) => (
                     <Space size="small">
                         <Tooltip title="Edit">

@@ -248,7 +248,6 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         }),
         onMutate: () => {
             setLoading(prev => ({ ...prev, fetching: true }));
-            setShow(true);
         },
         onSuccess: (res) => {
             if (res.status) {
@@ -260,6 +259,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 setSessionId(res.session_id || mainBookings?.session_id);
                 setType(res.type || res.data?.type);
                 handleAttendees(res);
+                setShow(true);
             }
         },
         onError: (err) => {
@@ -585,25 +585,45 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                             <Col xs={24} sm={24} lg={6}>
                                 <Card>
                                     <Space direction="vertical" size={12} className='w-100'>
-                                        <div>
-                                            <Typography.Text strong>
-                                                {event?.name || 'Event Name'}
-                                            </Typography.Text>
-                                        </div>
-
-                                        <Divider className='my-0' />
-
-                                        <Space direction="vertical" size={8}>
+                                        {selectedEventsList.length > 0 ? (
+                                            selectedEventsList.map((evt, index) => (
+                                                <div key={evt.id}>
+                                                    <div>
+                                                        <Typography.Text strong>
+                                                            {evt.name || 'Event Name'}
+                                                        </Typography.Text>
+                                                    </div>
+                                                    <Space direction="vertical" size={0} className='mt-2'>
+                                                        <Space>
+                                                            <ClockCircleOutlined />
+                                                            <Typography.Text type="secondary" style={{ fontSize: '12px' }}>Date Range:</Typography.Text>
+                                                        </Space>
+                                                        <Typography.Text style={{ fontSize: '13px' }}>
+                                                            {formatDateRange(evt.date_range)}
+                                                        </Typography.Text>
+                                                    </Space>
+                                                    {index < selectedEventsList.length - 1 && <Divider className='my-2' />}
+                                                </div>
+                                            ))
+                                        ) : (
                                             <div>
-                                                <Space>
-                                                    <ClockCircleOutlined />
-                                                    <Typography.Text>Date Range:</Typography.Text>
-                                                </Space>
                                                 <Typography.Text strong>
-                                                    {formatDateRange(event?.date_range)}
+                                                    {event?.name || 'Event Name'}
                                                 </Typography.Text>
+                                                <Divider className='my-2' />
+                                                <Space direction="vertical" size={8}>
+                                                    <div>
+                                                        <Space>
+                                                            <ClockCircleOutlined />
+                                                            <Typography.Text>Date Range:</Typography.Text>
+                                                        </Space>
+                                                        <Typography.Text strong>
+                                                            {formatDateRange(event?.date_range)}
+                                                        </Typography.Text>
+                                                    </div>
+                                                </Space>
                                             </div>
-                                        </Space>
+                                        )}
                                     </Space>
                                 </Card>
                             </Col>

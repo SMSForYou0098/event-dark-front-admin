@@ -231,7 +231,7 @@ const MailSettings = memo(() => {
         title: 'Action',
         key: 'action',
         width: 150,
-        align: 'center',
+        align: 'left',
         render: (_, record) => (
           <Space size="small">
             <Tooltip title="Edit">
