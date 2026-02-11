@@ -385,30 +385,24 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
       </Col>
 
       <Col xs={24} md={12}>
-        <Card title="Online T & C">
-          <ContentSelect
-            form={form}
-            fieldName="online_ticket_terms"
-            contentType="description"
-            label="Ticket Terms & Conditions"
-            placeholder="Select ticket terms"
-            rules={[{ required: true, message: "Please select ticket terms" }]}
-          />
-
-        </Card>
+        <ContentSelect
+          form={form}
+          fieldName="online_ticket_terms"
+          contentType="description"
+          label="Ticket Terms & Conditions (Online)"
+          placeholder="Select ticket terms"
+          rules={[{ required: true, message: "Please select ticket terms" }]}
+        />
       </Col>
       <Col xs={24} md={12}>
-        <Card title="Offline T & C">
-          <ContentSelect
-            form={form}
-            fieldName="offline_ticket_terms"
-            contentType="description"
-            label="Ticket Terms & Conditions"
-            placeholder="Select ticket terms"
-            rules={[{ required: true, message: "Please select ticket terms" }]}
-          />
-
-        </Card>
+        <ContentSelect
+          form={form}
+          fieldName="offline_ticket_terms"
+          contentType="description"
+          label="Ticket Terms & Conditions (Offline)"
+          placeholder="Select ticket terms"
+          rules={[{ required: true, message: "Please select ticket terms" }]}
+        />
       </Col>
     </Row>
   );

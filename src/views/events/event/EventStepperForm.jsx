@@ -106,6 +106,10 @@ const EventStepperForm = () => {
             patch.org_id = String(detail.user_id);
         }
 
+        patch.org_id = String(detail.venue_id);
+
+        setLayouts(detail?.venue?.layouts);
+
         // Step 0: Basic Details
         if (current === 0) {
             Object.assign(patch, {
@@ -208,7 +212,6 @@ const EventStepperForm = () => {
 
             // Set layouts and layout ID for seat booking management
             setEventLayoutId(detail?.event_has_layout?.layout_id);
-            setLayouts(detail?.layout);
         }
 
         // Step 2: Timing & Location
@@ -354,6 +357,7 @@ const EventStepperForm = () => {
     }, [form, tickets]);
     // Get orgId from detail or form (form is more reliable as it's set in all steps)
     const orgId = detail?.user_id || form.getFieldValue('org_id');
+    console.log(detail, 'detail');
     // Steps configuration
     const steps = useMemo(
         () => [

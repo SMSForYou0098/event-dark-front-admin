@@ -411,7 +411,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         },
         onSuccess: (res) => {
             if (res.status) {
-                showSuccessModal('Ticket Scanned Successfully!');
+                // showSuccessModal('Ticket Scanned Successfully!');
+                message.success(res?.message || 'Ticket Scanned Successfully!');
                 setQRData('');
                 setShow(false);
             }

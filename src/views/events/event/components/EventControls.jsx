@@ -17,7 +17,13 @@ const { Text } = Typography;
 const toBoolean = (v) => v === true || v === 1 || v === '1';
 const toBooleanValue = (checked) => Boolean(checked);
 
-const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venueId, eventHasAttendee }) => {
+const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee }) => {
+  console.log('layouts', layouts);
+  console.log('eventLayoutId', eventLayoutId);
+  console.log('eventId', eventId);
+  console.log('venueId', venue_id);
+  console.log('eventHasAttendee', eventHasAttendee);
+
   const { userRole } = useMyContext();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
   const [selectFieldsModalOpen, setSelectFieldsModalOpen] = useState(false);
@@ -160,7 +166,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
           if (eventLayoutId) {
             navigate(`/theatre/new?venueId=${eventLayoutId}`);
           } else {
-            navigate(`/theatre/new?venueId=${venueId}`);
+            navigate(`/theatre/new?venueId=${venue_id}`);
           }
         }
       });

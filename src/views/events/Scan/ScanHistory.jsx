@@ -68,11 +68,11 @@ const ScanHistory = () => {
 
   // Extract data and pagination from response
   const scanHistory = response?.data || [];
-  const pagination = response ? {
-    current_page: response.current_page,
-    per_page: response.per_page,
-    total: response.total,
-    last_page: response.last_page,
+  const pagination = response?.pagination ? {
+    current_page: Number(response.pagination.current_page),
+    per_page: Number(response.pagination.per_page),
+    total: response.pagination.total,
+    last_page: response.pagination.last_page,
   } : null;
 
   // Handle pagination change
@@ -211,7 +211,11 @@ const ScanHistory = () => {
       align: "center",
       width: 50,
       fixed: 'left',
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => {
+        const page = pagination?.current_page || 1;
+        const size = pagination?.per_page || 10;
+        return (page - 1) * size + index + 1;
+      },
     },
     {
       title: "Attendee",
