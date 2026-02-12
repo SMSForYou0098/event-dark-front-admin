@@ -352,6 +352,15 @@ const eventManagementSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles: ["Admin"]
+  },
+  {
+    key: 'card-inventory',
+    path: 'card-inventory',
+    title: 'Card Inventory',
+    icon: IdcardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: ["View Card Inventory"]
   }
 ];
 

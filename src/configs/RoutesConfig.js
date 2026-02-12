@@ -813,6 +813,15 @@ export const protectedRoutes = [
             // permissions: ['View Custom Fields'],
         }
     },
+    // Card Inventory
+    {
+        key: 'card-inventory',
+        path: `/card-inventory`,
+        component: React.lazy(() => import('views/events/CardInventory/index')),
+        meta: {
+            permissions: ['View Card Inventory'],
+        }
+    },
 
     // ==================== Reports ====================
     {

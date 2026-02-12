@@ -8,6 +8,7 @@ import { handleDiscountChange, processImageFile } from './utils';
 // Import step components
 import StepIndicator from './components/StepIndicator';
 import TicketSelectionStep from './components/TicketSelectionStep';
+import PreprintedCardStep from './components/PreprintedCardStep';
 import AttendeeManagementStep from './components/AttendeeManagementStep';
 import OrderSummary from './components/OrderSummary';
 
@@ -73,6 +74,7 @@ const NewAgentBooking = memo(({ type }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [bookingResponse, setBookingResponse] = useState(null);
   const [ticketAttendees, setTicketAttendees] = useState({});
+  const [selectedCardToken, setSelectedCardToken] = useState(null);
 
   // Ref for BookingLayout to update seat status
   const bookingLayoutRef = useRef(null);
@@ -233,6 +235,7 @@ const NewAgentBooking = memo(({ type }) => {
       type: event?.event_type || 'daily',
       tickets: ticketsPayload,
       seating_module: seatingModule,
+      ...(selectedCardToken ? { card_token: selectedCardToken.token, card_token_id: selectedCardToken.id } : {}),
     };
     // console.log(bookingPayload)
     // return
@@ -275,6 +278,7 @@ const NewAgentBooking = memo(({ type }) => {
           setSavedAttendeeIds({});
           setSelectedTickets([]);
           setTicketAttendees({});
+          setSelectedCardToken(null);
           setCurrentStep(currentStep + 1);
           setIsConfirmed(true);
         }
@@ -306,7 +310,7 @@ const NewAgentBooking = memo(({ type }) => {
         }, 1000);
       }
     });
-  }, [isBookingInProgress, type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep, seatingModule]);
+  }, [isBookingInProgress, type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep, seatingModule, selectedCardToken]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastSubmitAttemptRef = useRef(0);
@@ -504,6 +508,7 @@ const NewAgentBooking = memo(({ type }) => {
     setSeatingModule(evnt?.event_controls?.ticket_system);
     setCategoryId(evnt?.category);
     setCurrentStep(0); // Reset to step 0
+    setSelectedCardToken(null);
 
     const response = await fetchCategoryData(evnt?.category);
     if (response.status) {
@@ -695,6 +700,17 @@ const NewAgentBooking = memo(({ type }) => {
                       eventId={event?.id}
                       setSelectedTkts={setSelectedTickets}
                       layoutId={event?.layout_id}
+                      onNext={goToNextStep}
+                    />
+                  </Col>
+                ) : event?.event_controls?.use_preprinted_cards ? (
+                  <Col xs={24} lg={16}>
+                    <PreprintedCardStep
+                      event={event}
+                      tickets={tickets}
+                      selectedTickets={selectedTickets}
+                      setSelectedTickets={setSelectedTickets}
+                      onTokenSelect={setSelectedCardToken}
                       onNext={goToNextStep}
                     />
                   </Col>

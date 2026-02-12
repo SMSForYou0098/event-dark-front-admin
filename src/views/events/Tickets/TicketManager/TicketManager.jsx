@@ -73,6 +73,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         staleTime: 2 * 60 * 1000,
     });
 
+    // Check if the event uses preprinted cards
+    const usePreprintedCards = useMemo(() => {
+        return tickets?.[0]?.event?.event_controls?.use_preprinted_cards === true;
+    }, [tickets]);
+
     // Fetch fallback tickets for the event category
     const {
         data: fallbackTickets = [],
@@ -192,6 +197,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             ticket_title: ticket.name,
             price: ticket.price,
             quantity: ticket.ticket_quantity,
+            prefix: ticket.prefix || '',
             currency: ticket.currency || 'INR',
             selection_limit: ticket?.selection_limit,
             booking_per_customer: ticket?.booking_per_customer,
@@ -283,7 +289,12 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             formData.append('ticket_title', values.ticket_title);
             formData.append('price', values.price);
             formData.append('currency', values.currency);
-            formData.append('ticket_quantity', values.quantity);
+            if (usePreprintedCards) {
+                formData.append('ticket_quantity', values.booking_per_customer);
+                formData.append('prefix', values.prefix || '');
+            } else {
+                formData.append('ticket_quantity', values.quantity);
+            }
             formData.append('booking_per_customer', values.booking_per_customer);
             formData.append('selection_limit', values.selection_limit);
             formData.append('ticket_description', values.ticket_description || '');
@@ -608,31 +619,68 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     <Col xs={24}><Alert message={`~ ₹${convertedPrice}`} type="info" showIcon /></Col>
                                 )}
 
-                                <Col xs={24} md={6}>
+                                {usePreprintedCards ? (
+                                    <Col xs={24} md={6}>
+                                        <Form.Item
+                                            label="Card Prefix"
+                                            name="prefix"
+                                            rules={[{ required: true, message: 'Please enter card prefix' }]}
+                                        >
+                                            <Input placeholder="Enter card prefix" />
+                                        </Form.Item>
+                                    </Col>
+                                ) : (
+                                    <Col xs={24} md={6}>
+                                        <Form.Item
+                                            label="Total Quantity"
+                                            name="quantity"
+                                            rules={[
+                                                { required: true, message: 'Please enter total quantity' },
+                                                ({ getFieldValue }) => ({
+                                                    validator(_, value) {
+                                                        const selectionLimit = getFieldValue('selection_limit');
+                                                        const bookingPerCustomer = getFieldValue('booking_per_customer');
+
+                                                        if (!value) return Promise.resolve();
+
+                                                        if (selectionLimit && value < selectionLimit) {
+                                                            return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to booking limit per user (${selectionLimit})`));
+                                                        }
+
+                                                        if (bookingPerCustomer && value < bookingPerCustomer) {
+                                                            return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to ticket selection limit (${bookingPerCustomer})`));
+                                                        }
+
+                                                        return Promise.resolve();
+                                                    },
+                                                }),
+                                            ]}
+                                        >
+                                            <InputNumber style={{ width: '100%' }} min={1} />
+                                        </Form.Item>
+                                    </Col>
+                                )}
+                                <Col xs={24} md={8}>
                                     <Form.Item
-                                        label="Total Quantity"
-                                        name="quantity"
+                                        label="Ticket Selection Limit"
+                                        name="selection_limit"
                                         rules={[
-                                            { required: true, message: 'Please enter total quantity' },
+                                            { required: true, message: 'Please enter ticket selection limit' },
                                             ({ getFieldValue }) => ({
                                                 validator(_, value) {
-                                                    const selectionLimit = getFieldValue('selection_limit');
                                                     const bookingPerCustomer = getFieldValue('booking_per_customer');
 
                                                     if (!value) return Promise.resolve();
 
-                                                    if (selectionLimit && value < selectionLimit) {
-                                                        return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to booking limit per user (${selectionLimit})`));
-                                                    }
-
-                                                    if (bookingPerCustomer && value < bookingPerCustomer) {
-                                                        return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to ticket selection limit (${bookingPerCustomer})`));
+                                                    if (bookingPerCustomer && value > bookingPerCustomer) {
+                                                        return Promise.reject(new Error(`Ticket selection limit (${value}) must be less than or equal to booking limit per user (${bookingPerCustomer})`));
                                                     }
 
                                                     return Promise.resolve();
                                                 },
                                             }),
                                         ]}
+                                        dependencies={['booking_per_customer']}
                                     >
                                         <InputNumber style={{ width: '100%' }} min={1} />
                                     </Form.Item>
@@ -640,39 +688,9 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 <Col xs={24} md={8}>
                                     <Form.Item
                                         label="Booking Limit Per User"
-                                        name="selection_limit"
-                                        rules={[
-                                            { required: true, message: 'Please enter booking limit per user' },
-                                            ({ getFieldValue }) => ({
-                                                validator(_, value) {
-                                                    const quantity = getFieldValue('quantity');
-                                                    const bookingPerCustomer = getFieldValue('booking_per_customer');
-
-                                                    if (!value) return Promise.resolve();
-
-                                                    if (quantity && quantity < value) {
-                                                        return Promise.reject(new Error(`Booking limit per user (${value}) must be less than or equal to total quantity (${quantity})`));
-                                                    }
-
-                                                    if (bookingPerCustomer && bookingPerCustomer > value) {
-                                                        return Promise.reject(new Error(`Booking limit per user (${value}) must be greater than or equal to ticket selection limit (${bookingPerCustomer})`));
-                                                    }
-
-                                                    return Promise.resolve();
-                                                },
-                                            }),
-                                        ]}
-                                        dependencies={['quantity', 'booking_per_customer']}
-                                    >
-                                        <InputNumber style={{ width: '100%' }} min={1} />
-                                    </Form.Item>
-                                </Col>
-                                <Col xs={24} md={8}>
-                                    <Form.Item
-                                        label="Ticket Selection Limit"
                                         name="booking_per_customer"
                                         rules={[
-                                            { required: true, message: 'Please enter ticket selection limit' },
+                                            { required: true, message: 'Please enter booking limit per user' },
                                             ({ getFieldValue }) => ({
                                                 validator(_, value) {
                                                     const quantity = getFieldValue('quantity');
@@ -680,12 +698,12 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
                                                     if (!value) return Promise.resolve();
 
-                                                    if (quantity && quantity < value) {
-                                                        return Promise.reject(new Error(`Ticket selection limit (${value}) must be less than or equal to total quantity (${quantity})`));
+                                                    if (quantity && value > quantity) {
+                                                        return Promise.reject(new Error(`Booking limit per user (${value}) must be less than or equal to total quantity (${quantity})`));
                                                     }
 
-                                                    if (selectionLimit && value > selectionLimit) {
-                                                        return Promise.reject(new Error(`Ticket selection limit (${value}) must be less than or equal to booking limit per user (${selectionLimit})`));
+                                                    if (selectionLimit && selectionLimit > value) {
+                                                        return Promise.reject(new Error(`Booking limit per user (${value}) must be greater than or equal to ticket selection limit (${selectionLimit})`));
                                                     }
 
                                                     return Promise.resolve();
