@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import { debounce } from 'utils/debounce';
 import { Card, Space, Typography, Input, Button, Spin, Select, Descriptions, Tag, message, Divider } from 'antd';
 import { CalendarOutlined, CreditCardOutlined, SearchOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
@@ -19,9 +20,10 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
     const [tokensLoading, setTokensLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const lastEventId = useRef(null);
+    const [searchText, setSearchText] = useState("");
 
     // Fetch tokens page
-    const fetchTokens = useCallback(async (pageNum, reset = false) => {
+    const fetchTokens = useCallback(async (pageNum, reset = false, searchQuery = searchText) => {
         if (!event?.id) return;
         const isFirst = pageNum === 1;
         isFirst ? setTokensLoading(true) : setLoadingMore(true);
@@ -30,7 +32,8 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
             const res = await apiClient.post('card-tokens/detail', {
                 event_id: event.id,
                 page: pageNum,
-                per_page: 100,
+                per_page: 50,
+                search: searchQuery,
             });
             const data = res?.data || res;
             const newTokens = data?.tokens || [];
@@ -44,7 +47,7 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
             setTokensLoading(false);
             setLoadingMore(false);
         }
-    }, [event?.id]);
+    }, [event?.id, searchText]);
 
     // Reset & fetch when event changes
     useEffect(() => {
@@ -54,7 +57,8 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
             setPage(1);
             setHasMore(true);
             setSelectedToken(null);
-            fetchTokens(1, true);
+            setSearchText("");
+            fetchTokens(1, true, "");
         }
     }, [event?.id, fetchTokens]);
 
@@ -64,9 +68,19 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
         if (scrollHeight - scrollTop - clientHeight < 50 && hasMore && !loadingMore) {
             const nextPage = page + 1;
             setPage(nextPage);
-            fetchTokens(nextPage);
+            fetchTokens(nextPage, false, searchText);
         }
-    }, [hasMore, loadingMore, page, fetchTokens]);
+    }, [hasMore, loadingMore, page, fetchTokens, searchText]);
+
+    // Handle dropdown search
+    const handleDropdownSearch = useMemo(
+        () => debounce((value) => {
+            setSearchText(value);
+            setPage(1);
+            fetchTokens(1, true, value);
+        }, 800),
+        [fetchTokens]
+    );
 
     // When a token is selected, build ticket-like object and notify parent
     const handleTokenSelected = useCallback((tokenData) => {
@@ -76,33 +90,78 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
         onTokenSelect?.(tokenData);
         // Build a ticket-like object from event's first ticket
         if (tickets?.length > 0 && tokenData) {
-            const firstTicket = tickets[0];
+            // Find the precise ticket associated with this token
+            const matchedTicket = tickets.find(t => t.id === tokenData.ticket_id);
+
+            if (!matchedTicket) {
+                message.error("Associated ticket not found for this token");
+                return;
+            }
+
+            const price = parseFloat(matchedTicket.price || 0);
+            const quantity = 1;
+
+            // --- Calculation Logic (Matches BookingTickets.jsx) ---
+            const unitBaseAmount = +(price)?.toFixed(2);
+
+            // tax states
+            const taxData = event?.tax_data;
+            const convenienceFeeValue = Number(taxData?.convenience_fee || 0);
+            const convenienceFeeType = taxData?.type || "flat";
+
+            // Dynamically calculate convenience fee
+            let unitConvenienceFee = 0;
+            if (convenienceFeeType === "percentage") {
+                unitConvenienceFee = +(unitBaseAmount * (convenienceFeeValue / 100)).toFixed(2);
+            } else {
+                unitConvenienceFee = +convenienceFeeValue.toFixed(2);
+            }
+
+            const unitCentralGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
+            const unitStateGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
+
+            // Per-unit calculations
+            const unitTotalTax = +(unitCentralGST + unitStateGST)?.toFixed(2);
+            const unitFinalAmount = +((price) + unitConvenienceFee + unitTotalTax).toFixed(2);
+
+            // Totals for the selected quantity (1)
+            const totalBaseAmount = +(unitBaseAmount * quantity).toFixed(2);
+            const totalCentralGST = +(unitCentralGST * quantity).toFixed(2);
+            const totalStateGST = +(unitStateGST * quantity).toFixed(2);
+            const totalConvenienceFee = +(unitConvenienceFee * quantity).toFixed(2);
+            const totalTotalTax = +(totalCentralGST + totalStateGST + totalConvenienceFee).toFixed(2);
+            const totalFinalAmount = +((price * quantity) + totalTotalTax).toFixed(2);
+
             const ticketObj = {
-                id: firstTicket.id,
-                name: firstTicket.name,
-                price: parseFloat(firstTicket.price || 0),
-                quantity: 1,
-                category: firstTicket.category_id,
-                baseAmount: parseFloat(firstTicket.price || 0),
-                centralGST: 0,
-                stateGST: 0,
-                totalTax: 0,
-                convenienceFee: 0,
-                finalAmount: parseFloat(firstTicket.price || 0),
-                discount: 0,
-                discountPerUnit: 0,
-                totalFinalAmount: parseFloat(firstTicket.price || 0),
-                totalBaseAmount: parseFloat(firstTicket.price || 0),
-                totalCentralGST: 0,
-                totalStateGST: 0,
-                totalTaxTotal: 0,
-                totalConvenienceFee: 0,
+                id: matchedTicket.id,
+                name: matchedTicket.name,
+                price: +(+price).toFixed(2),
+                quantity: quantity,
+                category: matchedTicket.category_id || event?.category, // Ensure category is passed
+
+                // per-unit
+                baseAmount: unitBaseAmount,
+                centralGST: unitCentralGST,
+                stateGST: unitStateGST,
+                totalTax: unitTotalTax,
+                convenienceFee: unitConvenienceFee,
+                finalAmount: unitFinalAmount,
+
+                // totals
+                totalBaseAmount,
+                totalCentralGST,
+                totalStateGST,
+                totalTaxTotal: totalTotalTax,
+                totalConvenienceFee,
+                totalFinalAmount,
+
+                // Card Token
                 card_token: tokenData.token,
                 card_token_id: tokenData.id,
             };
             setSelectedTickets([ticketObj]);
         }
-    }, [tickets, setSelectedTickets, onTokenSelect]);
+    }, [tickets, event, setSelectedTickets, onTokenSelect]);
 
     // Mutation for fetching single token detail by token value
     const tokenDetailMutation = useMutation({
@@ -183,10 +242,8 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
                     onChange={handleSelectToken}
                     loading={tokensLoading}
                     showSearch
-                    filterOption={(input, option) =>
-                        option?.label?.toLowerCase().includes(input.toLowerCase()) ||
-                        String(option?.data?.batch_index) === input.trim()
-                    }
+                    onSearch={handleDropdownSearch}
+                    filterOption={false}
                     size="large"
                     style={{ width: '100%' }}
                     value={selectedToken?.token || undefined}
@@ -194,9 +251,14 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
                     onClear={() => {
                         setSelectedToken(null);
                         setSelectedTickets([]);
+                        setSearchText("");
                         onTokenSelect?.(null);
+                        handleDropdownSearch.cancel(); // Cancel pending
+                        setPage(1);
+                        fetchTokens(1, true, ""); // Immediate reset
                     }}
                     onPopupScroll={handlePopupScroll}
+                    notFoundContent={tokensLoading ? <div style={{ textAlign: 'center', padding: 8 }}><Spin size="small" /></div> : null}
                     dropdownRender={(menu) => (
                         <>
                             {menu}
@@ -270,23 +332,7 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
                                 {selectedToken.status?.toUpperCase()}
                             </Tag>
                         </Descriptions.Item>
-                        {selectedToken.type && (
-                            <Descriptions.Item label="Type">
-                                <Tag color={selectedToken.type === 'online' ? 'green' : 'orange'}>
-                                    {selectedToken.type?.toUpperCase()}
-                                </Tag>
-                            </Descriptions.Item>
-                        )}
-                        {selectedToken.prefix && (
-                            <Descriptions.Item label="Prefix">
-                                {selectedToken.prefix}
-                            </Descriptions.Item>
-                        )}
-                        {selectedToken.batch_name && (
-                            <Descriptions.Item label="Batch">
-                                {selectedToken.batch_name}
-                            </Descriptions.Item>
-                        )}
+
                     </Descriptions>
                 </div>
             )}

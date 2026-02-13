@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { Card, Form, Input, Select, Switch, Space, Typography } from "antd";
+import { CloseCircleOutlined } from "@ant-design/icons";
 import QrScanner from "qr-scanner";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -135,11 +136,12 @@ const TickeScanFeilds = ({
                   {eventsWithCheckpoints.map(event => (
                     <Select.OptGroup key={event.id} label={event.name}>
                       {event.scan_checkpoints.map(cp => {
+                        console.log(cp, 'cccc');
                         const isActive = isCheckpointActive(cp);
                         const compoundKey = `${event.id}_${cp.id}`;
                         return (
                           <Option key={compoundKey} value={compoundKey} disabled={!isActive}>
-                            {cp.label} {!isActive && '(Inactive)'}
+                            {cp.label} ({dayjs(cp.start_time, "HH:mm:ss").format("HH:mm")} - {dayjs(cp.end_time, "HH:mm:ss").format("HH:mm")}) {!isActive && <CloseCircleOutlined style={{ color: "red", marginLeft: 5 }} />}
                           </Option>
                         );
                       })}

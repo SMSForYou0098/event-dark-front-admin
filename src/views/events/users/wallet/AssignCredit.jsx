@@ -93,7 +93,7 @@ const AssignCredit = ({ id }) => {
   // Set userId from id prop
   useEffect(() => {
     if (id) {
-      const foundUser = UserList.find(user => user.value === id);
+      const foundUser = UserList?.find(user => user.value === id);
       setUserId(foundUser || null);
     }
   }, [id, UserList]);

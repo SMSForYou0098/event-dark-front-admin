@@ -19,6 +19,7 @@ import {
 import { TagsOutlined, PlusOutlined, DeleteOutlined, CloseOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import apiClient from "auth/FetchInterceptor";
+import useTicketInventory from "./hooks/useTicketInventory";
 
 const { Text } = Typography;
 
@@ -29,18 +30,12 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
     const [mutationError, setMutationError] = useState(null);
 
 
+
     // Fetch ticket card inventory when both event and ticket are selected
-    const { data: ticketInventory, isLoading: ticketInventoryLoading, refetch: refetchTicketInventory } = useQuery({
-        queryKey: ["ticket-card-inventory", selectedEventId, selectedTicketId],
-        queryFn: async () => {
-            const res = await apiClient.post("card-tokens/ticket-card-inventory", {
-                event_id: selectedEventId,
-                ticket_id: selectedTicketId,
-            });
-            return res?.data || res;
-        },
-        enabled: !!selectedEventId && !!selectedTicketId,
-    });
+    const { data: ticketInventory, isLoading: ticketInventoryLoading, refetch: refetchTicketInventory } = useTicketInventory(
+        selectedEventId,
+        selectedTicketId
+    );
 
     // Compute the highest range_end from summary type_breakdown
     const maxRangeEnd = useMemo(() => {

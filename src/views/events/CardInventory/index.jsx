@@ -14,7 +14,7 @@ import {
     Alert,
     Divider,
     Statistic,
-    Spin,
+    Skeleton,
     Tag,
     Table,
 } from "antd";
@@ -25,6 +25,7 @@ import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from "Context/MyContextProvider";
 import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 import AssignTicketForm from "./AssignTicketForm";
+import AgentCardInventory from "./AgentCardInventory";
 
 const { Text } = Typography;
 
@@ -86,6 +87,7 @@ const CardInventory = () => {
             message.success(res?.message || "Tokens created successfully");
             setCreateQuantity(null);
             setCreatePrefix('');
+            refetchSummary?.();
         },
         onError: (error) => {
             message.error(
@@ -172,146 +174,166 @@ const CardInventory = () => {
             )}
 
             {/* Summary */}
+            {/* Summary */}
             {selectedEventId && (
-                <Spin spinning={summaryLoading}>
-                    {summary?.summary && (
-                        <>
-                            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                                <Col xs={12} md={6}>
-                                    <Card bordered={false} style={{ borderRadius: 12 }}>
-                                        <Statistic title="Total Tokens" value={summary?.summary?.total} />
-                                    </Card>
-                                </Col>
-                                <Col xs={12} md={6}>
-                                    <Card bordered={false} style={{ borderRadius: 12 }}>
-                                        <Statistic title="Online" value={summary?.summary?.type_counts?.online || 0} valueStyle={{ color: '#52c41a' }} />
-                                    </Card>
-                                </Col>
-                                <Col xs={12} md={6}>
-                                    <Card bordered={false} style={{ borderRadius: 12 }}>
-                                        <Statistic title="Offline" value={summary?.summary?.type_counts?.offline || 0} valueStyle={{ color: '#1890ff' }} />
-                                    </Card>
-                                </Col>
-                                <Col xs={12} md={6}>
-                                    <Card bordered={false} style={{ borderRadius: 12 }}>
-                                        <Statistic title="Available" value={summary?.summary?.status_counts?.available || 0} valueStyle={{ color: '#faad14' }} />
-                                    </Card>
-                                </Col>
-                            </Row>
-
-
-                        </>
-                    )}
-                </Spin>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                    <Col xs={12} md={6}>
+                        <Card bordered={false} style={{ borderRadius: 12 }}>
+                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                <Statistic title="Total Tokens" value={summary?.summary?.total} />
+                            </Skeleton>
+                        </Card>
+                    </Col>
+                    <Col xs={12} md={6}>
+                        <Card bordered={false} style={{ borderRadius: 12 }}>
+                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                <Statistic title="Online" value={summary?.summary?.type_counts?.online || 0} valueStyle={{ color: '#52c41a' }} />
+                            </Skeleton>
+                        </Card>
+                    </Col>
+                    <Col xs={12} md={6}>
+                        <Card bordered={false} style={{ borderRadius: 12 }}>
+                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                <Statistic title="Offline" value={summary?.summary?.type_counts?.offline || 0} valueStyle={{ color: '#1890ff' }} />
+                            </Skeleton>
+                        </Card>
+                    </Col>
+                    <Col xs={12} md={6}>
+                        <Card bordered={false} style={{ borderRadius: 12 }}>
+                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                <Statistic title="Available" value={summary?.summary?.status_counts?.available || 0} valueStyle={{ color: '#faad14' }} />
+                            </Skeleton>
+                        </Card>
+                    </Col>
+                </Row>
             )}
 
             {/* Action Cards */}
-            {selectedEventId && !summaryLoading && (summaryError ? (
-                <Alert
-                    message="Failed to load summary"
-                    description={summaryErrorData?.response?.data?.message || summaryErrorData?.message || 'Something went wrong'}
-                    type="error"
-                    showIcon
-                    style={{ marginBottom: 16, borderRadius: 8 }}
-                />
-            ) : (
-                <Row gutter={[16, 16]}>
-                    {/* 1. Create Card Tokens */}
-                    <Col xs={24} md={10}>
-                        <Card
-                            title={
-                                <Space>
-                                    <PlusCircleOutlined />
-                                    <span>Create Card Tokens</span>
-                                </Space>
-                            }
-                            bordered={false}
-                            style={cardStyle}
-                        >
-                            <div style={{ marginBottom: 16 }}>
-                                {usePreprintedCards ? (
-                                    <>
-                                        <Text style={fieldLabelStyle}>Card Prefix</Text>
-                                        <Input
-                                            placeholder="Enter card prefix"
-                                            value={createPrefix}
-                                            onChange={(e) => setCreatePrefix(e.target.value)}
-                                            style={{ width: "100%" }}
-                                            disabled={!selectedEventId}
-                                        />
-                                    </>
-                                ) : (
-                                    <>
-                                        <Text style={fieldLabelStyle}>Quantity (1 - 10,000)</Text>
-                                        <InputNumber
-                                            placeholder="Enter quantity"
-                                            min={1}
-                                            max={10000}
-                                            value={createQuantity}
-                                            onChange={setCreateQuantity}
-                                            style={{ width: "100%" }}
-                                            disabled={!selectedEventId}
-                                        />
-                                    </>
-                                )}
-                            </div>
-                            <Button
-                                type="primary"
-                                block
-                                onClick={handleCreateTokens}
-                                loading={createTokensMutation.isPending}
-                                disabled={!selectedEventId || (usePreprintedCards ? !createPrefix : !createQuantity)}
-                                icon={<PlusCircleOutlined />}
+            {selectedEventId && (
+                summaryError ? (
+                    <Alert
+                        message="Failed to load summary"
+                        description={summaryErrorData?.response?.data?.message || summaryErrorData?.message || 'Something went wrong'}
+                        type="error"
+                        showIcon
+                        style={{ marginBottom: 16, borderRadius: 8 }}
+                    />
+                ) : (
+                    <Row gutter={[16, 16]}>
+                        {/* 1. Create Card Tokens */}
+                        <Col xs={24} md={10}>
+                            <Card
+                                title={
+                                    summaryLoading === false &&
+                                    <Space>
+                                        <PlusCircleOutlined />
+                                        <span>Create Card Tokens</span>
+                                    </Space>
+                                }
+                                bordered={false}
+                                style={cardStyle}
                             >
-                                Create Tokens
-                            </Button>
-                            {createTokensMutation.data?.data && (
-                                <Alert
-                                    message={`Created ${createTokensMutation.data.data.tokens_created} tokens (Index ${createTokensMutation.data.data.batch_index_range?.start} - ${createTokensMutation.data.data.batch_index_range?.end})`}
-                                    type="success"
-                                    showIcon
-                                    style={{ marginTop: 12, borderRadius: 8 }}
-                                />
+                                <Skeleton loading={summaryLoading} active>
+                                    <div style={{ marginBottom: 16 }}>
+                                        {usePreprintedCards ? (
+                                            <>
+                                                <Text style={fieldLabelStyle}>Card Prefix</Text>
+                                                <Input
+                                                    placeholder="Enter card prefix"
+                                                    value={createPrefix}
+                                                    onChange={(e) => setCreatePrefix(e.target.value)}
+                                                    style={{ width: "100%" }}
+                                                    disabled={!selectedEventId}
+                                                />
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Text style={fieldLabelStyle}>Quantity (1 - 10,000)</Text>
+                                                <InputNumber
+                                                    placeholder="Enter quantity"
+                                                    min={1}
+                                                    max={10000}
+                                                    value={createQuantity}
+                                                    onChange={setCreateQuantity}
+                                                    style={{ width: "100%" }}
+                                                    disabled={!selectedEventId}
+                                                />
+                                            </>
+                                        )}
+                                    </div>
+                                    <Button
+                                        type="primary"
+                                        block
+                                        onClick={handleCreateTokens}
+                                        loading={createTokensMutation.isPending}
+                                        disabled={!selectedEventId || (usePreprintedCards ? !createPrefix : !createQuantity)}
+                                        icon={<PlusCircleOutlined />}
+                                    >
+                                        Create Tokens
+                                    </Button>
+                                    {createTokensMutation.data?.data && (
+                                        <Alert
+                                            message={`Created ${createTokensMutation.data.data.tokens_created} tokens (Index ${createTokensMutation.data.data.batch_index_range?.start} - ${createTokensMutation.data.data.batch_index_range?.end})`}
+                                            type="success"
+                                            showIcon
+                                            style={{ marginTop: 12, borderRadius: 8 }}
+                                        />
+                                    )}
+                                    {summary?.summary?.type_breakdown?.length > 0 && (
+
+                                        <Table
+                                            dataSource={summary?.summary?.type_breakdown}
+                                            rowKey={(r, i) => i}
+                                            pagination={false}
+                                            size="small"
+                                            className="mt-3"
+                                            columns={[
+                                                {
+                                                    title: 'Type',
+                                                    dataIndex: 'type',
+                                                    render: (v) => (
+                                                        <Tag color={v === 'online' ? 'green' : 'blue'}>
+                                                            {v?.toUpperCase()}
+                                                        </Tag>
+                                                    ),
+                                                },
+                                                { title: 'Quantity', dataIndex: 'count' },
+                                                { title: 'Range', render: (_, record) => `${record.range_start}-${record.range_end}` },
+                                            ]}
+                                        />
+                                    )}
+                                </Skeleton>
+                            </Card>
+
+                        </Col>
+
+                        {/* 2. Assign Ticket & Types (New Component) */}
+                        <Col xs={24} md={14}>
+                            {summaryLoading ? (
+                                <>
+                                    <Card bordered={false} style={cardStyle}><Skeleton active paragraph={{ rows: 4 }} /></Card>
+                                    <Card bordered={false} style={{ ...cardStyle, marginTop: 16 }}><Skeleton active paragraph={{ rows: 4 }} /></Card>
+                                </>
+                            ) : (
+                                <>
+                                    <AssignTicketForm
+                                        selectedEventId={selectedEventId}
+                                        ticketOptions={ticketOptions}
+                                        summary={summary}
+                                        refetchSummary={refetchSummary}
+                                    />
+                                    <AgentCardInventory
+                                        selectedEventId={selectedEventId}
+                                        ticketOptions={ticketOptions}
+                                        summary={summary}
+                                        refetchSummary={refetchSummary}
+                                    />
+                                </>
                             )}
-                            {summary?.summary?.type_breakdown?.length > 0 && (
-
-                                <Table
-                                    dataSource={summary?.summary?.type_breakdown}
-                                    rowKey={(r, i) => i}
-                                    pagination={false}
-                                    size="small"
-                                    className="mt-3"
-                                    columns={[
-                                        {
-                                            title: 'Type',
-                                            dataIndex: 'type',
-                                            render: (v) => (
-                                                <Tag color={v === 'online' ? 'green' : 'blue'}>
-                                                    {v?.toUpperCase()}
-                                                </Tag>
-                                            ),
-                                        },
-                                        { title: 'Quantity', dataIndex: 'count' },
-                                        { title: 'Range', render: (_, record) => `${record.range_start}-${record.range_end}` },
-                                    ]}
-                                />
-                            )}
-                        </Card>
-
-                    </Col>
-
-                    {/* 2. Assign Ticket & Types (New Component) */}
-                    <Col xs={24} md={14}>
-                        <AssignTicketForm
-                            selectedEventId={selectedEventId}
-                            ticketOptions={ticketOptions}
-                            summary={summary}
-                            refetchSummary={refetchSummary}
-                        />
-
-                    </Col>
-                </Row>
-            ))}
+                        </Col>
+                    </Row>
+                )
+            )}
         </div>
     );
 };

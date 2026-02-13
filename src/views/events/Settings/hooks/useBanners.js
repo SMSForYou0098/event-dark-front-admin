@@ -30,7 +30,9 @@ export const useOrganizerEvents = (organizerId, role, options = {}) =>
         value: event.id,
         label: event.name,
         event_key: event.event_key || '',
-        tickets: event.tickets || []
+        tickets: event.tickets || [],
+        card_url: event.card_url,
+        categoryId: event.category,
       }));
     },
     enabled: !!organizerId,

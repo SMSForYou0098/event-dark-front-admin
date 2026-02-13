@@ -16,6 +16,7 @@ import StickerModal from "../Tickets/modals/StickerModal";
 import { useMyContext } from "Context/MyContextProvider";
 import apiClient from "auth/FetchInterceptor";
 import PermissionChecker from "layouts/PermissionChecker";
+import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 const { Text } = Typography;
 
 const Attendees = memo(() => {
@@ -41,22 +42,11 @@ const Attendees = memo(() => {
   const [zipLoading, setZipLoading] = useState(false);
 
   // Fetch events list
-  const { data: events = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ["attendee-events"],
-    queryFn: async () => {
-      const response = await apiClient.get("events/attendee");
-      if (response?.status) {
-        return response.data.map((event) => ({
-          label: event.name,
-          value: event.id,
-          card_url: event.card_url,
-          categoryId: event.category,
-        }));
-      }
-      return [];
-    },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+  // Fetch events list
+  const { data: events = [], isLoading: eventsLoading } = useOrganizerEvents(
+    UserData?.id,
+    UserData?.role
+  );
 
   // Fetch attendees for selected event
   const {
@@ -375,7 +365,7 @@ const Attendees = memo(() => {
     () => (
       <>
         <Select
-         style={{width : '15rem'}}
+          style={{ width: '15rem' }}
           placeholder="Select Events"
           value={selectedEvent?.value}
           onChange={handleSelectEvent}

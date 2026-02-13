@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Tag, Typography, Tooltip, Select, Space } from "antd";
+import { Tag, Typography, Tooltip, Select, Space, Table, Spin } from "antd";
 import apiClient from "auth/FetchInterceptor";
 import { ExpandDataTable } from "views/events/common/ExpandDataTable";
 import { useMyContext } from "Context/MyContextProvider";
@@ -8,7 +8,43 @@ import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 
 const { Text } = Typography;
 
-// Helper component to truncate text with tooltip
+
+// Component to fetch and display detailed scan history
+const ExpandedScanDetails = ({ bookingId, eventId, columns }) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ['booking-scan-history', bookingId, eventId],
+    queryFn: async () => {
+      const res = await apiClient.get(`booking-scan-history/${bookingId}?event_id=${eventId}`);
+      // Assuming response structure: { data: [...] } or just [...]
+      return res.data || res;
+    },
+    staleTime: 5000,
+  });
+
+  if (isLoading) {
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}><Spin /></div>;
+  }
+
+  const dataSource = Array.isArray(data) ? data : (data?.scan_history || []);
+
+  return (
+    <div style={{ padding: '10px 20px', background: 'transparent' }}>
+      {/* <Typography.Title level={5} style={{ marginBottom: 10 }}>Detailed Scan Logs</Typography.Title> */}
+      {dataSource.length > 0 ? (
+        <Table
+          columns={columns}
+          dataSource={dataSource}
+          pagination={false}
+          rowKey="id"
+          size="small"
+        />
+      ) : (
+        <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No scan logs available</div>
+      )}
+    </div>
+  );
+};
+
 const TruncatedText = ({ text, maxLength = 20 }) => {
   if (!text) return "-";
 
@@ -29,6 +65,7 @@ const ScanHistory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const { userRole, UserPermissions, UserData } = useMyContext();
 
   // Fetch events for dropdown
@@ -369,6 +406,21 @@ const ScanHistory = () => {
       showReportSwitch={false}
       tableProps={{
         bordered: false,
+        expandable: {
+          expandedRowRender: (record) => (
+            <ExpandedScanDetails
+              bookingId={record.booking_id}
+              eventId={record.event?.id}
+              columns={innerColumns}
+            />
+          ),
+          rowExpandable: (record) => record.total_scans > 0,
+          expandedRowKeys: expandedRowKeys,
+          onExpand: (expanded, record) => {
+            const key = record.booking_id; // Using booking_id as key
+            setExpandedRowKeys(prev => expanded ? [...prev, key] : prev.filter(k => k !== key));
+          }
+        }
       }}
       extraHeaderContent={eventFilterDropdown}
     />
