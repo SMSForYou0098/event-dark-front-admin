@@ -1,5 +1,5 @@
 // hooks/useAgentBookingHooks.js
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 
 /**
@@ -146,6 +146,50 @@ export const useCategoryData = (categoryId, options = {}) =>
     ...options,
   });
 
+// getting fields of category
+export const useCategoryDetail = (categoryId, options = {}) =>
+  useQuery({
+    queryKey: ['category-data', categoryId],
+    enabled: !!categoryId,
+    queryFn: async () => {
+      const res = await api.get(`category-data/${categoryId}`);
+      if (!res?.status) {
+        const err = new Error(res?.message || 'Failed to fetch category data');
+        err.server = res;
+        throw err;
+      }
+      // return raw server object so calling code can access categoryData, customFieldsData etc.
+      return res;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
+
+export const useEventFields = (eventId, options = {}) =>
+  useQuery({
+    queryKey: ['event-fields', eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const res = await api.get(`event/attendee/fields/${eventId}`);
+      if (!res?.status) {
+        // gracefully return empty array or handle error
+        return [];
+      }
+      return res.fields || [];
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
 /* ============================
    Mutations
    ============================ */
@@ -220,9 +264,16 @@ export const useUpdateUser = (options = {}) =>
  * Store attendees
  * POST: attndy-store OR corporate-user-store (based on isCorporate flag)
  * Returns: Array of saved attendees with IDs
+ *
+ * Also invalidates all `user-attendees` queries so newly created/updated
+ * attendees are immediately reflected wherever `useUserAttendees` is used
+ * (e.g. suggestions in attendee step) without needing a full page reload.
  */
-export const useStoreAttendees = (options = {}) =>
-  useMutation({
+export const useStoreAttendees = (options = {}) => {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...restOptions } = options;
+
+  return useMutation({
     mutationFn: async ({ formData, isCorporate = false }) => {
       const endpoint = isCorporate ? 'corporate-user-store' : 'attndy-store';
       const config = {
@@ -239,12 +290,22 @@ export const useStoreAttendees = (options = {}) =>
       // ✅ Return full response with saved attendee data
       return res;
     },
+    onSuccess: (data, variables, context) => {
+      // ✅ Ensure attendee lists refetch after create/update,
+      // even when the initial `useUserAttendees` response was `[]`.
+      queryClient.invalidateQueries({ queryKey: ['user-attendees'] });
+
+      if (typeof onSuccess === 'function') {
+        onSuccess(data, variables, context);
+      }
+    },
     retry: (count, err) => {
       const status = err?.response?.status;
       return status >= 500 && count < 2;
     },
-    ...options,
+    ...restOptions,
   });
+};
 
 /**
  * Corporate booking

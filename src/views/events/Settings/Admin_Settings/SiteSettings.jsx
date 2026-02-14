@@ -117,41 +117,41 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   ];
 
   const tabItems = [
-    {
-      key: 'branding',
-      label: 'Media',
-      children: (
-        <>
-          <h4 style={{ marginBottom: '16px' }}>Branding Settings</h4>
-          <Row gutter={[16, 16]}>
-            {brandingFields.map(({ field, label }) => (
-              <Col xs={24} sm={12} lg={6} key={field}>
-                <Form.Item label={label}>
-                  <Upload {...getImageUploadProps(field)}>
-                    {getFileList(field).length < 1 && (
-                      <div>
-                        <UploadOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
-                      </div>
-                    )}
-                  </Upload>
-                </Form.Item>
-              </Col>
-            ))}
+    // {
+    //   key: 'branding',
+    //   label: 'Media',
+    //   children: (
+    //     <>
+    //       <h4 style={{ marginBottom: '16px' }}>Branding Settings</h4>
+    //       <Row gutter={[16, 16]}>
+    //         {brandingFields.map(({ field, label }) => (
+    //           <Col xs={24} sm={12} lg={6} key={field}>
+    //             <Form.Item label={label}>
+    //               <Upload {...getImageUploadProps(field)}>
+    //                 {getFileList(field).length < 1 && (
+    //                   <div>
+    //                     <UploadOutlined />
+    //                     <div style={{ marginTop: 8 }}>Upload</div>
+    //                   </div>
+    //                 )}
+    //               </Upload>
+    //             </Form.Item>
+    //           </Col>
+    //         ))}
 
-            <Col xs={24} lg={12}>
-              <Form.Item
-                label="App Name"
-                name="app_name"
-                rules={[{ required: true, message: 'Please enter app name' }]}
-              >
-                <Input placeholder="App name" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </>
-      )
-    },
+    //         <Col xs={24} lg={12}>
+    //           <Form.Item
+    //             label="App Name"
+    //             name="app_name"
+    //             rules={[{ required: true, message: 'Please enter app name' }]}
+    //           >
+    //             <Input placeholder="App name" />
+    //           </Form.Item>
+    //         </Col>
+    //       </Row>
+    //     </>
+    //   )
+    // },
     {
       key: 'contact',
       label: 'Contact Info',

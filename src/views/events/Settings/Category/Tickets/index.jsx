@@ -210,7 +210,7 @@ const CategoryTickets = () => {
                                 </div>
                             ) : (
                                 <div className="text-center bg-black w-100">
-                                    <PictureOutlined className="fs-2 text-primary mb-3 d-block" />
+                                    {/* <PictureOutlined className="fs-2 text-primary mb-3 d-block" /> */}
                                     <Button
                                         type="primary"
                                         icon={<PictureOutlined />}
@@ -251,6 +251,11 @@ const CategoryTickets = () => {
                                         {categoryImages.map((img, index) => (
                                             <Col
                                                 key={img.id || index}
+                                                xs={12}   // mobile → 2 columns
+                                                sm={12}
+                                                md={8}
+                                                lg={6}    // large → 4 columns
+                                                xl={6}
                                                 style={{ flex: '0 0 180px', maxWidth: 180 }}
                                             >
                                                 <Card
@@ -278,6 +283,7 @@ const CategoryTickets = () => {
                                                             preview={{ mask: <div>Preview</div> }}
                                                             className="w-100 d-block"
                                                             style={{ objectFit: 'contain' }}
+                                                            fallback="https://placehold.co/300x750?text=No+Preview"
                                                         />
                                                     </div>
                                                     <div className="p-0 d-flex justify-content-between align-items-center border-top">
@@ -285,7 +291,7 @@ const CategoryTickets = () => {
                                                             value={img.id}
                                                             onChange={(e) => handleMarkDefault(e.target.value)}
                                                         >
-                                                            {img.default ? <Text strong type="success">Default</Text> : 'Set Default'}
+                                                            {img.default ? <Text style={{ fontSize: '12px' }} strong type="success">Default</Text> : <Text style={{ fontSize: '12px' }} strong type="success">Set Default</Text>}
                                                         </Radio>
                                                         <Popconfirm
                                                             title="Delete ticket?"

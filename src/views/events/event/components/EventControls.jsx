@@ -18,11 +18,7 @@ const toBoolean = (v) => v === true || v === 1 || v === '1';
 const toBooleanValue = (checked) => Boolean(checked);
 
 const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee }) => {
-  console.log('layouts', layouts);
-  console.log('eventLayoutId', eventLayoutId);
-  console.log('eventId', eventId);
-  console.log('venueId', venue_id);
-  console.log('eventHasAttendee', eventHasAttendee);
+
 
   const { userRole } = useMyContext();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
@@ -350,11 +346,11 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               label: "High Demand",
               tooltip: "Mark this event as high demand",
             },
-            // {
-            //   name: "house_full",
-            //   label: "House Full",
-            //   tooltip: "Mark event as sold out",
-            // },
+            {
+              name: "house_full",
+              label: "House Full",
+              tooltip: "Mark event as sold out",
+            },
             {
               name: "is_sold_out",
               label: "Sold Out",
@@ -858,7 +854,6 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
           dataSource={layouts}
           renderItem={(item) => {
             const isAssigned = Number(item.id) === Number(eventLayoutId);
-            console.log(item.id, eventLayoutId, isAssigned)
             return (<List.Item
               className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}
               onClick={() => {

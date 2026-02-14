@@ -257,7 +257,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 title: "#",
                 key: "index",
                 align: "center",
-                width: isNested ? 20 : 60,
+                width: isNested ? 50 : 70,
                 render: (_, __, index) => index + 1,
             });
         }
@@ -269,6 +269,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 dataIndex: 'event_name',
                 key: 'event_name',
                 align: 'center',
+                width: 180,
                 searchable: true,
                 render: (_, record) => {
                     const eventName = record?.bookings?.[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
@@ -287,6 +288,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 title: "User",
                 key: "user_name",
                 align: "center",
+                width: 150,
                 dataIndex: ["bookings", 0, "user", "name"],
                 render: (_, record) => {
                     const name = getUserName(record);
@@ -308,6 +310,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 key: 'organizer',
                 align: 'center',
                 searchable: true,
+                width: 150,
             });
         }
 
@@ -319,6 +322,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 key: 'agent_name',
                 align: 'center',
                 searchable: true,
+                width: 150,
             });
         }
 
@@ -345,6 +349,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             title: "Ticket",
             key: isNested ? "ticket" : "ticket_name",
             align: "center",
+            width: 150,
             render: (_, record) => {
                 const ticketName = record?.ticket?.name || record?.bookings?.[0]?.ticket?.name || "-";
 
@@ -409,6 +414,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             dataIndex: "status",
             key: "status",
             align: "center",
+            width: 100,
             render: (_, record) => {
                 if (record.is_deleted) {
                     return (

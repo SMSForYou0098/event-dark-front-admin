@@ -186,6 +186,17 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
     }
   }, [selectedOrganizerFromForm, form, isEdit]);
 
+  // Force attendee_required = false if category has attendy_required = true
+  useEffect(() => {
+    if (selectedCategory && categories.length > 0) {
+      const category = categories.find(c => c.value === selectedCategory);
+      if (category?.attendy_required) {
+        console.log('Setting attendee_required to false');
+        form.setFieldsValue({ atd: false });
+      }
+    }
+  }, [selectedCategory, categories, form]);
+
   // venues by organizer
   const isUserOrganizer = UserData?.role?.toLowerCase() === 'organizer';
 
@@ -312,6 +323,11 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
           {/* Hidden form field for fields payload [{id, note}] */}
           <Form.Item name="fields" hidden>
             <Input />
+          </Form.Item>
+
+          {/* Hidden attendee_required field (forced to false by category selection if needed) */}
+          <Form.Item name="attendee_required" hidden>
+            <Input type="hidden" />
           </Form.Item>
         </Col>
       )}

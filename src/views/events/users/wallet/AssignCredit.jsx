@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Row, Col, Button, Form, Select, Switch, Radio, Typography, Divider, Card, Tooltip, Tag, notification, Input, Space, Table } from 'antd';
+import { Row, Col, Button, Form, Select, Switch, Radio, Typography, Divider, Card, Tooltip, Tag, notification, Input, Space, Table, Segmented } from 'antd';
 import { UserOutlined, MailOutlined, PhoneOutlined, WalletOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -366,22 +366,15 @@ const AssignCredit = ({ id }) => {
                   <Typography.Text type="secondary" className="fs-12 d-block mb-2">
                     Quick Select:
                   </Typography.Text>
-                  <Radio.Group
+                  <Segmented
                     value={creditAmount}
-                    onChange={(e) => handleQuickAmountSelect(parseFloat(e.target.value))}
-                    buttonStyle="solid"
-                    size="small"
-                  >
-                    <Row gutter={[8, 8]} justify="center">
-                      {quickAmounts.map(amount => (
-                        <Col key={amount}>
-                          <Radio.Button value={amount.toString()} className="fs-12">
-                            ₹{safeFormatAmount(amount)}
-                          </Radio.Button>
-                        </Col>
-                      ))}
-                    </Row>
-                  </Radio.Group>
+                    onChange={(value) => handleQuickAmountSelect(parseFloat(value))}
+                    block
+                    options={quickAmounts.map(amount => ({
+                      label: `₹${safeFormatAmount(amount)}`,
+                      value: amount.toString()
+                    }))}
+                  />
                 </div>
               </Form.Item>
 

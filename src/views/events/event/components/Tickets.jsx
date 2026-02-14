@@ -144,7 +144,6 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, 
           dataSource={layouts}
           renderItem={(item) => {
             const isAssigned = Number(item.id) === Number(eventLayoutId);
-            console.log(item.id, eventLayoutId, isAssigned)
             return (<List.Item
               className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}
               onClick={() => {

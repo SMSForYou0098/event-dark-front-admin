@@ -349,7 +349,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       const url = images.bannerImage.url ||
         (images.bannerImage.originFileObj ? URL.createObjectURL(images.bannerImage.originFileObj) : null);
       if (url) {
-        imgs.push({ url, title: 'Banner Image' });
+        imgs.push({ url, title: '' });
       }
     }
     if (images.smImage) {
@@ -530,9 +530,8 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
                     size="small"
                     style={{
                       border: images[field.stateKey] ? '2px solid #52c41a' : '1px solid #303030',
-                      minHeight: 120,
                     }}
-                    styles={{ body: { padding: 12 } }}
+                    className='p-0 m-0'
                   >
                     {getImageUrl(field.stateKey) ? (
                       <div style={{ textAlign: 'center' }}>
@@ -601,35 +600,35 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
 
             {/* Image Preview Carousel */}
             {uploadedImages.length > 0 && (
-              <Col xs={24}>
-                <Card title="Image Preview" style={{ marginTop: 16 }}>
-                  <Carousel
-                    arrows
-                    prevArrow={<CustomPrevArrow />}
-                    nextArrow={<CustomNextArrow />}
-                    style={{ padding: '0 40px' }}
-                  >
-                    {uploadedImages.map((img, index) => (
-                      <div key={index}>
-                        <div style={{ textAlign: 'center', padding: '20px' }}>
-                          <h4 style={{ marginBottom: 16 }}>{img.title}</h4>
-                          <Image
-                            src={img.url}
-                            alt={img.title}
-                            style={{
-                              maxHeight: '400px',
-                              maxWidth: '100%',
-                              objectFit: 'contain',
-                            }}
-                            preview={{
-                              mask: 'Click to preview',
-                            }}
-                          />
-                        </div>
+              <Col xs={24} className='p-0'>
+                {/* <Card title="Image Preview" className='p-0' style={{ marginTop: 16, padding: 0 }} styles={{ body: { padding: 0 } }}> */}
+                <Carousel
+                  arrows
+                  prevArrow={<CustomPrevArrow />}
+                  nextArrow={<CustomNextArrow />}
+                  className='p-0 m-0'
+                >
+                  {uploadedImages.map((img, index) => (
+                    <div key={index}>
+                      <div style={{ textAlign: 'center', padding: '0px' }}>
+                        <h4 style={{ marginBottom: 16 }}>{img.title}</h4>
+                        <Image
+                          src={img.url}
+                          alt={img.title}
+                          style={{
+                            maxHeight: '400px',
+                            maxWidth: '100%',
+                            objectFit: 'contain',
+                          }}
+                          preview={{
+                            mask: 'Click to preview',
+                          }}
+                        />
                       </div>
-                    ))}
-                  </Carousel>
-                </Card>
+                    </div>
+                  ))}
+                </Carousel>
+                {/* </Card> */}
               </Col>
             )}
           </Row>

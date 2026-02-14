@@ -377,6 +377,7 @@ const WhatsAppConfig = () => {
       title: 'Action',
       key: 'action',
       width: 150,
+      fixed: 'right',
       align: 'left',
       render: (_, record) => (
         <Space size="small">

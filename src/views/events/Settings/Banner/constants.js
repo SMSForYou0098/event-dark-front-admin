@@ -51,7 +51,7 @@ export const TEXTAREA_FIELDS = [
   {
     name: 'description',
     label: 'Description',
-    span: { xs: 12 , md : 24 },
+    span: { xs: 12, md: 24 },
     rules: [{ required: true, message: 'Please enter description' }],
     placeholder: 'Enter banner description',
     rows: 4,
@@ -73,7 +73,7 @@ export const IMAGE_FIELDS = [
     label: 'Banner Image',
     span: { xs: 12, md: 8 },
     stateKey: 'bannerImage',
-    uploadText: 'Upload Banner',
+    uploadText: '',
     required: true,
   },
   {
@@ -81,14 +81,14 @@ export const IMAGE_FIELDS = [
     label: 'Small Image',
     span: { xs: 12, md: 8 },
     stateKey: 'smImage',
-    uploadText: 'Upload SM',
+    uploadText: '',
   },
   {
     name: 'md_image',
     label: 'Medium Image',
     span: { xs: 12, md: 8 },
     stateKey: 'mdImage',
-    uploadText: 'Upload MD',
+    uploadText: '',
   },
 ];
 

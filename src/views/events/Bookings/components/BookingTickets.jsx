@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo } from 'react'
 import CommonPricingComp from './CommonPricingComp';
 import Counter from 'utils/QuantityCounter';
 import { ClockCircleOutlined, RiseOutlined, StopOutlined } from '@ant-design/icons';
+import { calculateTicketPrice } from 'utils/ticketCalculations';
 import { useMyContext } from 'Context/MyContextProvider';
 
 const { Text } = Typography;
@@ -40,57 +41,13 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
   const getTicketCount = useCallback((quantity, category, price, id) => {
     setSelectedTickets(prevTickets => {
       const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
-      const unitBaseAmount = +(price)?.toFixed(2);
-
-      // tax states
-      const taxData = event?.tax_data;
-      const convenienceFeeValue = Number(taxData?.convenience_fee || 0);
-      const convenienceFeeType = taxData?.type || "flat";
-
-      // Dynamically calculate convenience fee
-      let unitConvenienceFee = 0;
-      if (convenienceFeeType === "percentage") {
-        unitConvenienceFee = +(unitBaseAmount * (convenienceFeeValue / 100)).toFixed(2);
-      } else {
-        unitConvenienceFee = +convenienceFeeValue.toFixed(2);
-      }
-
-      const unitCentralGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
-      const unitStateGST = +(unitConvenienceFee * 0.09)?.toFixed(2);
-
-      // Per-unit calculations
-      const unitTotalTax = +(unitCentralGST + unitStateGST)?.toFixed(2);
-      const unitFinalAmount = +((price) + unitConvenienceFee + unitTotalTax).toFixed(2);
-
-      // Totals for the selected quantity
-      const totalBaseAmount = +(unitBaseAmount * quantity).toFixed(2);
-      const totalCentralGST = +(unitCentralGST * quantity).toFixed(2);
-      const totalStateGST = +(unitStateGST * quantity).toFixed(2);
-      const totalConvenienceFee = +(unitConvenienceFee * quantity).toFixed(2);
-      const totalTotalTax = +(totalCentralGST + totalStateGST + totalConvenienceFee).toFixed(2);
-      const totalFinalAmount = +((price * quantity) + totalTotalTax).toFixed(2);
+      const priceDetails = calculateTicketPrice(price, quantity, event?.tax_data);
 
       const ticketData = {
         id,
         category,
         quantity,
-        price: +(+price).toFixed(2),
-
-        // per-unit
-        baseAmount: unitBaseAmount,
-        centralGST: unitCentralGST,
-        stateGST: unitStateGST,
-        totalTax: unitTotalTax,
-        convenienceFee: unitConvenienceFee,
-        finalAmount: unitFinalAmount,
-
-        // totals
-        totalBaseAmount,
-        totalCentralGST,
-        totalStateGST,
-        totalTaxTotal: totalTotalTax,
-        totalConvenienceFee,
-        totalFinalAmount,
+        ...priceDetails,
       };
 
       // Remove if quantity is 0
@@ -193,7 +150,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
         const selectedTicket = selectedTickets?.find(t => t?.id === record?.id);
         return (
           <Counter
-            key={`${event?.id}-${record.id}`} // Add key to force remount on event change
+            key={`${event?.id} -${record.id} `} // Add key to force remount on event change
             getTicketCount={getTicketCount}
             category={record.name}
             price={record?.sale ? Number(record?.sale_price) : Number(record?.price)}
@@ -221,7 +178,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
 
         const price = record?.sale ? record?.sale_price : record?.price;
         const total = price * quantity;
-        return `₹ ${total}`;
+        return `₹ ${total} `;
       },
     }] : [])
   ];

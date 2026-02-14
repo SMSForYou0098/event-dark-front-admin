@@ -10,7 +10,7 @@ const AttendeeManagementStep = forwardRef(({
   existingAttendees,
   eventID,
   onBack,
-  ticketAttendees, 
+  ticketAttendees,
   setTicketAttendees,
 
 }, ref) => {
@@ -22,6 +22,8 @@ const AttendeeManagementStep = forwardRef(({
   const [savedAttendeeIds, setSavedAttendeeIds] = useState([])
 
   // ✅ Get all selected attendee IDs across all tickets
+
+  console.log("categoryFields", categoryFields);
   const getAllSelectedAttendeeIds = useCallback(() => {
     const allIds = [];
     Object.values(ticketAttendees).forEach(attendees => {
@@ -47,8 +49,8 @@ const AttendeeManagementStep = forwardRef(({
   }, []);
 
 
-   // Add this memo near other memos/callbacks
-   const attendeeToTicketMap = useMemo(() => {
+  // Add this memo near other memos/callbacks
+  const attendeeToTicketMap = useMemo(() => {
     const map = {};
     Object.entries(ticketAttendees).forEach(([tId, attendees]) => {
       const ticket = selectedTickets.find(t => t.id === (isNaN(tId) ? tId : Number(tId)));
@@ -63,8 +65,8 @@ const AttendeeManagementStep = forwardRef(({
     return map;
   }, [ticketAttendees, selectedTickets]);
 
-   // Replace the entire handler with this toggle version
-   const handleSelectAttendee = useCallback((attendee) => {
+  // Replace the entire handler with this toggle version
+  const handleSelectAttendee = useCallback((attendee) => {
     const currentTicketAttendees = ticketAttendees[currentTicketId] || [];
     const requiredCount = getRequiredAttendeeCountForTicket(currentTicketId);
 
@@ -150,144 +152,144 @@ const AttendeeManagementStep = forwardRef(({
     handleCloseAttendeeModal();
   }, [currentTicketId, ticketAttendees, getRequiredAttendeeCountForTicket, handleCloseAttendeeModal]);
 
-    // ✅ Pass all selected IDs to AttendeeSuggestion modal
-    const handleShowSuggestions = useCallback((ticketId) => {
-      setCurrentTicketId(ticketId);
-      setShowAttendeeSuggestion(true);
-    }, []);
-  
-    const handleRemoveAttendee = useCallback((ticketId, index) => {
-      const currentTicketAttendees = ticketAttendees[ticketId] || [];
-      const updated = currentTicketAttendees.filter((_, i) => i !== index);
-  
-      setTicketAttendees(prev => ({
-        ...prev,
-        [ticketId]: updated
-      }));
-  
-      message.success('Attendee removed');
-    }, [ticketAttendees]);
-  
-    const handleEditAttendee = useCallback((ticketId, index) => {
-      const currentTicketAttendees = ticketAttendees[ticketId] || [];
-      setCurrentTicketId(ticketId);
-      setEditingAttendeeIndex(index);
-      setEditingAttendeeData(currentTicketAttendees[index]);
-      setShowAttendeeFieldModal(true);
-    }, [ticketAttendees]);
+  // ✅ Pass all selected IDs to AttendeeSuggestion modal
+  const handleShowSuggestions = useCallback((ticketId) => {
+    setCurrentTicketId(ticketId);
+    setShowAttendeeSuggestion(true);
+  }, []);
 
-    const handleOpenAttendeeModal = useCallback((ticketId) => {
-      setCurrentTicketId(ticketId);
-      setEditingAttendeeIndex(null);
-      setEditingAttendeeData({});
-      setShowAttendeeFieldModal(true);
-    }, []);
+  const handleRemoveAttendee = useCallback((ticketId, index) => {
+    const currentTicketAttendees = ticketAttendees[ticketId] || [];
+    const updated = currentTicketAttendees.filter((_, i) => i !== index);
 
-    const getAttendeeCountForTicket = useCallback((ticketId) => {
-      return ticketAttendees[ticketId]?.length || 0;
-    }, [ticketAttendees]);
-
-const validateAttendees = useCallback(() => {
-  // Collect the required fields from categoryFields
-  const requiredFields = (categoryFields || [])
-    .filter(f => Number(f.field_required) === 1)
-    .map(f => ({
-      name: f.field_name,                // e.g., "Name", "Email", "Mo", "Photo", "hobby"
-      type: (f.field_type || "").toLowerCase(), // e.g., "text", "email", "number", "file", "checkbox"
-      label: f.lable || f.field_name,    // pretty label for messages
+    setTicketAttendees(prev => ({
+      ...prev,
+      [ticketId]: updated
     }));
 
-  // Helper: is a required field "filled" according to its type?
-  const isFieldFilled = (value, type) => {
-    if (value === null || value === undefined) return false;
+    message.success('Attendee removed');
+  }, [ticketAttendees]);
 
-    switch (type) {
-      case "text":
-      case "textarea":
-      case "select":
-      case "radio":
-        return String(value).trim().length > 0;
+  const handleEditAttendee = useCallback((ticketId, index) => {
+    const currentTicketAttendees = ticketAttendees[ticketId] || [];
+    setCurrentTicketId(ticketId);
+    setEditingAttendeeIndex(index);
+    setEditingAttendeeData(currentTicketAttendees[index]);
+    setShowAttendeeFieldModal(true);
+  }, [ticketAttendees]);
 
-      case "email": {
-        const str = String(value).trim();
-        if (!str) return false;
-        // minimal format check
-        const ok = /\S+@\S+\.\S+/.test(str);
-        return ok;
+  const handleOpenAttendeeModal = useCallback((ticketId) => {
+    setCurrentTicketId(ticketId);
+    setEditingAttendeeIndex(null);
+    setEditingAttendeeData({});
+    setShowAttendeeFieldModal(true);
+  }, []);
+
+  const getAttendeeCountForTicket = useCallback((ticketId) => {
+    return ticketAttendees[ticketId]?.length || 0;
+  }, [ticketAttendees]);
+
+  const validateAttendees = useCallback(() => {
+    // Collect the required fields from categoryFields
+    const requiredFields = (categoryFields || [])
+      .filter(f => Number(f.field_required) === 1)
+      .map(f => ({
+        name: f.field_name,                // e.g., "Name", "Email", "Mo", "Photo", "hobby"
+        type: (f.field_type || "").toLowerCase(), // e.g., "text", "email", "number", "file", "checkbox"
+        label: f.lable || f.field_name,    // pretty label for messages
+      }));
+
+    // Helper: is a required field "filled" according to its type?
+    const isFieldFilled = (value, type) => {
+      if (value === null || value === undefined) return false;
+
+      switch (type) {
+        case "text":
+        case "textarea":
+        case "select":
+        case "radio":
+          return String(value).trim().length > 0;
+
+        case "email": {
+          const str = String(value).trim();
+          if (!str) return false;
+          // minimal format check
+          const ok = /\S+@\S+\.\S+/.test(str);
+          return ok;
+        }
+
+        case "number": {
+          const str = String(value).trim();
+          if (!str) return false;
+          const n = Number(value);
+          return !Number.isNaN(n);
+        }
+
+        case "file":
+          // Expecting a URL/path or File object; treat any truthy value as present
+          if (typeof value === "string") return value.trim().length > 0;
+          if (typeof File !== "undefined" && value instanceof File) return true;
+          return Boolean(value);
+
+        case "checkbox": {
+          // Could be array, CSV string, JSON string, or single string
+          if (Array.isArray(value)) return value.length > 0;
+          const str = String(value).trim();
+          if (!str) return false;
+          // try JSON array
+          try {
+            const parsed = JSON.parse(str);
+            if (Array.isArray(parsed)) return parsed.length > 0;
+          } catch (_) { }
+          // fallback: CSV like "Singing,Dancing"
+          return str.length > 0;
+        }
+
+        default:
+          return String(value).trim().length > 0;
       }
+    };
 
-      case "number": {
-        const str = String(value).trim();
-        if (!str) return false;
-        const n = Number(value);
-        return !Number.isNaN(n);
-      }
+    for (const ticket of selectedTickets) {
+      const qty = Number(ticket.quantity) || 0;
+      if (qty > 0) {
+        const attendees = ticketAttendees?.[ticket.id] || [];
+        const currentCount = attendees.length;
 
-      case "file":
-        // Expecting a URL/path or File object; treat any truthy value as present
-        if (typeof value === "string") return value.trim().length > 0;
-        if (typeof File !== "undefined" && value instanceof File) return true;
-        return Boolean(value);
+        // Existing count validation
+        if (currentCount !== qty) {
+          return {
+            valid: false,
+            message: `Ticket "${ticket.category || ticket.name || 'Unknown'}" requires ${qty} attendee(s), but only ${currentCount} added`,
+          };
+        }
 
-      case "checkbox": {
-        // Could be array, CSV string, JSON string, or single string
-        if (Array.isArray(value)) return value.length > 0;
-        const str = String(value).trim();
-        if (!str) return false;
-        // try JSON array
-        try {
-          const parsed = JSON.parse(str);
-          if (Array.isArray(parsed)) return parsed.length > 0;
-        } catch (_) {}
-        // fallback: CSV like "Singing,Dancing"
-        return str.length > 0;
-      }
+        // New: required custom fields validation per attendee
+        for (let i = 0; i < attendees.length; i++) {
+          const a = attendees[i];
 
-      default:
-        return String(value).trim().length > 0;
-    }
-  };
+          for (const f of requiredFields) {
+            const val = a?.[f.name];
 
-  for (const ticket of selectedTickets) {
-    const qty = Number(ticket.quantity) || 0;
-    if (qty > 0) {
-      const attendees = ticketAttendees?.[ticket.id] || [];
-      const currentCount = attendees.length;
+            // Required + missing/invalid
+            if (!isFieldFilled(val, f.type)) {
+              // Optional extra: type-specific message
+              let extra = "";
+              if (f.type === "email" && val) extra = " (invalid email format)";
+              if (f.type === "number" && val) extra = " (must be a number)";
 
-      // Existing count validation
-      if (currentCount !== qty) {
-        return {
-          valid: false,
-          message: `Ticket "${ticket.category || ticket.name || 'Unknown'}" requires ${qty} attendee(s), but only ${currentCount} added`,
-        };
-      }
-
-      // New: required custom fields validation per attendee
-      for (let i = 0; i < attendees.length; i++) {
-        const a = attendees[i];
-
-        for (const f of requiredFields) {
-          const val = a?.[f.name];
-
-          // Required + missing/invalid
-          if (!isFieldFilled(val, f.type)) {
-            // Optional extra: type-specific message
-            let extra = "";
-            if (f.type === "email" && val) extra = " (invalid email format)";
-            if (f.type === "number" && val) extra = " (must be a number)";
-
-            return {
-              valid: false,
-              message: `Ticket "${ticket.category || ticket.name || 'Unknown'}" attendee #${i + 1}: ${f.label} is required${extra}.`,
-            };
+              return {
+                valid: false,
+                message: `Ticket "${ticket.category || ticket.name || 'Unknown'}" attendee #${i + 1}: ${f.label} is required${extra}.`,
+              };
+            }
           }
         }
       }
     }
-  }
 
-  return { valid: true };
-}, [selectedTickets, ticketAttendees, categoryFields]);
+    return { valid: true };
+  }, [selectedTickets, ticketAttendees, categoryFields]);
 
 
   // ids by ticket exposed to parent
@@ -306,7 +308,7 @@ const validateAttendees = useCallback(() => {
     validateAttendees,
     getAttendeeIdsByTicket,
   }));
-  
+
   return (
     <>
       <AttendeesField
@@ -350,7 +352,7 @@ const validateAttendees = useCallback(() => {
             const currentCount = getAttendeeCountForTicket(ticket.id);
             const currentTicketAttendees = ticketAttendees[ticket.id] || [];
             const isComplete = currentCount === requiredCount;
-
+            console.log("currentTicketAttendees", currentTicketAttendees);
             return (
               <Card
                 key={ticket.id}
@@ -376,7 +378,7 @@ const validateAttendees = useCallback(() => {
                           size="small"
                           icon={<TeamOutlined />}
                           onClick={() => handleShowSuggestions(ticket?.id)}
-                          // disabled={eventID}
+                        // disabled={eventID}
                         >
                           Select
                         </Button>

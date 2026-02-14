@@ -96,7 +96,8 @@ const AgentBookingModal = (props) => {
     designation,
     setDesignation,
     setConfirmed,
-    isAccreditation = false
+    isAccreditation = false,
+    bookingError
   } = props;
 
   const [form] = Form.useForm();
@@ -269,6 +270,14 @@ const AgentBookingModal = (props) => {
           method: 'UPI'
         }}
       >
+        {bookingError && (
+          <Alert
+            message={bookingError}
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
         <Row gutter={[16, 16]}>
           {/* Phone Number */}
           <Col span={24}>
@@ -476,6 +485,7 @@ const AgentBookingModal = (props) => {
 
               {/* Ticket Notification Info */}
               <Col span={24}>
+
                 <Alert
                   message={
                     <Space>

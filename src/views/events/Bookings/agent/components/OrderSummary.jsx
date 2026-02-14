@@ -9,12 +9,13 @@ import { calcTicketTotals } from 'utils/ticketCalculations';
 const { Title } = Typography;
 
 const OrderSummary = (props) => {
-  const { userId, ticketCurrency, discount, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext } = props
+  const { userId, ticketCurrency, discount, discountType, setDiscountType, discountValue, setDiscountValue, handleDiscount, currentStep, isAttendeeRequire, selectedTickets, isLoading, onCheckout, onNext, disabled = false } = props
   const {
     grandTotal,
   } = calcTicketTotals(selectedTickets, discount);
   // ✅ Determine which handler to use
   const handleButtonClick = () => {
+    if (disabled) return;
     if (currentStep === 0) {
       // Step 0: Use navigation function
       onNext && onNext();
@@ -67,7 +68,7 @@ const OrderSummary = (props) => {
             block
             onClick={handleButtonClick} // ✅ Use smart handler
             loading={isLoading}
-            disabled={selectedTickets.length === 0}
+            disabled={selectedTickets.length === 0 || disabled}
           >
             {getButtonText()}
           </Button>
@@ -96,7 +97,7 @@ const OrderSummary = (props) => {
                 block
                 onClick={handleButtonClick} // ✅ Use smart handler
                 loading={isLoading}
-                disabled={selectedTickets.length === 0}
+                disabled={selectedTickets.length === 0 || disabled}
               >
                 {getButtonTextShort()}
               </Button>

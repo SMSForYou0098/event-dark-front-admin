@@ -184,6 +184,7 @@ const SytemVariables = () => {
     {
       title: 'Actions',
       key: 'actions',
+      fixed: 'right',
       width: 120,
       align: 'left',
       render: (_, record) => (

@@ -125,6 +125,7 @@ const EventStepperForm = () => {
                 // Terms & Conditions
                 online_ticket_terms: detail?.online_ticket_terms || undefined,
                 offline_ticket_terms: detail?.offline_ticket_terms || undefined,
+                attendee_required: detail?.attendee_required || false,
             });
         }
 

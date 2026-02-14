@@ -59,6 +59,7 @@ export const useEventCategories = (options = {}) =>
       const transformed = Object.values(rawData).map((item) => ({
         label: item.title,
         value: item.id,
+        attendy_required: item.attendy_required,
       }));
 
       return transformed;
@@ -113,34 +114,10 @@ export function buildEventFormData(values, isDraft = false) {
     fd.append(k, String(v));
   };
 
-  const appendSingleUpload = (key, fileList) => {
-    if (!Array.isArray(fileList) || !fileList.length) return;
-    const f = fileList[0];
-    if (!f || !f.originFileObj) return; // skip existing URL-only
-    fd.append(key, f.originFileObj, f.name || 'file');
-  };
-
-  // --- GALLERY HELPERS ---
-  const appendExistingGalleryUrls = (fileList) => {
-    if (!Array.isArray(fileList)) return;
-    fileList.forEach((f) => {
-      if (f?.url && !f.originFileObj) {
-        fd.append('existing_images[]', f.url);
-      }
-    });
-  };
-
-  const appendGalleryUploadsAsArray = (fileList) => {
-    if (!Array.isArray(fileList)) return;
-    fileList.forEach((f) => {
-      if (f?.originFileObj) {
-        fd.append('images[]', f.originFileObj, f.name || 'image');
-      }
-    });
-  };
 
   // ---------- BASIC ----------
   if (values.step === 'basic') {
+    console.log(values, 'values');
     // For Organizer role, use their userId; otherwise use the selected org_id from form
     const userId = values.userRole === 'Organizer' ? values.userId : values.org_id;
     appendIfDefined('user_id', userId);
@@ -149,14 +126,20 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('venue_id', values.venue_id);
     appendIfDefined('description', values.description);
 
+    // Conditionally append attendee_required from BASIC step.
+    // BasicDetails step sets this form value only when:
+    // - category title is "Registration" OR
+    // - category.attendee_required === true
+    appendIfDefined('attendee_required', values.attendee_required);
+
+    // Registration fields with notes [{id, note}] - send as stringified JSON
+    if (values.fields) {
+      fd.append('fields', JSON.stringify(values.fields));
+    }
+
     // Terms & Conditions
     appendIfDefined('online_ticket_terms', values.online_ticket_terms);
     appendIfDefined('offline_ticket_terms', values.offline_ticket_terms);
-
-    // Registration fields with notes [{id, note}] - send as stringified JSON
-    if (Array.isArray(values.fields) && values.fields.length > 0) {
-      fd.append('fields', JSON.stringify(values.fields));
-    }
   }
 
   // ---------- CONTROLS (now includes ticket settings from removed tickets step) ----------

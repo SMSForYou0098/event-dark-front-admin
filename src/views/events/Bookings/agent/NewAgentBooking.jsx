@@ -1,6 +1,6 @@
 import { useMyContext } from 'Context/MyContextProvider';
 import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Col, message, Row, Modal } from 'antd';
+import { Col, message, Row, Modal, Alert } from 'antd';
 import PosEvents from '../components/PosEvents';
 import AgentBookingModal from './AgentBookingModal';
 import { handleDiscountChange, processImageFile } from './utils';
@@ -21,6 +21,8 @@ import {
   useCorporateBooking,
   useAgentBooking,
   useLockSeats,
+  useCategoryDetail,
+  useEventFields,
 } from './useAgentBookingHooks';
 import BookingSummary from './components/BookingSummary';
 import { calcTicketTotals, distributeDiscount, getSubtotal } from 'utils/ticketCalculations';
@@ -33,9 +35,9 @@ const NewAgentBooking = memo(({ type }) => {
     UserData,
     isMobile,
     authToken,
+    userRole,
     getCurrencySymbol,
     formatDateRange,
-    fetchCategoryData,
   } = useMyContext();
 
   // State management
@@ -75,6 +77,36 @@ const NewAgentBooking = memo(({ type }) => {
   const [bookingResponse, setBookingResponse] = useState(null);
   const [ticketAttendees, setTicketAttendees] = useState({});
   const [selectedCardToken, setSelectedCardToken] = useState(null);
+
+  const [usedTokens, setUsedTokens] = useState([]);
+  const [bookingError, setBookingError] = useState(null);
+
+  // Queries
+  const { data: categoryDataResponse } = useCategoryDetail(categoryId, { enabled: !!categoryId });
+  const { data: eventFields } = useEventFields(eventID, {
+    enabled: !!eventID && !!event?.event_controls?.attendee_required && !categoryDataResponse?.categoryData?.attendy_required
+  });
+
+  // Effect to update attendee requirements and fields
+  useEffect(() => {
+    if (!categoryId) return;
+
+    if (categoryDataResponse?.status) {
+      const categoryAttendeeRequired = categoryDataResponse?.categoryData?.attendy_required === true;
+      const eventAttendeeRequired = event?.event_controls?.attendee_required === true;
+
+      if (categoryAttendeeRequired) {
+        setIsAttendeeRequire(true);
+        setCategoryFields(categoryDataResponse?.customFieldsData || []);
+      } else if (eventAttendeeRequired) {
+        setIsAttendeeRequire(true);
+        setCategoryFields(eventFields || []);
+      } else {
+        setIsAttendeeRequire(false);
+        setCategoryFields([]);
+      }
+    }
+  }, [categoryDataResponse, eventFields, event]);
 
   // Ref for BookingLayout to update seat status
   const bookingLayoutRef = useRef(null);
@@ -168,6 +200,8 @@ const NewAgentBooking = memo(({ type }) => {
       message.warning('Booking is already in progress, please wait...');
       return;
     }
+
+    setBookingError(null);
 
     // ✅ Check cooldown period
     const now = Date.now();
@@ -275,6 +309,9 @@ const NewAgentBooking = memo(({ type }) => {
           }
 
           setBookingResponse(response.bookings || null);
+          if (selectedCardToken) {
+            setUsedTokens(prev => [...prev, selectedCardToken.token]);
+          }
           setSavedAttendeeIds({});
           setSelectedTickets([]);
           setTicketAttendees({});
@@ -296,12 +333,18 @@ const NewAgentBooking = memo(({ type }) => {
           const unavailableSeatIds = error?.seats || error?.response?.data?.seats || [];
           if (seatingModule && bookingLayoutRef.current && unavailableSeatIds.length > 0) {
             bookingLayoutRef.current.markSeatIdsAsBooked(unavailableSeatIds);
-            message.error(error.message || error?.response?.data?.message || 'Some seats are no longer available');
+            const errMsg = error?.response?.data?.message || 'Some seats are no longer available';
+            message.error(errMsg);
+            setBookingError(errMsg);
           } else {
-            message.error(error.message || 'Some seats are no longer available');
+            const errMsg = error?.response?.data?.message || error.message || 'Some seats are no longer available';
+            message.error(errMsg);
+            setBookingError(errMsg);
           }
         } else {
-          message.error(error.message || 'Booking failed');
+          const errMsg = error?.response?.data?.message || error.message || 'Booking failed';
+          message.error(errMsg);
+          setBookingError(errMsg);
         }
 
         // ✅ Reset booking state on error
@@ -509,22 +552,8 @@ const NewAgentBooking = memo(({ type }) => {
     setCategoryId(evnt?.category);
     setCurrentStep(0); // Reset to step 0
     setSelectedCardToken(null);
-
-    const response = await fetchCategoryData(evnt?.category);
-    if (response.status) {
-      const attendeeRequired = response?.categoryData?.attendy_required === true;
-      console.log("attendeeRequired", response);
-      setIsAttendeeRequire(attendeeRequired);
-
-      if (attendeeRequired) {
-        setCategoryFields(response?.customFieldsData || []);
-      } else {
-        setCategoryFields([]);
-      }
-    }
-
     setIsAmusment(evnt?.event_type === 'amusement');
-  }, [fetchCategoryData]);
+  }, []);
 
   const handleDiscount = useCallback(() => {
     handleDiscountChange({
@@ -594,6 +623,11 @@ const NewAgentBooking = memo(({ type }) => {
     }
   }, [currentStep]);
 
+  // Check if token is claimed
+  const isTokenClaimed = useMemo(() => {
+    return selectedCardToken?.status === 'claimed';
+  }, [selectedCardToken]);
+
   // ✅ Also update handleBooking to not interfere
   const handleBooking = useCallback(() => {
     // This should only be called from the final checkout step
@@ -649,7 +683,10 @@ const NewAgentBooking = memo(({ type }) => {
 
       <AgentBookingModal
         showPrintModel={showPrintModel}
-        handleClose={() => setShowPrintModel(false)}
+        handleClose={() => {
+          setShowPrintModel(false);
+          setBookingError(null);
+        }}
         confirm={isConfirmed}
         setConfirmed={setIsConfirmed}
         disabled={isLoading}
@@ -673,6 +710,7 @@ const NewAgentBooking = memo(({ type }) => {
         setDesignation={setDesignation}
         event={event}
         selectedTickets={selectedTickets}
+        bookingError={bookingError}
       />
 
 
@@ -705,14 +743,19 @@ const NewAgentBooking = memo(({ type }) => {
                   </Col>
                 ) : event?.event_controls?.use_preprinted_cards ? (
                   <Col xs={24} lg={16}>
-                    <PreprintedCardStep
-                      event={event}
-                      tickets={tickets}
-                      selectedTickets={selectedTickets}
-                      setSelectedTickets={setSelectedTickets}
-                      onTokenSelect={setSelectedCardToken}
-                      onNext={goToNextStep}
-                    />
+                    {
+                      userRole === 'Agent' ?
+                        <PreprintedCardStep
+                          event={event}
+                          tickets={tickets}
+                          selectedTickets={selectedTickets}
+                          setSelectedTickets={setSelectedTickets}
+                          onTokenSelect={setSelectedCardToken}
+                          onNext={goToNextStep}
+                          usedTokens={usedTokens}
+                        />
+                        : <Alert type="warning" message="Access denied. Only agents are permitted to perform this action" />
+                    }
                   </Col>
                 ) : (
                   <Col xs={24} lg={16}>
@@ -770,6 +813,7 @@ const NewAgentBooking = memo(({ type }) => {
                       onLockSeats={handleLockSeats} // ✅ Pass lock seats function
                       isMobile={isMobile}
                       discount={discount}
+                      disabled={isTokenClaimed}
                     />
                   </Col>
                 </>
