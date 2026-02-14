@@ -434,7 +434,7 @@ const salesOperationsSubmenu = [
     submenu: [],
     roles: ["Admin"],
     permissions: ["View User Inquiries"]
-  }
+  },
 ];
 
 const salesOperationsNav = {

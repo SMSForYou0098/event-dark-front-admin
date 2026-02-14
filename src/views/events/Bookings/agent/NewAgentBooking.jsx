@@ -17,7 +17,7 @@ import {
   useUserAttendees,
   useCheckEmail,
   useCreateUser,
-  useUpdateUser,
+  useUpdateUserAddress,
   useCorporateBooking,
   useAgentBooking,
   useLockSeats,
@@ -47,9 +47,19 @@ const NewAgentBooking = memo(({ type }) => {
   const [selectedTickets, setSelectedTickets] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
-  const [number, setNumber] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+
+  // Consolidated User Details State
+  const [userDetails, setUserDetails] = useState({
+    name: '',
+    number: '',
+    email: '',
+    photo: null,
+    doc: null,
+    companyName: '',
+    designation: '',
+    address: ''
+  });
+
   const [disableChoice, setDisableChoice] = useState(false);
   const [discountType, setDiscountType] = useState('fixed');
   const [discountValue, setDiscountValue] = useState();
@@ -66,10 +76,7 @@ const NewAgentBooking = memo(({ type }) => {
   const [stickerData, setStickerData] = useState(null);
   const [printInvoiceData, setPrintInvoiceData] = useState(null);
   const [openStickerModal, setOpenStickerModal] = useState(false);
-  const [photo, setPhoto] = useState(null);
-  const [doc, setDoc] = useState(null);
-  const [companyName, setCompanyName] = useState('');
-  const [designation, setDesignation] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [createdUser, setCreatedUser] = useState(null);
   // const [masterBookings, setMasterBookings] = useState([]);
@@ -115,6 +122,7 @@ const NewAgentBooking = memo(({ type }) => {
   const { data: existingAttendees = [], refetch: refetchAttendees } = useUserAttendees({
     userId: UserData?.id,
     categoryId,
+    eventId: eventID,
     isCorporate,
     isAgent,
     enabled: isAttendeeRequire && !!categoryId && !!UserData?.id,
@@ -134,8 +142,7 @@ const NewAgentBooking = memo(({ type }) => {
     },
   });
 
-  /*
-  const updateUserMutation = useUpdateUser({
+  const updateUserMutation = useUpdateUserAddress({
     // onSuccess: (response) => {
     //   if (response.status && response.user) {
     //     message.success('User updated successfully!');
@@ -146,7 +153,6 @@ const NewAgentBooking = memo(({ type }) => {
       message.error(error.message || 'Failed to update user');
     },
   });
-  */
 
   const corporateBookingMutation = useCorporateBooking({
     onSuccess: (response) => {
@@ -262,9 +268,10 @@ const NewAgentBooking = memo(({ type }) => {
     const bookingPayload = {
       agent_id: UserData?.id,
       user_id: user?.id,
-      number: user?.number || number,
-      email: user?.email || email,
-      name: user?.name || name,
+      number: user?.number || userDetails.number,
+      email: user?.email || userDetails.email,
+      name: user?.name || userDetails.name,
+      address: user?.address || userDetails.address,
       payment_method: method,
       type: event?.event_type || 'daily',
       tickets: ticketsPayload,
@@ -353,7 +360,7 @@ const NewAgentBooking = memo(({ type }) => {
         }, 1000);
       }
     });
-  }, [isBookingInProgress, type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep, seatingModule, selectedCardToken]);
+  }, [isBookingInProgress, type, selectedTickets, UserData, userDetails, method, event, isAmusment, eventID, agentBookingMutation, currentStep, seatingModule, selectedCardToken]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastSubmitAttemptRef = useRef(0);
@@ -375,13 +382,18 @@ const NewAgentBooking = memo(({ type }) => {
       return;
     }
 
-    if (!name) {
+    if (!userDetails.name) {
       message.error("Name is required");
       return;
     }
 
-    if (!number) {
+    if (!userDetails.number) {
       message.error("Mobile number is required");
+      return;
+    }
+
+    if (!userDetails.address) {
+      message.error("Address is required. Please edit details and add address.");
       return;
     }
 
@@ -400,8 +412,8 @@ const NewAgentBooking = memo(({ type }) => {
 
     try {
       const checkResult = await checkEmailMutation.mutateAsync({
-        email,
-        number
+        email: userDetails.email,
+        number: userDetails.number
       });
 
       let user = null;
@@ -414,24 +426,26 @@ const NewAgentBooking = memo(({ type }) => {
         } else {
           if (checkResult?.mobile_exists) {
             const formData = new FormData();
-            if (companyName) formData.append('company_name', companyName);
-            if (photo) {
-              const processedPhoto = photo instanceof File ? await processImageFile(photo) : photo;
+            if (userDetails.companyName) formData.append('company_name', userDetails.companyName);
+            if (userDetails.photo) {
+              const processedPhoto = userDetails.photo instanceof File ? await processImageFile(userDetails.photo) : userDetails.photo;
               formData.append('photo', processedPhoto);
             }
-            if (doc) {
-              const processedDoc = doc instanceof File ? await processImageFile(doc) : doc;
+            if (userDetails.doc) {
+              const processedDoc = userDetails.doc instanceof File ? await processImageFile(userDetails.doc) : userDetails.doc;
               formData.append('doc', processedDoc);
             }
-            if (designation) formData.append('designation', designation);
-            formData.append('user_id', checkResult.user.id);
+            if (userDetails.designation) formData.append('designation', userDetails.designation);
+            if (userDetails.address) formData.append('address', userDetails.address);
+            // formData.append('user_id', checkResult.user.id);
 
-            /*
-            await updateUserMutation.mutateAsync({
-              userId: checkResult.user.id,
-              formData
-            });
-            */
+
+            if (isEditing) {
+              await updateUserMutation.mutateAsync({
+                userId: checkResult.user.id,
+                formData
+              });
+            }
 
             user = checkResult.user;
             setCreatedUser(user);
@@ -444,20 +458,21 @@ const NewAgentBooking = memo(({ type }) => {
       } else {
         // New user creation
         const formData = new FormData();
-        formData.append('name', name);
-        formData.append('email', email);
-        formData.append('number', number);
-        formData.append('password', number);
+        formData.append('name', userDetails.name);
+        formData.append('email', userDetails.email);
+        formData.append('number', userDetails.number);
+        formData.append('password', userDetails.number);
         formData.append('reporting_user', UserData?.id);
+        if (userDetails.address) formData.append('address', userDetails.address);
 
-        if (companyName) formData.append('company_name', companyName);
-        if (designation) formData.append('designation', designation);
-        if (photo) {
-          const processedPhoto = await processImageFile(photo);
+        if (userDetails.companyName) formData.append('company_name', userDetails.companyName);
+        if (userDetails.designation) formData.append('designation', userDetails.designation);
+        if (userDetails.photo) {
+          const processedPhoto = await processImageFile(userDetails.photo);
           formData.append('photo', processedPhoto);
         }
-        if (doc) {
-          const processedDoc = await processImageFile(doc);
+        if (userDetails.doc) {
+          const processedDoc = await processImageFile(userDetails.doc);
           formData.append('doc', processedDoc);
         }
 
@@ -533,14 +548,15 @@ const NewAgentBooking = memo(({ type }) => {
         setIsSubmitting(false);
       }, 1000);
     }
-  }, [isSubmitting, name, number, email, companyName, designation, photo, doc, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, handleBookingAfterUser]);
+  }, [isSubmitting, userDetails, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, handleBookingAfterUser]);
 
   const isLoading =
     corporateBookingMutation.isPending ||
     agentBookingMutation.isPending ||
     // masterBookingMutation.isPending ||
     createUserMutation.isPending ||
-    createUserMutation.isPending; // || updateUserMutation.isPending;
+    createUserMutation.isPending ||
+    updateUserMutation.isPending;
 
 
   const attendeeStepRef = useRef(null);
@@ -691,26 +707,16 @@ const NewAgentBooking = memo(({ type }) => {
         setConfirmed={setIsConfirmed}
         disabled={isLoading}
         loading={isLoading}
-        setName={setName}
-        name={name}
-        setNumber={setNumber}
-        number={number}
-        email={email}
-        setEmail={setEmail}
+        userDetails={userDetails}
+        setUserDetails={setUserDetails}
         handleSubmit={handleUserSubmit}
         setMethod={setMethod}
         method={method}
-        setPhoto={setPhoto}
-        photo={photo}
-        setDoc={setDoc}
-        doc={doc}
-        setCompanyName={setCompanyName}
-        companyName={companyName}
-        designation={designation}
-        setDesignation={setDesignation}
         event={event}
         selectedTickets={selectedTickets}
         bookingError={bookingError}
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
       />
 
 

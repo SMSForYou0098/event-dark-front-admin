@@ -136,7 +136,6 @@ const TickeScanFeilds = ({
                   {eventsWithCheckpoints.map(event => (
                     <Select.OptGroup key={event.id} label={event.name}>
                       {event.scan_checkpoints.map(cp => {
-                        console.log(cp, 'cccc');
                         const isActive = isCheckpointActive(cp);
                         const compoundKey = `${event.id}_${cp.id}`;
                         return (

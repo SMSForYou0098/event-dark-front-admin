@@ -5,18 +5,26 @@ const useTicketInventory = (selectedEventId, selectedTicketId, type = "") => {
     return useQuery({
         queryKey: ["ticket-card-inventory", selectedEventId, selectedTicketId],
         queryFn: async () => {
-            // Return null or empty if IDs are missing to avoid unnecessary calls if enabled check fails
             if (!selectedEventId || !selectedTicketId) return null;
 
             const res = await apiClient.post("card-tokens/ticket-card-inventory", {
                 event_id: selectedEventId,
                 ticket_id: selectedTicketId,
-                type: type
+                type,
             });
+
             return res?.data || res;
         },
         enabled: !!selectedEventId && !!selectedTicketId,
-        staleTime: 60 * 1000,
+
+        // 🔥 disable caching
+        staleTime: 0,
+        gcTime: 0,
+
+        // 🔄 always refetch
+        refetchOnMount: "always",
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
     });
 };
 

@@ -96,14 +96,14 @@ export const buildAttendeesFormData = ({ attendees = [], userMeta = {}, fieldGro
  * Fetch attendees for a user/category
  * usage: const { data, refetch } = useUserAttendees({ userId, categoryId, isCorporate, isAgent, enabled })
  */
-export const useUserAttendees = ({ userId, categoryId, isCorporate = false, isAgent = true, enabled = true } = {}) =>
+export const useUserAttendees = ({ userId, categoryId, eventId, isCorporate = false, isAgent = true, enabled = true } = {}) =>
   useQuery({
     queryKey: ['user-attendees', userId, categoryId, isCorporate, isAgent],
-    enabled: enabled && !!categoryId && !!userId,
+    enabled: enabled && !!categoryId && !!userId && !!eventId,
     queryFn: async () => {
       const endpoint = isCorporate
         ? `corporate-attendee/${userId}/${categoryId}`
-        : `user-attendee/${userId}/${categoryId}?isAgent=${isAgent}`;
+        : `user-attendee/${userId}/${categoryId}/${eventId}?isAgent=${isAgent}`;
 
       const res = await api.get(endpoint);
       if (res?.status && Array.isArray(res.attendees)) {
@@ -241,11 +241,11 @@ export const useCreateUser = (options = {}) =>
  * POST: update-user/{userId}
  * params: { userId, formData }
  */
-export const useUpdateUser = (options = {}) =>
+export const useUpdateUserAddress = (options = {}) =>
   useMutation({
     mutationFn: async ({ userId, formData }) => {
       if (!userId) throw new Error('userId is required');
-      const res = await api.post(`update-user/${userId}`, formData);
+      const res = await api.post(`update-user-address/${userId}`, formData);
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to update user');
         err.server = res;
@@ -428,3 +428,21 @@ export const useBookingHistory = (userId, options = {}) =>
   });
 
 
+
+/**
+ * Fetch user by phone number
+ * GET: user-from-number/{phoneNumber}
+ */
+export const useUserByNumber = (phoneNumber, options = {}) =>
+  useQuery({
+    queryKey: ['user-by-number', phoneNumber],
+    enabled: !!phoneNumber && (phoneNumber.length === 10 || phoneNumber.length === 12),
+    queryFn: async () => {
+      const res = await api.get(`user-from-number/${phoneNumber}`);
+      // return raw response to handle status check in component
+      return res;
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    ...options,
+  });

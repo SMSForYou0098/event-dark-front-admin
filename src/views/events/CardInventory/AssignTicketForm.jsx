@@ -70,7 +70,7 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
             setMutationError(null);
             // Refetch both APIs
             refetchSummary?.();
-            refetchTicketInventory?.();
+            // refetchTicketInventory?.();
         },
         onError: (error) => {
             const errMsg = error?.response?.data?.message || error?.message || "Failed to assign ticket";

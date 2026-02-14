@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useState } from 'react';
 import { Modal, Form, Input, Button, Upload, Row, Col, Typography, Space, Radio, Image, Alert, Spin, Segmented } from 'antd';
-import { MailOutlined, WhatsAppOutlined, MessageOutlined, UploadOutlined, FileImageOutlined, FileTextOutlined, FileOutlined, CloseOutlined, LoadingOutlined } from '@ant-design/icons';
+import { MailOutlined, WhatsAppOutlined, MessageOutlined, UploadOutlined, FileImageOutlined, FileTextOutlined, FileOutlined, CloseOutlined, LoadingOutlined, EditOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
-import api from 'auth/FetchInterceptor';
+// import api from 'auth/FetchInterceptor';
 import confirm_loader from '../../../../assets/event/stock/booking_confirm.gif'
+import { useUserByNumber } from './useAgentBookingHooks';
+import { useEffect, useState } from 'react';
 const { Title, Text } = Typography;
+const { TextArea } = Input;
 
 // Handle document open function
 export const handleDocumentOpen = (doc) => {
@@ -78,96 +80,92 @@ const AgentBookingModal = (props) => {
     confirm,
     disabled,
     loading,
-    setName,
-    name,
-    number,
-    setNumber,
-    email,
-    setEmail,
+    userDetails,
+    setUserDetails,
     handleSubmit,
     setMethod,
     method,
-    setPhoto,
-    photo,
-    setDoc,
-    doc,
-    setCompanyName,
-    companyName,
-    designation,
-    setDesignation,
     setConfirmed,
     isAccreditation = false,
-    bookingError
+    bookingError,
+    isEditing,
+    setIsEditing,
   } = props;
 
   const [form] = Form.useForm();
-  const [isExist, setIsExist] = useState(false);
-  const [checkingUser, setCheckingUser] = useState(false);
+  // const [isExist, setIsExist] = useState(false);
+  // const [checkingUser, setCheckingUser] = useState(false);
 
-  // Check user exists
-  const handleCheckUser = async (phoneNumber) => {
-    if (!phoneNumber || (phoneNumber.length !== 10 && phoneNumber.length !== 12)) {
-      return;
-    }
+  // Fetch user details by number
+  const { data: userResponse, isLoading: isCheckingUser } = useUserByNumber(userDetails.number, {
+    enabled: !!userDetails.number && (userDetails.number.length === 10 || userDetails.number.length === 12)
+  });
 
-    setCheckingUser(true);
-    try {
-      const url = `user-from-number/${phoneNumber}`;
-      const response = await api.get(url);
+  const isExist = !!userResponse?.status;
 
-      setIsExist(response.status);
-      if (response.status) {
-        setName(response.user?.name || '');
-        setEmail(response.user?.email || '');
-        setPhoto(response.user?.photo || null);
-        setDoc(response.user?.doc || null);
-        setCompanyName(response.user?.company_name || '');
-        setDesignation(response.user?.designation || '');
 
-        // Update form fields
-        form.setFieldsValue({
-          name: response.user?.name || '',
-          email: response.user?.email || '',
-          companyName: response.user?.company_name || '',
-          designation: response.user?.designation || ''
-        });
-      }
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      setIsExist(false);
-    } finally {
-      setCheckingUser(false);
-    }
-  };
 
-  // Effect to check user when number changes
+
+  // Update form and state when user is found
   useEffect(() => {
-    if (number && (number.length === 10 || number.length === 12)) {
-      handleCheckUser(number);
-    } else {
-      setName("");
-      setEmail("");
-      setIsExist(false);
+    if (userResponse?.status && userResponse?.user) {
+      const user = userResponse.user;
+      const newDetails = {
+        ...userDetails,
+        name: user.name || '',
+        email: user.email || '',
+        photo: user.photo || null,
+        doc: user.doc || null,
+        companyName: user.company_name || '',
+        designation: user.designation || '',
+        address: user.address || ''
+      };
+      setUserDetails(newDetails);
+
       form.setFieldsValue({
-        name: '',
-        email: '',
-        companyName: '',
-        designation: ''
+        name: user.name || '',
+        email: user.email || '',
+        companyName: user.company_name || '',
+        designation: user.designation || '',
+        address: user.address || ''
       });
     }
-  }, [number]);
+  }, [userResponse, form, setUserDetails]); // Added setUserDetails to dependency array
+
+  // Effect to check user when number changes
+  // Clear fields if number is cleared or invalid
+  useEffect(() => {
+    if (!userDetails.number || (userDetails.number.length !== 10 && userDetails.number.length !== 12)) {
+      // Only clear if it was previously set (to avoid infinite loops or clearing on initial render if empty)
+      if (userDetails.name || userDetails.email) {
+        // setUserDetails(prev => ({ ...prev, name: '', email: '', companyName: '', designation: '', address: '', photo: null, doc: null }));
+        form.setFieldsValue({
+          name: '',
+          email: '',
+          companyName: '',
+          designation: '',
+          address: ''
+        });
+        setIsEditing(false);
+      }
+    }
+  }, [userDetails.number]);
 
   // Reset fields on modal close
   const resetAllFields = () => {
     form.resetFields();
-    setName('');
-    setEmail('');
-    setNumber('');
-    setDoc(null);
-    setPhoto(null);
-    setCompanyName('');
-    setDesignation('');
-    setIsExist(false);
+    setUserDetails({
+      name: '',
+      number: '',
+      email: '',
+      photo: null,
+      doc: null,
+      companyName: '',
+      designation: '',
+      address: ''
+    });
+    // setIsExist(false);
+    setIsEditing(false);
     setMethod('UPI');
   };
 
@@ -207,13 +205,13 @@ const AgentBookingModal = (props) => {
   // Handle photo upload
   const handlePhotoChange = (info) => {
     const file = info.file.originFileObj || info.file;
-    setPhoto(file);
+    setUserDetails(prev => ({ ...prev, photo: file }));
   };
 
   // Handle document upload
   const handleDocChange = (info) => {
     const file = info.file.originFileObj || info.file;
-    setDoc(file);
+    setUserDetails(prev => ({ ...prev, doc: file }));
   };
 
   // Render content based on state
@@ -295,17 +293,18 @@ const AgentBookingModal = (props) => {
               <Input
                 placeholder="Enter Phone Number"
                 type="number"
-                value={number}
+                value={userDetails.number}
                 onChange={(e) => {
                   const value = e.target.value.slice(0, 12);
-                  setNumber(value);
+                  setUserDetails(prev => ({ ...prev, number: value }));
                 }}
                 maxLength={12}
-                suffix={checkingUser && <LoadingOutlined />}
+                suffix={isCheckingUser && <LoadingOutlined />}
+                disabled={isEditing}
               />
             </Form.Item>
 
-            {checkingUser && (
+            {isCheckingUser && (
               <Alert
                 message="Checking user details..."
                 type="info"
@@ -317,7 +316,7 @@ const AgentBookingModal = (props) => {
           </Col>
 
           {/* Show other fields only after valid number is entered */}
-          {!checkingUser && number && (number.length === 10 || number.length === 12) && (
+          {!isCheckingUser && userDetails.number && (userDetails.number.length === 10 || userDetails.number.length === 12) && (
             <>
               {/* Name */}
               <Col span={24}>
@@ -328,8 +327,8 @@ const AgentBookingModal = (props) => {
                 >
                   <Input
                     placeholder="Enter Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    value={userDetails.name}
+                    onChange={(e) => setUserDetails(prev => ({ ...prev, name: e.target.value }))}
                     maxLength={50}
                     disabled={isExist}
                   />
@@ -348,9 +347,41 @@ const AgentBookingModal = (props) => {
                 >
                   <Input
                     placeholder="Enter Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={userDetails.email}
+                    onChange={(e) => setUserDetails(prev => ({ ...prev, email: e.target.value }))}
                     disabled={isExist}
+                  />
+                </Form.Item>
+              </Col>
+
+              {/* Address Field */}
+              <Col span={24}>
+                <Form.Item
+                  label={
+                    <Space>
+                      <span>Address</span>
+                      {isExist && (
+                        <Button
+                          type="text"
+                          icon={<EditOutlined />}
+                          size="small"
+                          onClick={() => setIsEditing(!isEditing)}
+                          style={{ color: '#1890ff' }}
+                        >
+                          {isEditing ? null : 'Edit'}
+                        </Button>
+                      )}
+                    </Space>
+                  }
+                  name="address"
+                  rules={[{ required: true, message: 'Please enter address' }]}
+                >
+                  <TextArea
+                    placeholder="Enter Address"
+                    rows={2}
+                    value={userDetails.address}
+                    onChange={(e) => setUserDetails(prev => ({ ...prev, address: e.target.value }))}
+                    disabled={isExist && !isEditing}
                   />
                 </Form.Item>
               </Col>
@@ -367,9 +398,10 @@ const AgentBookingModal = (props) => {
                     >
                       <Input
                         placeholder="Enter Designation"
-                        value={designation}
-                        onChange={(e) => setDesignation(e.target.value)}
+                        value={userDetails.designation}
+                        onChange={(e) => setUserDetails(prev => ({ ...prev, designation: e.target.value }))}
                         maxLength={50}
+                        disabled={isExist}
                       />
                     </Form.Item>
                   </Col>
@@ -383,9 +415,10 @@ const AgentBookingModal = (props) => {
                     >
                       <Input
                         placeholder="Enter Company Name"
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
+                        value={userDetails.companyName}
+                        onChange={(e) => setUserDetails(prev => ({ ...prev, companyName: e.target.value }))}
                         maxLength={50}
+                        disabled={isExist}
                       />
                     </Form.Item>
                   </Col>
@@ -401,7 +434,7 @@ const AgentBookingModal = (props) => {
                       name="photo"
                       rules={[
                         {
-                          required: !(typeof photo === 'string' && photo),
+                          required: !(typeof userDetails.photo === 'string' && userDetails.photo),
                           message: 'Please upload a photo'
                         }
                       ]}
@@ -412,10 +445,11 @@ const AgentBookingModal = (props) => {
                         beforeUpload={() => false}
                         onChange={handlePhotoChange}
                         accept="image/*"
-                        fileList={photo ? [{ uid: '-1', name: 'photo', status: 'done', url: typeof photo === 'string' ? photo : URL.createObjectURL(photo) }] : []}
-                        onRemove={() => setPhoto(null)}
+                        fileList={userDetails.photo ? [{ uid: '-1', name: 'photo', status: 'done', url: typeof userDetails.photo === 'string' ? userDetails.photo : URL.createObjectURL(userDetails.photo) }] : []}
+                        onRemove={() => setUserDetails(prev => ({ ...prev, photo: null }))}
+                        disabled={isExist}
                       >
-                        {!photo && uploadPhotoButton}
+                        {!userDetails.photo && uploadPhotoButton}
                       </Upload>
                     </Form.Item>
                   </Col>
@@ -431,7 +465,7 @@ const AgentBookingModal = (props) => {
                       name="document"
                       rules={[
                         {
-                          required: !(typeof doc === 'string' && doc),
+                          required: !(typeof userDetails.doc === 'string' && userDetails.doc),
                           message: 'Please upload a document'
                         }
                       ]}
@@ -442,12 +476,13 @@ const AgentBookingModal = (props) => {
                         onChange={handleDocChange}
                         accept=".pdf,.doc,.docx,image/jpeg,image/png,image/bmp,image/webp"
                         fileList={[]}
+                        disabled={isExist}
                       >
-                        <Button icon={<UploadOutlined />}>Click to Upload</Button>
+                        <Button icon={<UploadOutlined />} disabled={isExist}>Click to Upload</Button>
                       </Upload>
                     </Form.Item>
 
-                    {doc && (
+                    {userDetails.doc && (
                       <div
                         style={{
                           border: '1px dashed #d9d9d9',
@@ -457,7 +492,7 @@ const AgentBookingModal = (props) => {
                           position: 'relative',
                           cursor: 'pointer'
                         }}
-                        onClick={() => handleDocumentOpen(doc)}
+                        onClick={() => handleDocumentOpen(userDetails.doc)}
                       >
                         <Button
                           type="text"
@@ -467,12 +502,12 @@ const AgentBookingModal = (props) => {
                           style={{ position: 'absolute', top: 8, right: 8 }}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setDoc(null);
+                            setUserDetails(prev => ({ ...prev, doc: null }));
                           }}
                         />
                         <Space direction="vertical" align="center" style={{ width: '100%' }}>
-                          {getFileIcon(doc)}
-                          <Text type="primary">{getFileName(doc)}</Text>
+                          {getFileIcon(userDetails.doc)}
+                          <Text type="primary">{getFileName(userDetails.doc)}</Text>
                           <Text type="secondary" style={{ fontSize: 12 }}>
                             Click to view document
                           </Text>
@@ -489,7 +524,7 @@ const AgentBookingModal = (props) => {
                 <Alert
                   message={
                     <Space>
-                      <span>Ticket will be sent to {name || 'User'} on</span>
+                      <span>Ticket will be sent to {userDetails.name || 'User'} on</span>
                       <MailOutlined />
                       <Text>/</Text>
                       <WhatsAppOutlined />
@@ -521,7 +556,7 @@ const AgentBookingModal = (props) => {
                 </Form.Item>
               </Col>
 
-              {/* Submit Button */}
+              Submit Button
               <Col span={24}>
                 <Form.Item style={{ marginBottom: 0 }}>
                   <Button
