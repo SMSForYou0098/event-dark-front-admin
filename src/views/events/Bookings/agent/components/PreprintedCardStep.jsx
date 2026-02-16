@@ -132,12 +132,12 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
     });
 
     // Format prefix_index label (e.g. "Hello 2")
-    const formatTokenLabel = useCallback((t) => {
-        const prefix = t.prefix
-            ? (t.prefix.charAt(0).toUpperCase() + t.prefix.slice(1).toLowerCase()).replace(/_/g, ' ')
-            : '';
-        return prefix ? `${prefix} ${t.batch_index}` : `#${t.batch_index}`;
-    }, []);
+const formatTokenLabel = useCallback((t) => {
+    const prefix = t.prefix
+        ? t.prefix.replace(/_/g, ' ')
+        : '';
+    return prefix ? `${prefix} ${t.batch_index}` : `#${t.batch_index}`;
+}, []);
 
     // Dropdown options from accumulated tokens
     const tokenOptions = useMemo(() => {
@@ -184,7 +184,7 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
             extra={
                 <Space>
                     <Space>
-                        <Text>Manual Entry</Text>
+                        <Text>SELECT CARD/ SCAN QR</Text>
                         <Switch checked={isManual} onChange={setIsManual} />
                     </Space>
                     {event?.date_range && (

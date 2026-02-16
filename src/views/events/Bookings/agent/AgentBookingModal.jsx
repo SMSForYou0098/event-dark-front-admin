@@ -1,4 +1,4 @@
-import { Modal, Form, Input, Button, Upload, Row, Col, Typography, Space, Radio, Image, Alert, Spin, Segmented } from 'antd';
+import { Modal, Form, Input, Button, Upload, Row, Col, Typography, Space, Radio, Image, Alert, Spin, Segmented, Switch } from 'antd';
 import { MailOutlined, WhatsAppOutlined, MessageOutlined, UploadOutlined, FileImageOutlined, FileTextOutlined, FileOutlined, CloseOutlined, LoadingOutlined, EditOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 // import api from 'auth/FetchInterceptor';
@@ -162,7 +162,8 @@ const AgentBookingModal = (props) => {
       doc: null,
       companyName: '',
       designation: '',
-      address: ''
+      address: '',
+      card_allocated: false
     });
     // setIsExist(false);
     setIsEditing(false);
@@ -539,7 +540,7 @@ const AgentBookingModal = (props) => {
               </Col>
 
               {/* Payment Method */}
-              <Col span={24}>
+              <Col span={12}>
                 <Form.Item
                   label="Payment Method"
                   name="method"
@@ -556,7 +557,21 @@ const AgentBookingModal = (props) => {
                 </Form.Item>
               </Col>
 
-              Submit Button
+              {/* Card Allocated */}
+              <Col span={12}>
+                <Form.Item
+                  label="Card Allocated"
+                  name="card_allocated"
+                  valuePropName="checked"
+                >
+                  <Switch
+                    checked={userDetails.card_allocated || false}
+                    onChange={(checked) => setUserDetails(prev => ({ ...prev, card_allocated: checked }))}
+                  />
+                </Form.Item>
+              </Col>
+
+              {/* Submit Button */}
               <Col span={24}>
                 <Form.Item style={{ marginBottom: 0 }}>
                   <Button

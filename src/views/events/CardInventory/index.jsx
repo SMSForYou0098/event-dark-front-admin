@@ -19,6 +19,7 @@ import {
     Table,
 } from "antd";
 import {
+    ExportOutlined,
     PlusCircleOutlined,
 } from "@ant-design/icons";
 import apiClient from "auth/FetchInterceptor";
@@ -140,28 +141,100 @@ const CardInventory = () => {
         fontSize: 13,
     };
 
+    // Export Tokens
+    const exportTokensMutation = useMutation({
+        mutationFn: async (payload) => {
+            // Request blob response so we can download the generated Excel/zip
+            return await apiClient.post("card-tokens/card/export", payload, { responseType: 'blob' });
+        },
+        onSuccess: (res) => {
+            try {
+                // Axios returns the blob on res.data; wrapper may vary so handle both
+                const blob = res?.data || res;
+
+                // Try to extract filename from headers
+                const disposition = res?.headers?.['content-disposition'] || res?.headers?.['Content-Disposition'] || '';
+                let filename = 'cards_export.xlsx';
+                if (disposition) {
+                    const filenameMatch = disposition.match(/filename\*=UTF-8''([^;\n\r\"]+)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = decodeURIComponent(filenameMatch[1]);
+                    } else {
+                        const fallbackMatch = disposition.match(/filename="?([^";]+)"?/);
+                        if (fallbackMatch && fallbackMatch[1]) filename = fallbackMatch[1];
+                    }
+                }
+
+                // Create a download link for the blob
+                const blobObj = blob instanceof Blob ? blob : new Blob([blob]);
+                const url = window.URL.createObjectURL(blobObj);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                message.success('Tokens exported successfully');
+            } catch (e) {
+                message.error('Failed to process exported file');
+            }
+
+            refetchSummary?.();
+        },
+        onError: (error) => {
+            message.error(
+                error?.response?.data?.message || 'Failed to export tokens'
+            );
+        },
+    });
+    const handleExport = () => {
+        if (!selectedEventId) {
+            message.warning("Please select an event");
+            return;
+        }
+        exportTokensMutation.mutate({
+            event_id: selectedEventId,
+        });
+    };
+
     return (
         <div>
             {/* Event Selection */}
-            <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16 }}>
-                <Space wrap size="middle" align="center">
-                    <Text strong style={{ fontSize: 16 }}>
-                        Card Inventory
-                    </Text>
-                    <Divider type="vertical" />
-                    <Text strong>Event:</Text>
-                    <Select
-                        placeholder="Select an Event"
-                        allowClear
-                        showSearch
-                        loading={eventsLoading}
-                        value={selectedEventId}
-                        onChange={handleEventChange}
-                        style={{ minWidth: 280 }}
-                        optionFilterProp="label"
-                        options={events}
-                    />
-                </Space>
+            <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16 }}
+                title={
+                    <Space wrap size="middle" align="center">
+                        <Text strong style={{ fontSize: 16 }}>
+                            Card Inventory
+                        </Text>
+                        <Divider type="vertical" />
+                        <Text strong>Event:</Text>
+                        <Select
+                            placeholder="Select an Event"
+                            allowClear
+                            showSearch
+                            loading={eventsLoading}
+                            value={selectedEventId}
+                            onChange={handleEventChange}
+                            style={{ minWidth: 280 }}
+                            optionFilterProp="label"
+                            options={events}
+                        />
+                    </Space>
+                }
+                extra={
+                    selectedEventId &&
+                    <Button
+                        onClick={handleExport}
+                        icon={<ExportOutlined />}
+                        loading={exportTokensMutation.isPending}
+                        disabled={!selectedEventId || exportTokensMutation.isPending}
+                    >
+                        {exportTokensMutation.isPending ? 'Exporting' : 'Export'}
+                    </Button>
+                }>
+
             </Card>
 
             {!selectedEventId && (

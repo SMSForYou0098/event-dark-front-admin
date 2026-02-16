@@ -13,6 +13,7 @@ import TransactionReceiptModal from './components/TransactionReceiptModal';
 import TickeScanFeilds from './components/TickeScanFeilds';
 import AdminActionModal from './components/AdminActionModal';
 import ShopKeeperModal from './components/ShopKeeperModal';
+import DispatchUserData from './components/DispatchUserData';
 import StickyBottom from 'utils/MobileStickyBottom.jsx/StickyBottom';
 import PosEvents from '../Bookings/components/PosEvents';
 import api from 'auth/FetchInterceptor';
@@ -45,10 +46,56 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [resData, setResData] = useState(null);
     const [scanType, setScanType] = useState('verify');
     const [tokenLength, setTokenLength] = useState(8);
+    const [isCardPrefix, setIsCardPrefix] = useState(false);
     const [loading, setLoading] = useState({
         fetching: false,
         verifying: false
     });
+
+    // ... (existing code)
+
+    // ─── Dispatch Mutation (TanStack Query) ──────────────────
+    const dispatchMutation = useMutation({
+        mutationFn: (payload) => {
+            if (isCardPrefix) {
+                // Payload is expected to be { event_id, batch_index, token }
+                // or just { token } if coming from legacy manual input (though UI now prevents that)
+                return api.post(`dispatch/card/token`, payload);
+            } else {
+                // Payload is just the token string
+                return api.get(`dispatch/token/${payload}`);
+            }
+        },
+        onMutate: () => {
+            setLoading(prev => ({ ...prev, verifying: true }));
+        },
+        onSuccess: (res, variables) => {
+            if (res.status) {
+                showSuccess('Dispatch Verified');
+
+                // Inject token into ticketData for later use
+                let extractedToken = res.token; // Try to get from response first
+                if (!extractedToken) {
+                    if (isCardPrefix && typeof variables === 'object') {
+                        extractedToken = variables.token;
+                    } else {
+                        extractedToken = variables;
+                    }
+                }
+
+                setTicketData({ ...res, token: extractedToken });
+                setShow(true);
+            }
+        },
+        onError: (err) => {
+            showErrorModal(err?.response?.data?.message ?? 'Dispatch Verification failed');
+        },
+        onSettled: () => {
+            setLoading(prev => ({ ...prev, verifying: false }));
+        }
+    });
+
+    const handleDispatchVerification = (token) => dispatchMutation.mutate(token);
 
     const [isProcessing, setIsProcessing] = useState(false);
     const [autoCheck, setAutoCheck] = useState(false);
@@ -299,9 +346,20 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // Wrapper function for backward compatibility
     const handleShopKeeperVerification = (token) => shopKeeperMutation.mutate(token);
 
-    // ─── Admin Action ────────────────────────
+
+
+    // ─── Handle Admin Action ────────────────────────
     const handleAdminAction = async (actionType, data) => {
-        const token = pendingQRData ?? data;
+        // If it's a dispatch action with Card Prefix, 'data' is the object payload {event_id, batch_index, token}
+        // pendingQRData is likely just the string from manual input or scanner.
+        // We should prioritize 'data' if it's an object and action is dispatch.
+
+        let token = pendingQRData ?? data;
+
+        if (actionType === 'dispatch' && typeof data === 'object' && data !== null) {
+            token = data;
+        }
+
         setIsProcessing(true);
         setSelectedAction(actionType);
         try {
@@ -309,6 +367,8 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 await getTicketDetail(token);
             } else if (actionType === 'shopkeeper') {
                 await handleShopKeeperVerification(token);
+            } else if (actionType === 'dispatch') {
+                await handleDispatchVerification(token);
             }
         } catch (err) {
             showErrorModal(err?.response?.data?.message);
@@ -370,17 +430,22 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
 
     // ─── Handle QR Data Length ───────────────
     useEffect(() => {
+        // If Card Prefix mode is active, DO NOT auto-submit based on length
+        if (scanType === 'dispatch' && isCardPrefix) return;
+
         if (QRdata?.length === tokenLength) {
-            // Validate checkpoint selection first
-            const validation = validateCheckpointSelection();
-            if (!validation.valid) {
-                showErrorModal(validation.message);
-                setQRData('');
-                return;
+            // Validate checkpoint selection first (Skip for Dispatch Mode)
+            if (scanType !== 'dispatch') {
+                const validation = validateCheckpointSelection();
+                if (!validation.valid) {
+                    showErrorModal(validation.message);
+                    setQRData('');
+                    return;
+                }
             }
 
             if (userRole === 'Admin') {
-                if (scanType === 'verify' || scanType === 'shopkeeper') {
+                if (scanType === 'verify' || scanType === 'shopkeeper' || scanType === 'dispatch') {
                     handleAdminAction(scanType, QRdata);
                 } else {
                     setPendingQRData(QRdata);
@@ -392,7 +457,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 getTicketDetail(QRdata);
             }
         }
-    }, [QRdata]);
+    }, [QRdata, isCardPrefix]);
 
     // ─── Auto-Check Mode ─────────────────────
     useEffect(() => {
@@ -467,6 +532,44 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // Wrapper function for debit
     const handleDebit = (amount, remarks) => debitWalletMutation.mutate({ amount, remarks });
 
+    const [dispatchedTokens, setDispatchedTokens] = useState([]);
+
+    // ─── Update Dispatch Status Mutation ─────────────────────
+    const updateDispatchStatusMutation = useMutation({
+        mutationFn: (payload) => api.post(`dispatch`, {
+            dispatch_hash: payload.dispatch_hash,
+            notes: payload.notes
+        }),
+        onMutate: () => {
+            setLoading(prev => ({ ...prev, updating: true }));
+        },
+        onSuccess: (res, payload) => {
+            if (res.status) {
+                showSuccess('Dispatch Status Updated');
+                setShow(false);
+                setResData(null);
+                setQRData('');
+
+                // Add the successfully dispatched token to the list to filter it out
+                // We use the token passed in the payload (variables) to ensure we have the correct one
+                const dispatchedToken = payload.token || ticketData?.token;
+                if (dispatchedToken) {
+                    setDispatchedTokens(prev => [...prev, dispatchedToken]);
+                }
+            }
+        },
+        onError: (err) => {
+            showErrorModal(err?.response?.data?.message ?? 'Update failed');
+        },
+        onSettled: () => {
+            setLoading(prev => ({ ...prev, updating: false }));
+        }
+    });
+
+    const handleUpdateDispatchStatus = (payload) => updateDispatchStatusMutation.mutate(payload);
+
+
+
     // ─── WhatsApp Notification ───────────────
     const HandleSendAlerts = async (tx) => {
         if (!tx) return message.error('Missing transaction data');
@@ -528,7 +631,17 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 />
             )}
 
-            {(userRole === 'Scanner' || selectedAction === 'verify') && (
+            {(userRole === 'Admin' && scanType === 'dispatch') && (
+                <DispatchUserData
+                    show={show}
+                    setShow={setShow}
+                    ticketData={ticketData}
+                    loading={loading}
+                    handleUpdateStatus={handleUpdateDispatchStatus}
+                />
+            )}
+
+            {(userRole === 'Scanner' || selectedAction === 'verify' || (scanType === 'verify' && userRole === 'Admin')) && (
                 <ScanedUserData
                     show={show}
                     ticketData={ticketData}
@@ -581,6 +694,10 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                                     selectedEventsList={selectedEventsList}
                                     selectedCheckpoints={selectedCheckpoints}
                                     setSelectedCheckpoints={setSelectedCheckpoints}
+                                    isCardPrefix={isCardPrefix}
+                                    setIsCardPrefix={setIsCardPrefix}
+                                    onScan={(data) => handleAdminAction(scanType, data)}
+                                    dispatchedTokens={dispatchedTokens}
                                 />
                             </Col>
                             <Col xs={24} sm={24} lg={6}>

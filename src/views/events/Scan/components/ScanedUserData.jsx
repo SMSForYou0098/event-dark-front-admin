@@ -446,6 +446,7 @@ const ScanedUserData = ({
           </>
         )}
       </Drawer>
+      {console.log(attendeesList, "attendeesList")}
       {attendeesList.length > 0 && (
         //  {true && attendeesList.length > 0 && (
         <AttendeesPrint

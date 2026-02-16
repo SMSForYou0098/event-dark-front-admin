@@ -1,23 +1,19 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle, useCallback, useEffect } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle, useCallback, useEffect, useMemo } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { Modal, Space, message } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
+import { Drawer, Button, Space, Segmented, Radio, message } from 'antd';
+import { UserOutlined, TeamOutlined, SettingOutlined, PrinterOutlined } from '@ant-design/icons';
 import { usePrinter } from '../../../../Context/PrinterContext';
 import AttendeeCard from './AttendeeCard';
-import PrintOptionsSection from './PrintOptionsSection';
-import FontStyleSelector, { FONT_STYLE_OPTIONS } from './FontStyleSelector';
 import ActionButtons from './ActionButtons';
 import './AttendeesPrint.css';
-import ConnectionModeSelector from 'views/events/Bookings/pos/components/ConnectionModeSelector';
-import PrinterTypeSelector from 'views/events/Bookings/pos/components/PrinterTypeSelector';
+import PrinterConfigDrawer from 'views/events/label_printing/components/PrinterConfigDrawer';
+import PrintSettingsDrawer from 'views/events/label_printing/components/PrintSettingsDrawer';
+import { generateTSPLFromExcel, generateZPLFromExcel, generateCPCLFromExcel } from 'views/events/Bookings/pos/utils/printerCommands';
 
 // LocalStorage helpers
 const FIELD_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
-const ATTENDEES_PRINT_FIELDS_KEY = 'attendees_print_fields';
-const ATTENDEES_PRINT_OPTIONS_KEY = 'attendees_print_options';
 const ATTENDEES_PRINT_SIZE_KEY = 'attendees_print_size';
 const ATTENDEES_PRINT_FONT_KEY = 'attendees_print_font';
-const ATTENDEES_PRINT_FONT_STYLE_KEY = 'attendees_print_font_style';
 const ATTENDEES_PRINT_PRINTER_TYPE_KEY = 'attendees_print_printer_type';
 
 const setWithExpiry = (key, value, ttlMs) => {
@@ -48,23 +44,53 @@ const isMobileDevice = () => {
     window.innerWidth <= 768;
 };
 
-// Dimension options (width x height in inches)
-// Compatible with Atpos HQ450L (4" / 108mm max width, 203 DPI)
+// Dimension options (width × height in inches)
 const DIMENSION_OPTIONS = [
-  { label: '2" × 3"', value: '2x3', width: 2, height: 3 }, // 51mm × 76mm
-  { label: '1" × 2"', value: '1x2', width: 1, height: 2 }, // 25mm × 51mm
-  { label: '2" × 2"', value: '2x2', width: 2, height: 2 }, // 51mm × 51mm
-  // { label: '1" × 3"', value: '1x3', width: 1, height: 3 }, // 25mm × 76mm
-  { label: '3" × 2"', value: '3x2', width: 3, height: 2 }, // 76mm × 51mm
-  // { label: '4" × 2"', value: '4x2', width: 4, height: 2 }, // 102mm × 51mm (max width)
+  { label: '2" × 1"', value: '2x1', width: 2, height: 1 },
+  { label: '2" × 2"', value: '2x2', width: 2, height: 2 },
+  { label: '3" × 2"', value: '3x2', width: 3, height: 2 },
+  { label: '4" × 3"', value: '4x3', width: 4, height: 3 },
+  { label: '4" × 6"', value: '4x6', width: 4, height: 6 },
 ];
 
-// Default field configuration
-const defaultFields = [
-  { id: 'name', field_name: 'Name', lable: 'Name', label: 'Name', fixed: 1, order: 0 },
-  { id: 'email', field_name: 'Email', lable: 'Email', label: 'Email', fixed: 1, order: 1 },
-  { id: 'mo', field_name: 'Mo', lable: 'Mobile', label: 'Mobile', fixed: 1, order: 2 },
+// Fields to exclude from dynamic extraction
+const EXCLUDED_FIELDS = [
+  'id', 'created_at', 'updated_at', 'deleted_at', 'pivot', 'photo',
+  'booking_id', 'event_id', 'user_id', 'ticket_id', 'password',
+  'remember_token', 'email_verified_at', 'otp', 'otp_expires_at',
+  'fcm_token', 'device_token', 'api_token', 'role', 'role_id',
+  'is_verified', 'is_active', 'status', 'permissions'
 ];
+
+// Convert snake_case key to Title Case label
+const toLabel = (key) =>
+  key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Extract available fields dynamically from data objects
+const extractDynamicFields = (dataArray) => {
+  if (!dataArray?.length) return [];
+  const keySet = new Set();
+  dataArray.forEach((item) => {
+    if (item && typeof item === 'object') {
+      Object.keys(item).forEach((key) => {
+        if (
+          !EXCLUDED_FIELDS.includes(key) &&
+          item[key] !== null &&
+          item[key] !== undefined &&
+          typeof item[key] !== 'object'
+        ) {
+          keySet.add(key);
+        }
+      });
+    }
+  });
+  return Array.from(keySet).map((key) => ({
+    key,
+    label: toLabel(key),
+    defaultEnabled: false,
+    defaultSize: key === 'name' ? 1.5 : 1.0,
+  }));
+};
 
 const AttendeesPrint = forwardRef(({
   attendeesList,
@@ -75,13 +101,20 @@ const AttendeesPrint = forwardRef(({
 }, ref) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedDimension, setSelectedDimension] = useState('2x3');
+  const [selectedDimension, setSelectedDimension] = useState('2x2');
   const [uniformFontSize, setUniformFontSize] = useState('medium');
-  const [selectedFontStyle, setSelectedFontStyle] = useState('sans');
   const [selectedFields, setSelectedFields] = useState([]);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isMobile, setIsMobile] = useState(isMobileDevice());
   const [printerType, setPrinterType] = useState('tspl');
+  const [printDataSource, setPrintDataSource] = useState('attendee');
+  const [showConfig, setShowConfig] = useState(false);
+  const [showPrintSettings, setShowPrintSettings] = useState(false);
+  const [fontFamily, setFontFamily] = useState('Arial, sans-serif');
+  const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1.0);
+  const [lineGapMultiplier, setLineGapMultiplier] = useState(1.0);
+  const [letterSpacing, setLetterSpacing] = useState(0);
+  const [fieldFontSizes, setFieldFontSizes] = useState({});
   const printRef = useRef(null);
   const modeInitializedRef = useRef(false);
 
@@ -90,6 +123,8 @@ const AttendeesPrint = forwardRef(({
     connectionMode,
     setConnectionMode,
     isConnected,
+    deviceName,
+    status: printerStatus,
     connectUSB,
     connectBluetooth,
     disconnect,
@@ -100,14 +135,32 @@ const AttendeesPrint = forwardRef(({
   useEffect(() => {
     const size = getWithExpiry(ATTENDEES_PRINT_SIZE_KEY);
     const font = getWithExpiry(ATTENDEES_PRINT_FONT_KEY);
-    const fontStyle = getWithExpiry(ATTENDEES_PRINT_FONT_STYLE_KEY);
     const savedPrinterType = getWithExpiry(ATTENDEES_PRINT_PRINTER_TYPE_KEY);
 
     if (size) setSelectedDimension(size);
     if (font) setUniformFontSize(font);
-    if (fontStyle) setSelectedFontStyle(fontStyle);
     if (savedPrinterType) setPrinterType(savedPrinterType);
   }, []);
+
+  // Dynamically extract available fields based on selected data source
+  const userData = useMemo(() => bookings?.user ? [bookings.user] : [], [bookings]);
+
+  const availableFields = useMemo(() => {
+    if (printDataSource === 'user') {
+      return extractDynamicFields(userData);
+    }
+    return extractDynamicFields(attendeesList);
+  }, [printDataSource, attendeesList, userData]);
+
+  // The data to print based on selected source
+  const printableData = useMemo(() => {
+    return printDataSource === 'user' ? userData : attendeesList;
+  }, [printDataSource, attendeesList, userData]);
+
+  // Reset selected fields when data source changes (available fields change)
+  useEffect(() => {
+    setSelectedFields([]);
+  }, [printDataSource]);
 
   // Get selected dimension
   const selectedDim = DIMENSION_OPTIONS.find(d => d.value === selectedDimension) || DIMENSION_OPTIONS[0];
@@ -178,342 +231,62 @@ const AttendeesPrint = forwardRef(({
 
 
 
-  // Handle size change
-  const handleSizeChange = (size) => {
-    setSelectedDimension(size);
-    setWithExpiry(ATTENDEES_PRINT_SIZE_KEY, size, FIELD_TTL);
-  };
-
-  // Handle font size change
-  const handleFontSizeChange = (size) => {
-    setUniformFontSize(size);
-    setWithExpiry(ATTENDEES_PRINT_FONT_KEY, size, FIELD_TTL);
-  };
-
-  // Handle font style change
-  const handleFontStyleChange = (style) => {
-    setSelectedFontStyle(style);
-    setWithExpiry(ATTENDEES_PRINT_FONT_STYLE_KEY, style, FIELD_TTL);
-  };
-
   // Handle printer type change
   const handlePrinterTypeChange = (type) => {
     setPrinterType(type);
     setWithExpiry(ATTENDEES_PRINT_PRINTER_TYPE_KEY, type, FIELD_TTL);
   };
 
-  // Generate TSPL (TSC Printer Language) commands for Atpos HQ450L label printer
-  // Printer specs: 4" (108mm) width, 203 DPI, USB+Bluetooth
-  const generateTSPLCommands = useCallback(async () => {
-    // Get font number based on field, uniform font size, and selected font style
-    const getFontNumber = (fieldName) => {
-      const isName = fieldName === 'Name';
-      const fontStyle = FONT_STYLE_OPTIONS.find(f => f.value === selectedFontStyle) || FONT_STYLE_OPTIONS[0];
-
-      // Base font numbers from font style
-      let baseNameFont = fontStyle.fontNum.name;
-      let baseOtherFont = fontStyle.fontNum.other;
-
-      // Adjust based on uniform font size
-      if (isName) {
-        switch (uniformFontSize) {
-          case 'small':
-            return String(Math.max(2, parseInt(baseNameFont) - 1));
-          case 'large':
-            return String(Math.min(5, parseInt(baseNameFont) + 1));
-          default:
-            return baseNameFont;
-        }
+  // Save & connect handler for PrinterConfigDrawer
+  const handleSavePrintSettings = async () => {
+    if (connectionMode === 'browser') {
+      setShowConfig(false);
+      return;
+    }
+    try {
+      message.loading({ content: 'Connecting to printer...', key: 'connect' });
+      let success = false;
+      if (connectionMode === 'usb') {
+        success = await connectUSB();
       } else {
-        switch (uniformFontSize) {
-          case 'small':
-            return String(Math.max(2, parseInt(baseOtherFont) - 1));
-          case 'large':
-            return String(Math.min(4, parseInt(baseOtherFont) + 1));
-          default:
-            return baseOtherFont;
-        }
+        success = await connectBluetooth();
       }
-    };
+      if (success) {
+        message.success({ content: 'Printer connected!', key: 'connect', duration: 1 });
+      } else {
+        message.error({ content: 'Failed to connect to printer', key: 'connect' });
+      }
+    } catch (err) {
+      message.error({ content: 'Connection error: ' + err.message, key: 'connect' });
+    }
+    setShowConfig(false);
+  };
 
-    const commands = [];
+  // Generate print bytes for all items using shared printer command utilities
+  const generatePrintBytes = useCallback(async () => {
+    const fieldNames = selectedFields;
+    const fSizeMultiplier = uniformFontSize === 'small' ? 0.8 : uniformFontSize === 'large' ? 1.2 : 1.0;
+    const allBytes = [];
 
-    // Printer specifications
-    const PRINTER_WIDTH_MM = 108; // 4 inch = 108mm (max width)
-    const DPI = 203; // Printer resolution
-    const DOTS_PER_MM = DPI / 25.4; // ~7.992 dots per mm
-
-    // Convert selected dimension to mm (1 inch = 25.4 mm)
-    let widthMm = Math.round(selectedDim.width * 25.4);
-    let heightMm = Math.round(selectedDim.height * 25.4);
-
-    // Ensure width doesn't exceed printer max width
-    if (widthMm > PRINTER_WIDTH_MM) {
-      widthMm = PRINTER_WIDTH_MM;
+    for (const item of (printableData || [])) {
+      let bytes;
+      switch (printerType) {
+        case 'zpl':
+          bytes = await generateZPLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier);
+          break;
+        case 'cpcl':
+          bytes = await generateCPCLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier);
+          break;
+        case 'tspl':
+        default:
+          bytes = await generateTSPLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier);
+          break;
+      }
+      allBytes.push(...bytes);
     }
 
-    // Minimum label dimensions
-    const minWidthMm = 25; // ~1 inch minimum
-    const minHeightMm = 25; // ~1 inch minimum
-    if (widthMm < minWidthMm) widthMm = minWidthMm;
-    if (heightMm < minHeightMm) heightMm = minHeightMm;
-
-    // Sort fields by order
-    // const sortedFields = [...customFieldsData].sort((a, b) => a.order - b.order);
-    // Use selectedFields directly as they are already ordered
-    const fieldsToPrint = selectedFields;
-
-    // Print each attendee as a separate label
-    attendeesList?.forEach((attendee, index) => {
-      // Set label size (width, height in mm)
-      commands.push(`SIZE ${widthMm} mm,${heightMm} mm\r\n`);
-
-      // Set gap between labels (2mm)
-      commands.push('GAP 2 mm,0 mm\r\n');
-
-      // Set print direction (0 = normal)
-      commands.push('DIRECTION 0\r\n');
-
-      // Clear buffer
-      commands.push('CLS\r\n');
-
-      // Helper function to split long text into multiple lines
-      const splitTextIntoLines = (text, maxCharsPerLine) => {
-        const words = text.split(' ');
-        const lines = [];
-        let currentLine = '';
-
-        words.forEach(word => {
-          if ((currentLine + word).length <= maxCharsPerLine) {
-            currentLine += (currentLine ? ' ' : '') + word;
-          } else {
-            if (currentLine) lines.push(currentLine);
-            // If single word is longer than maxChars, split it
-            if (word.length > maxCharsPerLine) {
-              for (let i = 0; i < word.length; i += maxCharsPerLine) {
-                lines.push(word.substring(i, i + maxCharsPerLine));
-              }
-              currentLine = '';
-            } else {
-              currentLine = word;
-            }
-          }
-        });
-        if (currentLine) lines.push(currentLine);
-        return lines;
-      };
-
-      // First, calculate total content height to center it
-      let totalContentHeight = 0;
-      const lineHeight = Math.round(6 * DOTS_PER_MM); // 6mm line spacing between fields
-      const fieldSpacings = [];
-
-      fieldsToPrint.forEach((field) => {
-        if (attendee?.[field.field_name]) {
-          const value = String(attendee[field.field_name]);
-          const isName = field.field_name === 'Name';
-
-          // Calculate max characters per line
-          let maxCharsPerLine = 25;
-          if (isName) {
-            maxCharsPerLine = Math.floor((widthMm / 25.4) * 10);
-          } else {
-            maxCharsPerLine = Math.floor((widthMm / 25.4) * 15);
-          }
-
-          // Split long text into multiple lines
-          const lines = value.length > maxCharsPerLine ? splitTextIntoLines(value, maxCharsPerLine) : [value];
-
-          // Calculate height for this field
-          lines.forEach((line, lineIndex) => {
-            if (lineIndex < lines.length - 1) {
-              // Spacing between wrapped lines
-              totalContentHeight += Math.round((isName ? 7 : 5) * DOTS_PER_MM);
-            } else {
-              // Spacing after the field
-              totalContentHeight += isName ? Math.round(8 * DOTS_PER_MM) : lineHeight;
-            }
-          });
-
-          fieldSpacings.push({ lines, isName });
-        }
-      });
-
-      // Calculate starting Y position to center content vertically
-      const labelHeightDots = Math.round(heightMm * DOTS_PER_MM);
-      const startY = Math.max(
-        Math.round(3 * DOTS_PER_MM), // Minimum 3mm from top
-        Math.round((labelHeightDots - totalContentHeight) / 2) // Center vertically
-      );
-
-      // Calculate positions in dots - reduced margins
-      const startX = Math.round(3 * DOTS_PER_MM); // 3mm from left margin
-      let currentY = startY;
-
-      // Print fields in order
-      fieldsToPrint.forEach((field, fieldIndex) => {
-        if (attendee?.[field.field_name]) {
-          const value = String(attendee[field.field_name]).replace(/"/g, '\\"');
-          const fontNum = getFontNumber(field.field_name);
-          const isName = field.field_name === 'Name';
-
-          // Calculate max characters per line
-          let maxCharsPerLine = 25;
-          if (isName) {
-            maxCharsPerLine = Math.floor((widthMm / 25.4) * 10);
-          } else {
-            maxCharsPerLine = Math.floor((widthMm / 25.4) * 15);
-          }
-
-          // Split long text into multiple lines
-          const lines = value.length > maxCharsPerLine ? splitTextIntoLines(value, maxCharsPerLine) : [value];
-
-          // Print each line
-          lines.forEach((line, lineIndex) => {
-            const escapedLine = line.replace(/"/g, '\\"');
-            commands.push(`TEXT ${startX},${currentY},"${fontNum}",0,1,1,"${escapedLine}"\r\n`);
-
-            // Add spacing after each line
-            if (lineIndex < lines.length - 1) {
-              // Spacing between wrapped lines
-              currentY += Math.round((isName ? 7 : 5) * DOTS_PER_MM);
-            } else {
-              // Spacing after the field
-              currentY += isName ? Math.round(8 * DOTS_PER_MM) : lineHeight;
-            }
-          });
-        }
-      });
-
-      // Print the label (PRINT quantity, copies)
-      commands.push('PRINT 1,1\r\n');
-    });
-
-    // Convert TSPL commands to string, then to bytes
-    const tsplString = commands.join('');
-    const encoder = new TextEncoder();
-    return encoder.encode(tsplString);
-  }, [attendeesList, selectedDim, selectedFields, uniformFontSize, selectedFontStyle]);
-
-  // Generate ZPL (Zebra Programming Language) commands
-  const generateZPLCommands = useCallback(async () => {
-    const commands = [];
-
-    // Printer specifications
-    const DPI = 203;
-    const DOTS_PER_MM = DPI / 25.4;
-
-    // Convert selected dimension to dots
-    const widthDots = Math.round(selectedDim.width * DPI);
-    const heightDots = Math.round(selectedDim.height * DPI);
-
-    // Get font size based on uniform font size setting
-    const getFontSize = (isName) => {
-      if (isName) {
-        switch (uniformFontSize) {
-          case 'small': return 30;
-          case 'large': return 50;
-          default: return 40;
-        }
-      } else {
-        switch (uniformFontSize) {
-          case 'small': return 20;
-          case 'large': return 30;
-          default: return 25;
-        }
-      }
-    };
-
-    // Print each attendee as a separate label
-    attendeesList?.forEach((attendee) => {
-      commands.push('^XA\n'); // Start format
-      commands.push('^LH0,0\n'); // Set label home position
-
-      const startX = Math.round(3 * DOTS_PER_MM);
-      let currentY = Math.round(3 * DOTS_PER_MM);
-      const lineHeight = Math.round(6 * DOTS_PER_MM);
-
-      // Print fields in order
-      selectedFields.forEach((field) => {
-        if (attendee?.[field.field_name]) {
-          const value = String(attendee[field.field_name]).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          const isName = field.field_name === 'Name';
-          const fontSize = getFontSize(isName);
-
-          // ^FO = Field Origin, ^A0N = Font 0 Normal, ^FD = Field Data, ^FS = Field Separator
-          commands.push(`^FO${startX},${currentY}^A0N,${fontSize},${fontSize}^FD${value}^FS\n`);
-          currentY += isName ? Math.round(8 * DOTS_PER_MM) : lineHeight;
-        }
-      });
-
-      commands.push('^XZ\n'); // End format
-    });
-
-    const zplString = commands.join('');
-    return new TextEncoder().encode(zplString);
-  }, [attendeesList, selectedDim, selectedFields, uniformFontSize]);
-
-  // Generate CPCL (Comtec Printer Control Language) commands
-  const generateCPCLCommands = useCallback(async () => {
-    const commands = [];
-
-    // Printer specifications
-    const DPI = 203;
-    const DOTS_PER_MM = DPI / 25.4;
-
-    // Convert selected dimension to dots
-    const widthDots = Math.round(selectedDim.width * DPI);
-    const heightDots = Math.round(selectedDim.height * DPI);
-
-    // Get font number based on uniform font size setting
-    const getFontNum = (isName) => {
-      if (isName) {
-        switch (uniformFontSize) {
-          case 'small': return '4';
-          case 'large': return '7';
-          default: return '5';
-        }
-      } else {
-        switch (uniformFontSize) {
-          case 'small': return '2';
-          case 'large': return '4';
-          default: return '3';
-        }
-      }
-    };
-
-    // Print each attendee as a separate label
-    attendeesList?.forEach((attendee) => {
-      // CPCL format start - label height in dots
-      commands.push(`! 0 200 200 ${heightDots} 1\n`);
-      commands.push(`PAGE-WIDTH ${widthDots}\n`);
-      commands.push('LEFT\n');
-      commands.push('\n');
-
-      const startX = Math.round(3 * DOTS_PER_MM);
-      let currentY = Math.round(3 * DOTS_PER_MM);
-      const lineHeight = Math.round(6 * DOTS_PER_MM);
-
-      // Print fields in order
-      selectedFields.forEach((field) => {
-        if (attendee?.[field.field_name]) {
-          const value = String(attendee[field.field_name]);
-          const isName = field.field_name === 'Name';
-          const fontNum = getFontNum(isName);
-
-          // TEXT font size x y text
-          commands.push(`TEXT ${fontNum} 0 ${startX} ${currentY} ${value}\n`);
-          currentY += isName ? Math.round(8 * DOTS_PER_MM) : lineHeight;
-        }
-      });
-
-      commands.push('PRINT\n');
-      commands.push('\n');
-    });
-
-    const cpclString = commands.join('');
-    return new TextEncoder().encode(cpclString);
-  }, [attendeesList, selectedDim, selectedFields, uniformFontSize]);
+    return new Uint8Array(allBytes);
+  }, [printableData, selectedFields, selectedDimension, uniformFontSize, printerType]);
 
   // Connect and print to thermal printer
   const handleThermalPrint = useCallback(async () => {
@@ -540,21 +313,7 @@ const AttendeesPrint = forwardRef(({
       setIsPrinting(true);
       message.loading({ content: 'Generating print data...', key: 'print' });
 
-      // Generate commands based on selected printer type
-      let printerBytes;
-      switch (printerType) {
-        case 'zpl':
-          printerBytes = await generateZPLCommands();
-          break;
-        case 'cpcl':
-          printerBytes = await generateCPCLCommands();
-          break;
-        case 'tspl':
-        default:
-          printerBytes = await generateTSPLCommands();
-          break;
-      }
-
+      const printerBytes = await generatePrintBytes();
       await sendRawBytes(printerBytes);
 
       message.success({ content: 'Print sent successfully!', key: 'print' });
@@ -564,7 +323,7 @@ const AttendeesPrint = forwardRef(({
     } finally {
       setIsPrinting(false);
     }
-  }, [isConnected, connectionMode, connectUSB, connectBluetooth, printerType, generateTSPLCommands, generateZPLCommands, generateCPCLCommands, sendRawBytes]);
+  }, [isConnected, connectionMode, connectUSB, connectBluetooth, generatePrintBytes, sendRawBytes]);
 
   // Handle disconnect
   const handleDisconnect = async () => {
@@ -625,8 +384,8 @@ const AttendeesPrint = forwardRef(({
 
   return (
     <>
-      {/* Modal - No custom styling, uses default Ant Design styles */}
-      <Modal
+      {/* Drawer - replaces Modal */}
+      <Drawer
         title={
           <Space size="small" className="d-flex align-items-center">
             <div
@@ -644,66 +403,40 @@ const AttendeesPrint = forwardRef(({
           </Space>
         }
         open={isModalOpen}
-        onCancel={handleCancel}
+        onClose={handleCancel}
+        placement={isMobile ? 'bottom' : 'right'}
         width={isMobile ? '95%' : 700}
-        centered={!isMobile}
+        height={isMobile ? '85vh' : undefined}
         className={isMobile ? 'attendees-print-modal-mobile' : 'attendees-print-modal'}
-        styles={{
-          body: {
-            padding: isMobile ? '12px' : '16px',
-            maxHeight: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 300px)',
-            overflowY: 'auto'
-          },
-          header: {
-            padding: isMobile ? '12px 16px' : '16px 24px'
-          },
-          footer: {
-            padding: isMobile ? '12px' : '16px'
-          }
+        bodyStyle={{
+          padding: isMobile ? '12px' : '16px',
+          maxHeight: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 300px)',
+          overflowY: 'auto'
+        }}
+        headerStyle={{
+          padding: isMobile ? '12px 16px' : '16px 24px'
+        }}
+        footerStyle={{
+          padding: isMobile ? '12px' : '16px'
         }}
         footer={
           <Space direction="vertical" size="middle" className="w-100">
-            <PrinterTypeSelector
-              printerType={printerType}
-              setPrinterType={handlePrinterTypeChange}
-              isConnected={isConnected}
-              printerOptions={[
-                {
-                  value: 'tspl',
-                  title: 'TSPL',
-                  description: 'TSC label printers (Atpos, TSC)'
-                },
-                {
-                  value: 'zpl',
-                  title: 'ZPL',
-                  description: 'Zebra label printers (ZD, ZT, ZM series)'
-                },
-                {
-                  value: 'cpcl',
-                  title: 'CPCL',
-                  description: 'Citizen, Intermec label printers'
-                }
-              ]}
-            />
-
-            <PrintOptionsSection
-              selectedDimension={selectedDimension}
-              onSizeChange={handleSizeChange}
-              uniformFontSize={uniformFontSize}
-              onFontSizeChange={handleFontSizeChange}
-              customFieldsData={defaultFields}
-              setSelectedFields={setSelectedFields}
-              eventId={eventData?._id || 'default_event'}
-              DIMENSION_OPTIONS={DIMENSION_OPTIONS}
-              primaryColor={primaryColor}
-            />
-
-            <FontStyleSelector
-              selectedFontStyle={selectedFontStyle}
-              onFontStyleChange={handleFontStyleChange}
-              uniformFontSize={uniformFontSize}
-              primaryColor={primaryColor}
-            />
+            <Space className="w-100" wrap>
+              <Button
+                icon={<PrinterOutlined />}
+                onClick={() => setShowConfig(true)}
+                size="small"
+              >
+                Printer Config
+              </Button>
+              <Button
+                icon={<SettingOutlined />}
+                onClick={() => setShowPrintSettings(true)}
+                size="small"
+              >
+                Print Settings
+              </Button>
+            </Space>
 
             <ActionButtons
               onClose={handleCancel}
@@ -719,13 +452,63 @@ const AttendeesPrint = forwardRef(({
       >
         {/* Modal body content */}
         <div>
-          {/* Connection Mode Selector for PC */}
-          <ConnectionModeSelector
-            connectionMode={connectionMode}
-            setConnectionMode={setConnectionMode}
-            isMobile={isMobile}
-            isConnected={isConnected}
-          />
+          {/* Data Source Toggle */}
+          <div className="mb-3">
+            <Segmented
+              block
+              value={printDataSource}
+              onChange={setPrintDataSource}
+              options={[
+                {
+                  label: (
+                    <Space size={4}>
+                      <TeamOutlined />
+                      <span>Attendee Data</span>
+                    </Space>
+                  ),
+                  value: 'attendee',
+                },
+                {
+                  label: (
+                    <Space size={4}>
+                      <UserOutlined />
+                      <span>User Data</span>
+                    </Space>
+                  ),
+                  value: 'user',
+                },
+              ]}
+            />
+          </div>
+
+          {/* Label Size Selection */}
+          <div
+            className="mb-3 p-3 rounded"
+            style={{
+              background: 'rgba(255, 255, 255, 0.04)',
+              border: '1px solid rgba(255, 255, 255, 0.1)'
+            }}
+          >
+            <div className="mb-2 fw-semibold small text-white d-flex align-items-center">
+              <PrinterOutlined className="me-2" style={{ color: primaryColor }} />
+              Label Size:
+            </div>
+            <Radio.Group
+              value={selectedDimension}
+              onChange={(e) => {
+                setSelectedDimension(e.target.value);
+                setWithExpiry(ATTENDEES_PRINT_SIZE_KEY, e.target.value, FIELD_TTL);
+              }}
+              buttonStyle="solid"
+              size="small"
+            >
+              {DIMENSION_OPTIONS.map(opt => (
+                <Radio.Button key={opt.value} value={opt.value}>
+                  {opt.label}
+                </Radio.Button>
+              ))}
+            </Radio.Group>
+          </div>
 
           <div
             className="mb-4 p-3 rounded"
@@ -735,9 +518,21 @@ const AttendeesPrint = forwardRef(({
             }}
           >
             <div className="small text-white-50 mb-2 d-flex justify-content-between align-items-center">
-              <span>Total Attendees:</span>
+              <span>Printing:</span>
+              <span className="fw-bold text-white ms-2" style={{ fontSize: '14px' }}>
+                {printDataSource === 'user' ? 'User Data' : 'Attendee Data'}
+              </span>
+            </div>
+            <div className="small text-white-50 mb-2 d-flex justify-content-between align-items-center">
+              <span>Total Items:</span>
               <span className="fw-bold text-white ms-2" style={{ fontSize: '16px' }}>
-                {attendeesList?.length || 0}
+                {printableData?.length || 0}
+              </span>
+            </div>
+            <div className="small text-white-50 mb-2 d-flex justify-content-between align-items-center">
+              <span>Selected Fields:</span>
+              <span className="fw-bold text-white ms-2" style={{ fontSize: '14px' }}>
+                {selectedFields.length || 'None'}
               </span>
             </div>
             <div className="small text-white-50 d-flex justify-content-between align-items-center">
@@ -749,16 +544,52 @@ const AttendeesPrint = forwardRef(({
           </div>
 
           <div className="overflow-auto pe-1" style={{ maxHeight: isMobile ? '40vh' : '50vh' }}>
-            {attendeesList?.map((attendee, index) => (
+            {printableData?.map((item, index) => (
               <AttendeeCard
                 key={index}
-                attendee={attendee}
+                attendee={item}
                 primaryColor={primaryColor}
               />
             ))}
           </div>
         </div>
-      </Modal>
+      </Drawer>
+
+      {/* Printer Configuration Drawer */}
+      <PrinterConfigDrawer
+        open={showConfig}
+        onClose={() => setShowConfig(false)}
+        connectionMode={connectionMode}
+        setConnectionMode={setConnectionMode}
+        printerType={printerType}
+        setPrinterType={handlePrinterTypeChange}
+        isConnected={isConnected}
+        deviceName={deviceName}
+        printerStatus={printerStatus}
+        onSave={handleSavePrintSettings}
+        onDisconnect={handleDisconnect}
+        isMobile={isMobile}
+      />
+
+      {/* Print Settings Drawer */}
+      <PrintSettingsDrawer
+        open={showPrintSettings}
+        onClose={() => setShowPrintSettings(false)}
+        selectedFields={selectedFields}
+        setSelectedFields={setSelectedFields}
+        fontFamily={fontFamily}
+        setFontFamily={setFontFamily}
+        fontSizeMultiplier={fontSizeMultiplier}
+        setFontSizeMultiplier={setFontSizeMultiplier}
+        lineGapMultiplier={lineGapMultiplier}
+        setLineGapMultiplier={setLineGapMultiplier}
+        letterSpacing={letterSpacing}
+        setLetterSpacing={setLetterSpacing}
+        fieldFontSizes={fieldFontSizes}
+        setFieldFontSizes={setFieldFontSizes}
+        isMobile={isMobile}
+        availableFields={availableFields}
+      />
 
       {/* Print Content - Hidden from view, only used during print */}
       <div
@@ -770,28 +601,19 @@ const AttendeesPrint = forwardRef(({
           left: '-9999px'
         }}
       >
-        {attendeesList?.map((attendee, index) => {
+        {printableData?.map((item, index) => {
           // Get font sizes based on selection
-          const getFontSize = (fieldName) => {
-            // const isName = fieldName === 'Name';
-            // if (isName) {
-            //   switch(uniformFontSize) {
-            //     case 'small': return '14px';
-            //     case 'large': return '20px';
-            //     default: return '18px';
-            //   }
-            // } 
-            // else {
+          const getFontSize = (fieldKey) => {
+            // Use individual field font size if set
+            if (fieldFontSizes[fieldKey]) {
+              return `${Math.round(fieldFontSizes[fieldKey] * 16)}px`;
+            }
             switch (uniformFontSize) {
               case 'small': return '10px';
               case 'large': return '16px';
               default: return '12px';
             }
-            // }
           };
-
-          // Sort fields by order
-          // const sortedFields = [...customFieldsData].sort((a, b) => a.order - b.order);
 
           return (
             <div
@@ -810,25 +632,26 @@ const AttendeesPrint = forwardRef(({
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'flex-start',
-                fontFamily: selectedFontStyle === 'mono' ? "'Courier New', monospace" :
-                  selectedFontStyle === 'serif' ? "'Times New Roman', serif" :
-                    "Arial, sans-serif",
+                fontFamily: fontFamily,
                 color: 'black',
-                pageBreakAfter: index < attendeesList.length - 1 ? 'always' : 'auto',
+                letterSpacing: `${letterSpacing}px`,
+                pageBreakAfter: index < printableData.length - 1 ? 'always' : 'auto',
                 pageBreakInside: 'avoid'
               }}
             >
-              {/* Content - Print fields in order */}
+              {/* Content - Print selected fields */}
               <div className="badge-content" style={{ flex: 1 }}>
-                {selectedFields.map((field) => {
-                  if (attendee?.[field.field_name]) {
-                    const fontSize = getFontSize(field.field_name);
+                {selectedFields.map((fieldKey) => {
+                  const value = item?.[fieldKey];
+                  if (value !== null && value !== undefined && value !== '') {
+                    const fontSize = getFontSize(fieldKey);
+                    const lineGap = `${Math.round(lineGapMultiplier * 16)}px`;
                     return (
                       <div
-                        key={field.id}
+                        key={fieldKey}
                         className="badge-row"
                         style={{
-                          marginBottom: '6px',
+                          marginBottom: lineGap,
                           display: 'block'
                         }}
                       >
@@ -836,12 +659,13 @@ const AttendeesPrint = forwardRef(({
                           className="badge-value"
                           style={{
                             fontSize: fontSize,
+                            fontWeight: fieldKey === 'name' ? 'bold' : 'normal',
                             display: 'block',
                             wordBreak: 'break-all',
                             textAlign: 'left'
                           }}
                         >
-                          {String(attendee[field.field_name])}
+                          {String(value)}
                         </span>
                       </div>
                     );

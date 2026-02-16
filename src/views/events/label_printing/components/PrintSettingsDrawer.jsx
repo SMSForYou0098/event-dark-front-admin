@@ -25,7 +25,10 @@ const PrintSettingsDrawer = ({
     fieldFontSizes,
     setFieldFontSizes,
     isMobile,
+    availableFields: availableFieldsProp,
 }) => {
+    // Use provided availableFields or fall back to static constant
+    const availableFields = availableFieldsProp || AVAILABLE_FIELDS;
     const drawerWidth = isMobile ? "100%" : 520;
     const BASE_FONT_SIZE = 16; // Base font size in pixels
 
@@ -57,7 +60,7 @@ const PrintSettingsDrawer = ({
                     }}
                 >
                     <Checkbox.Group
-                        options={AVAILABLE_FIELDS.map(f => ({
+                        options={availableFields.map(f => ({
                             label: f.label,
                             value: f.key,
                         }))}
@@ -133,7 +136,7 @@ const PrintSettingsDrawer = ({
                     >
                         <Space direction="vertical" size="middle" className="w-100">
                             {selectedFields.map((fieldValue) => {
-                                const field = AVAILABLE_FIELDS.find(f => f.key === fieldValue);
+                                const field = availableFields.find(f => f.key === fieldValue);
                                 if (!field) return null;
 
                                 const currentSize = fieldFontSizes[fieldValue] || field.defaultSize || 1.0;

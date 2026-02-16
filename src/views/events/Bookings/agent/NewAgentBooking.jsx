@@ -94,6 +94,7 @@ const NewAgentBooking = memo(({ type }) => {
     enabled: !!eventID && !!event?.event_controls?.attendee_required && !categoryDataResponse?.categoryData?.attendy_required
   });
 
+
   // Effect to update attendee requirements and fields
   useEffect(() => {
     if (!categoryId) return;
@@ -272,6 +273,7 @@ const NewAgentBooking = memo(({ type }) => {
       email: user?.email || userDetails.email,
       name: user?.name || userDetails.name,
       address: user?.address || userDetails.address,
+      card_allocated: user?.card_allocated || userDetails.card_allocated || false,
       payment_method: method,
       type: event?.event_type || 'daily',
       tickets: ticketsPayload,

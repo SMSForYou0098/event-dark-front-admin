@@ -180,7 +180,7 @@ export const useEventFields = (eventId, options = {}) =>
         // gracefully return empty array or handle error
         return [];
       }
-      return res.fields || [];
+      return res.data || [];
     },
     staleTime: 5 * 60 * 1000,
     retry: (count, err) => {
