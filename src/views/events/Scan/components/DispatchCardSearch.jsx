@@ -56,6 +56,7 @@ const DispatchCardSearch = ({ events, onScan, dispatchedTokens = [] }) => {
                 page: pageParam,
                 per_page: 15,
                 search: searchText,
+                mode: 'dispatch',
             });
             return res?.data || res;
         },
@@ -109,12 +110,13 @@ const DispatchCardSearch = ({ events, onScan, dispatchedTokens = [] }) => {
 
     // ─── Render Helpers ──────────────────────────
 
-    const formatTokenLabel = (t) => {
+
+    const formatTokenLabel = useCallback((t) => {
         const prefix = t.prefix
-            ? (t.prefix.charAt(0).toUpperCase() + t.prefix.slice(1).toLowerCase()).replace(/_/g, ' ')
+            ? t.prefix.replace(/_/g, ' ')
             : '';
-        return prefix ? `${prefix} ${t.batch_index}` : `#${t.batch_index}`;
-    };
+        return prefix ? `${prefix}${t.batch_index}` : `#${t.batch_index}`;
+    }, []);
 
     const tokenOptions = useMemo(() => {
         return allTokens
@@ -123,7 +125,7 @@ const DispatchCardSearch = ({ events, onScan, dispatchedTokens = [] }) => {
                 label: (
                     <Space>
                         <span>{formatTokenLabel(t)}</span>
-                        <Tag color={t.status === 'available' ? 'green' : 'red'}>{t.status}</Tag>
+                        {/* <Tag color={t.status === 'available' ? 'green' : 'red'}>{t.status}</Tag> */}
                     </Space>
                 ),
                 value: t.token,

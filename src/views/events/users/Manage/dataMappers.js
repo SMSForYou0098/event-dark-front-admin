@@ -33,6 +33,7 @@ export const mapApiToForm = (apiData) => {
         tickets: ticketIds, // Now uses agentTickets
 
         // Address
+        address: user.address || '',
         city: user.city || '',
         pincode: user.pincode || '',
 
@@ -89,6 +90,7 @@ export const mapFormToApi = (formData) => {
         organisation: formData.organisation,
 
         // Address
+        address: formData.address,
         city: formData.city,
         pincode: formData.pincode,
         state: formData.state,

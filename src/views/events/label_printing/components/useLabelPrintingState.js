@@ -76,7 +76,7 @@ export const useLabelPrintingState = () => {
     const [fieldFontSizes, setFieldFontSizes] = useState(() => {
         const sizes = {};
         AVAILABLE_FIELDS.forEach(field => {
-            sizes[field.key] = field.defaultSize || 1.0;
+            sizes[field.key] = field.defaultSize || 10;  // direct pt sizes (e.g. 16 for name, 10 for others)
         });
         return sizes;
     });

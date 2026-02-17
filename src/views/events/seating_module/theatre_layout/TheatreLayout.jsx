@@ -1037,7 +1037,7 @@ const AuditoriumLayoutDesigner = () => {
             <Button
               type="primary"
               icon={<ArrowLeftOutlined />}
-              onClick={() => navigate('/events')}
+              onClick={() => navigate(-1)}
             />
           </Tooltip>
         </Col>

@@ -853,6 +853,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
         <List
           dataSource={layouts}
           renderItem={(item) => {
+            console.log('event id',eventLayoutId)
             const isAssigned = Number(item.id) === Number(eventLayoutId);
             return (<List.Item
               className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}

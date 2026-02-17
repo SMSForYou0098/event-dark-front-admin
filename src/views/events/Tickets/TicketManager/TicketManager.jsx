@@ -719,6 +719,38 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         </Col>
                                     </>
                                 )}
+                                {
+                                    usePreprintedCards && !editMode && <Col xs={24} md={8}>
+                                        <Form.Item
+                                            label="Booking Limit Per User"
+                                            name="booking_per_customer"
+                                            rules={[
+                                                { required: true, message: 'Please enter booking limit per user' },
+                                                ({ getFieldValue }) => ({
+                                                    validator(_, value) {
+                                                        const quantity = getFieldValue('quantity');
+                                                        const selectionLimit = getFieldValue('selection_limit');
+
+                                                        if (!value) return Promise.resolve();
+
+                                                        if (quantity && value > quantity) {
+                                                            return Promise.reject(new Error(`Booking limit per user (${value}) must be less than or equal to total quantity (${quantity})`));
+                                                        }
+
+                                                        if (selectionLimit && selectionLimit > value) {
+                                                            return Promise.reject(new Error(`Booking limit per user (${value}) must be greater than or equal to ticket selection limit (${selectionLimit})`));
+                                                        }
+
+                                                        return Promise.resolve();
+                                                    },
+                                                }),
+                                            ]}
+                                            dependencies={['quantity', 'selection_limit']}
+                                        >
+                                            <InputNumber style={{ width: '100%' }} min={1} />
+                                        </Form.Item>
+                                    </Col>
+                                }
 
                                 <Col xs={24}>
                                     <Form.Item label="Description" name="ticket_description">

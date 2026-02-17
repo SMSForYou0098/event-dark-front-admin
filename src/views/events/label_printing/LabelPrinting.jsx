@@ -314,6 +314,7 @@ const LabelPrinting = () => {
                 fieldFontSizes={fieldFontSizes}
                 setFieldFontSizes={setFieldFontSizes}
                 isMobile={isMobile}
+                labelSize={labelSize}
             />
 
             {/* Print Code Preview Modal */}

@@ -1,9 +1,22 @@
 import React from "react";
-import { Drawer, Card, Form, InputNumber, Select, Checkbox, Space, Typography, Divider } from "antd";
+import { Drawer, Card, Form, InputNumber, Slider, Select, Checkbox, Space, Typography, Divider, Tag } from "antd";
 import { SettingsIcon } from "lucide-react";
 import { AVAILABLE_FIELDS, FONT_FAMILIES } from "./constants";
 
 const { Text } = Typography;
+
+// Default font point sizes per label size (matches TSPL SIZE_CONFIG)
+const LABEL_FONT_DEFAULTS = {
+    "2x1": { namePt: 12, basePt: 8 },
+    "2x2": { namePt: 16, basePt: 10 },
+    "3x2": { namePt: 20, basePt: 12 },
+    "4x3": { namePt: 26, basePt: 16 },
+    "4x6": { namePt: 30, basePt: 18 },
+    "5x4": { namePt: 30, basePt: 18 },
+    "6x4": { namePt: 34, basePt: 20 },
+};
+
+const NAME_FIELDS = ['firstName', 'name', 'surname'];
 
 /**
  * Print Settings Drawer
@@ -22,15 +35,29 @@ const PrintSettingsDrawer = ({
     setLineGapMultiplier,
     letterSpacing = 0,
     setLetterSpacing,
+    marginMultiplier = 1.0,
+    setMarginMultiplier,
     fieldFontSizes,
     setFieldFontSizes,
     isMobile,
     availableFields: availableFieldsProp,
+    labelSize = "2x2",
 }) => {
     // Use provided availableFields or fall back to static constant
     const availableFields = availableFieldsProp || AVAILABLE_FIELDS;
     const drawerWidth = isMobile ? "100%" : 520;
-    const BASE_FONT_SIZE = 16; // Base font size in pixels
+    const labelDefaults = LABEL_FONT_DEFAULTS[labelSize] || LABEL_FONT_DEFAULTS["2x2"];
+
+    // Get the default pt size for a field (based on label size)
+    const getDefaultPt = (fieldKey) => {
+        return NAME_FIELDS.includes(fieldKey) ? labelDefaults.namePt : labelDefaults.basePt;
+    };
+
+    // Get the effective pt size (what will actually print)
+    const getEffectivePt = (fieldKey) => {
+        const basePt = fieldFontSizes[fieldKey] || getDefaultPt(fieldKey);
+        return Math.max(6, Math.round(basePt * fontSizeMultiplier));
+    };
 
     return (
         <Drawer
@@ -99,15 +126,36 @@ const PrintSettingsDrawer = ({
 
                         <Divider className="my-2" />
 
+                        <Form.Item label={<Text>Global Font Size Scale</Text>}>
+                            <div className="d-flex align-items-center" style={{ gap: 12 }}>
+                                <Slider
+                                    min={50}
+                                    max={300}
+                                    step={10}
+                                    value={Math.round(fontSizeMultiplier * 100)}
+                                    onChange={(value) => setFontSizeMultiplier(value / 100)}
+                                    style={{ flex: 1 }}
+                                />
+                                <Tag color="blue" style={{ minWidth: 50, textAlign: 'center' }}>
+                                    {Math.round(fontSizeMultiplier * 100)}%
+                                </Tag>
+                            </div>
+                        </Form.Item>
+
                         <Form.Item label={<Text>Line Spacing</Text>}>
-                            <InputNumber
-                                min={4}
-                                max={64}
-                                value={Math.round(lineGapMultiplier * BASE_FONT_SIZE)}
-                                onChange={(value) => setLineGapMultiplier(value / BASE_FONT_SIZE)}
-                                addonAfter="px"
-                                style={{ width: 120 }}
-                            />
+                            <div className="d-flex align-items-center" style={{ gap: 12 }}>
+                                <Slider
+                                    min={0}
+                                    max={40}
+                                    step={1}
+                                    value={Math.round(lineGapMultiplier * 16)}
+                                    onChange={(value) => setLineGapMultiplier(value / 16)}
+                                    style={{ flex: 1 }}
+                                />
+                                <Tag style={{ minWidth: 50, textAlign: 'center' }}>
+                                    {Math.round(lineGapMultiplier * 16)}px
+                                </Tag>
+                            </div>
                         </Form.Item>
 
                         <Form.Item label={<Text>Letter Spacing</Text>}>
@@ -121,43 +169,98 @@ const PrintSettingsDrawer = ({
                                 style={{ width: 120 }}
                             />
                         </Form.Item>
+
+                        <Form.Item label={<Text>Label Margin</Text>}>
+                            <div className="d-flex align-items-center" style={{ gap: 12 }}>
+                                <Slider
+                                    min={0}
+                                    max={40}
+                                    step={1}
+                                    value={Math.round(marginMultiplier * 4 * 10) / 10}
+                                    onChange={(value) => setMarginMultiplier && setMarginMultiplier(value / 4)}
+                                    style={{ flex: 1 }}
+                                />
+                                <Tag style={{ minWidth: 50, textAlign: 'center' }}>
+                                    {(Math.round(marginMultiplier * 4 * 10) / 10)}mm
+                                </Tag>
+                            </div>
+                        </Form.Item>
                     </Space>
                 </Card>
 
-                {/* Individual Field Font Sizes */}
+                {/* Individual Field Font Sizes — direct point sizes */}
                 {selectedFields.length > 0 && (
                     <Card
-                        title={<Text strong>Individual Field Font Sizes</Text>}
+                        title={
+                            <div className="d-flex justify-content-between align-items-center">
+                                <Text strong>Field Font Sizes</Text>
+                                <Tag color="geekblue" style={{ fontSize: 11 }}>
+                                    Label: {labelSize} | Scale: {Math.round(fontSizeMultiplier * 100)}%
+                                </Tag>
+                            </div>
+                        }
                         size="small"
                         styles={{
-                            body: { padding: 16, maxHeight: isMobile ? 400 : 350, overflowY: "auto" },
+                            body: { padding: 16, maxHeight: isMobile ? 400 : 400, overflowY: "auto" },
                             header: { padding: '12px 16px' }
                         }}
                     >
-                        <Space direction="vertical" size="middle" className="w-100">
+                        <Space direction="vertical" size="small" className="w-100">
+                            <div style={{ 
+                                padding: '8px 12px', 
+                                background: 'rgba(22, 119, 255, 0.06)', 
+                                borderRadius: 6, 
+                                marginBottom: 8,
+                                fontSize: 12,
+                                color: 'rgba(255,255,255,0.65)'
+                            }}>
+                                Set each field's font size in <b>points (pt)</b>. 
+                                This directly controls the thermal print size.
+                                The "Effective" column shows the final size after global scaling.
+                            </div>
                             {selectedFields.map((fieldValue) => {
                                 const field = availableFields.find(f => f.key === fieldValue);
                                 if (!field) return null;
 
-                                const currentSize = fieldFontSizes[fieldValue] || field.defaultSize || 1.0;
-                                const pxValue = Math.round(currentSize * BASE_FONT_SIZE);
+                                const defaultPt = getDefaultPt(fieldValue);
+                                const currentPt = fieldFontSizes[fieldValue] || defaultPt;
+                                const effectivePt = getEffectivePt(fieldValue);
 
                                 return (
-                                    <div key={fieldValue} className="d-flex justify-content-between align-items-center">
-                                        <Text>{field.label}</Text>
-                                        <InputNumber
-                                            min={8}
-                                            max={72}
-                                            value={pxValue}
-                                            onChange={(value) => {
-                                                setFieldFontSizes(prev => ({
-                                                    ...prev,
-                                                    [fieldValue]: value / BASE_FONT_SIZE
-                                                }));
-                                            }}
-                                            addonAfter="px"
-                                            style={{ width: 120 }}
-                                        />
+                                    <div key={fieldValue} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '6px 0',
+                                        borderBottom: '1px solid rgba(255,255,255,0.06)'
+                                    }}>
+                                        <div style={{ flex: 1 }}>
+                                            <Text style={{ fontSize: 13 }}>{field.label}</Text>
+                                        </div>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <InputNumber
+                                                min={6}
+                                                max={72}
+                                                value={Math.round(currentPt)}
+                                                onChange={(value) => {
+                                                    if (value !== null) {
+                                                        setFieldFontSizes(prev => ({
+                                                            ...prev,
+                                                            [fieldValue]: value
+                                                        }));
+                                                    }
+                                                }}
+                                                addonAfter="pt"
+                                                style={{ width: 100 }}
+                                                size="small"
+                                            />
+                                            <Tag 
+                                                color={effectivePt !== currentPt ? 'orange' : 'green'}
+                                                style={{ minWidth: 42, textAlign: 'center', margin: 0 }}
+                                            >
+                                                → {effectivePt}pt
+                                            </Tag>
+                                        </div>
                                     </div>
                                 );
                             })}

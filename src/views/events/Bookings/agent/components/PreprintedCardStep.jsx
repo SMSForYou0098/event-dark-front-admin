@@ -33,6 +33,7 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
                 page: pageParam,
                 per_page: 50,
                 search: searchText,
+                mode: 'assign'
             });
             return res?.data || res;
         },
@@ -121,7 +122,7 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
     // Mutation for fetching single token detail by token value
     const tokenDetailMutation = useMutation({
         mutationFn: async (payload) => {
-            const res = await apiClient.post('card-tokens/detail', payload);
+            const res = await apiClient.post('card-tokens/detail', { ...payload, mode: 'assign' });
             return res?.data || res;
         },
         onSuccess: (data) => {
@@ -132,12 +133,12 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
     });
 
     // Format prefix_index label (e.g. "Hello 2")
-const formatTokenLabel = useCallback((t) => {
-    const prefix = t.prefix
-        ? t.prefix.replace(/_/g, ' ')
-        : '';
-    return prefix ? `${prefix} ${t.batch_index}` : `#${t.batch_index}`;
-}, []);
+    const formatTokenLabel = useCallback((t) => {
+        const prefix = t.prefix
+            ? t.prefix.replace(/_/g, ' ')
+            : '';
+        return prefix ? `${prefix}${t.batch_index}` : `#${t.batch_index}`;
+    }, []);
 
     // Dropdown options from accumulated tokens
     const tokenOptions = useMemo(() => {
@@ -184,7 +185,7 @@ const formatTokenLabel = useCallback((t) => {
             extra={
                 <Space>
                     <Space>
-                        <Text>SELECT CARD/ SCAN QR</Text>
+                        <Text>{isManual ? 'SCAN QR' : 'SELECT CARD'}</Text>
                         <Switch checked={isManual} onChange={setIsManual} />
                     </Space>
                     {event?.date_range && (

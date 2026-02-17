@@ -137,7 +137,7 @@ const BoxOffice = () => {
 
     return (
         <Row gutter={[16, 16]}>
-            <Col xs={24} lg={12}>
+            <Col xs={24} lg={24}>
                 <Card
                     title='Box Office'>
                     <Select
@@ -199,7 +199,7 @@ const BoxOffice = () => {
             </Col>
 
             {selectedUserId && (
-                <Col xs={24} lg={12}>
+                <Col xs={24} lg={24}>
                     <Card
                         title='Bookings'
                         extra={
@@ -220,6 +220,7 @@ const BoxOffice = () => {
                                     loading={isLoading}
                                     showAction={false}
                                     onRefresh={refetch}
+                                    isBoxOffice={true}
                                 />
                             ) : (
                                 <Empty description="No bookings found for this user" />

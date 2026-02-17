@@ -31,7 +31,10 @@ const PrintPreview = forwardRef(({
                             const fieldConfig = AVAILABLE_FIELDS.find((f) => f.key === field);
                             if (!fieldConfig) return null;
 
-                            const fieldSize = (fieldFontSizes[field] || fieldConfig.defaultSize || 1.0) * fontSizeMultiplier;
+                            // fieldFontSizes stores direct pt values (e.g. 20, 14)
+                            const ptSize = (fieldFontSizes[field] || fieldConfig.defaultSize || 10);
+                            // Apply global multiplier, convert pt → CSS px (1pt = 1.333px)
+                            const cssPx = Math.round(ptSize * fontSizeMultiplier * 1.333);
                             const lineHeight = 1.2 * lineGapMultiplier;
 
                             return row[field] ? (
@@ -39,7 +42,7 @@ const PrintPreview = forwardRef(({
                                     key={field}
                                     style={{
                                         marginBottom: `${10 * lineGapMultiplier}px`,
-                                        fontSize: `${14 * fieldSize}px`,
+                                        fontSize: `${cssPx}px`,
                                         lineHeight: `${lineHeight}`,
                                     }}
                                 >

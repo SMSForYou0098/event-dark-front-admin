@@ -343,101 +343,208 @@ export const generateTSPLFromExcel = async (
     row,
     selectedFields = [],
     labelSize = "2x2",
-    fontSizeMultiplier = 1.0,  // Global font size multiplier
-    fieldFontSizes = {},       // Individual font sizes per field
-    lineGapMultiplier = 1.0    // Vertical spacing multiplier
+    fontSizeMultiplier = 1.0,
+    fieldFontSizes = {},       // Per-field sizes: direct pt values (e.g. {name: 24, email: 14})
+    lineGapMultiplier = 1.0,
+    marginMultiplier = 1.0
 ) => {
     const lines = [];
 
-    // Label size configurations (in mm)
-    // Working fonts: 2 (small/12x20), 3 (medium/16x24), 4 (large/24x32), 5 (XL/32x48)
-    // Scale 1,1 works reliably
+    // ── Constants (203 DPI) ────────────────────────────────────────────
+    const DPI = 203;
+    const mmToDots = (mm) => Math.round(mm * (DPI / 25.4));
+
+    // ── TSPL Bitmap Fonts (universally supported, guaranteed sizing) ──
+    // Font 1: 8×12,  Font 2: 12×20,  Font 3: 16×24,
+    // Font 4: 24×32, Font 5: 32×48
+    // x-mult/y-mult = integer multiplier 1–10 (actual size = base × mul)
+    const FONTS = [
+        { id: "1", w: 8,  h: 12 },
+        { id: "2", w: 12, h: 20 },
+        { id: "3", w: 16, h: 24 },
+        { id: "4", w: 24, h: 32 },
+        { id: "5", w: 32, h: 48 },
+    ];
+
+    // Pick best font + multiplier combo for a target height in dots
+    const pickFont = (targetHeightDots) => {
+        let best = { font: FONTS[2], mul: 1 };
+        let bestDiff = Infinity;
+        for (const font of FONTS) {
+            for (let mul = 1; mul <= 10; mul++) {
+                const h = font.h * mul;
+                const diff = Math.abs(h - targetHeightDots);
+                if (diff < bestDiff || (diff === bestDiff && font.h > best.font.h)) {
+                    bestDiff = diff;
+                    best = { font, mul };
+                }
+            }
+        }
+        return best;
+    };
+
+    // ── Label size configs ─────────────────────────────────────────────
+    // nameFont/baseFont = { id, mul } — static defaults for each label size
+    // These produce guaranteed correct sizes with bitmap fonts
     const SIZE_CONFIG = {
-        "2x2": {
-            width: "50.8 mm",
-            height: "50.8 mm",
-            gap: "2 mm",
-            nameFont: "3",      // Font 3 (16x24) for names
-            designationFont: "3", // Font 3 (16x24) for designation
-            companyFont: "2",   // Font 2 (12x20) for company
-            otherFont: "3",     // Font 3 for other fields
-            scaleX: 1,
-            scaleY: 1,
-            lineGap: 60,
-            startX: 5,
-            startY: 20,
-        },
         "2x1": {
-            width: "50.8 mm",
-            height: "25.4 mm",
-            gap: "2 mm",
-            nameFont: "3",      // Font 3 for names
-            designationFont: "3", // Font 3 for designation
-            companyFont: "2",   // Font 2 for company
-            otherFont: "3",
-            scaleX: 1,
-            scaleY: 1,
-            lineGap: 50,
-            startX: 5,
-            startY: 10,
+            widthMm: 50.8,  heightMm: 25.4,
+            gapMm: 2,     marginMm: 2,   lineGapDots: 4,
+            nameFont: { id: "2", mul: 1 },  // 12×20 = small name
+            baseFont: { id: "1", mul: 1 },  // 8×12  = tiny
+        },
+        "2x2": {
+            widthMm: 50.8,  heightMm: 50.8,
+            gapMm: 2,     marginMm: 3,   lineGapDots: 6,
+            nameFont: { id: "3", mul: 1 },  // 16×24
+            baseFont: { id: "2", mul: 1 },  // 12×20
         },
         "3x2": {
-            width: "76.2 mm",
-            height: "50.8 mm",
-            gap: "3 mm",
-            nameFont: "5",      // Font 5 (32x48) for names on larger label
-            designationFont: "4", // Font 4 for designation
-            companyFont: "3",   // Font 3 for company
-            otherFont: "3",
-            scaleX: 1,
-            scaleY: 1,
-            lineGap: 70,
-            startX: 10,
-            startY: 20,
+            widthMm: 76.2,  heightMm: 50.8,
+            gapMm: 3,     marginMm: 3,   lineGapDots: 8,
+            nameFont: { id: "4", mul: 1 },  // 24×32
+            baseFont: { id: "3", mul: 1 },  // 16×24
+        },
+        "4x3": {
+            widthMm: 101.6, heightMm: 76.2,
+            gapMm: 3,     marginMm: 4,   lineGapDots: 10,
+            nameFont: { id: "5", mul: 1 },  // 32×48
+            baseFont: { id: "4", mul: 1 },  // 24×32
+        },
+        "4x6": {
+            widthMm: 101.6, heightMm: 152.4,
+            gapMm: 3,     marginMm: 4,   lineGapDots: 12,
+            nameFont: { id: "5", mul: 2 },  // 64×96
+            baseFont: { id: "4", mul: 1 },  // 24×32
+        },
+        "5x4": {
+            widthMm: 100,   heightMm: 80,
+            gapMm: 3,     marginMm: 4,   lineGapDots: 12,
+            nameFont: { id: "5", mul: 2 },  // 64×96
+            baseFont: { id: "4", mul: 1 },  // 24×32
+        },
+        "6x4": {
+            widthMm: 100,   heightMm: 80,
+            gapMm: 3,     marginMm: 4,   lineGapDots: 14,
+            nameFont: { id: "5", mul: 2 },  // 64×96
+            baseFont: { id: "5", mul: 1 },  // 32×48
         },
     };
 
     const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
 
-    // Apply line gap multiplier for vertical spacing
-    const effectiveLineGap = Math.max(10, Math.round(cfg.lineGap * lineGapMultiplier));
+    // ── Margins ────────────────────────────────────────────────────────
+    const marginX = mmToDots(cfg.marginMm * marginMultiplier);
+    const marginY = mmToDots(cfg.marginMm * marginMultiplier);
 
-    // Helper function to get font for field type
+    // ── Line gap (fixed dots, scaled by user's line spacing control) ──
+    const effectiveLineGap = Math.max(2, Math.round(cfg.lineGapDots * lineGapMultiplier));
+
+    // ── Printable area ────────────────────────────────────────────────
+    const printableWidthDots = mmToDots(cfg.widthMm) - 2 * marginX;
+    const maxY = mmToDots(cfg.heightMm) - marginY;
+
+    // ── Resolve font for a field ──────────────────────────────────────
+    // Priority: 1) User's explicit pt size → pickFont  2) Static default
     const getFontForField = (field) => {
-        if (field === 'firstName' || field === 'name' || field === 'surname') return cfg.nameFont;
-        if (field === 'designation') return cfg.designationFont;
-        if (field === 'company_name') return cfg.companyFont;
-        return cfg.otherFont;
+        const isNameField = ['firstName', 'name', 'surname'].includes(field);
+
+        // Check if user set an explicit pt size for this field
+        if (fieldFontSizes[field] && fieldFontSizes[field] > 0) {
+            // Convert pt → target height in dots, then apply global multiplier
+            const targetDots = Math.round((fieldFontSizes[field] * (DPI / 72)) * fontSizeMultiplier);
+            return pickFont(targetDots);
+        }
+
+        // Use static default, scaled by global multiplier
+        const defaultCfg = isNameField ? cfg.nameFont : cfg.baseFont;
+        const defaultFont = FONTS.find(f => f.id === defaultCfg.id) || FONTS[2];
+        const baseHeightDots = defaultFont.h * defaultCfg.mul;
+
+        if (fontSizeMultiplier === 1.0) {
+            return { font: defaultFont, mul: defaultCfg.mul };
+        }
+        // Re-pick with scaled target
+        return pickFont(Math.round(baseHeightDots * fontSizeMultiplier));
     };
 
-    // Printer setup
-    lines.push(`SIZE ${cfg.width}, ${cfg.height}`);
-    lines.push(`GAP ${cfg.gap}, 0 mm`);
-    lines.push("DIRECTION 1");
+    // ── Word wrapping (based on character width of chosen font) ───────
+    const wrapText = (text, charWidthDots) => {
+        const maxChars = Math.max(1, Math.floor(printableWidthDots / charWidthDots));
+        if (text.length <= maxChars) return [text];
+
+        const words = text.split(' ');
+        const wrappedLines = [];
+        let currentLine = '';
+        for (const word of words) {
+            if (!currentLine) {
+                currentLine = word;
+            } else if ((currentLine + ' ' + word).length <= maxChars) {
+                currentLine += ' ' + word;
+            } else {
+                wrappedLines.push(currentLine);
+                currentLine = word;
+            }
+            while (currentLine.length > maxChars) {
+                wrappedLines.push(currentLine.substring(0, maxChars));
+                currentLine = currentLine.substring(maxChars);
+            }
+        }
+        if (currentLine) wrappedLines.push(currentLine);
+        return wrappedLines;
+    };
+
+    // ── Build TSPL commands ───────────────────────────────────────────
+    lines.push(`SIZE ${cfg.widthMm} mm,${cfg.heightMm} mm`);
+    lines.push(`GAP ${cfg.gapMm} mm,0 mm`);
+    lines.push("SPEED 4");
+    lines.push("DENSITY 8");
+    lines.push("DIRECTION 0");
+    lines.push("SET TEAR ON");
     lines.push("CLS");
 
-    let y = cfg.startY;
+    let y = marginY;
 
     selectedFields.forEach((field) => {
-        const value = row[field] || '';
-        
-        // Skip if no value
-        if (!value) return;
+        const rawValue = row[field];
+        if (rawValue === null || rawValue === undefined || rawValue === '') return;
+        if (y >= maxY) return;
 
-        // Get font for this field
-        const font = getFontForField(field);
+        const { font, mul } = getFontForField(field);
+        const charW = font.w * mul;  // actual character width in dots
+        const charH = font.h * mul;  // actual character height in dots
 
-        // TEXT x,y,"font",rotation,x-scale,y-scale,"content"
-        lines.push(
-            `TEXT ${cfg.startX},${y},"${font}",0,${cfg.scaleX},${cfg.scaleY},"${value}"`
-        );
+        const text = String(rawValue).replace(/"/g, '\\["]');
+        const wrappedLines = wrapText(text, charW);
 
-        y += effectiveLineGap;
+        for (const line of wrappedLines) {
+            if (y + charH > maxY) break;
+
+            // TEXT x, y, "font", rotation, x-mul, y-mul, "content"
+            lines.push(
+                `TEXT ${marginX},${y},"${font.id}",0,${mul},${mul},"${line}"`
+            );
+            // Y advance = exact rendered height + fixed line gap
+            y += charH + effectiveLineGap;
+        }
     });
 
-    lines.push("PRINT 1,1");
+    lines.push("PRINT 1");
+    lines.push("");
 
-    return new TextEncoder().encode(lines.join("\r\n"));
+    const tsplOutput = lines.join("\r\n");
+    console.log("[TSPL] labelSize:", labelSize,
+        "| fontSizeMultiplier:", fontSizeMultiplier,
+        "| lineGapMultiplier:", lineGapMultiplier,
+        "| marginMultiplier:", marginMultiplier);
+    console.log("[TSPL] Field fonts:", selectedFields.map(f => {
+        const { font, mul } = getFontForField(f);
+        return `${f}=Font${font.id}×${mul}(${font.w*mul}×${font.h*mul}dots)`;
+    }).join(', '));
+    console.log("[TSPL] fieldFontSizes:", JSON.stringify(fieldFontSizes));
+    console.log("[TSPL] Commands:\n" + tsplOutput);
+
+    return new TextEncoder().encode(tsplOutput);
 };
 
 /**
@@ -482,12 +589,49 @@ export const generateZPLFromExcel = async (
             nameFontSize: 60,
             otherFontSize: 30,
             lineGap: 70,
-            // Extra gap after name so the visual
-            // spacing to the phone line matches
-            // the rest of the lines
             nameExtraGap: 10,
             startX: 30,
             startY: 40,
+        },
+        "4x3": {
+            width: 812,    // 4 inches = 812 dots
+            height: 609,
+            nameFontSize: 70,
+            otherFontSize: 35,
+            lineGap: 80,
+            nameExtraGap: 10,
+            startX: 30,
+            startY: 40,
+        },
+        "4x6": {
+            width: 812,
+            height: 1218,  // 6 inches = 1218 dots
+            nameFontSize: 80,
+            otherFontSize: 40,
+            lineGap: 100,
+            nameExtraGap: 15,
+            startX: 30,
+            startY: 50,
+        },
+        "5x4": {
+            width: 1015,   // 5 inches = 1015 dots
+            height: 812,
+            nameFontSize: 75,
+            otherFontSize: 38,
+            lineGap: 85,
+            nameExtraGap: 12,
+            startX: 35,
+            startY: 45,
+        },
+        "6x4": {
+            width: 1218,   // 6 inches = 1218 dots
+            height: 812,
+            nameFontSize: 80,
+            otherFontSize: 40,
+            lineGap: 90,
+            nameExtraGap: 15,
+            startX: 40,
+            startY: 50,
         },
     };
 
@@ -510,12 +654,16 @@ export const generateZPLFromExcel = async (
         // Determine if this is a name field for font styling
         const isNameField = field === 'firstName' || field === 'surname' || field === 'name';
 
-        // Get field-specific font size or use default
-        const fieldMultiplier = fieldFontSizes[field] || (isNameField ? 1.5 : 1.0);
-        const combinedMultiplier = fontSizeMultiplier * fieldMultiplier;
-
+        // Get field-specific font size
+        // fieldFontSizes stores direct point sizes (e.g. {name: 20, email: 14})
         const baseFontSize = isNameField ? cfg.nameFontSize : cfg.otherFontSize;
-        const fontSize = Math.max(10, Math.round(baseFontSize * combinedMultiplier));
+        let fontSize;
+        if (fieldFontSizes[field] && fieldFontSizes[field] > 0) {
+            // Convert pt to dots: pt * (203/72) ≈ pt * 2.82, then scale by global multiplier
+            fontSize = Math.max(10, Math.round(fieldFontSizes[field] * (203 / 72) * fontSizeMultiplier));
+        } else {
+            fontSize = Math.max(10, Math.round(baseFontSize * fontSizeMultiplier));
+        }
         const fontStyle = isNameField ? 'B' : 'N'; // B = Bold, N = Normal
 
         lines.push(`^FO${cfg.startX},${y}^A0${fontStyle},${fontSize},${fontSize}^FD${value}^FS`);
@@ -569,18 +717,60 @@ export const generateCPCLFromExcel = async (
             nameFont: "8",
             otherFont: "4",
             lineGap: 50,
-            // Slightly larger white-space after name
-            // so the visual gap to phone matches others
             nameExtraGap: 10,
             startX: 40,
             startY: 45,
+        },
+        "4x3": {
+            width: 812,
+            height: 609,
+            nameFont: "8",
+            otherFont: "5",
+            lineGap: 60,
+            nameExtraGap: 10,
+            startX: 40,
+            startY: 50,
+        },
+        "4x6": {
+            width: 812,
+            height: 1218,
+            nameFont: "8",
+            otherFont: "5",
+            lineGap: 80,
+            nameExtraGap: 15,
+            startX: 40,
+            startY: 50,
+        },
+        "5x4": {
+            width: 1015,
+            height: 812,
+            nameFont: "8",
+            otherFont: "5",
+            lineGap: 65,
+            nameExtraGap: 12,
+            startX: 45,
+            startY: 50,
+        },
+        "6x4": {
+            width: 1218,
+            height: 812,
+            nameFont: "8",
+            otherFont: "5",
+            lineGap: 70,
+            nameExtraGap: 15,
+            startX: 50,
+            startY: 50,
         },
     };
 
     const cfg = SIZE_CONFIG[labelSize] || SIZE_CONFIG["2x2"];
 
     // Apply font size & line spacing multipliers
-    const nameMag = Math.max(1, Math.round(2 * fontSizeMultiplier));
+    // For combined firstName+surname, use fieldFontSizes if set (direct pt / 8 → mag)
+    const nameFieldPt = fieldFontSizes['firstName'] || fieldFontSizes['surname'] || 0;
+    const nameMag = nameFieldPt > 0
+        ? Math.max(1, Math.round((nameFieldPt / 8) * fontSizeMultiplier))
+        : Math.max(1, Math.round(2 * fontSizeMultiplier));
     const otherMag = Math.max(1, Math.round(1 * fontSizeMultiplier));
     const effectiveLineGap = Math.max(10, Math.round(cfg.lineGap * lineGapMultiplier));
     const nameLineGap = Math.max(
@@ -625,13 +815,17 @@ export const generateCPCLFromExcel = async (
         // For other fields or if names aren't being combined
         const isNameField = field === 'firstName' || field === 'surname';
 
-        // Get field-specific font size or use default
-        const fieldMultiplier = fieldFontSizes[field] || (isNameField ? 1.5 : 1.0);
-        const combinedMultiplier = fontSizeMultiplier * fieldMultiplier;
-
+        // Get field-specific font size
+        // fieldFontSizes stores direct point sizes (e.g. {name: 20, email: 14})
         const fontNum = isNameField ? cfg.nameFont : cfg.otherFont;
         const baseMag = isNameField ? 2 : 1;
-        const mag = Math.max(1, Math.round(baseMag * combinedMultiplier));
+        let mag;
+        if (fieldFontSizes[field] && fieldFontSizes[field] > 0) {
+            // Map pt size to CPCL magnification: pt/8 gives a reasonable mag value
+            mag = Math.max(1, Math.round((fieldFontSizes[field] / 8) * fontSizeMultiplier));
+        } else {
+            mag = Math.max(1, Math.round(baseMag * fontSizeMultiplier));
+        }
 
         // TEXT font size x y text
         // For bold effect, we can use SETBOLD command before text

@@ -322,11 +322,8 @@ const DynamicLabelPrint = () => {
             // Map selected fields to the format expected by generators
             const fieldsToGenerate = selectedFields.filter(f => f !== 'qrcode');
 
-            // Field font sizes (using default 1.0)
+            // Field font sizes — direct point sizes (empty = use config defaults)
             const fieldFontSizes = {};
-            selectedFields.forEach(f => {
-                fieldFontSizes[f] = 1.0;
-            });
 
             let printerBytes;
 

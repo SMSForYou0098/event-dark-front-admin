@@ -108,7 +108,8 @@ const EventStepperForm = () => {
 
         patch.org_id = String(detail.venue_id);
 
-        setLayouts(detail?.venue?.layouts);
+        setLayouts(detail?.venue?.layouts ?? []);
+        setEventLayoutId(detail?.event_has_layout?.layout_id ?? null);
 
         // Step 0: Basic Details
         if (current === 0) {
@@ -212,7 +213,6 @@ const EventStepperForm = () => {
             });
 
             // Set layouts and layout ID for seat booking management
-            setEventLayoutId(detail?.event_has_layout?.layout_id);
         }
 
         // Step 2: Timing & Location

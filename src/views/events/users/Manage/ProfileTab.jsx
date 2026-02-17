@@ -68,6 +68,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         gates: [],
 
         // Address
+        address: '',
         city: '',
         pincode: '',
 

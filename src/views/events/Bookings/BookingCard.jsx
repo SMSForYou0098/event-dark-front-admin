@@ -24,11 +24,15 @@ import {
   FieldTimeOutlined,
   VideoCameraOutlined,
   TrophyOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
 import { useMyContext } from "Context/MyContextProvider";
 import TicketModal from "../Tickets/modals/TicketModal";
 import TicketActions from "../Tickets/modals/TicketActions";
 import SendTicketsModal from "../Tickets/modals/SendTicketsModal";
+import ReassignTokenModal from "./components/ReassignTokenModal";
+import PermissionChecker from "layouts/PermissionChecker";
+import ReassignmentHistoryDrawer from "./components/ReassignmentHistoryDrawer";
 // import TicketModal from "../../../components/Tickets/TicketModal";
 
 const { Text } = Typography;
@@ -61,7 +65,7 @@ const TypeIcon = ({ type, size = 16 }) => {
   }
 };
 
-const BookingCard = React.memo(({ booking, compact = false, showAction }) => {
+const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOffice = false }) => {
   const [ticketData, setTicketData] = useState([]);
   const [ticketType, setTicketType] = useState({ id: "", type: "" });
   const [show, setShow] = useState(false);
@@ -221,31 +225,56 @@ const BookingCard = React.memo(({ booking, compact = false, showAction }) => {
     [bookingData, compact, StatusBadge, getCurrencySymbol]
   );
 
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+
+  const handleOpenReassignModal = () => setShowReassignModal(true);
+  const handleCloseReassignModal = () => setShowReassignModal(false);
+
   /** Right actions */
   const rightActions = useMemo(
     () => (
       <Space direction="vertical" size="small" style={{ alignItems: "flex-end" }}>
         <Space size="small" wrap>
-          <Dropdown
-            trigger={["click"]}
-            placement="bottomRight"
-            menu={{ items: menuItems, onClick: onMenuClick }}
-          >
-            <Button type="primary">
-              Generate E-Ticket <MoreOutlined style={{ marginLeft: 6 }} />
-            </Button>
-          </Dropdown>
-
-          {/* <Button>
-            Share <ShareAltOutlined style={{ marginLeft: 6 }} />
-          </Button> */}
-          <TicketActions
-            onSendTickets={handleOpenSendModal}
-            item={booking} />
+          {isBoxOffice && booking?.card_token && (
+            <PermissionChecker role={["Admin", "Organizer", "Box Office"]}>
+              <Button
+                type="primary"
+                danger
+                onClick={handleOpenReassignModal}
+              >
+                Reassign Token
+              </Button>
+              <Button
+                type="default"
+                onClick={() => setShowHistoryModal(true)}
+                className="mt-2"
+                icon={<HistoryOutlined />}
+              >
+                View History
+              </Button>
+            </PermissionChecker>
+          )}
+          {showAction &&
+            <>
+              <Dropdown
+                trigger={["click"]}
+                placement="bottomRight"
+                menu={{ items: menuItems, onClick: onMenuClick }}
+              >
+                <Button type="primary">
+                  Generate E-Ticket <MoreOutlined style={{ marginLeft: 6 }} />
+                </Button>
+              </Dropdown>
+              <TicketActions
+                onSendTickets={handleOpenSendModal}
+                item={booking} />
+            </>
+          }
         </Space>
       </Space>
     ),
-    [menuItems, onMenuClick]
+    [menuItems, onMenuClick, isBoxOffice, booking]
   );
 
   return (
@@ -266,7 +295,7 @@ const BookingCard = React.memo(({ booking, compact = false, showAction }) => {
           }}
         >
           {leftContent}
-          {showAction && rightActions}
+          {rightActions}
         </div>
       </Card>
 
@@ -285,6 +314,18 @@ const BookingCard = React.memo(({ booking, compact = false, showAction }) => {
         show={showSendModal}
         handleClose={handleCloseSendModal}
         bookingData={bookingData}
+      />
+
+      <ReassignTokenModal
+        bookingId={booking?.id}
+        visible={showReassignModal}
+        onClose={handleCloseReassignModal}
+      />
+
+      <ReassignmentHistoryDrawer
+        bookingId={booking?.id}
+        visible={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
       />
 
     </>

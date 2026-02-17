@@ -62,11 +62,11 @@ const InstantPrintTab = ({
         return initialValues;
     });
 
-    // Local font sizes (if parent doesn't provide)
+    // Local font sizes (if parent doesn't provide) — direct pt values
     const [localFieldFontSizes, setLocalFieldFontSizes] = useState(() => {
         const sizes = {};
         AVAILABLE_FIELDS.forEach(field => {
-            sizes[field.key] = field.defaultSize;
+            sizes[field.key] = field.defaultSize || 10;
         });
         return sizes;
     });
@@ -101,11 +101,11 @@ const InstantPrintTab = ({
         setFieldValues(resetValues);
     }, []);
 
-    // Reset font sizes to defaults
+    // Reset font sizes to defaults (pt values)
     const handleResetFontSizes = useCallback(() => {
         const defaultSizes = {};
         AVAILABLE_FIELDS.forEach(field => {
-            defaultSizes[field.key] = field.defaultSize;
+            defaultSizes[field.key] = field.defaultSize || 10;
         });
         setFieldFontSizes(defaultSizes);
     }, [setFieldFontSizes]);
@@ -320,16 +320,16 @@ const InstantPrintTab = ({
                                 <Col xs={24} md={10}>
                                     <div className="d-flex align-items-center gap-2">
                                         <Text type="secondary" style={{ minWidth: 60 }}>
-                                            Size: {fieldFontSizes[field.key]?.toFixed(1)}x
+                                            Size: {fieldFontSizes[field.key]}pt
                                         </Text>
                                         <Slider
-                                            min={0.5}
-                                            max={3}
-                                            step={0.1}
+                                            min={6}
+                                            max={72}
+                                            step={1}
                                             value={fieldFontSizes[field.key] || field.defaultSize}
                                             onChange={(val) => handleFontSizeChange(field.key, val)}
                                             style={{ flex: 1 }}
-                                            tooltip={{ formatter: (val) => `${val?.toFixed(1)}x` }}
+                                            tooltip={{ formatter: (val) => `${val}pt` }}
                                         />
                                     </div>
                                 </Col>
@@ -367,7 +367,7 @@ const InstantPrintTab = ({
                                         <div
                                             key={field.key}
                                             style={{
-                                                fontSize: 14 * (fieldFontSizes[field.key] || field.defaultSize),
+                                                fontSize: Math.round((fieldFontSizes[field.key] || field.defaultSize) * 1.333),
                                                 fontWeight: field.key === 'name' ? 'bold' : 'normal',
                                                 marginBottom: 4,
                                                 lineHeight: 1.3,

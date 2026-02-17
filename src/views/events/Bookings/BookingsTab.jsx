@@ -14,7 +14,7 @@ const { RangePicker } = DatePicker;
 const { Search } = Input;
 const { Text } = Typography;
 
-const BookingsTab = ({ userBookings = [], loading = false, onRefresh , showAction = true}) => {
+const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction = true, isBoxOffice = false }) => {
   // UI & data state
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
@@ -305,7 +305,7 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh , showActio
     return (
       <Space direction="vertical" size="middle" className="w-100">
         {paginatedBookings.map((booking, idx) => (
-          <BookingCard key={makeBookingKey(booking, idx)} booking={booking} showAction={showAction}/>
+          <BookingCard key={makeBookingKey(booking, idx)} booking={booking} showAction={showAction} isBoxOffice={isBoxOffice} />
         ))}
       </Space>
     );

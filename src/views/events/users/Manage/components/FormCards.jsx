@@ -9,6 +9,11 @@ const AddressCard = () => {
     return (
         <Card title="Address" style={{ marginBottom: 16 }}>
             <Row gutter={[16, 16]}>
+                <Col xs={24} md={24}>
+                    <Form.Item label="Address" name="address">
+                        <Input.TextArea rows={2} placeholder="Enter full address" />
+                    </Form.Item>
+                </Col>
                 <Col xs={24} md={12}>
                     <Form.Item label="City" name="city">
                         <Input placeholder="Enter city" />

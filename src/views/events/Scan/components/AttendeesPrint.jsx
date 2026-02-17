@@ -13,7 +13,6 @@ import { generateTSPLFromExcel, generateZPLFromExcel, generateCPCLFromExcel } fr
 // LocalStorage helpers
 const FIELD_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 const ATTENDEES_PRINT_SIZE_KEY = 'attendees_print_size';
-const ATTENDEES_PRINT_FONT_KEY = 'attendees_print_font';
 const ATTENDEES_PRINT_PRINTER_TYPE_KEY = 'attendees_print_printer_type';
 
 const setWithExpiry = (key, value, ttlMs) => {
@@ -51,6 +50,8 @@ const DIMENSION_OPTIONS = [
   { label: '3" × 2"', value: '3x2', width: 3, height: 2 },
   { label: '4" × 3"', value: '4x3', width: 4, height: 3 },
   { label: '4" × 6"', value: '4x6', width: 4, height: 6 },
+  { label: '5" × 4"', value: '5x4', width: 5, height: 4 },
+  { label: '6" × 4"', value: '6x4', width: 6, height: 4 },
 ];
 
 // Fields to exclude from dynamic extraction
@@ -102,7 +103,6 @@ const AttendeesPrint = forwardRef(({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedDimension, setSelectedDimension] = useState('2x2');
-  const [uniformFontSize, setUniformFontSize] = useState('medium');
   const [selectedFields, setSelectedFields] = useState([]);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isMobile, setIsMobile] = useState(isMobileDevice());
@@ -114,6 +114,7 @@ const AttendeesPrint = forwardRef(({
   const [fontSizeMultiplier, setFontSizeMultiplier] = useState(1.0);
   const [lineGapMultiplier, setLineGapMultiplier] = useState(1.0);
   const [letterSpacing, setLetterSpacing] = useState(0);
+  const [marginMultiplier, setMarginMultiplier] = useState(1.0);
   const [fieldFontSizes, setFieldFontSizes] = useState({});
   const printRef = useRef(null);
   const modeInitializedRef = useRef(false);
@@ -134,11 +135,9 @@ const AttendeesPrint = forwardRef(({
   // Load saved settings from localStorage
   useEffect(() => {
     const size = getWithExpiry(ATTENDEES_PRINT_SIZE_KEY);
-    const font = getWithExpiry(ATTENDEES_PRINT_FONT_KEY);
     const savedPrinterType = getWithExpiry(ATTENDEES_PRINT_PRINTER_TYPE_KEY);
 
     if (size) setSelectedDimension(size);
-    if (font) setUniformFontSize(font);
     if (savedPrinterType) setPrinterType(savedPrinterType);
   }, []);
 
@@ -265,28 +264,29 @@ const AttendeesPrint = forwardRef(({
   // Generate print bytes for all items using shared printer command utilities
   const generatePrintBytes = useCallback(async () => {
     const fieldNames = selectedFields;
-    const fSizeMultiplier = uniformFontSize === 'small' ? 0.8 : uniformFontSize === 'large' ? 1.2 : 1.0;
+    // Use fontSizeMultiplier directly — controlled by PrintSettingsDrawer "Global Font Size" %
+    const fSizeMultiplier = fontSizeMultiplier;
     const allBytes = [];
 
     for (const item of (printableData || [])) {
       let bytes;
       switch (printerType) {
         case 'zpl':
-          bytes = await generateZPLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier);
+          bytes = await generateZPLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier, fieldFontSizes, lineGapMultiplier);
           break;
         case 'cpcl':
-          bytes = await generateCPCLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier);
+          bytes = await generateCPCLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier, fieldFontSizes, lineGapMultiplier);
           break;
         case 'tspl':
         default:
-          bytes = await generateTSPLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier);
+          bytes = await generateTSPLFromExcel(item, fieldNames, selectedDimension, fSizeMultiplier, fieldFontSizes, lineGapMultiplier, marginMultiplier);
           break;
       }
       allBytes.push(...bytes);
     }
 
     return new Uint8Array(allBytes);
-  }, [printableData, selectedFields, selectedDimension, uniformFontSize, printerType]);
+  }, [printableData, selectedFields, selectedDimension, fontSizeMultiplier, printerType, fieldFontSizes, lineGapMultiplier, marginMultiplier]);
 
   // Connect and print to thermal printer
   const handleThermalPrint = useCallback(async () => {
@@ -585,10 +585,13 @@ const AttendeesPrint = forwardRef(({
         setLineGapMultiplier={setLineGapMultiplier}
         letterSpacing={letterSpacing}
         setLetterSpacing={setLetterSpacing}
+        marginMultiplier={marginMultiplier}
+        setMarginMultiplier={setMarginMultiplier}
         fieldFontSizes={fieldFontSizes}
         setFieldFontSizes={setFieldFontSizes}
         isMobile={isMobile}
         availableFields={availableFields}
+        labelSize={selectedDimension}
       />
 
       {/* Print Content - Hidden from view, only used during print */}
@@ -603,16 +606,15 @@ const AttendeesPrint = forwardRef(({
       >
         {printableData?.map((item, index) => {
           // Get font sizes based on selection
+          // fieldFontSizes stores direct pt values (e.g. {name: 20, email: 12})
           const getFontSize = (fieldKey) => {
-            // Use individual field font size if set
-            if (fieldFontSizes[fieldKey]) {
-              return `${Math.round(fieldFontSizes[fieldKey] * 16)}px`;
-            }
-            switch (uniformFontSize) {
-              case 'small': return '10px';
-              case 'large': return '16px';
-              default: return '12px';
-            }
+            const NAME_FIELDS = ['firstName', 'name', 'surname'];
+            // Use individual field pt size if set, otherwise use defaults
+            const ptSize = fieldFontSizes[fieldKey]
+              || (NAME_FIELDS.includes(fieldKey) ? 16 : 10);
+            // Apply global multiplier, convert pt → CSS px (1pt = 1.333px)
+            const effectivePt = Math.round(ptSize * fontSizeMultiplier);
+            return `${Math.round(effectivePt * 1.333)}px`;
           };
 
           return (
