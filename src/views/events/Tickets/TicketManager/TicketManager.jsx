@@ -263,7 +263,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
     // Media Selection Handler
     const handleMediaSelect = (url) => {
-        console.log('Media selected:', url);
         setSelectedMediaUrl(url);
         setMediaPickerOpen(false);
         // Clear fallback selection when custom media is chosen
@@ -325,17 +324,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             }
 
             // Image Logic: Custom URL OR Fallback
-            console.log('Submit - selectedMediaUrl:', selectedMediaUrl);
-            console.log('Submit - selectedFallbackTicket:', selectedFallbackTicket);
 
             if (selectedMediaUrl) {
                 formData.append('background_image', selectedMediaUrl);
-                console.log('Appending custom background_image:', selectedMediaUrl);
             } else if (selectedFallbackTicket) {
                 const fallbackImg = fallbackTickets.find(t => t.id === selectedFallbackTicket);
                 if (fallbackImg?.image) {
                     formData.append('background_image', fallbackImg.image);
-                    console.log('Appending fallback background_image:', fallbackImg.image);
                 }
             }
 

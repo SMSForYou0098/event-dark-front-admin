@@ -72,7 +72,6 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
     // Wait for all required data to be available (using eventFields prop)
     if (!eventFields?.length || !fieldsFetched || !allFields?.length) return;
 
-    console.log('=== Populating existing fields ===');
 
     // Mark as initialized to prevent re-running
     hasInitializedFields.current = true;
@@ -86,12 +85,10 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
       }
     });
 
-    console.log('fieldIds extracted:', fieldIds);
 
     // Get field data for selected field_ids
     const fieldsData = allFields.filter(f => fieldIds.includes(f.id));
 
-    console.log('fieldsData matched:', fieldsData);
 
     // Update state
     setSelectedFieldIds(fieldIds);
@@ -191,7 +188,6 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
     if (selectedCategory && categories.length > 0) {
       const category = categories.find(c => c.value === selectedCategory);
       if (category?.attendy_required) {
-        console.log('Setting attendee_required to false');
         form.setFieldsValue({ atd: false });
       }
     }

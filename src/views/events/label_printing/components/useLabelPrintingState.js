@@ -133,6 +133,21 @@ export const useLabelPrintingState = () => {
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 const raw = XLSX.utils.sheet_to_json(sheet, { defval: "" });
 
+                if (raw.length === 0) {
+                    message.error("Excel file is empty");
+                    return;
+                }
+
+                // Validation: Check for required columns
+                const requiredColumns = ["First Name", "Surname", "Mobile number", "Designation", "Company name", "Stall Number"];
+                const firstRow = raw[0];
+                const missingColumns = requiredColumns.filter(col => !Object.keys(firstRow).some(key => key.trim() === col));
+
+                if (missingColumns.length > 0) {
+                    message.error(`Excel is not in proper format. Missing columns: ${missingColumns.join(", ")}`);
+                    return;
+                }
+
                 // Map Excel columns to API field names
                 const formatted = raw.map((row, index) => ({
                     key: index,
@@ -154,6 +169,33 @@ export const useLabelPrintingState = () => {
             }
         };
         reader.readAsBinaryString(file);
+    }, []);
+
+    const downloadSampleExcel = useCallback(() => {
+        const headers = ["First Name", "Surname", "Mobile number", "Designation", "Company name", "Stall Number"];
+        const data = [
+            {
+                "First Name": "John",
+                "Surname": "Doe",
+                "Mobile number": "1234567890",
+                "Designation": "Manager",
+                "Company name": "Acme Corp",
+                "Stall Number": "A1"
+            },
+            {
+                "First Name": "Jane",
+                "Surname": "Smith",
+                "Mobile number": "0987654321",
+                "Designation": "Director",
+                "Company name": "Beta Inc",
+                "Stall Number": "B2"
+            }
+        ];
+
+        const ws = XLSX.utils.json_to_sheet(data, { header: headers });
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Labels");
+        XLSX.writeFile(wb, "Sample_Label_Upload.xlsx");
     }, []);
 
     const handleUploadToServer = useCallback(async () => {
@@ -670,5 +712,6 @@ export const useLabelPrintingState = () => {
         handleViewBatch,
         handleSaveToExistingBatch,
         handleSaveToNewBatch,
+        downloadSampleExcel,
     };
 };

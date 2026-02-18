@@ -47,7 +47,7 @@ const RefundBookings = () => {
 
             const url = `refunds?${params.toString()}`;
             const response = await api.get(url);
-            console.log('Refunds API Response:', response);
+            // console.log('Refunds API Response:', response);
             return response;
         },
     });
