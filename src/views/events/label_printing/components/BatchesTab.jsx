@@ -253,30 +253,27 @@ const BatchesTab = ({
                 </Col>
             </Row>
 
-            {/* Batches Table */}
-            <Card
-                title={
-                    <Space>
-                        <Layers size={18} />
-                        <span>Label Batches</span>
-                    </Space>
-                }
-                extra={
-                    <Button
-                        icon={<RefreshCw size={16} />}
-                        onClick={onRefresh}
-                        loading={isLoading}
-                    >
-                        Refresh
-                    </Button>
-                }
-            >
+            {/* Table Content */}
+            <div className="bg-white rounded border p-0">
                 {isLoading ? (
                     <div className="text-center p-5">
                         <Spin size="large" />
                     </div>
                 ) : (
                     <DataTable
+                        title='Label Batches'
+                        extraHeaderContent={
+                            <Button
+                                onClick={onRefresh}
+                                loading={isLoading}
+                                className="d-flex align-items-center justify-content-center"
+                            >
+                                <div className="d-flex align-items-center justify-content-center" style={{ gap: 8 }}>
+                                    <RefreshCw size={16} />
+                                    <span>Refresh</span>
+                                </div>
+                            </Button>
+                        }
                         data={batchGroups.map((b, idx) => ({ ...b, key: idx }))}
                         columns={columns}
                         enableSearch={true}
@@ -286,7 +283,7 @@ const BatchesTab = ({
                         defaultPageSize={10}
                     />
                 )}
-            </Card>
+            </div>
         </div>
     );
 };

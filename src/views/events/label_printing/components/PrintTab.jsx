@@ -235,7 +235,7 @@ const PrintTab = ({
             </Card>
 
             {/* Connection Status Alert */}
-            {connectionMode !== 'browser' && (
+            {/* {connectionMode !== 'browser' && (
                 <Alert
                     className="mb-4"
                     type={isConnected ? "success" : "warning"}
@@ -246,56 +246,48 @@ const PrintTab = ({
                     }
                     showIcon
                 />
-            )}
-
-            {/* Print Button */}
-            <div className="d-flex justify-content-end mb-4">
-                <Button
-                    type="primary"
-                    size="large"
-                    icon={<PrinterIcon size={18} />}
-                    disabled={!selectedRows.length}
-                    onClick={onPrint}
-                    loading={isPrinting}
-                    className="d-flex align-items-center gap-2"
-                >
-                    Print Selected ({selectedRows.length})
-                </Button>
-            </div>
+            )} */}
 
             {/* Labels Table */}
             {selectedBatchId ? (
-                <Card
-                    styles={{ body: { padding: 0 } }}
-                    title={
-                        <div className="d-flex align-items-center gap-2">
+                <div style={{ fontFamily }}>
+                    <DataTable
+                        title={<div className="d-flex align-items-center gap-2">
                             <PrinterIcon size={18} />
                             <span>Labels in Batch: {selectedBatchId}</span>
-                        </div>
-                    }
-                >
-                    <div style={{ fontFamily }}>
-                        <DataTable
-                            data={selectedBatchLabels.map((label, idx) => ({
-                                ...label,
-                                key: label.id || idx,
-                            }))}
-                            columns={columns}
-                            enableSearch={true}
-                            showSearch={true}
-                            emptyText="No labels in this batch"
-                            pageSizeOptions={["10", "20", "50", "100"]}
-                            defaultPageSize={10}
-                            tableProps={{
-                                rowSelection: {
-                                    type: 'checkbox',
-                                    onChange: (_, rows) => setSelectedRows(rows),
-                                    selectedRowKeys: selectedRows.map(row => row.key || row.id),
-                                },
-                            }}
-                        />
-                    </div>
-                </Card>
+                        </div>}
+                        data={selectedBatchLabels.map((label, idx) => ({
+                            ...label,
+                            key: label.id || idx,
+                        }))}
+                        columns={columns}
+                        enableSearch={true}
+                        extraHeaderContent={
+                            <Button
+                                type="primary"
+                                size="large"
+                                icon={<PrinterIcon size={18} />}
+                                disabled={!selectedRows.length}
+                                onClick={onPrint}
+                                loading={isPrinting}
+                                className="d-flex align-items-center gap-2"
+                            >
+                                Print Selected ({selectedRows.length})
+                            </Button>
+                        }
+                        showSearch={true}
+                        emptyText="No labels in this batch"
+                        pageSizeOptions={["10", "20", "50", "100"]}
+                        defaultPageSize={10}
+                        tableProps={{
+                            rowSelection: {
+                                type: 'checkbox',
+                                onChange: (_, rows) => setSelectedRows(rows),
+                                selectedRowKeys: selectedRows.map(row => row.key || row.id),
+                            },
+                        }}
+                    />
+                </div>
             ) : (
                 <Card>
                     <Empty

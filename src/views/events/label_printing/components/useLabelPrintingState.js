@@ -456,6 +456,9 @@ export const useLabelPrintingState = () => {
                 }, 100);
             } else {
                 handleBrowserPrint();
+                if (!instantPrintData?.isInstantPrint) {
+                    setSelectedRows([]);
+                }
             }
         } else {
             // Thermal printing
@@ -526,6 +529,9 @@ export const useLabelPrintingState = () => {
                 message.error({ content: err.message || "Print failed", key: "print" });
             } finally {
                 setIsPrinting(false);
+                if (!instantPrintData?.isInstantPrint) {
+                    setSelectedRows([]);
+                }
             }
         }
     }, [connectionMode, selectedRows, selectedFields, handleBrowserPrint, fieldFontSizes, bulkUpdateStatusMutation, UserData?.id, isConnected, connectUSB, connectBluetooth, sendRawBytes, printerType, labelSize, fontSizeMultiplier, lineGapMultiplier, setSelectedRows]);

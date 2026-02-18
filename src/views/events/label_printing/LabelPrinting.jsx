@@ -7,7 +7,8 @@ import {
     Printer,
     CheckCircle,
     Zap,
-    Code
+    Code,
+    XCircle
 } from "lucide-react";
 import printLoader from "assets/event/stock/print_loader.gif";
 import Loader from "utils/Loader";
@@ -109,6 +110,7 @@ const LabelPrinting = () => {
         handleSaveToNewBatch,
         isSaving,
         UserData,
+        downloadSampleExcel,
     } = useLabelPrintingState();
 
     // Table columns for preview (using API field names)
@@ -150,6 +152,7 @@ const LabelPrinting = () => {
                     isUploading={isUploading}
                     columns={previewColumns}
                     fontFamily={fontFamily}
+                    downloadSampleExcel={downloadSampleExcel}
                 />
             ),
         },
@@ -344,9 +347,19 @@ const LabelPrinting = () => {
                 }
                 extra={
                     <Space>
-                        {isConnected && (
-                            <Tag color="success" icon={<CheckCircle size={12} />}>
-                                Printer Connected
+                        {isConnected ? (
+                            <Tag color="success">
+                                <div className="d-flex align-items-center" style={{ gap: 6 }}>
+                                    <CheckCircle size={12} />
+                                    <span>Printer Connected</span>
+                                </div>
+                            </Tag>
+                        ) : (
+                            <Tag color="error">
+                                <div className="d-flex align-items-center" style={{ gap: 6 }}>
+                                    <XCircle size={12} />
+                                    <span>Printer Disconnected</span>
+                                </div>
                             </Tag>
                         )}
                         {selectedRows.length > 0 && connectionMode !== "browser" && (

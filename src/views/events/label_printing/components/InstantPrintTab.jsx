@@ -199,35 +199,41 @@ const InstantPrintTab = ({
     return (
         <div className="instant-print-tab">
             {/* Batch Selection Card */}
-            <Card className="mb-4" size="small">
-                <Row gutter={[16, 16]} align="middle">
-                    <Col xs={24} md={6}>
-                        <Text strong>Save to:</Text>
-                        <Radio.Group
-                            value={saveMode}
-                            onChange={(e) => setSaveMode(e.target.value)}
-                            className="d-block mt-2"
-                        >
-                            <Space direction="vertical">
-                                <Radio value="existing">Existing Batch</Radio>
-                                <Radio value="new">New Batch</Radio>
-                            </Space>
-                        </Radio.Group>
+            <Card className="" size="small">
+                <Row gutter={[16, 8]} align="middle">
+
+                    {/* Save Mode */}
+                    <Col xs={24} sm={12} md={6}>
+                        <Form.Item label="Save To" className="mb-0">
+                            <Radio.Group
+                                value={saveMode}
+                                onChange={(e) => setSaveMode(e.target.value)}
+                            >
+                                <Space>
+                                    <Radio value="existing">Existing</Radio>
+                                    <Radio value="new">New</Radio>
+                                </Space>
+                            </Radio.Group>
+                        </Form.Item>
                     </Col>
-                    <Col xs={24} md={10}>
-                        {saveMode === 'existing' ? (
-                            <Form.Item label="Select Batch" className="mb-0">
+
+                    {/* Batch Selection */}
+                    <Col xs={24} sm={12} md={6}>
+                        {saveMode === "existing" ? (
+                            <Form.Item label="Batch" className="mb-0">
                                 <Select
                                     placeholder="Choose a batch"
                                     value={selectedBatchId}
                                     onChange={setSelectedBatchId}
-                                    style={{ width: '100%' }}
                                     showSearch
                                     optionFilterProp="children"
                                     loading={isLoadingBatches}
-                                    notFoundContent={isLoadingBatches ? "Loading batches..." : "No batches found"}
+                                    style={{ width: "100%" }}
+                                    notFoundContent={
+                                        isLoadingBatches ? "Loading..." : "No batches found"
+                                    }
                                 >
-                                    {batchGroups.map(batch => {
+                                    {batchGroups.map((batch) => {
                                         const batchId = batch.batch_id || batch.batchId;
                                         return (
                                             <Option key={batchId} value={batchId}>
@@ -238,7 +244,7 @@ const InstantPrintTab = ({
                                 </Select>
                             </Form.Item>
                         ) : (
-                            <Form.Item label="New Batch Name" className="mb-0">
+                            <Form.Item label="Batch Name" className="mb-0">
                                 <Input
                                     placeholder="Enter batch name"
                                     value={newBatchName}
@@ -247,34 +253,36 @@ const InstantPrintTab = ({
                             </Form.Item>
                         )}
                     </Col>
-                    <Col xs={24} md={8}>
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item label="Label Size" className="mb-0">
-                                    <Select value={labelSize} onChange={setLabelSize} style={{ width: '100%' }}>
-                                        {LABEL_SIZES.map((size) => (
-                                            <Option key={size.value} value={size.value}>
-                                                {size.label}
-                                            </Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item label="Copies" className="mb-0">
-                                    <InputNumber
-                                        min={1}
-                                        max={100}
-                                        value={copies}
-                                        onChange={(val) => setCopies(Math.max(1, val || 1))}
-                                        style={{ width: '100%' }}
-                                    />
-                                </Form.Item>
-                            </Col>
-                        </Row>
+
+                    {/* Label Size */}
+                    <Col xs={12} sm={6} md={6}>
+                        <Form.Item label="Label Size" className="mb-0">
+                            <Select value={labelSize} onChange={setLabelSize} style={{ width: "100%" }}>
+                                {LABEL_SIZES.map((size) => (
+                                    <Option key={size.value} value={size.value}>
+                                        {size.label}
+                                    </Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
                     </Col>
+
+                    {/* Copies */}
+                    <Col xs={12} sm={6} md={6}>
+                        <Form.Item label="Copies" className="mb-0">
+                            <InputNumber
+                                min={1}
+                                max={100}
+                                value={copies}
+                                onChange={(val) => setCopies(Math.max(1, val || 1))}
+                                style={{ width: "100%" }}
+                            />
+                        </Form.Item>
+                    </Col>
+
                 </Row>
             </Card>
+
 
             {/* Fields Input Card */}
             <Card
@@ -286,133 +294,77 @@ const InstantPrintTab = ({
                 }
                 extra={
                     <Space>
-                        <Button size="small" icon={<RotateCcw size={14} />} onClick={handleResetFontSizes}>
-                            Reset Sizes
-                        </Button>
-                        <Button size="small" icon={<RotateCcw size={14} />} onClick={handleReset}>
-                            Clear
-                        </Button>
-                        <Tooltip title="Print Settings">
-                            <Button size="small" icon={<SettingsIcon size={14} />} onClick={onOpenSettings} />
-                        </Tooltip>
-                    </Space>
-                }
-                className="mb-4"
-            >
-                <div style={{ fontFamily }}>
-                    {AVAILABLE_FIELDS.map((field, index) => (
-                        <div key={field.key}>
-                            {index > 0 && <Divider className="my-3" />}
-                            <Row gutter={[16, 8]} align="middle">
-                                <Col xs={24} md={4}>
-                                    <Text strong>{field.label}</Text>
-                                    {field.key === 'name' && <Text type="danger"> *</Text>}
-                                </Col>
-                                <Col xs={24} md={10}>
-                                    <Input
-                                        placeholder={`Enter ${field.label}`}
-                                        value={fieldValues[field.key]}
-                                        onChange={(e) => handleValueChange(field.key, e.target.value)}
-                                        size="large"
-                                        style={{ fontFamily }}
-                                    />
-                                </Col>
-                                <Col xs={24} md={10}>
-                                    <div className="d-flex align-items-center gap-2">
-                                        <Text type="secondary" style={{ minWidth: 60 }}>
-                                            Size: {fieldFontSizes[field.key]}pt
-                                        </Text>
-                                        <Slider
-                                            min={6}
-                                            max={72}
-                                            step={1}
-                                            value={fieldFontSizes[field.key] || field.defaultSize}
-                                            onChange={(val) => handleFontSizeChange(field.key, val)}
-                                            style={{ flex: 1 }}
-                                            tooltip={{ formatter: (val) => `${val}pt` }}
-                                        />
-                                    </div>
-                                </Col>
-                            </Row>
-                        </div>
-                    ))}
-                </div>
-            </Card>
-
-            {/* Preview & Print Button */}
-            <Card className="mb-4">
-                <Row gutter={24}>
-                    <Col xs={24} md={14}>
-                        <Title level={5}>Label Preview</Title>
-                        <div
-                            className="label-preview-box"
-                            style={{
-                                border: '2px dashed #d9d9d9',
-                                borderRadius: 8,
-                                padding: 16,
-                                minHeight: 150,
-                                backgroundColor: '#fafafa',
-                                fontFamily,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                            }}
-                        >
-                            {filledFields.length === 0 ? (
-                                <Text type="secondary">Fill in fields to see preview</Text>
-                            ) : (
-                                <div className="text-center">
-                                    {filledFields.map((field) => (
-                                        <div
-                                            key={field.key}
-                                            style={{
-                                                fontSize: Math.round((fieldFontSizes[field.key] || field.defaultSize) * 1.333),
-                                                fontWeight: field.key === 'name' ? 'bold' : 'normal',
-                                                marginBottom: 4,
-                                                lineHeight: 1.3,
-                                            }}
-                                        >
-                                            {fieldValues[field.key]}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    </Col>
-                    <Col xs={24} md={10} className="d-flex flex-column justify-content-center">
-                        <div className="mb-2">
-                            <Text type="secondary">
-                                Batch: <Text strong>
-                                    {saveMode === 'existing'
-                                        ? (selectedBatchId || 'Not selected')
-                                        : (newBatchName || 'New batch')}
-                                </Text>
-                            </Text>
-                        </div>
-                        <div className="mb-2">
+                        <div className="">
                             <Text type="secondary">
                                 Copies: <Text strong>{copies}</Text>
                             </Text>
                         </div>
                         <Button
                             type="primary"
-                            size="large"
+                            size="small"
                             icon={<PrinterIcon size={18} />}
                             disabled={!canPrint}
                             onClick={handleSaveAndPrint}
                             loading={isPrinting || isSaving}
-                            block
                             className="d-flex align-items-center justify-content-center gap-2"
                         >
-                            Save & Print {copies > 1 ? `(${copies} copies)` : ''}
+                            Save & Print
                         </Button>
-                        {connectionMode !== 'browser' && !isConnected && (
-                            <Text type="warning" className="mt-2 text-center d-block">
-                                ⚠️ Printer not connected
-                            </Text>
-                        )}
-                    </Col>
+                        <Button size="small" onClick={handleResetFontSizes}>
+                            <div className="d-flex align-items-center" style={{ gap: 6 }}>
+                                <RotateCcw size={14} />
+                                <span>Reset Sizes</span>
+                            </div>
+                        </Button>
+                        <Button size="small" onClick={handleReset}>
+                            <div className="d-flex align-items-center" style={{ gap: 6 }}>
+                                <RotateCcw size={14} />
+                                <span>Clear</span>
+                            </div>
+                        </Button>
+                        <Tooltip title="Print Settings">
+                            <Button size="small" onClick={onOpenSettings}>
+                                <div className="d-flex align-items-center">
+                                    <SettingsIcon size={14} />
+                                </div>
+                            </Button>
+                        </Tooltip>
+                    </Space>
+                }
+                className="mb-4"
+            >
+                <Row gutter={[16, 20]} style={{ fontFamily }}>
+                    {AVAILABLE_FIELDS.map((field) => (
+                        <Col key={field.key} xs={24} sm={12} md={8}>
+                            {/* Label */}
+                            <div className="mb-1">
+                                <Text strong>{field.label}</Text>
+                                {field.key === 'name' && <Text type="danger"> *</Text>}
+                            </div>
+                            {/* Input */}
+                            <Input
+                                placeholder={`Enter ${field.label}`}
+                                value={fieldValues[field.key]}
+                                onChange={(e) => handleValueChange(field.key, e.target.value)}
+                                style={{ fontFamily, marginBottom: 8 }}
+                            />
+                            {/* Size Slider */}
+                            <div className="d-flex align-items-center gap-2">
+                                <Text type="secondary" style={{ minWidth: 60, fontSize: 12 }}>
+                                    Size: {fieldFontSizes[field.key]}pt
+                                </Text>
+                                <Slider
+                                    min={6}
+                                    max={72}
+                                    step={1}
+                                    value={fieldFontSizes[field.key] || field.defaultSize}
+                                    onChange={(val) => handleFontSizeChange(field.key, val)}
+                                    style={{ flex: 1 }}
+                                    tooltip={{ formatter: (val) => `${val}pt` }}
+                                />
+                            </div>
+                        </Col>
+                    ))}
                 </Row>
             </Card>
         </div>
