@@ -1,9 +1,10 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { connect } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import SideNav from 'components/layout-components/SideNav';
 import TopNav from 'components/layout-components/TopNav';
-import Loading from 'components/shared-components/Loading';
+import DelayedLoading from 'components/shared-components/Loading/DelayedLoading';
+import { prefetchCriticalRoutes } from 'utils/routePrefetch';
 import MobileNav from 'components/layout-components/MobileNav'
 import HeaderNav from 'components/layout-components/HeaderNav';
 import PageHeader from 'components/layout-components/PageHeader';
@@ -44,6 +45,11 @@ export const AppLayout = ({ navCollapsed, navType, direction, children }) => {
 
     const location = useLocation();
 
+    // Prefetch critical routes during idle time after initial render
+    useEffect(() => {
+        prefetchCriticalRoutes();
+    }, []);
+
     const currentRouteInfo = utils.getRouteInfo(navigationConfig, location.pathname)
     const screens = utils.getBreakPoint(useBreakpoint());
     const isMobile = screens.length === 0 ? false : !screens.includes('lg')
@@ -77,7 +83,7 @@ export const AppLayout = ({ navCollapsed, navType, direction, children }) => {
                     <AppContent isNavTop={isNavTop}>
                         <PageHeader display={currentRouteInfo?.breadcrumb} title={currentRouteInfo?.title} />
                         <Content className="h-100">
-                            <Suspense fallback={<Loading cover="content"/>}>
+                            <Suspense fallback={<DelayedLoading delay={400} cover="content"/>}>
                                 {children}
                             </Suspense>
                         </Content>

@@ -92,7 +92,6 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       key: 'name',
       render: (text, record) => {
         const isBookingBlocked = rowIsDisabled(record);
-        console.log('record', record);
         let bookingStatus = null;
         if (rowIsDisabled(record)) {
           if (record?.booking_not_open) {

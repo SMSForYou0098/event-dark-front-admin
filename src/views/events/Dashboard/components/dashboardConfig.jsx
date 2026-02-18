@@ -241,27 +241,27 @@ export const getUserStats = (data = {}) => [
 
 export const getRevenueStats = (data = {}) => [
     {
-        title: 'Online Amount',
+        title: 'Online Amt',
         value: data.onlineAmount || 0,
         color: '#52c41a'
     },
     {
-        title: 'POS Amount',
+        title: 'POS Amt',
         value: data.posAmount || 0,
         color: '#1890ff'
     },
     {
-        title: 'Agent Amount',
+        title: 'Agent Amt',
         value: data.agentAmount || 0,
         color: '#fa8c16'
     },
     {
-        title: 'Sponsor Amount',
+        title: 'Sponsor Amt',
         value: data.sponsorAmount || 0,
         color: '#eb2f96'
     },
     {
-        title: 'Total Offline Amount',
+        title: 'Total Offline Amt',
         value: data.offlineAmount || 0,
         color: '#722ed1'
     },
@@ -296,7 +296,7 @@ export const getGatewayData = (pgData) => {
 
 export const getGatewayColumns = (formatCurrency) => [
     {
-        title: 'Payment Gateway',
+        title: 'PG',
         dataIndex: 'gateway',
         key: 'gateway',
         render: (text) => <span style={{ fontWeight: 'bold' }}>{text}</span>,
@@ -314,13 +314,13 @@ export const getGatewayColumns = (formatCurrency) => [
         ),
     },
     {
-        title: 'Today Collection',
+        title: 'Today',
         dataIndex: 'today_total',
         key: 'today_total',
         render: (amount) => formatCurrency(amount),
     },
     {
-        title: 'Overall Collection',
+        title: 'Overall',
         dataIndex: 'all_total',
         key: 'all_total',
         render: (amount) => formatCurrency(amount),

@@ -36,7 +36,7 @@ const AdminSetting = () => {
                     'Authorization': 'Bearer ' + authToken,
                 }
             });
-            
+
             if (res.data.status) {
                 return res.data.data;
             }
@@ -83,7 +83,7 @@ const AdminSetting = () => {
     useEffect(() => {
         if (settingsData) {
             const configData = settingsData;
-            
+
             // Parse home divider data
             let parsedDividerUrl = {};
             if (configData?.home_divider_url) {
@@ -113,6 +113,13 @@ const AdminSetting = () => {
                 home_divider_url: parsedDividerUrl.url || '',
                 external_link: parsedDividerUrl.external_link || false,
                 new_tab: parsedDividerUrl.new_tab || false,
+                ai_keys: (() => {
+                    try {
+                        return configData?.ai_keys ? JSON.parse(configData.ai_keys) : [];
+                    } catch {
+                        return [];
+                    }
+                })(),
             });
 
             // Set file URLs for preview (not File objects)
@@ -130,7 +137,7 @@ const AdminSetting = () => {
 
     const handleAppConfig = async (values) => {
         const formData = new FormData();
-        
+
         // Append all form values
         Object.keys(values).forEach(key => {
             if (values[key] !== undefined && values[key] !== null) {
@@ -175,6 +182,11 @@ const AdminSetting = () => {
             })
         );
 
+        // Append ai_keys as JSON
+        if (values.ai_keys && values.ai_keys.length > 0) {
+            formData.append('ai_keys', JSON.stringify(values.ai_keys));
+        }
+
         updateSettingsMutation.mutate(formData);
     };
 
@@ -187,12 +199,12 @@ const AdminSetting = () => {
         <Spin spinning={configLoading} tip="Loading settings...">
             <Row gutter={[16, 16]}>
                 <Col span={24}>
-                    <Card 
+                    <Card
                         title="Admin Settings"
                         bordered={false}
                     >
-                        <Form 
-                            form={form} 
+                        <Form
+                            form={form}
                             layout="vertical"
                             onFinish={handleAppConfig}
                         >
@@ -202,12 +214,12 @@ const AdminSetting = () => {
                                 fileUploads={fileUploads}
                                 setFileUploads={setFileUploads}
                             />
-                            
+
                             <Row gutter={[16, 16]}>
                                 <Col span={24}>
                                     <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-                                        <Button 
-                                            type="primary" 
+                                        <Button
+                                            type="primary"
                                             htmlType="submit"
                                             loading={loading.saveLoading}
                                             disabled={loading.saveLoading}

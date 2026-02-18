@@ -31,9 +31,9 @@ const SIGNATURE_FONTS = [
   { name: 'Edwardian Script', style: 'Edwardian Script ITC, cursive' }
 ];
 
-const AgreementPreview = ({ 
-  visible, 
-  onClose, 
+const AgreementPreview = ({
+  visible,
+  onClose,
   agreementData,
   onAccept,
   showAcceptance = true,
@@ -54,9 +54,9 @@ const AgreementPreview = ({
       return;
     }
 
-    const signatureData = signatureType === 'draw' ? canvasRef.current?.toDataURL() : 
-                          signatureType === 'type' ? typedSignature : 
-                          uploadedSignature;
+    const signatureData = signatureType === 'draw' ? canvasRef.current?.toDataURL() :
+      signatureType === 'type' ? typedSignature :
+        uploadedSignature;
 
     if (!signatureData) {
       message.warning('Please provide your signature');
@@ -64,7 +64,7 @@ const AgreementPreview = ({
     }
 
     setLoading(true);
-    
+
     const acceptanceData = {
       agreed: true,
       signature: {
@@ -78,7 +78,6 @@ const AgreementPreview = ({
 
     // Simulate API call
     setTimeout(() => {
-      console.log('Agreement Accepted:', acceptanceData);
       message.success('Agreement accepted successfully!');
       setLoading(false);
       if (onAccept) onAccept(acceptanceData);
@@ -148,18 +147,18 @@ const AgreementPreview = ({
     if (adminSignature.type === 'draw' || adminSignature.type === 'upload') {
       return <img src={adminSignature.data} alt="Admin Signature" className="img-fluid" style={{ maxHeight: '80px' }} />;
     }
-    
+
     if (adminSignature.type === 'type') {
       return (
-        <div style={{ 
-          fontFamily: SIGNATURE_FONTS.find(f => f.name === adminSignature.font)?.style || 'cursive', 
-          fontSize: '32px' 
+        <div style={{
+          fontFamily: SIGNATURE_FONTS.find(f => f.name === adminSignature.font)?.style || 'cursive',
+          fontSize: '32px'
         }}>
           {adminSignature.data}
         </div>
       );
     }
-    
+
     return <Text type="secondary">No signature</Text>;
   };
 
@@ -172,9 +171,9 @@ const AgreementPreview = ({
         <Button key="decline" onClick={onClose}>
           Decline
         </Button>,
-        <Button 
-          key="accept" 
-          type="primary" 
+        <Button
+          key="accept"
+          type="primary"
           icon={<CheckCircleOutlined />}
           onClick={handleAccept}
           loading={loading}
@@ -195,7 +194,7 @@ const AgreementPreview = ({
         <Title level={3} className="text-center mb-4">
           PARTNER AGREEMENT
         </Title>
-        
+
         <div className="border border-2 p-4 bg-light rounded">
           <Title level={4} className="mb-3">
             {agreementData?.agreementTitle || 'Event Organizer Partnership Agreement'}
@@ -206,9 +205,9 @@ const AgreementPreview = ({
               Status: <span className="text-capitalize badge bg-success">{agreementData?.agreementStatus || 'Active'}</span>
             </Text>
           </div>
-          
+
           <Divider />
-          
+
           <Row gutter={[16, 16]} className="mb-4">
             <Col span={12}>
               <Text strong>Effective Date:</Text>
@@ -263,12 +262,12 @@ const AgreementPreview = ({
                 {agreementData?.allowedCategories?.map(cat => (
                   <span key={cat} className="badge bg-primary me-2 text-capitalize">{cat}</span>
                 )) || (
-                  <>
-                    <span className="badge bg-primary me-2">Music</span>
-                    <span className="badge bg-primary me-2">Sports</span>
-                    <span className="badge bg-primary me-2">Theatre</span>
-                  </>
-                )}
+                    <>
+                      <span className="badge bg-primary me-2">Music</span>
+                      <span className="badge bg-primary me-2">Sports</span>
+                      <span className="badge bg-primary me-2">Theatre</span>
+                    </>
+                  )}
               </div>
             </Col>
           </Row>
@@ -349,7 +348,7 @@ const AgreementPreview = ({
             <Divider />
             <div className="p-4 border border-2 rounded">
               <Title level={5} className="mb-3">Partner Signature Required</Title>
-              
+
               <Tabs activeKey={signatureType} onChange={setSignatureType}>
                 <Tabs.TabPane tab={<><EditOutlined /> Draw</>} key="draw">
                   <div className="text-center">
@@ -362,7 +361,7 @@ const AgreementPreview = ({
                       onMouseUp={stopDrawing}
                       onMouseLeave={stopDrawing}
                       className="border border-2 rounded"
-                      style={{ cursor: 'crosshair', maxWidth: '100%' , background: 'white'}}
+                      style={{ cursor: 'crosshair', maxWidth: '100%', background: 'white' }}
                     />
                     <div className="mt-3">
                       <Button onClick={clearCanvas} danger size="small">Clear</Button>
@@ -374,7 +373,7 @@ const AgreementPreview = ({
                   <Row gutter={16}>
                     <Col xs={24} md={12}>
                       <label className="d-block mb-2"><Text strong>Font Style:</Text></label>
-                      <Select 
+                      <Select
                         value={selectedFont.name}
                         onChange={(val) => setSelectedFont(SIGNATURE_FONTS.find(f => f.name === val))}
                         className="w-100"
@@ -436,8 +435,8 @@ const AgreementPreview = ({
 
               <Divider />
 
-              <Checkbox 
-                checked={agreed} 
+              <Checkbox
+                checked={agreed}
                 onChange={(e) => setAgreed(e.target.checked)}
                 className="mb-3"
               >

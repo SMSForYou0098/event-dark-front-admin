@@ -121,7 +121,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                         md: 8,
                         lg: 6,
                         xl: 4,
-                        style: { flex: '1 1 20%', maxWidth: isMobile ? '100%' : '20%' }
+                        style: { flex: '1 1 20%', maxWidth: window.innerWidth <= 768 ? '100%' : '20%' }
                     }}
                     // extraHeader={
                     //     <Switch
@@ -138,8 +138,15 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 <StatSection
                     title="Booking Statistics"
                     stats={getBookingStats(bookingData)}
-                    colConfig={{ xs: 24, sm: 12, lg: 6 }}
-                    containerCol={{ xs: 24, md: 12 }}
+                    colConfig={{
+                        xs: 24,
+                        sm: 12,
+                        md: 8,
+                        lg: 6,
+                        xl: 4,
+                        style: { flex: '1 1 20%', maxWidth: window.innerWidth <= 768 ? '100%' : '20%' }
+                    }}
+                    containerCol={{ xs: 24, md: 24 }}
                     isMobile={isMobile}
                 />
 
@@ -148,7 +155,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                     title="Events Info"
                     stats={getEventStats(bookingData?.eventinfo)}
                     colConfig={{ xs: 24, sm: 12, lg: 8 }}
-                    containerCol={{ xs: 24, md: 12 }}
+                    containerCol={{ xs: 24, md: 10 }}
                     isMobile={isMobile}
                 />
 

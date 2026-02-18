@@ -143,18 +143,18 @@ const SalesCard = ({ title, value, subtitle, badgeLabel, symbol }) => {
                 {badgeLabel && <Tag color='cyan'>{badgeLabel}</Tag>}
             </div>
 
-            <div className="d-flex align-items-end" style={{ gap: 8 }}>
+            <div className="d-flex align-items-center" style={{ gap: symbol === 'user' ? 4 : 0 }}>
                 {symbol === 'user' ? (
-                    <Users size={16} color="grey" className="me-2" />
+                    <Users size={16} color="grey" />
                 ) : (
-                    <div style={{ fontSize: 18, lineHeight: 1 }}>₹</div>
+                    <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>₹</span>
                 )}
-                <div style={{ fontSize: 20, fontWeight: 700 }}>
+                <span style={{ fontSize: 20, fontWeight: 700, lineHeight: 1 }}>
                     <CountUp start={0} end={Number(value) || 0} duration={1.5} useEasing separator="," />
-                </div>
+                </span>
             </div>
 
-            {subtitle && <div className='text-primary' >{subtitle}</div>}
+            {subtitle && <div className='text-warning' >{subtitle}</div>}
         </Card>
     );
 };

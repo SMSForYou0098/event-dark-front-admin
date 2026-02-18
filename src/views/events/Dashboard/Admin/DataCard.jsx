@@ -6,11 +6,11 @@ const DataCard = (props) => {
     const { data, formatter, value } = props
 
     return (
-        <Card bordered={false} title={<span style={{ fontSize: '1rem' }}>{data.title}</span>}>
+        <Card bordered={false} title={<span style={{ fontSize: '0.75rem' }}>{data.title}</span>}>
             <Space direction="horizontal" size="large" className="w-100 d-flex justify-content-between">
                 <Statistic
                     value={value % 1 !== 0 ? Number(value).toFixed(2) : value}
-                    valueStyle={{ color: '#fff', fontWeight: 'bold', fontSize:'1rem' }}
+                    valueStyle={{ color: '#fff', fontWeight: 'bold', fontSize: '1rem' }}
                     formatter={formatter || ''}
                 />
                 {data.icon &&

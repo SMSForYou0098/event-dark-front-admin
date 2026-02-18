@@ -98,7 +98,7 @@ const generateBadgeLabelZPL = (data, sizeKey = '3x2') => {
     };
 
     const lines = [];
-    
+
     // Start ZPL
     lines.push('^XA');
     lines.push('');
@@ -207,8 +207,8 @@ const generateBadgeLabelZPL = (data, sizeKey = '3x2') => {
  * @param {Object} props.buttonProps - Additional button props
  * @param {Object} props.badgeData - Badge data for dynamic generation
  */
-const ZPLPrintButton = ({ 
-    zplCode = null, 
+const ZPLPrintButton = ({
+    zplCode = null,
     buttonText = 'Print Badge',
     buttonProps = {},
     showSettings = true,
@@ -222,7 +222,7 @@ const ZPLPrintButton = ({
     const [bluetoothDevice, setBluetoothDevice] = useState(null);
     const [bluetoothConnected, setBluetoothConnected] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
-    
+
     // Badge form data
     const [formData, setFormData] = useState(badgeData || DEFAULT_BADGE_DATA);
     const [labelSize, setLabelSize] = useState('3x2');
@@ -288,24 +288,23 @@ const ZPLPrintButton = ({
 
             // Connect to GATT server
             const server = await device.gatt.connect();
-            
+
             // Try to find a writable characteristic
             let writeCharacteristic = null;
             const services = await server.getPrimaryServices();
-            
+
             for (const service of services) {
                 try {
                     const characteristics = await service.getCharacteristics();
                     for (const char of characteristics) {
                         if (char.properties.write || char.properties.writeWithoutResponse) {
                             writeCharacteristic = char;
-                            console.log('Found writable characteristic:', char.uuid);
                             break;
                         }
                     }
                     if (writeCharacteristic) break;
                 } catch (e) {
-                    console.log('Service scan error:', e);
+                    console.error('Service scan error:', e);
                 }
             }
 
@@ -317,7 +316,7 @@ const ZPLPrintButton = ({
             device._writeCharacteristic = writeCharacteristic;
             setBluetoothDevice(device);
             setBluetoothConnected(true);
-            
+
             // Handle disconnection
             device.addEventListener('gattserverdisconnected', () => {
                 setBluetoothConnected(false);
@@ -358,7 +357,7 @@ const ZPLPrintButton = ({
      */
     const printViaBluetooth = async () => {
         let device = bluetoothDevice;
-        
+
         // Connect if not connected
         if (!device || !device.gatt.connected) {
             device = await connectBluetooth();
@@ -371,21 +370,21 @@ const ZPLPrintButton = ({
 
         try {
             const writeChar = device._writeCharacteristic;
-            
+
             // Send data in chunks (BLE has MTU limits, typically 20-512 bytes)
             const chunkSize = 20; // Safe default, some devices support larger
-            
+
             message.loading({ content: 'Sending to printer...', key: 'btprint' });
-            
+
             for (let i = 0; i < data.length; i += chunkSize) {
                 const chunk = data.slice(i, i + chunkSize);
-                
+
                 if (writeChar.properties.writeWithoutResponse) {
                     await writeChar.writeValueWithoutResponse(chunk);
                 } else {
                     await writeChar.writeValue(chunk);
                 }
-                
+
                 // Small delay between chunks
                 await new Promise(resolve => setTimeout(resolve, 10));
             }
@@ -395,7 +394,7 @@ const ZPLPrintButton = ({
         } catch (error) {
             message.error({ content: `Bluetooth print failed: ${error.message}`, key: 'btprint' });
             console.error('Bluetooth print error:', error);
-            
+
             // Try to reconnect on next print
             setBluetoothConnected(false);
         }
@@ -407,7 +406,7 @@ const ZPLPrintButton = ({
      */
     const printViaRawPrint = () => {
         const zpl = getZPLCode();
-        
+
         // Create a hidden iframe for printing
         const printFrame = document.createElement('iframe');
         printFrame.style.position = 'fixed';
@@ -456,7 +455,7 @@ const ZPLPrintButton = ({
             setTimeout(() => {
                 printFrame.contentWindow.focus();
                 printFrame.contentWindow.print();
-                
+
                 // Clean up after print dialog closes
                 setTimeout(() => {
                     document.body.removeChild(printFrame);
@@ -485,7 +484,7 @@ const ZPLPrintButton = ({
             // Get default printer
             window.BrowserPrint.getDefaultDevice('printer', (device) => {
                 if (device) {
-                    device.send(zpl, 
+                    device.send(zpl,
                         () => message.success('ZPL sent to printer successfully!'),
                         (error) => message.error(`Print failed: ${error}`)
                     );
@@ -524,7 +523,7 @@ const ZPLPrintButton = ({
                 },
                 mode: 'no-cors'
             });
-            
+
             message.success('ZPL sent to printer. Check printer for output.');
         } catch (error) {
             message.warning('Network print attempted. If print fails, try Raw Print method.');
@@ -538,7 +537,7 @@ const ZPLPrintButton = ({
      */
     const copyToClipboard = async () => {
         const zpl = getZPLCode();
-        
+
         try {
             await navigator.clipboard.writeText(zpl);
             message.success('ZPL code copied to clipboard!');
@@ -651,7 +650,7 @@ const ZPLPrintButton = ({
                         {inputMode === 'form' ? (
                             <>
                                 <Divider orientation="left">Badge Data</Divider>
-                                
+
                                 <div style={{ marginBottom: 16 }}>
                                     <Row gutter={8}>
                                         <Col span={12}>
@@ -746,7 +745,7 @@ const ZPLPrintButton = ({
                         ) : (
                             <>
                                 <Divider orientation="left">Paste Custom ZPL Code</Divider>
-                                
+
                                 <div style={{ marginBottom: 12 }}>
                                     <Button size="small" onClick={loadSampleZPL} style={{ marginRight: 8 }}>
                                         Load Sample
@@ -761,8 +760,8 @@ const ZPLPrintButton = ({
                                     onChange={(e) => setCustomZPL(e.target.value)}
                                     placeholder="Paste your ZPL code here...&#10;&#10;Example:&#10;^XA&#10;^FO50,50^A0N,40,40^FDHello World^FS&#10;^XZ"
                                     rows={12}
-                                    style={{ 
-                                        fontFamily: 'Consolas, monospace', 
+                                    style={{
+                                        fontFamily: 'Consolas, monospace',
                                         fontSize: 11,
                                         background: '#0d0d0d',
                                         color: '#00ff00',
@@ -777,7 +776,7 @@ const ZPLPrintButton = ({
                         )}
 
                         <Divider orientation="left">Print Settings</Divider>
-                        
+
                         <div style={{ marginBottom: 16 }}>
                             <label style={{ display: 'block', marginBottom: 8, fontWeight: 'bold' }}>
                                 Print Method:
@@ -818,20 +817,20 @@ const ZPLPrintButton = ({
                         {printMethod === 'bluetooth' && (
                             <div style={{ padding: 12, background: '#1a1a2e', borderRadius: 8 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-                                    <div style={{ 
-                                        width: 10, 
-                                        height: 10, 
-                                        borderRadius: '50%', 
+                                    <div style={{
+                                        width: 10,
+                                        height: 10,
+                                        borderRadius: '50%',
                                         background: bluetoothConnected ? '#52c41a' : '#ff4d4f',
                                         boxShadow: bluetoothConnected ? '0 0 6px #52c41a' : 'none'
                                     }} />
                                     <span style={{ fontSize: 12 }}>
-                                        {bluetoothConnected 
-                                            ? `Connected: ${bluetoothDevice?.name || 'Printer'}` 
+                                        {bluetoothConnected
+                                            ? `Connected: ${bluetoothDevice?.name || 'Printer'}`
                                             : 'Not connected'}
                                     </span>
                                     {!bluetoothConnected ? (
-                                        <Button 
+                                        <Button
                                             size="small"
                                             type="primary"
                                             onClick={connectBluetooth}
@@ -852,7 +851,7 @@ const ZPLPrintButton = ({
                     {/* Right Column - ZPL Preview */}
                     <Col span={12}>
                         <Divider orientation="left">ZPL Code Preview</Divider>
-                        
+
                         {/* Visual Label Preview - Only show for form mode */}
                         {inputMode === 'form' ? (
                             <div style={{
@@ -875,7 +874,7 @@ const ZPLPrintButton = ({
                                     <div style={{ fontSize: 12, color: '#666', marginBottom: 8 }}>{formData.designation}</div>
                                 )}
                                 {formData.qrcode && (
-                                    <div style={{ 
+                                    <div style={{
                                         display: 'inline-block',
                                         padding: 8,
                                         background: '#f0f0f0',
@@ -912,9 +911,9 @@ const ZPLPrintButton = ({
                         )}
 
                         {/* ZPL Code */}
-                        <pre style={{ 
-                            background: '#1a1a1a', 
-                            padding: 12, 
+                        <pre style={{
+                            background: '#1a1a1a',
+                            padding: 12,
                             borderRadius: 4,
                             maxHeight: inputMode === 'custom' ? 350 : 280,
                             overflow: 'auto',

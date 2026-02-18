@@ -15,7 +15,7 @@ import {
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMyContext } from 'Context/MyContextProvider';
-import { ArchiveRestore, Ticket } from 'lucide-react';
+import { ArchiveRestore, Ticket, CreditCard, Armchair, ClipboardList } from 'lucide-react';
 import api from 'auth/FetchInterceptor';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { USERSITE_URL } from 'utils/consts';
@@ -272,6 +272,47 @@ const EventList = ({ isJunk = false }) => {
   const canExportEvents = usePermission('Export Events');
   const columns = useMemo(
     () => [
+      {
+        title: '*',
+        key: 'event_type_icons',
+        align: 'center',
+        width: 40,
+        render: (_, row) => {
+          const isCard = row?.event_controls?.use_preprinted_cards;
+          const isTicket = row?.event_controls?.ticket_system;
+          const isRegistration = row?.category?.title?.toLowerCase() === 'registration';
+
+          if (isRegistration) {
+            return (
+              <Tooltip title="Registration">
+                <span style={{ display: 'inline-flex' }}>
+                  <ClipboardList size={16} style={{ color: '#722ed1' }} />
+                </span>
+              </Tooltip>
+            );
+          }
+
+          return (
+            <Space size={4}>
+              {isCard && (
+                <Tooltip title="Pre printed Cards">
+                  <span style={{ display: 'inline-flex' }}>
+                    <CreditCard size={16} style={{ color: '#1677ff' }} />
+                  </span>
+                </Tooltip>
+              )}
+
+              {!isCard && isTicket && (
+                <Tooltip title="Seating Chart">
+                  <span style={{ display: 'inline-flex' }}>
+                    <Armchair size={16} style={{ color: '#8c8c8c' }} />
+                  </span>
+                </Tooltip>
+              )}
+            </Space>
+          );
+        },
+      },
       {
         title: 'Name',
         dataIndex: 'name',

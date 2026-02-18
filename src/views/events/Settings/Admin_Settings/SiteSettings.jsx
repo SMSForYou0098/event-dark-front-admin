@@ -2,6 +2,7 @@ import { EyeOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Tabs, Input, Switch, Upload, Button, Checkbox, Modal, Form, message } from 'antd';
 import DynamicOptions from './DynamicOptions';
+import DeveloperSettings from './DeveloperSettings';
 
 const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   const [showPdfModal, setShowPdfModal] = useState(false);
@@ -293,6 +294,11 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
       label: 'Contact Us',
       key: 'contact_us',
       children: <DynamicOptions type={'contact_us'} heading={'Contact Us'} />
+    },
+    {
+      label: '🛠 Developer',
+      key: 'developer',
+      children: <DeveloperSettings form={form} />
     }
   ];
 
