@@ -129,58 +129,61 @@ const TickeScanFeilds = ({
                 if (eventsWithCheckpoints.length === 0) return null;
 
                 // Build the current value - using compound key "eventId_checkpointId"
-                const currentValues = selectedCheckpoints.map(
-                  cp => `${cp.event_id}_${cp.checkpoint_id}`
-                );
+                if (scanType === 'verify') {
 
-                const handleChange = (values, option) => {
-                  // Parse all selected values
-                  const allSelections = values.map(val => {
-                    const [eventId, checkpointId] = val.split('_').map(Number);
-                    return { event_id: eventId, checkpoint_id: checkpointId };
-                  });
+                  const currentValues = selectedCheckpoints.map(
+                    cp => `${cp.event_id}_${cp.checkpoint_id}`
+                  );
 
-                  // Enforce single selection per event: keep only the latest selection per event
-                  const eventMap = new Map();
-                  // Process in reverse so the latest selection (last added) wins
-                  for (let i = allSelections.length - 1; i >= 0; i--) {
-                    const sel = allSelections[i];
-                    if (!eventMap.has(sel.event_id)) {
-                      eventMap.set(sel.event_id, sel);
+                  const handleChange = (values, option) => {
+                    // Parse all selected values
+                    const allSelections = values.map(val => {
+                      const [eventId, checkpointId] = val.split('_').map(Number);
+                      return { event_id: eventId, checkpoint_id: checkpointId };
+                    });
+
+                    // Enforce single selection per event: keep only the latest selection per event
+                    const eventMap = new Map();
+                    // Process in reverse so the latest selection (last added) wins
+                    for (let i = allSelections.length - 1; i >= 0; i--) {
+                      const sel = allSelections[i];
+                      if (!eventMap.has(sel.event_id)) {
+                        eventMap.set(sel.event_id, sel);
+                      }
                     }
-                  }
 
-                  // Convert back to array
-                  const uniqueCheckpoints = Array.from(eventMap.values());
-                  setSelectedCheckpoints(uniqueCheckpoints);
-                };
+                    // Convert back to array
+                    const uniqueCheckpoints = Array.from(eventMap.values());
+                    setSelectedCheckpoints(uniqueCheckpoints);
+                  };
 
-                return (
-                  <Select
-                    mode="multiple"
-                    value={currentValues}
-                    onChange={handleChange}
-                    style={{ minWidth: 200, maxWidth: 350 }}
-                    placeholder="Select Checkpoints"
-                    allowClear
-                    maxTagCount={2}
-                  >
-                    {eventsWithCheckpoints.map(event => (
-                      <Select.OptGroup key={event.id} label={event.name}>
-                        {event.scan_checkpoints.map(cp => {
-                          const isActive = isCheckpointActive(cp);
-                          const compoundKey = `${event.id}_${cp.id}`;
-                          return (
-                            <Option key={compoundKey} value={compoundKey} disabled={!isActive}>
-                              {cp.label} ({dayjs(cp.start_time, "HH:mm:ss").format("HH:mm")} - {dayjs(cp.end_time, "HH:mm:ss").format("HH:mm")})
-                              {!isActive && <CloseCircleOutlined style={{ color: "red", marginLeft: 5 }} />}
-                            </Option>
-                          );
-                        })}
-                      </Select.OptGroup>
-                    ))}
-                  </Select>
-                );
+                  return (
+                    <Select
+                      mode="multiple"
+                      value={currentValues}
+                      onChange={handleChange}
+                      style={{ minWidth: 200, maxWidth: 350 }}
+                      placeholder="Select Checkpoints"
+                      allowClear
+                      maxTagCount={2}
+                    >
+                      {eventsWithCheckpoints.map(event => (
+                        <Select.OptGroup key={event.id} label={event.name}>
+                          {event.scan_checkpoints.map(cp => {
+                            const isActive = isCheckpointActive(cp);
+                            const compoundKey = `${event.id}_${cp.id}`;
+                            return (
+                              <Option key={compoundKey} value={compoundKey} disabled={!isActive}>
+                                {cp.label} ({dayjs(cp.start_time, "HH:mm:ss").format("HH:mm")} - {dayjs(cp.end_time, "HH:mm:ss").format("HH:mm")})
+                                {!isActive && <CloseCircleOutlined style={{ color: "red", marginLeft: 5 }} />}
+                              </Option>
+                            );
+                          })}
+                        </Select.OptGroup>
+                      ))}
+                    </Select>
+                  );
+                }
               })()}
 
               {userRole === "Admin" && (

@@ -13,8 +13,25 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
     setCurrentStep(0);
   };
 
-  // Ensure response is an array
-  const bookings = Array.isArray(response) ? response : [];
+  // Helper to flatten nested bookings (recursive)
+  const flattenBookings = (data) => {
+    let allBookings = [];
+    if (!Array.isArray(data)) return allBookings;
+
+    data.forEach((item) => {
+      if (item.bookings && Array.isArray(item.bookings) && item.bookings.length > 0) {
+        allBookings = [...allBookings, ...flattenBookings(item.bookings)];
+      } else {
+        allBookings.push(item);
+      }
+    });
+
+    return allBookings;
+  };
+
+  // Ensure response is an array and flatten it
+  const rawBookings = Array.isArray(response) ? response : [];
+  const bookings = flattenBookings(rawBookings);
 
   if (bookings.length === 0) {
     return (

@@ -70,7 +70,7 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
   const [ticketType, setTicketType] = useState({ id: "", type: "" });
   const [show, setShow] = useState(false);
 
-  const { isMobile, getCurrencySymbol, formatDateRange } = useMyContext();
+  const { isMobile, getCurrencySymbol, formatDateRange, formatDateTime } = useMyContext();
   const [showSendModal, setShowSendModal] = useState(false);
   const [sendData, setSendData] = useState(null);
   /** Normalize booking (supports master with .bookings[]) */
@@ -82,13 +82,13 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
       name: normalize?.ticket?.event?.name || normalize?.ticket?.event?.title || normalize?.ticket?.name || "—",
       amount: booking?.amount ?? normalize?.amount ?? 0,
       type: normalize?.type,
-      created_at: normalize?.created_at,
+      created_at: formatDateTime(normalize?.created_at),
       status: (normalize?.status || "confirmed").toLowerCase(),
       eventType: normalize?.ticket?.event?.event_type,
       eventAddress: normalize?.ticket?.event?.address,
       eventDateRange: normalize?.ticket?.event?.date_range,
       ticketName: normalize?.ticket?.name,
-      background: normalize?.ticket?.background_image,
+      background: normalize?.event?.event_media?.thumbnail,
       id: booking?.id || booking?._id || normalize?.id || normalize?._id,
     };
   }, [booking]);

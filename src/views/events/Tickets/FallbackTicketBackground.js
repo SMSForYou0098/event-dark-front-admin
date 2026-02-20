@@ -23,7 +23,6 @@ const FallbackTicketBackground = ({
     onGenerated,
 }) => {
     const canvasRef = useRef(null);
-    const logoRef = useRef(null);
 
     const drawBackground = useCallback(() => {
         const canvas = canvasRef.current;
@@ -36,41 +35,16 @@ const FallbackTicketBackground = ({
         // Clear canvas
         ctx.clearRect(0, 0, w, h);
 
-        // Create gradient background
-        const gradient = ctx.createLinearGradient(0, 0, w, h);
-        gradient.addColorStop(0, '#1a1a2e');
-        gradient.addColorStop(0.5, '#16213e');
-        gradient.addColorStop(1, '#0f3460');
-        ctx.fillStyle = gradient;
+        // White fallback background
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
-        // Add decorative pattern (subtle dots)
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
-        for (let i = 0; i < w; i += 20) {
-            for (let j = 0; j < h; j += 20) {
-                ctx.beginPath();
-                ctx.arc(i, j, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        // Add top accent bar
-        const accentGradient = ctx.createLinearGradient(0, 0, w, 0);
-        accentGradient.addColorStop(0, '#e94560');
-        accentGradient.addColorStop(1, '#ff6b6b');
-        ctx.fillStyle = accentGradient;
-        ctx.fillRect(0, 0, w, 8);
-
-        // Add bottom accent bar
-        ctx.fillStyle = accentGradient;
-        ctx.fillRect(0, h - 8, w, 8);
-
-        // NOTE: We don't draw a white QR code background here
+        // NOTE: We don't draw a QR code background here
         // Fabric.js in Ticket_canvas.js adds the white background with proper 1px padding
         // This fallback only provides the background image
 
         // Draw ticket name (above QR area) - matches Ticket_canvas.js centerText at top=50
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#000000';
         ctx.font = 'bold 18px Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText(ticketName, w / 2, 50);
@@ -81,7 +55,7 @@ const FallbackTicketBackground = ({
         const padding = 20;
 
         // Event Name
-        ctx.fillStyle = '#e94560';
+        ctx.fillStyle = '#000000';
         ctx.font = 'bold 20px Arial, sans-serif';
         ctx.textAlign = 'center';
 
@@ -106,23 +80,23 @@ const FallbackTicketBackground = ({
 
         // Date label and value
         y += lineHeight + 10;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillStyle = '#666666';
         ctx.font = '12px Arial, sans-serif';
         ctx.fillText('DATE', w / 2, y);
 
         y += 18;
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#000000';
         ctx.font = '16px Arial, sans-serif';
         ctx.fillText(date, w / 2, y);
 
         // Address label and value
         y += lineHeight;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.fillStyle = '#666666';
         ctx.font = '12px Arial, sans-serif';
         ctx.fillText('VENUE', w / 2, y);
 
         y += 18;
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#000000';
         ctx.font = '14px Arial, sans-serif';
 
         // Word wrap for address
@@ -142,32 +116,6 @@ const FallbackTicketBackground = ({
         }
         ctx.fillText(line.trim(), w / 2, y);
 
-        // Draw logo at bottom center
-        const logo = logoRef.current;
-        if (logo && logo.complete && logo.naturalWidth > 0) {
-            const logoMaxWidth = 80;
-            const logoMaxHeight = 40;
-            const logoAspect = logo.naturalWidth / logo.naturalHeight;
-
-            let logoWidth = logoMaxWidth;
-            let logoHeight = logoWidth / logoAspect;
-
-            if (logoHeight > logoMaxHeight) {
-                logoHeight = logoMaxHeight;
-                logoWidth = logoHeight * logoAspect;
-            }
-
-            const logoX = (w - logoWidth) / 2;
-            const logoY = h - logoHeight - 25;
-
-            // Add slight white glow behind logo
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.3)';
-            ctx.shadowBlur = 10;
-            ctx.drawImage(logo, logoX, logoY, logoWidth, logoHeight);
-            ctx.shadowColor = 'transparent';
-            ctx.shadowBlur = 0;
-        }
-
         // Call onGenerated callback with the canvas data URL
         if (onGenerated) {
             const dataUrl = canvas.toDataURL('image/png');
@@ -176,35 +124,12 @@ const FallbackTicketBackground = ({
     }, [eventName, ticketName, date, address, width, height, onGenerated]);
 
     useEffect(() => {
-        const logo = logoRef.current;
-
-        if (logo) {
-            if (logo.complete && logo.naturalWidth > 0) {
-                drawBackground();
-            } else {
-                logo.onload = () => {
-                    drawBackground();
-                };
-                logo.onerror = () => {
-                    // Draw without logo if it fails to load
-                    drawBackground();
-                };
-            }
-        } else {
-            drawBackground();
-        }
+        drawBackground();
     }, [drawBackground]);
 
     return (
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
             <canvas ref={canvasRef} width={width} height={height} />
-            <img
-                ref={logoRef}
-                src="/img/logo.webp"
-                alt="Logo"
-                crossOrigin="anonymous"
-                style={{ display: 'none' }}
-            />
         </div>
     );
 };

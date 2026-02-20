@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { Card, Col, Row, Select, Typography, Empty, Spin } from "antd";
-import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useMyContext } from "Context/MyContextProvider";
 import BookingsTab from "../Bookings/BookingsTab";
@@ -8,12 +8,19 @@ import api from "auth/FetchInterceptor";
 import debounce from "utils/debounce";
 const { Text } = Typography;
 
+const BOOKINGS_PER_PAGE = 10;
+
 const BoxOffice = () => {
     const { authToken, api: apiUrl } = useMyContext();
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [searchValue, setSearchValue] = useState("");
     const [debouncedSearchValue, setDebouncedSearchValue] = useState("");
     const selectRef = useRef(null);
+
+    // Bookings filter state (no pagination state needed — infinite query handles it)
+    const [bookingSearch, setBookingSearch] = useState('');
+    const [bookingStartDate, setBookingStartDate] = useState(null);
+    const [bookingEndDate, setBookingEndDate] = useState(null);
 
     // Debounce search input
     useEffect(() => {
@@ -72,27 +79,80 @@ const BoxOffice = () => {
         enabled: debouncedSearchValue.length > 0, // Only fetch when user has typed something
     });
 
-    // Fetch user bookings with React Query
+    // Fetch user bookings with infinite scroll
     const {
-        data: bookings = [],
+        data: bookingsData,
         isLoading,
+        isFetchingNextPage: bookingsFetchingNext,
+        hasNextPage: bookingsHasNext,
+        fetchNextPage: bookingsFetchNext,
         error,
         refetch,
-    } = useQuery({
-        queryKey: ["user-bookings", selectedUserId],
-        queryFn: async () => {
-            if (!selectedUserId) return [];
+    } = useInfiniteQuery({
+        queryKey: ["user-bookings", selectedUserId, bookingSearch, bookingStartDate, bookingEndDate],
+        queryFn: async ({ pageParam = 1 }) => {
+            if (!selectedUserId) return { bookings: [], pagination: {} };
 
-            const response = await axios.get(`${apiUrl}user-bookings/${selectedUserId}`, {
+            const params = new URLSearchParams();
+            params.append('page', pageParam.toString());
+            params.append('per_page', BOOKINGS_PER_PAGE.toString());
+
+            if (bookingSearch?.trim()) params.append('search', bookingSearch.trim());
+            if (bookingStartDate) params.append('start_date', bookingStartDate);
+            if (bookingEndDate) params.append('end_date', bookingEndDate);
+
+            const response = await axios.get(`${apiUrl}user-bookings/${selectedUserId}?${params.toString()}`, {
                 headers: {
                     Authorization: `Bearer ${authToken}`,
                 },
             });
-            return response.data.bookings || [];
+
+            const data = response.data;
+            if (Array.isArray(data)) {
+                return { bookings: data, pagination: { current_page: 1, last_page: 1, total: data.length } };
+            } else if (data.bookings) {
+                return {
+                    bookings: data.bookings,
+                    pagination: data.pagination || { current_page: 1, last_page: 1, total: data.bookings.length }
+                };
+            }
+
+            return { bookings: [], pagination: { current_page: 1, last_page: 1, total: 0 } };
         },
         enabled: !!selectedUserId,
-        staleTime: 1000 * 60 * 5, // 5 minutes
+        initialPageParam: 1,
+        getNextPageParam: (lastPage) => {
+            const { current_page, last_page } = lastPage.pagination || {};
+            if (current_page && last_page && current_page < last_page) {
+                return current_page + 1;
+            }
+            return undefined;
+        },
+        staleTime: 1000 * 60 * 5,
     });
+
+    // Flatten all pages
+    const bookings = useMemo(() =>
+        bookingsData?.pages?.flatMap((p) => p.bookings || []) || [],
+        [bookingsData]
+    );
+    const totalBookings = bookingsData?.pages?.[0]?.pagination?.total || bookings.length;
+
+    // Reset booking filters when user changes
+    useEffect(() => {
+        setBookingSearch('');
+        setBookingStartDate(null);
+        setBookingEndDate(null);
+    }, [selectedUserId]);
+
+    const handleBookingSearchChange = useCallback((value) => {
+        setBookingSearch(value);
+    }, []);
+
+    const handleBookingDateRangeChange = useCallback((dates) => {
+        setBookingStartDate(dates?.startDate || null);
+        setBookingEndDate(dates?.endDate || null);
+    }, []);
 
     // Flatten all users from all pages
     const allUsers = useMemo(() => {
@@ -206,7 +266,7 @@ const BoxOffice = () => {
                             <Text>
                                 Total Bookings:{" "}
                                 <Text type="secondary" strong>
-                                    {bookings.length}
+                                    {totalBookings}
                                 </Text>
                             </Text>
                         }
@@ -221,6 +281,14 @@ const BoxOffice = () => {
                                     showAction={false}
                                     onRefresh={refetch}
                                     isBoxOffice={true}
+                                    serverSide={true}
+                                    infiniteScroll={true}
+                                    total={totalBookings}
+                                    hasNextPage={!!bookingsHasNext}
+                                    isFetchingNextPage={bookingsFetchingNext}
+                                    fetchNextPage={bookingsFetchNext}
+                                    onSearchChange={handleBookingSearchChange}
+                                    onDateRangeChange={handleBookingDateRangeChange}
                                 />
                             ) : (
                                 <Empty description="No bookings found for this user" />

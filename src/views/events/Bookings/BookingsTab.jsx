@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { Input, Button, Spin, DatePicker, Space, Pagination, Typography, Row, Col } from 'antd';
-import { SearchOutlined, CloseOutlined, ReloadOutlined } from '@ant-design/icons';
+import { SearchOutlined, CloseOutlined, ReloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import BookingCard from './BookingCard';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 
@@ -14,18 +14,43 @@ const { RangePicker } = DatePicker;
 const { Search } = Input;
 const { Text } = Typography;
 
-const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction = true, isBoxOffice = false }) => {
+const BookingsTab = ({
+  userBookings = [],
+  loading = false,
+  isFetching = false,
+  onRefresh,
+  showAction = true,
+  isBoxOffice = false,
+  serverSide = false,
+  total = 0,
+  page,
+  perPage,
+  onParamsChange,
+  // Infinite scroll props
+  infiniteScroll = false,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  fetchNextPage,
+  onSearchChange,
+  onDateRangeChange: onDateRangeChangeProp,
+}) => {
   // UI & data state
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
   const [dateRange, setDateRange] = useState([]);
   const [isFiltering, setIsFiltering] = useState(false);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  // Pagination state (only used for client-side mode)
+  const [currentPage, setCurrentPage] = useState(page || 1);
+  const [pageSize, setPageSize] = useState(perPage || DEFAULT_PAGE_SIZE);
 
   const debounceTimeoutRef = useRef(null);
+  const isFirstRun = useRef(true);
+
+  // In server-side mode, use props directly (like DataTable pattern)
+  // This avoids state sync issues that cause page to reset
+  const effectivePage = serverSide ? (page || 1) : currentPage;
+  const effectivePageSize = serverSide ? (perPage || DEFAULT_PAGE_SIZE) : pageSize;
 
   // Normalize bookings
   const normalizedBookings = useMemo(() => {
@@ -93,7 +118,8 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
     const userNumberTop = item?.number ?? item?.user?.number ?? item?.user?.phone ?? '';
     const ticketNameTop = item?.ticket?.name ?? '';
     const turfNameTop = item?.turfName ?? item?.turf?.name ?? '';
-    const cityTop = item?.city ?? item?.location?.city ?? '';
+    // const cityTop = item?.city ?? item?.location?.city ?? '';
+    const cityTop = typeof item?.city === 'string' ? item.city : item?.location?.city ?? '';
     const paymentMethodTop = item?.payment_method ?? item?.payment?.method ?? '';
 
     // aggregate child bookings values (if present)
@@ -112,7 +138,7 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
         userNumberChildren += ' ' + (b?.number ?? b?.user?.number ?? b?.user?.phone ?? '');
         ticketNameChildren += ' ' + (b?.ticket?.name ?? '');
         turfNameChildren += ' ' + (b?.turfName ?? b?.turf?.name ?? '');
-        cityChildren += ' ' + (b?.city ?? b?.location?.city ?? '');
+        cityChildren += ' ' + (typeof b?.city === 'string' ? b.city : b?.location?.city ?? '');
         paymentMethodChildren += ' ' + (b?.payment_method ?? b?.payment?.method ?? '');
       }
     }
@@ -131,6 +157,8 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
   // Filtering function (handles top-level and child bookings)
   const filterBookings = useCallback(
     (term, dates) => {
+      if (serverSide) return normalizedBookings; // Skip client-side filtering if serverSide
+
       if (!Array.isArray(normalizedBookings) || normalizedBookings.length === 0) return [];
 
       // If no filters, return all bookings
@@ -173,8 +201,31 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
 
       return filtered;
     },
-    [normalizedBookings, getSearchableText, getAllBookingDates]
+    [normalizedBookings, getSearchableText, getAllBookingDates, serverSide]
   );
+
+  // Infinite scroll: IntersectionObserver sentinel
+  const sentinelRef = useRef(null);
+
+  useEffect(() => {
+    if (!infiniteScroll || !fetchNextPage) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage && !loading) {
+          fetchNextPage();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+
+    const el = sentinelRef.current;
+    if (el) observer.observe(el);
+
+    return () => {
+      if (el) observer.unobserve(el);
+    };
+  }, [infiniteScroll, fetchNextPage, hasNextPage, isFetchingNextPage, loading]);
 
   // Debounce search term
   useEffect(() => {
@@ -182,10 +233,32 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
       clearTimeout(debounceTimeoutRef.current);
     }
 
+    // Prevent immediate trigger on mount if term is empty
+    if (isFirstRun.current && !searchTerm) {
+      isFirstRun.current = false;
+      return;
+    }
+    isFirstRun.current = false;
+
     setIsFiltering(true);
     debounceTimeoutRef.current = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
       setIsFiltering(false);
+
+      if (infiniteScroll && onSearchChange) {
+        // Infinite scroll mode: notify parent to reset query
+        onSearchChange(searchTerm);
+      } else if (serverSide && onParamsChange) {
+        // Pagination server-side mode
+        onParamsChange({
+          page: 1,
+          per_page: effectivePageSize,
+          search: searchTerm,
+          start_date: dateRange[0] || null,
+          end_date: dateRange[1] || null
+        });
+      }
+
     }, DEBOUNCE_DELAY);
 
     return () => {
@@ -194,6 +267,17 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
       }
     };
   }, [searchTerm]);
+
+  // Handle date range changes for server side
+  useEffect(() => {
+    if (serverSide && onParamsChange && !isFiltering) { // !isFiltering check to avoid double fire with search effect if used together usually handled separately
+      // However, date range state updates are immediate, so we can trigger here
+      // But need to ensure we don't trigger on initial mount if empty
+      // We can rely on user interaction calling handleDateRangeChange which sets state
+      // This effect might be redundant if we handle it in handleDateRangeChange or a combined effect
+    }
+  }, [dateRange]);
+
 
   // Memoized filtered bookings - only re-filter when debounced search or date changes
   const filteredBookings = useMemo(() => filterBookings(debouncedSearchTerm, dateRange), [
@@ -228,6 +312,8 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
 
   // Deduplicate filteredBookings
   const uniqueFilteredBookings = useMemo(() => {
+    if (serverSide) return normalizedBookings;
+
     const seen = new Set();
     const out = [];
     for (let i = 0; i < filteredBookings.length; i++) {
@@ -240,47 +326,104 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
       }
     }
     return out;
-  }, [filteredBookings]);
+  }, [filteredBookings, serverSide, normalizedBookings]);
 
   // Paginate the filtered bookings
   const paginatedBookings = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    return uniqueFilteredBookings.slice(startIndex, endIndex);
-  }, [uniqueFilteredBookings, currentPage, pageSize]);
+    if (serverSide) return uniqueFilteredBookings; // Server already returns paginated data
 
-  // Reset to page 1 when filters change
+    const startIndex = (effectivePage - 1) * effectivePageSize;
+    const endIndex = startIndex + effectivePageSize;
+    return uniqueFilteredBookings.slice(startIndex, endIndex);
+  }, [uniqueFilteredBookings, effectivePage, effectivePageSize, serverSide]);
+
+  // Reset to page 1 when filters change (Client Side only)
   useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchTerm, dateRange]);
+    if (!serverSide) {
+      setCurrentPage(1);
+    }
+  }, [debouncedSearchTerm, dateRange, serverSide]);
 
   // Handlers
-  const handleSearchChange = useCallback((e) => setSearchTerm(e.target.value), []);
+  const handleSearchChange = useCallback((e) => {
+    setSearchTerm(e.target.value);
+  }, []);
 
   const handleDateRangeChange = useCallback((dates, dateStrings) => {
-    // Only set date range if we have valid dates
+    let newDateRange = [];
     if (dates && dates.length === 2 && dateStrings && dateStrings.length === 2) {
-      setDateRange(dateStrings);
-    } else {
-      setDateRange([]);
+      newDateRange = dateStrings;
     }
-  }, []);
+    setDateRange(newDateRange);
+
+    if (infiniteScroll && onDateRangeChangeProp) {
+      // Infinite scroll mode: notify parent to reset query
+      onDateRangeChangeProp({
+        startDate: newDateRange[0] || null,
+        endDate: newDateRange[1] || null
+      });
+    } else if (serverSide && onParamsChange) {
+      onParamsChange({
+        page: 1,
+        per_page: effectivePageSize,
+        search: searchTerm,
+        start_date: newDateRange[0] || null,
+        end_date: newDateRange[1] || null
+      });
+    } else {
+      setCurrentPage(1);
+    }
+  }, [infiniteScroll, onDateRangeChangeProp, serverSide, onParamsChange, effectivePageSize, searchTerm]);
 
   const handleClearFilters = useCallback(() => {
     setSearchTerm('');
     setDateRange([]);
-  }, []);
 
-  const handlePageChange = useCallback((page, newPageSize) => {
-    setCurrentPage(page);
-    if (newPageSize && newPageSize !== pageSize) {
-      setPageSize(newPageSize);
+    if (infiniteScroll) {
+      onSearchChange?.('');
+      onDateRangeChangeProp?.({ startDate: null, endDate: null });
+    } else if (serverSide && onParamsChange) {
+      onParamsChange({
+        page: 1,
+        per_page: effectivePageSize,
+        search: '',
+        start_date: null,
+        end_date: null
+      });
+    } else {
+      setCurrentPage(1);
     }
-  }, [pageSize]);
+  }, [infiniteScroll, onSearchChange, onDateRangeChangeProp, serverSide, onParamsChange, effectivePageSize]);
+
+  const handlePageChange = useCallback((newPage, newPageSize) => {
+    if (serverSide && onParamsChange) {
+      // Server-side: only notify parent, parent owns the state (like DataTable)
+      onParamsChange({
+        page: newPage,
+        per_page: newPageSize || effectivePageSize,
+        search: searchTerm,
+        start_date: dateRange[0] || null,
+        end_date: dateRange[1] || null
+      });
+    } else {
+      // Client-side: manage internal state
+      setCurrentPage(newPage);
+      if (newPageSize && newPageSize !== pageSize) {
+        setPageSize(newPageSize);
+      }
+    }
+  }, [effectivePageSize, pageSize, serverSide, onParamsChange, searchTerm, dateRange]);
 
   // Memoize states
   const isLoading = loading || isFiltering;
   const hasActiveFilters = searchTerm || dateRange.length > 0;
+
+  // Display stats
+  const displayTotal = serverSide ? total : uniqueFilteredBookings.length;
+
+  // For infinite scroll, display all bookings (already accumulated by useInfiniteQuery)
+  // For pagination modes, use paginatedBookings
+  const displayBookings = infiniteScroll ? normalizedBookings : paginatedBookings;
 
   // Booking cards render
   const bookingCards = useMemo(() => {
@@ -292,7 +435,14 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
       );
     }
 
-    if (paginatedBookings.length === 0) {
+    if (displayBookings.length === 0) {
+      if (serverSide && isFetching) {
+        return (
+          <div className="d-flex justify-content-center align-items-center py-4">
+            <Spin size="large" tip="Loading bookings..." />
+          </div>
+        );
+      }
       return (
         <div className="text-center py-5">
           <Text type="secondary">
@@ -304,12 +454,12 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
 
     return (
       <Space direction="vertical" size="middle" className="w-100">
-        {paginatedBookings.map((booking, idx) => (
+        {displayBookings.map((booking, idx) => (
           <BookingCard key={makeBookingKey(booking, idx)} booking={booking} showAction={showAction} isBoxOffice={isBoxOffice} />
         ))}
       </Space>
     );
-  }, [paginatedBookings, isLoading, hasActiveFilters, makeBookingKey]);
+  }, [displayBookings, isLoading, isFetching, serverSide, hasActiveFilters, makeBookingKey, showAction, isBoxOffice]);
 
   return (
     <>
@@ -361,13 +511,34 @@ const BookingsTab = ({ userBookings = [], loading = false, onRefresh, showAction
 
       {bookingCards}
 
-      {/* Pagination */}
-      {uniqueFilteredBookings.length > 0 && (
+      {/* Infinite scroll: sentinel + load more */}
+      {infiniteScroll && (
+        <>
+          {/* Sentinel element observed by IntersectionObserver */}
+          <div ref={sentinelRef} style={{ height: 1 }} />
+
+          {isFetchingNextPage && (
+            <div className="d-flex justify-content-center align-items-center py-3">
+              <Spin indicator={<LoadingOutlined spin />} />
+              <Text type="secondary" className="ml-2" style={{ marginLeft: 8 }}>Loading more bookings...</Text>
+            </div>
+          )}
+
+          {!hasNextPage && normalizedBookings.length > 0 && !loading && (
+            <div className="text-center py-3">
+              <Text type="secondary">All bookings loaded ({total})</Text>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Pagination (only for non-infinite scroll modes) */}
+      {!infiniteScroll && (displayTotal > 0) && (
         <div className="d-flex justify-content-center mt-4">
           <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={uniqueFilteredBookings.length}
+            current={effectivePage}
+            pageSize={effectivePageSize}
+            total={displayTotal}
             onChange={handlePageChange}
             onShowSizeChange={handlePageChange}
             showSizeChanger

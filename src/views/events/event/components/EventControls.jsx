@@ -1,6 +1,6 @@
 // EventControlsStep.jsx
 import React, { useState, useCallback, useEffect } from 'react';
-import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty } from 'antd';
+import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty, Tooltip } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
@@ -310,18 +310,22 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                       getValueFromEvent={toBooleanValue}
                       initialValue={f.defaultValue ?? false}
                     >
-                      <Switch
-                        disabled={isCancelled}
-                        checkedChildren="Yes"
-                        unCheckedChildren="No"
-                        onChange={(checked) => {
-                          // Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
-                          if (f.name === 'online_booking' && !checked) {
-                            form.setFieldValue('event_feature', false);
-                            form.setFieldValue('show_on_home', false);
-                          }
-                        }}
-                      />
+                      <Tooltip title={isCancelled ? "Event is cancelled" : ""}>
+                        <div style={{ display: 'inline-block' }}>
+                          <Switch
+                            disabled={isCancelled}
+                            checkedChildren="Yes"
+                            unCheckedChildren="No"
+                            onChange={(checked) => {
+                              // Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
+                              if (f.name === 'online_booking' && !checked) {
+                                form.setFieldValue('event_feature', false);
+                                form.setFieldValue('show_on_home', false);
+                              }
+                            }}
+                          />
+                        </div>
+                      </Tooltip>
                     </Form.Item>
                   );
                 }}
@@ -418,41 +422,45 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                           getValueFromEvent={toBooleanValue}
                           initialValue={f.defaultValue ?? false}
                         >
-                          <Switch
-                            disabled={isDisabled}
-                            checkedChildren={f.onLabels?.[0] || "Yes"}
-                            unCheckedChildren={f.onLabels?.[1] || "No"}
-                            onChange={(checked) => {
-                              // If this is one of the exclusive fields and it's being turned ON
-                              if (isExclusive && checked) {
-                                // Turn off the other exclusive fields
-                                exclusiveFields.forEach((fieldName) => {
-                                  if (fieldName !== f.name) {
-                                    form.setFieldValue(fieldName, false);
+                          <Tooltip title={isDisabled ? "Online booking must be enabled" : ""}>
+                            <div style={{ display: 'inline-block' }}>
+                              <Switch
+                                disabled={isDisabled}
+                                checkedChildren={f.onLabels?.[0] || "Yes"}
+                                unCheckedChildren={f.onLabels?.[1] || "No"}
+                                onChange={(checked) => {
+                                  // If this is one of the exclusive fields and it's being turned ON
+                                  if (isExclusive && checked) {
+                                    // Turn off the other exclusive fields
+                                    exclusiveFields.forEach((fieldName) => {
+                                      if (fieldName !== f.name) {
+                                        form.setFieldValue(fieldName, false);
+                                      }
+                                    });
                                   }
-                                });
-                              }
 
-                              // When Event Cancelled is turned ON, turn off all appropriate switches
-                              if (f.name === 'is_cancelled' && checked) {
-                                const fieldsToTurnOff = [
-                                  'online_booking',
-                                  'agent_booking',
-                                  'pos_booking',
-                                  'complimentary_booking',
-                                  'sponsor_booking',
-                                  'status',
-                                  'house_full',
-                                  'show_on_home',
-                                  'event_feature'
-                                ];
+                                  // When Event Cancelled is turned ON, turn off all appropriate switches
+                                  if (f.name === 'is_cancelled' && checked) {
+                                    const fieldsToTurnOff = [
+                                      'online_booking',
+                                      'agent_booking',
+                                      'pos_booking',
+                                      'complimentary_booking',
+                                      'sponsor_booking',
+                                      'status',
+                                      'house_full',
+                                      'show_on_home',
+                                      'event_feature'
+                                    ];
 
-                                fieldsToTurnOff.forEach((fieldName) => {
-                                  form.setFieldValue(fieldName, false);
-                                });
-                              }
-                            }}
-                          />
+                                    fieldsToTurnOff.forEach((fieldName) => {
+                                      form.setFieldValue(fieldName, false);
+                                    });
+                                  }
+                                }}
+                              />
+                            </div>
+                          </Tooltip>
                         </Form.Item>
                       );
                     }}
@@ -545,11 +553,15 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                       getValueFromEvent={toBooleanValue}
                       initialValue={f.defaultValue ?? false}
                     >
-                      <Switch
-                        disabled={isDisabled}
-                        checkedChildren="Yes"
-                        unCheckedChildren="No"
-                      />
+                      <Tooltip title={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : ""}>
+                        <div style={{ display: 'inline-block' }}>
+                          <Switch
+                            disabled={isDisabled}
+                            checkedChildren="Yes"
+                            unCheckedChildren="No"
+                          />
+                        </div>
+                      </Tooltip>
                     </Form.Item>
                   );
                 }}
@@ -771,69 +783,71 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       </Row>
 
       {/* Attendee Fields Section - Show when attendee_required is ON and category has no fields */}
-      {shouldShowSelectFields && (
-        <Card
-          size="small"
-          title={
-            <Space>
-              <span>Attendee Fields</span>
-              {categoryDetailsLoading && <Tag>Loading...</Tag>}
-            </Space>
-          }
-          extra={
-            <Button
-              type="primary"
-              icon={selectedFieldIds.length > 0 ? <EditOutlined /> : <PlusOutlined />}
-              onClick={() => setSelectFieldsModalOpen(true)}
-              size="small"
-            >
-              {selectedFieldIds.length > 0 ? 'Edit Fields' : 'Add Fields'}
-            </Button>
-          }
-          style={{ marginTop: 16 }}
-        >
-          {/* Show selected fields */}
-          {selectedFieldIds.length > 0 ? (
-            <div className="d-flex flex-wrap gap-2">
-              {selectedFieldsData.map((field) => (
-                <div key={field.id} className="d-flex align-items-center gap-2">
-                  <Tag
-                    color="green"
-                    closable
-                    onClose={() => handleRemoveField(field.id)}
-                    className="py-1 px-2 m-0"
-                  >
-                    {field.lable || field.field_name}
-                  </Tag>
-                  {fieldNotes[field.id] && (
-                    <span className="text-muted small fst-italic">
-                      — {fieldNotes[field.id]}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty
-              description="No attendee fields selected"
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-            >
+      {
+        shouldShowSelectFields && (
+          <Card
+            size="small"
+            title={
+              <Space>
+                <span>Attendee Fields</span>
+                {categoryDetailsLoading && <Tag>Loading...</Tag>}
+              </Space>
+            }
+            extra={
               <Button
                 type="primary"
-                icon={<PlusOutlined />}
+                icon={selectedFieldIds.length > 0 ? <EditOutlined /> : <PlusOutlined />}
                 onClick={() => setSelectFieldsModalOpen(true)}
+                size="small"
               >
-                Add Attendee Fields
+                {selectedFieldIds.length > 0 ? 'Edit Fields' : 'Add Fields'}
               </Button>
-            </Empty>
-          )}
+            }
+            style={{ marginTop: 16 }}
+          >
+            {/* Show selected fields */}
+            {selectedFieldIds.length > 0 ? (
+              <div className="d-flex flex-wrap gap-2">
+                {selectedFieldsData.map((field) => (
+                  <div key={field.id} className="d-flex align-items-center gap-2">
+                    <Tag
+                      color="green"
+                      closable
+                      onClose={() => handleRemoveField(field.id)}
+                      className="py-1 px-2 m-0"
+                    >
+                      {field.lable || field.field_name}
+                    </Tag>
+                    {fieldNotes[field.id] && (
+                      <span className="text-muted small fst-italic">
+                        — {fieldNotes[field.id]}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Empty
+                description="No attendee fields selected"
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              >
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setSelectFieldsModalOpen(true)}
+                >
+                  Add Attendee Fields
+                </Button>
+              </Empty>
+            )}
 
-          {/* Hidden form field for attendee_fields payload */}
-          <Form.Item name="attendee_fields" hidden>
-            <input />
-          </Form.Item>
-        </Card>
-      )}
+            {/* Hidden form field for attendee_fields payload */}
+            <Form.Item name="attendee_fields" hidden>
+              <input />
+            </Form.Item>
+          </Card>
+        )
+      }
 
       {/* Select Fields Drawer for Attendee Fields */}
       <SelectFields
@@ -881,7 +895,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
           }}
         />
       </Modal>
-    </Space>
+    </Space >
   );
 };
 
