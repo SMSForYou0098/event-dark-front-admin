@@ -48,6 +48,8 @@ const NewAgentBooking = memo(({ type }) => {
   const [discount, setDiscount] = useState(0);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
 
+
+  console.log("event", event.name);
   // Consolidated User Details State
   const [userDetails, setUserDetails] = useState({
     name: '',
@@ -719,6 +721,7 @@ const NewAgentBooking = memo(({ type }) => {
         bookingError={bookingError}
         isEditing={isEditing}
         setIsEditing={setIsEditing}
+        isCardBooking={event?.event_controls?.use_preprinted_cards}
       />
 
 
@@ -786,6 +789,7 @@ const NewAgentBooking = memo(({ type }) => {
               <Col xs={24} lg={16}>
                 <AttendeeManagementStep
                   ref={attendeeStepRef}
+                  eventName={event?.name}
                   selectedTickets={selectedTickets}
                   categoryFields={categoryFields}
                   existingAttendees={existingAttendees}

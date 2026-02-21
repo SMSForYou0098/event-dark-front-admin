@@ -12,6 +12,7 @@ const AttendeeManagementStep = forwardRef(({
   onBack,
   ticketAttendees,
   setTicketAttendees,
+  eventName,
 
 }, ref) => {
   const [showAttendeeFieldModal, setShowAttendeeFieldModal] = useState(false);
@@ -312,12 +313,15 @@ const AttendeeManagementStep = forwardRef(({
   return (
     <>
       <AttendeesField
+        eventName={eventName}
         showModal={showAttendeeFieldModal}
         handleCloseModal={handleCloseAttendeeModal}
         apiData={categoryFields}
         onSave={handleAttendeeSave}
         initialData={editingAttendeeData}
         editingIndex={editingAttendeeIndex}
+        currentTicketId={currentTicketId}
+        selectedTickets={selectedTickets}
       />
 
       <AttendeeSuggestion

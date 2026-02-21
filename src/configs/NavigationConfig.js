@@ -496,6 +496,15 @@ const reportingSubmenu = [
     submenu: [],
     permissions: ["View Scanner Reports"],
   },
+  {
+    key: 'card-report',
+    path: 'reports/card',
+    title: 'Card Report',
+    icon: IdcardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: ["View Card Reports"],
+  },
 ];
 
 const reportingNav = {

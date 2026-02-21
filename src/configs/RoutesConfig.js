@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
 import EventStepperForm from 'views/events/event/EventStepperForm'
@@ -843,6 +843,14 @@ export const protectedRoutes = [
         key: 'scanner-reports',
         path: `/reports/scanner`,
         component: React.lazy(() => import('views/events/Reports/ScannerReport')),
+    },
+    {
+        key: 'card-report',
+        path: `/reports/card`,
+        component: React.lazy(() => import('views/events/Reports/CardReport')),
+        meta: {
+            permissions: ['View Card Reports'],
+        }
     },
     {
         key: 'organizer-reports',

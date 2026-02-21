@@ -276,12 +276,9 @@ export const useStoreAttendees = (options = {}) => {
   return useMutation({
     mutationFn: async ({ formData, isCorporate = false }) => {
       const endpoint = isCorporate ? 'corporate-user-store' : 'attndy-store';
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
-      const res = await api.post(endpoint, formData, config);
+      // ✅ Don't set Content-Type manually - browser will set it with boundary automatically
+      // This ensures FormData is properly serialized and visible in Network tab
+      const res = await api.post(endpoint, formData);
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to store attendees');
         err.server = res;

@@ -180,3 +180,7 @@ td {
 :where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-thead>tr>td:not(:last-child):not(.ant-table-selection-column):not(.ant-table-row-expand-icon-cell):not([colspan])::before {
     background-color: var(--border-secondary) !important;
 }
+
+:where(.css-dev-only-do-not-override-1u1move).ant-table-wrapper .ant-table-summary >tr >td{
+    border-bottom: none !important;
+}

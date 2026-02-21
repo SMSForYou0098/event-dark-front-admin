@@ -35,7 +35,10 @@ const AttendeesField = ({
   userId, // ✅ NEW: Pass user ID
   eventName, // ✅ NEW: Pass event name
   isCorporate = false, // ✅ NEW: Pass corporate flag
+  currentTicketId = null, // ✅ NEW: Current ticket ID being edited
+  selectedTickets = [], // ✅ NEW: Selected tickets array
 }) => {
+
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState({});
   const [uploadingFiles, setUploadingFiles] = useState({});
@@ -79,18 +82,37 @@ const AttendeesField = ({
         ...uploadedFiles,
       };
 
-      // 👇 Include id when editing (same API)
+      // ✅ Get ticket name from selectedTickets using currentTicketId
+      const currentTicket = selectedTickets.find(t => {
+        const ticketId = t.id;
+        const currentId = currentTicketId;
+        // Handle both number and string comparisons
+        return ticketId === currentId || 
+               ticketId === String(currentId) || 
+               String(ticketId) === String(currentId) ||
+               Number(ticketId) === Number(currentId);
+      });
+      
+      // Try multiple possible fields for ticket name
+      const ticketName = currentTicket?.category || 
+                        currentTicket?.name || 
+                        currentTicket?.ticket_name ||
+                        currentTicket?.ticket?.name ||
+                        currentTicket?.ticket?.category ||
+                        '';
+
+      // 👇 Include id when editing (same API) and add ticket name
       const attendeePayload = initialData?.id
-        ? { ...completeAttendeeData, id: initialData.id }
-        : completeAttendeeData;
+        ? { ...completeAttendeeData, id: initialData.id, ticket_name: ticketName }
+        : { ...completeAttendeeData, ticket_name: ticketName };
 
       const formData = buildAttendeesFormData({
         attendees: [attendeePayload],
         userMeta: {
           user_id: UserData?.id || userId || null,
-          user_name: eventName || '',
           event_name: eventName || '',
-          isAgentBooking: true,
+          isAgentBooking: false,
+          ticket_name: ticketName, // ✅ Add ticket name at root level too
         },
         fieldGroupName: isCorporate ? 'corporateUser' : 'attendees',
       });
@@ -101,6 +123,7 @@ const AttendeesField = ({
       // ✅ SAME API for both create & edit
       const response = await storeAttendeesMutation.mutateAsync({
         formData,
+
         isCorporate,
       });
 
@@ -556,7 +579,6 @@ const AttendeesField = ({
   }, [apiData]);
 
 
-  console.log("sortedApiData", apiData);
   return (
     <Modal
       title={

@@ -27,7 +27,7 @@ import { useQuery } from '@tanstack/react-query';
  */
 const TicketCanvasView = forwardRef((props, ref) => {
   const {
-    showDetails,
+    showDetails: showDetailsProp,
     ticketNumber,
     ticketLabel,
     preloadedImage,
@@ -35,6 +35,9 @@ const TicketCanvasView = forwardRef((props, ref) => {
     onError,
     ticketData,
   } = props;
+
+  // Default to true so event name, date, time, venue etc. render when not explicitly disabled
+  const showDetails = showDetailsProp !== false;
 
   const { convertTo12HourFormat, formatDateRange, api } = useMyContext();
   const canvasRef = useRef(null);
@@ -83,10 +86,25 @@ const TicketCanvasView = forwardRef((props, ref) => {
 
   const address = venue?.address || event?.address || 'Address Not Specified';
   const ticketBG = ticket?.background_image || '';
-  const rawDate =
-    formatDateRange?.(ticketData?.booking_date || event?.date_range) ||
-    'Date Not Available';
-  const date = rawDate.replace(/\/\d{4}/g, '');
+  // Format date range: comma-separated "2026-02-03,2026-02-05" → "3 Feb 2026 to 5 Feb 2026"
+  const dateRangeSource = ticketData?.booking_date || event?.date_range;
+  const date = (() => {
+    if (!dateRangeSource) return 'Date Not Available';
+    const parts = String(dateRangeSource).split(',').map((s) => s.trim()).filter(Boolean);
+    const formatOne = (isoStr) => {
+      if (!isoStr) return '';
+      const d = new Date(isoStr);
+      if (Number.isNaN(d.getTime())) return isoStr;
+      const day = d.getDate();
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      const month = months[d.getMonth()];
+      const year = d.getFullYear();
+      return `${day} ${month} ${year}`;
+    };
+    if (parts.length === 0) return formatDateRange?.(dateRangeSource) || 'Date Not Available';
+    if (parts.length === 1) return formatOne(parts[0]) || formatDateRange?.(dateRangeSource) || 'Date Not Available';
+    return `${formatOne(parts[0])} to ${formatOne(parts[1])}`;
+  })();
   const time =
     convertTo12HourFormat?.(event?.start_time) || 'Time Not Set';
   const OrderId = ticketData?.order_id || ticketData?.token || 'N/A';

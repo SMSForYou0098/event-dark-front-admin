@@ -669,7 +669,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 ticketData={ticketData}
                 ticketRefs={ticketRefs}
                 loading={loading}
-                showTicketDetails={false}
+                showTicketDetails={true}
                 downloadTicket={downloadTicket}
                 isMobile={isMobile}
                 formatDateRange={dateRange}

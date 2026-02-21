@@ -90,6 +90,7 @@ const AgentBookingModal = (props) => {
     bookingError,
     isEditing,
     setIsEditing,
+    isCardBooking,
   } = props;
 
   const [form] = Form.useForm();
@@ -558,6 +559,7 @@ const AgentBookingModal = (props) => {
               </Col>
 
               {/* Card Allocated */}
+              {isCardBooking && (
               <Col span={12}>
                 <Form.Item
                   label="Card Allocated"
@@ -570,6 +572,7 @@ const AgentBookingModal = (props) => {
                   />
                 </Form.Item>
               </Col>
+              )}
 
               {/* Submit Button */}
               <Col span={24}>

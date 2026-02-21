@@ -275,7 +275,7 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
                                             bodyStyle={{ padding: '12px 12px 0 12px' }}
                                         >
                                             <Row gutter={16} align="middle">
-                                                <Col xs={24} md={7}>
+                                                <Col xs={24} md={6}>
                                                     <Form.Item
                                                         {...restField}
                                                         label={name === 0 ? "Range Start" : undefined}
@@ -332,7 +332,7 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
                                                         />
                                                     </Form.Item>
                                                 </Col>
-                                                <Col xs={24} md={7}>
+                                                <Col xs={24} md={6}>
                                                     <Form.Item
                                                         {...restField}
                                                         label={name === 0 ? "Quantity" : undefined}
@@ -403,7 +403,37 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
                                                         />
                                                     </Form.Item>
                                                 </Col>
-                                                <Col xs={24} md={8}>
+                                                <Col xs={24} md={4}>
+                                                    <Form.Item
+                                                        label={name === 0 ? "Range End" : undefined}
+                                                        dependencies={[['ranges', name, 'range_start'], ['ranges', name, 'quantity']]}
+                                                        shouldUpdate={(prevValues, currentValues) => {
+                                                            const prevStart = prevValues?.ranges?.[name]?.range_start;
+                                                            const prevQty = prevValues?.ranges?.[name]?.quantity;
+                                                            const currStart = currentValues?.ranges?.[name]?.range_start;
+                                                            const currQty = currentValues?.ranges?.[name]?.quantity;
+                                                            return prevStart !== currStart || prevQty !== currQty;
+                                                        }}
+                                                    >
+                                                        {() => {
+                                                            const allRanges = form.getFieldValue('ranges') || [];
+                                                            const currentRange = allRanges[name];
+                                                            const rangeStart = currentRange?.range_start;
+                                                            const quantity = currentRange?.quantity;
+                                                            const rangeEnd = rangeStart && quantity ? rangeStart + quantity - 1 : null;
+                                                            return (
+                                                                <InputNumber
+                                                                    value={rangeEnd}
+                                                                    disabled
+                                                                    placeholder="—"
+                                                                    style={{ width: '100%' }}
+                                                                    formatter={(value) => value ? String(value) : '—'}
+                                                                />
+                                                            );
+                                                        }}
+                                                    </Form.Item>
+                                                </Col>
+                                                <Col xs={24} md={6}>
                                                     <Form.Item
                                                         {...restField}
                                                         label={name === 0 ? "Notes" : undefined}

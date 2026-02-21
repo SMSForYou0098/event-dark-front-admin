@@ -15,6 +15,7 @@ import {
     Table,
     Alert,
     Typography,
+    Tag,
 } from "antd";
 import { TagsOutlined, PlusOutlined, DeleteOutlined, CloseOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -23,7 +24,8 @@ import useTicketInventory from "./hooks/useTicketInventory";
 
 const { Text } = Typography;
 
-const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSummary }) => {
+const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSummary, mode = 'assign' }) => {
+    const isUnassignMode = mode === 'unassign';
     const [form] = Form.useForm();
     const selectedTicketId = Form.useWatch('ticket_id', form);
     const typesWatch = Form.useWatch('types', form);
@@ -54,12 +56,17 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
         return summary?.summary?.status_counts?.available || 0;
     }, [summary]);
 
-    // Unassigned blocks for gap validation
+    // Unassigned blocks for gap validation (assign mode)
     const unassignedBlocks = useMemo(() => {
         return (summary?.summary?.type_breakdown || []).filter(t => t.type === 'unassigned');
     }, [summary]);
 
-    // Mutation
+    // Assigned blocks for unassign mode
+    const assignedBlocks = useMemo(() => {
+        return (summary?.summary?.type_breakdown || []).filter(item => item.type !== 'unassigned');
+    }, [summary]);
+
+    // Mutation for assign
     const assignTicketMutation = useMutation({
         mutationFn: async (payload) => {
             return await apiClient.post("card-tokens/assign-ticket", payload);
@@ -78,33 +85,59 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
         },
     });
 
+    // Mutation for unassign
+    const unassignTicketMutation = useMutation({
+        mutationFn: async (payload) => {
+            return await apiClient.post("card-tokens/unassign-ticket", payload);
+        },
+        onSuccess: (res) => {
+            message.success(res?.message || "Ticket & types unassigned successfully");
+            form.resetFields();
+            setMutationError(null);
+            refetchSummary?.();
+        },
+        onError: (error) => {
+            const errMsg = error?.response?.data?.message || error?.message || "Failed to unassign ticket";
+            setMutationError(errMsg);
+        },
+    });
+
     const onFinish = (values) => {
-        const { ticket_id, types } = values;
-
-        if (!types || types.length === 0) {
-            message.warning("Please add at least one type breakdown");
-            return;
+        if (isUnassignMode) {
+            const { ticket_id, ranges } = values;
+            if (!ranges || ranges.length === 0) {
+                message.warning("Please add at least one range to unassign");
+                return;
+            }
+            unassignTicketMutation.mutate({
+                event_id: selectedEventId,
+                ticket_id,
+                ranges,
+            });
+        } else {
+            const { ticket_id, types } = values;
+            if (!types || types.length === 0) {
+                message.warning("Please add at least one type breakdown");
+                return;
+            }
+            const quantity = types.reduce((sum, t) => sum + (t?.quantity || 0), 0);
+            const range_start = types[0]?.range_start;
+            assignTicketMutation.mutate({
+                event_id: selectedEventId,
+                ticket_id,
+                quantity,
+                range_start,
+                types,
+            });
         }
-
-        // Derive quantity and range_start from types
-        const quantity = types.reduce((sum, t) => sum + (t?.quantity || 0), 0);
-        const range_start = types[0]?.range_start;
-
-        assignTicketMutation.mutate({
-            event_id: selectedEventId,
-            ticket_id,
-            quantity,
-            range_start,
-            types,
-        });
     };
 
     return (
         <Card
             title={
                 <Space>
-                    <TagsOutlined />
-                    <span>Assign Ticket & Types</span>
+                    {isUnassignMode ? <CloseOutlined /> : <TagsOutlined />}
+                    <span>{isUnassignMode ? 'Unassign Ticket & Types' : 'Assign Ticket & Types'}</span>
                 </Space>
             }
             bordered={false}
@@ -124,7 +157,7 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                 form={form}
                 layout="vertical"
                 onFinish={onFinish}
-                initialValues={{ types: [] }}
+                initialValues={isUnassignMode ? { ranges: [] } : { types: [] }}
                 disabled={!selectedEventId}
             >
                 <Form.Item
@@ -141,12 +174,140 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                     />
                 </Form.Item>
 
+                {/* Show assigned ranges info for unassign mode */}
+                {isUnassignMode && selectedTicketId && assignedBlocks.length > 0 && (
+                    <Alert
+                        message={`Found ${assignedBlocks.length} assigned range(s) for this ticket`}
+                        type="info"
+                        showIcon
+                        style={{ marginBottom: 16, borderRadius: 8 }}
+                    />
+                )}
 
-                {/* <Divider orientation="left" style={{ margin: "12px 0", fontSize: 13 }}>
-                    Types Breakdown
-                </Divider> */}
+                {isUnassignMode ? (
+                    <Form.List name="ranges">
+                        {(fields, { add, remove }) => (
+                            <>
+                                {fields.length > 0 && (
+                                    <Row gutter={8} style={{ marginBottom: 6 }}>
+                                        <Col span={8}>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>Range Start</Text>
+                                        </Col>
+                                        <Col span={8}>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>Range End</Text>
+                                        </Col>
+                                        <Col span={6}>
+                                            <Text type="secondary" style={{ fontSize: 12 }}>Quantity</Text>
+                                        </Col>
+                                        <Col span={2} />
+                                    </Row>
+                                )}
+                                {fields.map(({ key, name, ...restField }) => {
+                                    const allRanges = form.getFieldValue('ranges') || [];
+                                    const currentRange = allRanges[name];
+                                    const quantity = (currentRange?.range_start && currentRange?.range_end)
+                                        ? currentRange.range_end - currentRange.range_start + 1
+                                        : null;
 
-                <Form.List name="types">
+                                    return (
+                                        <Row key={key} gutter={8} align="middle" style={{ marginBottom: 8 }}>
+                                            <Col span={8}>
+                                                <Form.Item
+                                                    {...restField}
+                                                    name={[name, "range_start"]}
+                                                    rules={[
+                                                        { required: true, message: "Required" },
+                                                        {
+                                                            validator(_, value) {
+                                                                if (!value) return Promise.resolve();
+                                                                const isValid = assignedBlocks.some(block =>
+                                                                    value >= block.range_start && value <= block.range_end
+                                                                );
+                                                                if (!isValid) {
+                                                                    return Promise.reject(new Error("Not in assigned range"));
+                                                                }
+                                                                return Promise.resolve();
+                                                            },
+                                                        },
+                                                    ]}
+                                                    style={{ marginBottom: 0 }}
+                                                >
+                                                    <InputNumber
+                                                        placeholder="Start"
+                                                        min={1}
+                                                        style={{ width: '100%' }}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={8}>
+                                                <Form.Item
+                                                    {...restField}
+                                                    name={[name, "range_end"]}
+                                                    rules={[
+                                                        { required: true, message: "Required" },
+                                                        {
+                                                            validator(_, value) {
+                                                                if (!value) return Promise.resolve();
+                                                                const start = form.getFieldValue(['ranges', name, 'range_start']);
+                                                                if (start && value < start) {
+                                                                    return Promise.reject(new Error("End must be >= Start"));
+                                                                }
+                                                                const isValid = assignedBlocks.some(block =>
+                                                                    value >= block.range_start && value <= block.range_end
+                                                                );
+                                                                if (!isValid) {
+                                                                    return Promise.reject(new Error("Not in assigned range"));
+                                                                }
+                                                                return Promise.resolve();
+                                                            },
+                                                        },
+                                                    ]}
+                                                    style={{ marginBottom: 0 }}
+                                                >
+                                                    <InputNumber
+                                                        placeholder="End"
+                                                        min={1}
+                                                        style={{ width: '100%' }}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={6}>
+                                                <Form.Item>
+                                                    <InputNumber
+                                                        value={quantity}
+                                                        disabled
+                                                        placeholder="—"
+                                                        style={{ width: '100%' }}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                            <Col span={2} style={{ textAlign: "center" }}>
+                                                <Form.Item>
+                                                    <DeleteOutlined
+                                                        onClick={() => remove(name)}
+                                                        style={{ color: "#ff4d4f", fontSize: 16, cursor: 'pointer' }}
+                                                    />
+                                                </Form.Item>
+                                            </Col>
+                                        </Row>
+                                    );
+                                })}
+                                <Form.Item>
+                                    <Button
+                                        type="dashed"
+                                        onClick={() => add()}
+                                        block
+                                        icon={<PlusOutlined />}
+                                        style={{ fontSize: 13 }}
+                                    >
+                                        Add Range
+                                    </Button>
+                                </Form.Item>
+                            </>
+                        )}
+                    </Form.List>
+                ) : (
+                    <Form.List name="types">
                     {(fields, { add, remove }) => (
                         <>
                             {fields.length > 0 && (
@@ -310,21 +471,23 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                         </>
                     )}
                 </Form.List>
+                )}
 
                 <Button
-                    type="primary"
+                    type={isUnassignMode ? "primary" : "primary"}
+                    danger={isUnassignMode}
                     htmlType="submit"
                     block
-                    loading={assignTicketMutation.isPending}
-                    icon={<TagsOutlined />}
+                    loading={isUnassignMode ? unassignTicketMutation.isPending : assignTicketMutation.isPending}
+                    icon={isUnassignMode ? <CloseOutlined /> : <TagsOutlined />}
                     style={{ marginTop: 8 }}
                 >
-                    Assign Ticket & Types
+                    {isUnassignMode ? 'Unassign Ticket & Types' : 'Assign Ticket & Types'}
                 </Button>
             </Form>
 
-            {/* Ticket Inventory Data */}
-            {selectedTicketId && (
+            {/* Ticket Inventory Data - Only show in assign mode */}
+            {!isUnassignMode && selectedTicketId && (
                 <Spin spinning={ticketInventoryLoading}>
                     {ticketInventory && (
                         <>
@@ -359,6 +522,56 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                         </>
                     )}
                 </Spin>
+            )}
+
+            {/* Show assigned ranges table for unassign mode */}
+            {isUnassignMode && selectedTicketId && assignedBlocks.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                    <Text strong style={{ marginBottom: 8, display: 'block' }}>
+                        Assigned Ranges:
+                    </Text>
+                    <Table
+                        dataSource={assignedBlocks}
+                        rowKey={(r, i) => `${r.type}-${r.range_start}-${i}`}
+                        pagination={false}
+                        size="small"
+                        summary={(pageData) => {
+                            const total = pageData.reduce((sum, record) => sum + (record.count || 0), 0);
+                            return (
+                                <Table.Summary fixed>
+                                    <Table.Summary.Row>
+                                        <Table.Summary.Cell index={0}>
+                                            <Text strong>Total</Text>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={1}>
+                                            <Text strong>{total}</Text>
+                                        </Table.Summary.Cell>
+                                        <Table.Summary.Cell index={2} />
+                                    </Table.Summary.Row>
+                                </Table.Summary>
+                            );
+                        }}
+                        columns={[
+                            {
+                                title: 'Type',
+                                dataIndex: 'type',
+                                render: (v) => {
+                                    const colorMap = {
+                                        'online': 'green',
+                                        'offline': 'blue',
+                                    };
+                                    return (
+                                        <Tag color={colorMap[v] || 'default'}>
+                                            {v?.toUpperCase()}
+                                        </Tag>
+                                    );
+                                },
+                            },
+                            { title: 'Quantity', dataIndex: 'count' },
+                            { title: 'Range', render: (_, record) => `${record.range_start}-${record.range_end}` },
+                        ]}
+                    />
+                </div>
             )}
         </Card>
     );

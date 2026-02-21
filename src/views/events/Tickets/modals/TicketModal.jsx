@@ -286,7 +286,8 @@ const TicketModal = (props) => {
                                                         ref={(el) => {
                                                             swiperCanvasRefs.current[index] = el;
                                                         }}
-                                                        showDetails={showTicketDetails}
+                                                        // showDetails={showTicketDetails}
+                                                        showDetails={true}
                                                         ticketData={item}
                                                         ticketNumber={index + 1}
                                                         ticketLabel="(I)"
@@ -310,7 +311,8 @@ const TicketModal = (props) => {
                                     <Col span={24}>
                                         <TicketCanvasView
                                             ref={singleCanvasRef}
-                                            showDetails={showTicketDetails}
+                                            // showDetails={showTicketDetails}
+                                            showDetails={true}
                                             ticketData={ticketData}
                                             ticketNumber={1}
                                             ticketLabel="(G)"
