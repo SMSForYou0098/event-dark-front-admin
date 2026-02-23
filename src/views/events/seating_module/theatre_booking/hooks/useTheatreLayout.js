@@ -87,7 +87,7 @@ export const useTheatreLayout = (layoutId, eventId, options = {}) => {
             return status >= 500 && count < 2;
         },
         onSuccess: () => {
-            message.success('Layout loaded successfully');
+            // message.success('Layout loaded successfully');
         },
         onError: (error) => {
             console.error('Error fetching layout:', error);

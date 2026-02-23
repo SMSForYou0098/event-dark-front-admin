@@ -109,7 +109,7 @@ const AuditoriumLayoutDesigner = () => {
           setNextSectionId(layoutData.sections.length + 1);
         }
 
-        message.success('Layout loaded successfully');
+        // message.success('Layout loaded successfully');
       } catch (error) {
         if (error.name === 'AbortError') return;
         if (!isMounted) return;
@@ -207,7 +207,7 @@ const AuditoriumLayoutDesigner = () => {
 
         const ticketsData = response?.tickets || response;
         setTicketCategories(ticketsData);
-        message.success(`Loaded ${ticketsData.length} ticket categories`);
+        // message.success(`Loaded ${ticketsData.length} ticket categories`);
       } catch (error) {
         if (error.name === 'AbortError') return;
         if (!isMounted) return;

@@ -4,6 +4,7 @@ import { Key } from 'lucide-react';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { useNavigate } from 'react-router-dom';
 import FormActionButtons from './FormActionButtons';
+import { useMyContext } from 'Context/MyContextProvider';
 
 /**
  * Security Card Component
@@ -14,7 +15,7 @@ const SecurityCard = ({
     isSubmitting,
 }) => {
     const navigate = useNavigate();
-
+    const { userRole } = useMyContext();
     return (
         <PermissionChecker role={['Admin', 'Organizer']}>
             <Card
@@ -68,15 +69,19 @@ const SecurityCard = ({
                             </Form.Item>
                         </Col>
                     )}
-                    <Col xs={24} md={12}>
-                        <Form.Item
-                            label="User Status"
-                            name="status"
-                            valuePropName="checked"
-                        >
-                            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-                        </Form.Item>
-                    </Col>
+                    {
+                        userRole === 'Admin' && (
+                            <Col xs={24} md={12}>
+                                <Form.Item
+                                    label="User Status"
+                                    name="status"
+                                    valuePropName="checked"
+                                >
+                                    <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
+                                </Form.Item>
+                            </Col>
+                        )
+                    }
                     <Col xs={24} md={12}>
                         <Space size="large">
                             <Form.Item

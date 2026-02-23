@@ -90,11 +90,15 @@ const EventStepperForm = () => {
         { enabled: isEdit }
     );
 
+    // Watch form name so title updates when basic step data is loaded
+    const formEventName = Form.useWatch('name', form);
+
     // Populate form with event details based on current step
     useEffect(() => {
         if (!isEdit || !detail) return;
 
-        const controls = detail?.event_controls ?? {};
+        // API may return controls under event_controls or flat on the event object
+        const controls = detail?.event_controls ?? detail ?? {};
         const event_galleries = detail?.event_media ?? {};
         const event_seo = detail?.event_seo ?? {};
 
@@ -356,6 +360,20 @@ const EventStepperForm = () => {
         const values = form.getFieldsValue();
         return { ...values, tickets };
     }, [form, tickets]);
+
+    // Save controls step — used by EventControlsStep before navigating to layout
+    const saveControlsStep = useCallback(async () => {
+        if (!id) return;
+        await form.validateFields();
+        const formValues = getFormData();
+        const body = buildEventFormData({
+            ...formValues,
+            step: 'controls',
+            userRole,
+            userId: UserData?.id,
+        });
+        await updateEvent({ id, body });
+    }, [id, form, getFormData, userRole, UserData?.id, updateEvent]);
     // Get orgId from detail or form (form is more reliable as it's set in all steps)
     const orgId = detail?.user_id || form.getFieldValue('org_id');
     console.log(detail, 'detail');
@@ -370,6 +388,7 @@ const EventStepperForm = () => {
                     eventId={detail?.event_key}
                     venue_id={detail?.venue_id}
                     eventHasAttendee={detail?.event_has_attendee}
+                    onSaveControls={saveControlsStep}
                 />, icon: <ControlOutlined />
             },
             { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
@@ -563,7 +582,7 @@ const EventStepperForm = () => {
         <div>
             <Card bordered={false}>
                 <Title level={2} style={{ textAlign: 'center', marginBottom: 32 }}>
-                    {isEdit ? `Edit Event - ${form.getFieldValue('name')}` : 'Create New Event'}
+                    {isEdit ? `Edit Event  ${formEventName || detail?.name || detail?.event?.name || ''}` : 'Create New Event'}
                 </Title>
 
                 <Steps current={current} style={{ marginBottom: 32 }} responsive>

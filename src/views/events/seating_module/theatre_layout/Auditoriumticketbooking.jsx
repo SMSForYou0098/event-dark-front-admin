@@ -107,7 +107,7 @@ const AuditoriumTicketBooking = ({ layoutId, eventDetails }) => {
       setStage(data.stage);
       setSections(data.sections || []);
       setTicketCategories(data.ticketCategories || []);
-      message.success('Layout loaded successfully!');
+      // message.success('Layout loaded successfully!');
     } catch (error) {
       console.error('Error loading layout:', error);
       message.error(`Failed to load layout: ${error.message}`);

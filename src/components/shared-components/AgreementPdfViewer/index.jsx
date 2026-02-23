@@ -27,6 +27,7 @@ const AgreementPdfViewer = ({
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(0.5);
   const [pdfUrl, setPdfUrl] = useState(null);
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

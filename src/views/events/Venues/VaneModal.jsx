@@ -148,6 +148,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
             });
 
             if (response.status) {
+                // message.success(`Venue ${mode === 'edit' ? 'updated' : 'created'} successfully`);
                 message.success(`Venue ${mode === 'edit' ? 'updated' : 'created'} successfully`);
                 handleCancel();
             }

@@ -222,7 +222,7 @@ const BookingLayout = forwardRef((props, ref) => {
                 }
 
                 setLayoutData(data);
-                message.success('Layout loaded successfully');
+                // message.success('Layout loaded successfully');
             } catch (error) {
                 if (error.name === 'AbortError') return;
                 if (!isMounted) return;

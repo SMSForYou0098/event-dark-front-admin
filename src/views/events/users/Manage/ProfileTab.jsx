@@ -775,11 +775,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     const onFinish = async (values) => {
         setIsSubmitting(true);
         try {
-            // Check if creating Organizer without verified email - need OTP verification first
+            // Check if creating Organizer - always use OTP flow (no direct create-user for organizer)
             const isCreatingVerifiedOrganizer =
                 mode === 'create' &&
-                formState.roleName === 'Organizer' &&
-                !values.verifiedEmail;
+                formState.roleName === 'Organizer';
+                // && !values.verifiedEmail;  // Commented out: no direct create-user for organizer
 
             // Check if editing own profile and email/name changed
             if (hasIdentityChanged(values)) {

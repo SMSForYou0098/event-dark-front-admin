@@ -1,6 +1,6 @@
 // EventControlsStep.jsx
 import React, { useState, useCallback, useEffect } from 'react';
-import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty, Tooltip } from 'antd';
+import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
@@ -17,7 +17,7 @@ const { Text } = Typography;
 const toBoolean = (v) => v === true || v === 1 || v === '1';
 const toBooleanValue = (checked) => Boolean(checked);
 
-const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee }) => {
+const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee, onSaveControls }) => {
 
 
   const { userRole } = useMyContext();
@@ -150,7 +150,21 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
     return toBooleanValue(checked);
   };
 
-  const handleManageLayoutClick = () => {
+  const [savingControls, setSavingControls] = useState(false);
+
+  const handleManageLayoutClick = async () => {
+    // Save controls step before navigating to layout
+    if (onSaveControls) {
+      try {
+        setSavingControls(true);
+        await onSaveControls();
+      } catch (error) {
+        return;
+      } finally {
+        setSavingControls(false);
+      }
+    }
+
     if (!layouts || layouts.length === 0) {
       Modal.confirm({
         title: 'No Layout Found',
@@ -304,28 +318,24 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                     <Form.Item
                       name={f.name}
                       label={f.label}
-                      tooltip={f.tooltip}
+                      tooltip={isCancelled ? "Event is cancelled" : f.tooltip}
                       valuePropName="checked"
                       getValueProps={(v) => ({ checked: toBoolean(v) })}
                       getValueFromEvent={toBooleanValue}
                       initialValue={f.defaultValue ?? false}
                     >
-                      <Tooltip title={isCancelled ? "Event is cancelled" : ""}>
-                        <div style={{ display: 'inline-block' }}>
-                          <Switch
-                            disabled={isCancelled}
-                            checkedChildren="Yes"
-                            unCheckedChildren="No"
-                            onChange={(checked) => {
-                              // Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
-                              if (f.name === 'online_booking' && !checked) {
-                                form.setFieldValue('event_feature', false);
-                                form.setFieldValue('show_on_home', false);
-                              }
-                            }}
-                          />
-                        </div>
-                      </Tooltip>
+                      <Switch
+                        disabled={isCancelled}
+                        checkedChildren="Yes"
+                        unCheckedChildren="No"
+                        onChange={(checked) => {
+                          // Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
+                          if (f.name === 'online_booking' && !checked) {
+                            form.setFieldValue('event_feature', false);
+                            form.setFieldValue('show_on_home', false);
+                          }
+                        }}
+                      />
                     </Form.Item>
                   );
                 }}
@@ -416,21 +426,19 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                         <Form.Item
                           name={f.name}
                           label={f.label}
-                          tooltip={f.tooltip}
+                          tooltip={isDisabled ? "Online booking must be enabled" : f.tooltip}
                           valuePropName="checked"
                           getValueProps={(v) => ({ checked: toBoolean(v) })}
                           getValueFromEvent={toBooleanValue}
                           initialValue={f.defaultValue ?? false}
                         >
-                          <Tooltip title={isDisabled ? "Online booking must be enabled" : ""}>
-                            <div style={{ display: 'inline-block' }}>
-                              <Switch
-                                disabled={isDisabled}
-                                checkedChildren={f.onLabels?.[0] || "Yes"}
-                                unCheckedChildren={f.onLabels?.[1] || "No"}
-                                onChange={(checked) => {
-                                  // If this is one of the exclusive fields and it's being turned ON
-                                  if (isExclusive && checked) {
+                          <Switch
+                            disabled={isDisabled}
+                            checkedChildren={f.onLabels?.[0] || "Yes"}
+                            unCheckedChildren={f.onLabels?.[1] || "No"}
+                            onChange={(checked) => {
+                              // If this is one of the exclusive fields and it's being turned ON
+                              if (isExclusive && checked) {
                                     // Turn off the other exclusive fields
                                     exclusiveFields.forEach((fieldName) => {
                                       if (fieldName !== f.name) {
@@ -458,9 +466,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                                     });
                                   }
                                 }}
-                              />
-                            </div>
-                          </Tooltip>
+                          />
                         </Form.Item>
                       );
                     }}
@@ -547,21 +553,17 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                     <Form.Item
                       name={f.name}
                       label={f.label}
-                      tooltip={f.tooltip}
+                      tooltip={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : f.tooltip}
                       valuePropName="checked"
                       getValueProps={(v) => ({ checked: toBoolean(v) })}
                       getValueFromEvent={toBooleanValue}
                       initialValue={f.defaultValue ?? false}
                     >
-                      <Tooltip title={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : ""}>
-                        <div style={{ display: 'inline-block' }}>
-                          <Switch
-                            disabled={isDisabled}
-                            checkedChildren="Yes"
-                            unCheckedChildren="No"
-                          />
-                        </div>
-                      </Tooltip>
+                      <Switch
+                        disabled={isDisabled}
+                        checkedChildren="Yes"
+                        unCheckedChildren="No"
+                      />
                     </Form.Item>
                   );
                 }}
@@ -570,37 +572,6 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
           ))}
         </Row>
       </Card>
-
-
-
-      {/* WhatsApp Note */}
-      {/* <Form.Item
-        name="whts_note"
-        label="WhatsApp Note"
-        tooltip="This note will be sent via WhatsApp to attendees"
-      >
-        <TextArea
-          rows={3}
-          placeholder="Enter WhatsApp notification message..."
-          showCount
-          maxLength={200}
-        />
-      </Form.Item> */}
-
-
-
-      {/* <Form.Item
-        name="booking_notice"
-        label="Booking Note"
-        tooltip=""
-      >
-        <TextArea
-          rows={3}
-          placeholder="Enter Booking notification message..."
-          showCount
-          maxLength={200}
-        />
-      </Form.Item> */}
 
       {/* Ticket Settings */}
       <Row gutter={ROW_GUTTER}>
@@ -612,7 +583,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                 {() => {
                   const bookingBySeatValue = form.getFieldValue("bookingBySeat");
                   return toBoolean(bookingBySeatValue) ? (
-                    <Button type="primary" onClick={handleManageLayoutClick} size="small">
+                    <Button type="primary" onClick={handleManageLayoutClick} size="small" loading={savingControls}>
                       Manage Ticket in Layout
                     </Button>
                   ) : null;
@@ -895,7 +866,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
           }}
         />
       </Modal>
-    </Space >
+    </Space>
   );
 };
 

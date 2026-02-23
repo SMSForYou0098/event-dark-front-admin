@@ -44,7 +44,7 @@ const PreviewAgreement = () => {
     const updateSignatureMutation = useUpdateUserSignature({
         onSuccess: async (data) => {
             if (data?.status) {
-                message.success('Signature submitted successfully!');
+                message.success(data?.message || 'Signature submitted successfully!');
                 // Refetch the preview to get updated data
                 const { data: previewData } = await fetchPreview();
                 if (previewData?.status) {
@@ -70,7 +70,7 @@ const PreviewAgreement = () => {
     const confirmAgreementMutation = useConfirmAgreement({
         onSuccess: async (data) => {
             if (data?.status) {
-                message.success('Agreement approved successfully!');
+                message.success(data?.message || 'Agreement approved successfully!');
                 // Navigate to read-only view (remove user_id from URL)
                 navigate(`/agreement/preview/${id}`, { replace: true });
             } else {
@@ -181,6 +181,8 @@ const PreviewAgreement = () => {
         return {
             signature_type: adminSig.signature_type,
             signature_text: adminSig.signature_type === 'type' ? adminSig.signature_text : null,
+            signature_font: adminSig.signature_font || null,
+            signature_font_style: adminSig.signature_font_style || null,
             signature_image: adminSig.signature_type !== 'type' ? adminSig.signature_image : null,
             signatory_name: adminSig.signatory_name || 'Platform Admin',
             signing_date: adminSig.signing_date || new Date().toISOString()
@@ -195,6 +197,8 @@ const PreviewAgreement = () => {
         return {
             signature_type: orgSig.signature_type,
             signature_text: orgSig.signature_type === 'type' ? orgSig.signature_text : null,
+            signature_font: orgSig.signature_font || null,
+            signature_font_style: orgSig.signature_font_style || null,
             signature_image: orgSig.signature_type !== 'type' ? orgSig.signature_image : null,
             signatory_name: orgSig.signatory_name || agreementData.user?.name || 'Organizer',
             signing_date: orgSig.signing_date || agreementData.signed_at || new Date().toISOString()

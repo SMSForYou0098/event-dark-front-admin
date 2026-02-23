@@ -56,6 +56,7 @@ const DataTable = ({
   pageSizeOptions = ["10", "20", "50", "100"], // Options for items per page
   defaultPageSize = 10, // Default page size for client-side pagination
   size, // Table size: 'small' | 'middle' | 'large' - overrides responsive default
+  exportPayload = {},
 }) => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
@@ -227,7 +228,10 @@ const DataTable = ({
 
       const response = await api.post(
         exportRoute,
-        requestBody,
+        {
+          ...exportPayload,
+          ...requestBody,
+        },
         { responseType: "blob" }
       );
 
