@@ -337,6 +337,7 @@ const OrganizerSummary = ({ organizerSummary }) => {
               shape="circle"
               icon={isExpanded ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
               onClick={() => setIsExpanded(!isExpanded)}
+              
             />
           </Tooltip>
         </Space>
@@ -590,6 +591,7 @@ const OrganizerSummary = ({ organizerSummary }) => {
           style={{
             width: 40,
             height: 40,
+            marginRight: 8,
             borderRadius: '50%',
             background: token.colorPrimaryBg,
           }}

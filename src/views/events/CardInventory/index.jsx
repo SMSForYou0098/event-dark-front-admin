@@ -17,16 +17,19 @@ import {
     Skeleton,
     Tag,
     Table,
+    Dropdown,
 } from "antd";
 import {
     ExportOutlined,
     PlusCircleOutlined,
+    MoreOutlined,
 } from "@ant-design/icons";
 import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from "Context/MyContextProvider";
 import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 import AssignTicketForm from "./AssignTicketForm";
 import AgentCardInventory from "./AgentCardInventory";
+import ExportTokensDrawer from "./ExportTokensDrawer";
 
 const { Text } = Typography;
 
@@ -39,9 +42,11 @@ const CardInventory = () => {
     // Create Tokens state
     const [createQuantity, setCreateQuantity] = useState(null);
     const [createPrefix, setCreatePrefix] = useState('');
-    
+
     // View mode: 'assign', 'unassign', or 'all'
     const [viewMode, setViewMode] = useState('assign');
+
+    const [exportDrawerOpen, setExportDrawerOpen] = useState(false);
 
     // Fetch events (includes tickets per event)
     const { data: events = [], isLoading: eventsLoading } = useOrganizerEvents(
@@ -158,29 +163,41 @@ const CardInventory = () => {
     // Export Tokens
     const exportTokensMutation = useMutation({
         mutationFn: async (payload) => {
-            // Request blob response so we can download the generated Excel/zip
             return await apiClient.post("card-tokens/card/export", payload, { responseType: 'blob' });
         },
-        onSuccess: (res) => {
+        onSuccess: async (res, payload) => {
             try {
-                // Axios returns the blob on res.data; wrapper may vary so handle both
                 const blob = res?.data || res;
+                const blobObj = blob instanceof Blob ? blob : new Blob([blob]);
 
-                // Try to extract filename from headers
+                // If backend returned JSON error (e.g. { status: false, message: "..." }), blob will be small and parseable
+                const text = await blobObj.slice(0, 500).text();
+                if (typeof text === 'string' && (text.trim().startsWith('{') || text.trim().startsWith('['))) {
+                    try {
+                        const json = JSON.parse(text);
+                        if (json?.status === false && json?.message) {
+                            message.error(json.message);
+                            return;
+                        }
+                    } catch (_) { /* not JSON or invalid, treat as file */ }
+                }
+
                 const disposition = res?.headers?.['content-disposition'] || res?.headers?.['Content-Disposition'] || '';
-                let filename = 'cards_export.xlsx';
+                const dateStr = new Date().toISOString().split('T')[0];
+                let filename = `cards_export_${dateStr}.xlsx`;
+                if (payload?.type != null && payload?.status != null && payload?.range_start != null && payload?.range_end != null) {
+                    filename = `cards_export_${payload.type}_${payload.status}_${payload.range_start}-${payload.range_end}.xlsx`;
+                }
                 if (disposition) {
                     const filenameMatch = disposition.match(/filename\*=UTF-8''([^;\n\r"]+)/);
-                    if (filenameMatch && filenameMatch[1]) {
+                    if (filenameMatch?.[1]) {
                         filename = decodeURIComponent(filenameMatch[1]);
                     } else {
                         const fallbackMatch = disposition.match(/filename="?([^";]+)"?/);
-                        if (fallbackMatch && fallbackMatch[1]) filename = fallbackMatch[1];
+                        if (fallbackMatch?.[1]) filename = fallbackMatch[1];
                     }
                 }
 
-                // Create a download link for the blob
-                const blobObj = blob instanceof Blob ? blob : new Blob([blob]);
                 const url = window.URL.createObjectURL(blobObj);
                 const a = document.createElement('a');
                 a.href = url;
@@ -194,22 +211,42 @@ const CardInventory = () => {
             } catch (e) {
                 message.error('Failed to process exported file');
             }
-
-            refetchSummary?.();
+            setExportDrawerOpen(false);
         },
-        onError: (error) => {
+        onError: async (error) => {
+            const data = error?.response?.data;
+            if (data instanceof Blob) {
+                try {
+                    const text = await data.text();
+                    const json = JSON.parse(text);
+                    const msg = json?.message || error?.message || 'Failed to export tokens';
+                    message.error(msg);
+                    return;
+                } catch (_) {}
+            }
             message.error(
-                error?.response?.data?.message || 'Failed to export tokens'
+                error?.response?.data?.message || error?.message || 'Failed to export tokens'
             );
         },
     });
-    const handleExport = () => {
+    const handleExport = (payload) => {
         if (!selectedEventId) {
             message.warning("Please select an event");
             return;
         }
         exportTokensMutation.mutate({
             event_id: selectedEventId,
+            ...payload,
+        });
+    };
+
+    const handleExportRow = (record, status) => {
+        const type = record.type === 'unassigned' ? 'unassigned' : 'assigned';
+        handleExport({
+            type,
+            range_start: record.range_start,
+            range_end: record.range_end,
+            status,
         });
     };
 
@@ -217,14 +254,10 @@ const CardInventory = () => {
         <div>
             {/* Event Selection */}
             <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16 }}
-                title={
-                    <Space wrap size="middle" align="center">
-                        <Text strong style={{ fontSize: 16 }}>
-                            Card Inventory
-                        </Text>
-                        <Divider type="vertical" />
-                        <Text strong>Event:</Text>
-                        <Select
+                title="Card Inventory"
+                extra={
+                    <>
+                    <Select
                             placeholder="Select an Event"
                             allowClear
                             showSearch
@@ -234,22 +267,29 @@ const CardInventory = () => {
                             style={{ minWidth: 280 }}
                             optionFilterProp="label"
                             options={events}
-                        />
-                    </Space>
-                }
-                extra={
-                    selectedEventId &&
-                    <Button
-                        onClick={handleExport}
-                        icon={<ExportOutlined />}
-                        loading={exportTokensMutation.isPending}
-                        disabled={!selectedEventId || exportTokensMutation.isPending}
-                    >
-                        {exportTokensMutation.isPending ? 'Exporting' : 'Export'}
-                    </Button>
+                            className="mr-2 mb-2"
+                    />
+                    {selectedEventId && (
+                        <Button
+                            onClick={() => setExportDrawerOpen(true)}
+                            icon={<ExportOutlined />}
+                            disabled={!selectedEventId}
+                        >
+                            Export
+                        </Button>
+                    )}
+                    </>
                 }>
 
             </Card>
+
+            <ExportTokensDrawer
+                open={exportDrawerOpen}
+                onClose={() => setExportDrawerOpen(false)}
+                selectedEventId={selectedEventId}
+                loading={exportTokensMutation.isPending}
+                onExport={(payload) => handleExport(payload)}
+            />
 
             {!selectedEventId && (
                 <Alert
@@ -323,7 +363,7 @@ const CardInventory = () => {
                                     bordered={false}
                                     style={cardStyle}
                                 >
-                                    
+
                                     <Skeleton loading={summaryLoading} active>
                                         <div style={{ marginBottom: 16 }}>
                                             {usePreprintedCards ? (
@@ -363,15 +403,15 @@ const CardInventory = () => {
                                             Create Tokens
                                         </Button>
                                         <Select
-                                    value={viewMode}
-                                    className="mt-3 w-100"
-                                    onChange={setViewMode}
-                                    options={[
-                                        { label: 'Assign', value: 'assign' },
-                                        { label: 'Unassign', value: 'unassign' },
-                                        { label: 'All', value: 'all' },
-                                    ]}
-                                />
+                                            value={viewMode}
+                                            className="mt-3 w-100"
+                                            onChange={setViewMode}
+                                            options={[
+                                                { label: 'Assign', value: 'assign' },
+                                                { label: 'Unassign', value: 'unassign' },
+                                                { label: 'All', value: 'all' },
+                                            ]}
+                                        />
                                         {createTokensMutation.data?.data && (
                                             <Alert
                                                 message={`Created ${createTokensMutation.data.data.tokens_created} tokens (Index ${createTokensMutation.data.data.batch_index_range?.start} - ${createTokensMutation.data.data.batch_index_range?.end})`}
@@ -383,7 +423,7 @@ const CardInventory = () => {
                                         {/* Table with filtered data based on viewMode */}
                                         {filteredTypeBreakdown.length > 0 && (() => {
                                             const total = filteredTypeBreakdown.reduce((sum, record) => sum + (record.count || 0), 0);
-                                            
+
                                             const tableColumns = [
                                                 {
                                                     title: 'Type',
@@ -405,14 +445,46 @@ const CardInventory = () => {
                                                     title: () => (
                                                         <span>
                                                             Quantity
-                                                            <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
-                                                                (Total: {total})
-                                                            </Text>
                                                         </span>
                                                     ),
                                                     dataIndex: 'count',
                                                 },
                                                 { title: 'Range', render: (_, record) => `${record.range_start}-${record.range_end}` },
+                                                {
+                                                    title: 'Export',
+                                                    key: 'export',
+                                                    width: 120,
+                                                    render: (_, record) =>
+                                                        record.type === 'unassigned' ? (
+                                                            <Button
+                                                                size="small"
+                                                                icon={<ExportOutlined />}
+                                                                loading={exportTokensMutation.isPending}
+                                                                onClick={() => handleExportRow(record, 'all')}
+                                                            />
+                                                        ) : (
+                                                            <Dropdown
+                                                                trigger={['click']}
+                                                                placement="bottomRight"
+                                                                menu={{
+                                                                    items: [
+                                                                        { key: 'claimed', label: 'Claimed' },
+                                                                        { key: 'available', label: 'Available' },
+                                                                        { key: 'all', label: 'All' },
+                                                                    ],
+                                                                    onClick: ({ key }) => handleExportRow(record, key),
+                                                                }}
+                                                            >
+                                                                <Button
+                                                                    size="small"
+                                                                    icon={<ExportOutlined />}
+                                                                    loading={exportTokensMutation.isPending}
+                                                                >
+                                                                    <MoreOutlined style={{ marginLeft: 4, fontSize: 10 }} />
+                                                                </Button>
+                                                            </Dropdown>
+                                                        ),
+                                                },
                                             ];
 
                                             return (
@@ -435,6 +507,7 @@ const CardInventory = () => {
                                                                 <Table.Summary.Cell index={2}>
                                                                     <Text type="secondary">—</Text>
                                                                 </Table.Summary.Cell>
+                                                                <Table.Summary.Cell index={3} />
                                                             </Table.Summary.Row>
                                                         </Table.Summary>
                                                     )}

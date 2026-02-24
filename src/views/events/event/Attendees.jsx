@@ -4,20 +4,20 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
-import { Row, Col, Image, Button, Modal, Space, Typography, notification, Tooltip, Select, Card, Empty, message } from "antd";
+import { Row, Col, Image, Button, Modal, Typography, Tooltip, Select, Card, Empty, message } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { Edit, Eye, IdCard, Trash2, Download } from "lucide-react";
-import SelectAnt from "antd/lib/select";
-import { QRCodeCanvas } from "qrcode.react";
+import { Eye, IdCard, Download } from "lucide-react";
 import DataTable from "../common/DataTable";
+import EventTicketDropdowns from "../common/EventTicketDropdowns";
 import TicketModal from "../Tickets/modals/TicketModal";
 import StickerModal from "../Tickets/modals/StickerModal";
+import Loader from "utils/Loader";
 import { useMyContext } from "Context/MyContextProvider";
 import apiClient from "auth/FetchInterceptor";
 import { API_BASE_URL } from "configs/AppConfig";
 import PermissionChecker from "layouts/PermissionChecker";
-import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 const { Text } = Typography;
 
 /** Trigger browser download from a Blob */
@@ -32,12 +32,23 @@ function triggerBlobDownload(blob, filename) {
   window.URL.revokeObjectURL(url);
 }
 
+/** Get filename from download URL or event fallback */
+function getZipFilename(downloadUrl, eventLabelOrValue) {
+  try {
+    const pathname = new URL(downloadUrl).pathname;
+    const fromPath = pathname.split("/").pop();
+    if (fromPath && fromPath.endsWith(".zip")) return fromPath;
+  } catch (_) {}
+  return `attendee_images_${String(eventLabelOrValue || "event").replace(/[^\w-]/g, "_")}.zip`;
+}
+
 const Attendees = memo(() => {
   const {
     convertTo12HourFormat,
     isMobile,
     UserData,
     formatDateTime,
+    authToken,
   } = useMyContext();
 
   const [ticketData, setTicketData] = useState({});
@@ -53,19 +64,41 @@ const Attendees = memo(() => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedImage, setSelectedImage] = useState("");
   const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [qrDownloadData, setQrDownloadData] = useState(null);
-  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [backgroundModalVisible, setBackgroundModalVisible] = useState(false);
   const [tempTicketData, setTempTicketData] = useState(null);
   const [zipLoading, setZipLoading] = useState(false);
 
-  // Fetch events list
-  const { data: events = [], isLoading: eventsLoading } = useOrganizerEvents(
-    UserData?.id,
-    UserData?.role
-  );
+  const handleEventChange = useCallback((event) => {
+    setSelectedEvent(event);
+    setSelectedTicketId(null);
+    setPage(1);
+  }, []);
 
-  const {authToken} = useMyContext();
+  /** Download zip from URL via backend proxy (avoids CORS). Falls back to opening URL in new tab if proxy fails.
+   *  Backend must implement: GET attendee-download-proxy?url=<encoded_zip_url> → stream zip binary (e.g. Content-Type: application/zip). */
+  const downloadZipFromUrl = useCallback(async (downloadUrl, eventLabelOrValue) => {
+    const filename = getZipFilename(downloadUrl, eventLabelOrValue);
+    try {
+      const res = await apiClient.get("attendee-download-proxy", {
+        params: { url: downloadUrl },
+        responseType: "blob",
+      });
+      if (res?.data instanceof Blob) {
+        triggerBlobDownload(res.data, filename);
+        message.success("Download started. Attendee images zip is being downloaded.");
+        return;
+      }
+    } catch (proxyErr) {
+      console.warn("Proxy download failed, opening URL in new tab.", proxyErr);
+    }
+    window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    try {
+      await navigator.clipboard.writeText(downloadUrl);
+      message.info("Download link opened in new tab. If the tab was blocked, the link was copied to your clipboard — paste it in a new tab to download.");
+    } catch (_) {
+      message.info("Download link opened in new tab. Paste the link in a new tab if the zip doesn’t download.");
+    }
+  }, []);
 
   // Format date range for API: "YYYY-MM-DD, YYYY-MM-DD"
   const formattedDateForApi = useMemo(() => {
@@ -123,11 +156,6 @@ const Attendees = memo(() => {
     }
     : null;
 
-  const openLightbox = useCallback((imagePath) => {
-    setSelectedImage(imagePath);
-    setImageModalVisible(true);
-  }, []);
-
   const handleShowIdCardModal = useCallback((ticket) => {
     setTempTicketData(ticket);
     setBackgroundModalVisible(true);
@@ -154,62 +182,6 @@ const Attendees = memo(() => {
     setTicketData(row);
   }, []);
 
-  const handleCloseStickerModal = useCallback(() => {
-    setStickerModal(false);
-  }, []);
-
-  const handleQrDownloadFromTable = useCallback((data) => {
-    setQrDownloadData(data);
-    setQrModalVisible(true);
-  }, []);
-
-  const confirmQrDownload = useCallback(() => {
-    if (!qrDownloadData) return;
-
-    const tempCanvasId = "table-qr-download-canvas";
-    const container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.top = "-9999px";
-    document.body.appendChild(container);
-
-    const qrElem = (
-      <QRCodeCanvas
-        id={tempCanvasId}
-        value={qrDownloadData.token}
-        size={180}
-        bgColor="#fff"
-        fgColor="#000"
-        level="H"
-      />
-    );
-
-    import("react-dom").then((ReactDOM) => {
-      ReactDOM.render(qrElem, container);
-
-      setTimeout(() => {
-        const canvas = document.getElementById(tempCanvasId);
-        if (canvas) {
-          const url = canvas.toDataURL("image/png");
-          const a = document.createElement("a");
-          a.href = url;
-          const safeName = qrDownloadData.Name
-            ? qrDownloadData.Name.replace(/\s+/g, "_")
-              .replace(/[^\w_]/g, "")
-              .toLowerCase()
-            : "user";
-          a.download = `${qrDownloadData.id || "user"}_${safeName}.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }
-        ReactDOM.unmountComponentAtNode(container);
-        document.body.removeChild(container);
-        setQrModalVisible(false);
-        setQrDownloadData(null);
-      }, 100);
-    });
-  }, [qrDownloadData]);
-
   // Download ZIP handler: calls attendee-download-images (supports direct blob OR async SSE job)
   const downloadZip = useCallback(async () => {
     if (!selectedEvent?.value) return;
@@ -235,10 +207,7 @@ const Attendees = memo(() => {
         const zipName = `attendee_images_${(selectedEvent.label || selectedEvent.value).replace(/[^\w-]/g, "_")}.zip`;
         triggerBlobDownload(response.data, zipName);
         setZipLoading(false);
-        notification.success({
-          message: "Download started",
-          description: "Attendee images zip is being downloaded.",
-        });
+        message.success("Download started. Attendee images zip is being downloaded.");
         return;
       }
 
@@ -247,8 +216,8 @@ const Attendees = memo(() => {
       const json = JSON.parse(text);
 
       if (json?.download_url) {
-        // Immediate download URL (no SSE needed)
-        window.open(json.download_url);
+        // Immediate download URL – use backend proxy to avoid CORS, else open in new tab
+        await downloadZipFromUrl(json.download_url, selectedEvent?.label || selectedEvent?.value);
         setZipLoading(false);
         return;
       }
@@ -260,19 +229,15 @@ const Attendees = memo(() => {
       // Listen for job completion via SSE
       const baseUrl = process.env.REACT_APP_API_ENDPOINT_URL || API_BASE_URL || "";
       const sseUrl = `${baseUrl}attendee-zip-status/${json.job_id}?token=${authToken}`;
-      const sse = new EventSource(sseUrl, { withCredentials: true });
+      const sse = new EventSource(sseUrl);
 
-      sse.onmessage = (e) => {
+      sse.onmessage = async (e) => {
         try {
           const data = JSON.parse(e.data);
           if (data.status === "ready") {
             sse.close();
+            await downloadZipFromUrl(data.download_url, selectedEvent?.label || selectedEvent?.value);
             setZipLoading(false);
-            window.open(data.download_url);
-            notification.success({
-              message: "Download ready",
-              description: "Attendee images zip is ready for download.",
-            });
           } else if (data.status === "error") {
             sse.close();
             setZipLoading(false);
@@ -294,7 +259,7 @@ const Attendees = memo(() => {
       setZipLoading(false);
       message.error(err?.response?.data?.message || err?.message || "Download failed.");
     }
-  }, [selectedEvent, attendeeType, selectedTicketId]);
+  }, [selectedEvent, attendeeType, selectedTicketId, authToken, downloadZipFromUrl]);
 
   const columns = useMemo(
     () => [
@@ -346,34 +311,6 @@ const Attendees = memo(() => {
         render: (cell) => formatDateTime(cell),
       },
       {
-        title: "QR Code",
-        dataIndex: "qrdata",
-        key: "qrdata",
-        align: "center",
-        width: 100,
-        render: (_cell, row) =>
-          row.token ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-              onClick={() => handleQrDownloadFromTable(row)}
-              title="Click to download QR"
-            >
-              <QRCodeCanvas
-                value={row.token}
-                size={48}
-                bgColor="#fff"
-                fgColor="#000"
-              />
-            </div>
-          ) : (
-            <span className="text-muted">No Token</span>
-          ),
-      },
-      {
         title: "Email",
         dataIndex: "email",
         key: "email",
@@ -418,17 +355,8 @@ const Attendees = memo(() => {
       formatDateTime,
       handleShowIdCardModal,
       handleShowStickerModal,
-      openLightbox,
-      handleQrDownloadFromTable,
     ]
   );
-
-  const handleSelectEvent = useCallback((value) => {
-    const sel = events.find((e) => e.value === value) || null;
-    setSelectedEvent(sel);
-    setSelectedTicketId(null);
-    setPage(1);
-  }, [events]);
 
   // Build ticket options from selected event's tickets (from org-event API)
   const ticketOptions = useMemo(() => {
@@ -440,39 +368,38 @@ const Attendees = memo(() => {
     }));
   }, [selectedEvent?.tickets]);
 
-  // Event Selection, Type dropdown, Ticket dropdown and Download Button
+  // Default to first ticket when event has tickets and none is selected (or selected is not in list)
+  useEffect(() => {
+    if (ticketOptions.length > 0) {
+      const firstValue = ticketOptions[0].value;
+      const currentValid =
+        selectedTicketId != null &&
+        selectedTicketId !== "" &&
+        ticketOptions.some((o) => o.value === selectedTicketId);
+      if (!currentValid) {
+        setSelectedTicketId(firstValue);
+        setPage(1);
+      }
+    }
+  }, [ticketOptions, selectedTicketId]);
+
+  // Event Selection, Ticket selection (shared component), Type dropdown and Download Button
   const ExtraHeaderContent = useMemo(
     () => (
       <>
-        <Select
-          style={{ width: "15rem" }}
-          placeholder="Select Event"
-          value={selectedEvent?.value}
-          onChange={handleSelectEvent}
-          loading={eventsLoading}
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          options={events.map((ev) => ({
-            value: ev.value,
-            label: ev.label,
-          }))}
+        <EventTicketDropdowns
+          organizerId={UserData?.id}
+          role={UserData?.role}
+          selectedEvent={selectedEvent}
+          selectedTicketId={selectedTicketId}
+          onEventChange={handleEventChange}
+          onTicketChange={(v) => {
+            setSelectedTicketId(v ?? null);
+            setPage(1);
+          }}
         />
         {selectedEvent?.value && (
           <>
-            <Select
-              style={{ width: "12rem", marginLeft: 8 }}
-              placeholder="Ticket"
-              value={selectedTicketId ?? ""}
-              onChange={(v) => {
-                setSelectedTicketId(v || null);
-                setPage(1);
-              }}
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              options={ticketOptions}
-            />
             <Select
               style={{ width: "10rem", marginLeft: 8 }}
               placeholder="Type"
@@ -492,7 +419,7 @@ const Attendees = memo(() => {
                   type="primary"
                   icon={<Download size={16} />}
                   onClick={downloadZip}
-                  loading={zipLoading}
+                  disabled={zipLoading}
                   style={{ marginLeft: 8 }}
                 />
               </Tooltip>
@@ -502,13 +429,12 @@ const Attendees = memo(() => {
       </>
     ),
     [
-      selectedEvent?.value,
-      handleSelectEvent,
-      eventsLoading,
-      events,
-      attendeeType,
+      UserData?.id,
+      UserData?.role,
+      selectedEvent,
       selectedTicketId,
-      ticketOptions,
+      handleEventChange,
+      attendeeType,
       downloadZip,
       zipLoading,
     ]
@@ -648,33 +574,23 @@ const Attendees = memo(() => {
         <Text>Please choose whether you want the ticket with or without a background.</Text>
       </Modal>
 
-      {/* QR Download Confirmation Modal */}
+      {/* Zip download loader overlay – shown until SSE returns ready or error */}
       <Modal
-        title="Download QR Code"
-        open={qrModalVisible}
-        onOk={confirmQrDownload}
-        onCancel={() => {
-          setQrModalVisible(false);
-          setQrDownloadData(null);
-        }}
-        okText="Download"
-        cancelText="Cancel"
+        open={zipLoading}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+        width={200}
         centered
+        styles={{ body: { padding: 24, minHeight: 120 } }}
       >
-        <Space direction="vertical" style={{ width: "100%" }} align="center">
-          <Text>Do you want to download this QR code?</Text>
-          {qrDownloadData?.token && (
-            <QRCodeCanvas
-              value={qrDownloadData.token}
-              size={180}
-              bgColor="#fff"
-              fgColor="#000"
-              level="H"
-              style={{ marginTop: 16 }}
-            />
-          )}
-        </Space>
+        <Loader width={100} height={100} />
+        <div className="text-center mt-2">
+          <Text type="secondary">Preparing zip…</Text>
+        </div>
       </Modal>
+
+      {/* QR Download Confirmation Modal */}
     </Fragment>
   );
 });

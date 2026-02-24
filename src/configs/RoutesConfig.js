@@ -904,6 +904,14 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'organizer-agreement-pending',
+        path: `/agreements/pending`,
+        component: React.lazy(() => import('views/events/Agreement/AgreementPending')),
+        meta: {
+            roles: ['organizer'],
+        }
+    },
+    {
         key: 'organizer-agreement',
         path: `/agreements/organizer`,
         component: React.lazy(() => import('views/events/Agreement/Organizer/index')),

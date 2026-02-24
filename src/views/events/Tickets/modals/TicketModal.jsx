@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, Row, Col, Carousel, Button, Spin } from 'antd';
 import { CloudDownloadOutlined, LeftOutlined, PrinterOutlined, RightOutlined } from '@ant-design/icons';
-import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
 import { useMyContext } from 'Context/MyContextProvider';
 import IDCardDragAndDrop from '../IDCardDragAndDrop';
@@ -9,9 +8,10 @@ import AmusementTicket from '../tickets_type/AmusementTicket';
 import AccreditationTicket from '../tickets_type/AccreditationTicket';
 import TicketCanvasView from '../TicketCanvasView';
 import TicketCanvasBatch from '../TicketCanvasBatch';
+import { fetchTicketBgBlobUrl } from '../utils/fetchTicketBg';
 
 const TicketModal = (props) => {
-    const { convertTo12HourFormat, isMobile, api, authToken, formatDateRange } = useMyContext();
+    const { convertTo12HourFormat, isMobile, api, formatDateRange } = useMyContext();
     const {
         showPrintButton,
         showTicketDetails,
@@ -21,15 +21,13 @@ const TicketModal = (props) => {
         ticketData,
         isAccreditation,
         isIdCard,
-        card_url,
         bgRequired,
-        eventId,
     } = props;
 
     // State for special ticket types (IDCard etc.)
-    const [savedLayout, setSavedLayout] = useState({});
-    const [userPhoto, setUserPhoto] = useState();
-    const [idCardBg, setIdCardBg] = useState();
+    const savedLayout = {};
+    const userPhoto = undefined;
+    const idCardBg = undefined;
 
     // Canvas state
     const [isCanvasReady, setIsCanvasReady] = useState(false);
@@ -84,51 +82,15 @@ const TicketModal = (props) => {
         '';
 
     const { data: cachedBgImage, isLoading: isBgLoading } = useQuery({
-        queryKey: ['ticket-modal-bg', ticketBgUrl, api],
-        queryFn: () =>
-            axios
-                .post(`${api}get-image/retrive`, { path: ticketBgUrl }, { responseType: 'blob' })
-                .then((r) => URL.createObjectURL(r.data)),
+        queryKey: ['ticket-bg-image', ticketBgUrl, api],
+        queryFn: () => fetchTicketBgBlobUrl(api, ticketBgUrl),
         enabled: show && !!ticketBgUrl && !isSpecialTicket,
         staleTime: 1000 * 60 * 30, // 30 min
         retry: 1,
     });
 
-    // ─── Special-ticket helpers: fetch image & layout ─────────────────────────
-    const fetchImage = async (bg, setBg) => {
-        try {
-            const response = await axios.post(
-                `${api}get-image/retrive`,
-                { path: bg },
-                { responseType: 'blob' }
-            );
-            setBg(URL.createObjectURL(response.data));
-        } catch (error) {
-            console.error('Image fetch error:', error);
-        }
-    };
-
-    const fetchLayout = async () => {
-        try {
-            const response = await axios.get(`${api}layout/${eventId}`, {
-                headers: { Authorization: `Bearer ${authToken}` },
-            });
-            setSavedLayout(response.data?.layout || {});
-        } catch (error) {
-            console.error('❌ Error fetching layout:', error);
-            setSavedLayout({});
-        }
-    };
-
-    useEffect(() => {
-        if (show && isIdCard) {
-            if (ticketData?.Photo) fetchImage(ticketData.Photo, setUserPhoto);
-            if (bgRequired && card_url) {
-                fetchImage(card_url, setIdCardBg);
-                fetchLayout();
-            }
-        }
-    }, [show, ticketData, card_url, bgRequired, isIdCard]); // eslint-disable-line react-hooks/exhaustive-deps
+    // When API errors, we pass nothing so child shows white bg
+    const bgImageForCanvas = cachedBgImage ?? null;
 
     // ─── Reset state when modal opens / closes ────────────────────────────────
     useEffect(() => {
@@ -287,14 +249,14 @@ const TicketModal = (props) => {
                                                             swiperCanvasRefs.current[index] = el;
                                                         }}
                                                         // showDetails={showTicketDetails}
-                                                        showDetails={true}
+                                                        showDetails={showTicketDetails}
                                                         ticketData={item}
                                                         ticketNumber={index + 1}
                                                         ticketLabel="(I)"
                                                         onReady={() => {
                                                             if (index === 0) setIsCanvasReady(true);
                                                         }}
-                                                        preloadedImage={cachedBgImage}
+                                                        preloadedImage={bgImageForCanvas}
                                                     />
                                                     <p className="p-0 m-0 text-center">
                                                         {index + 1}
@@ -312,12 +274,12 @@ const TicketModal = (props) => {
                                         <TicketCanvasView
                                             ref={singleCanvasRef}
                                             // showDetails={showTicketDetails}
-                                            showDetails={true}
+                                            showDetails={showTicketDetails}
                                             ticketData={ticketData}
                                             ticketNumber={1}
                                             ticketLabel="(G)"
                                             onReady={() => setIsCanvasReady(true)}
-                                            preloadedImage={cachedBgImage}
+                                            preloadedImage={bgImageForCanvas}
                                         />
                                         <p className="p-0 m-0 text-center">(G)</p>
                                     </Col>

@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
 import { fabric } from 'fabric-pure-browser';
-import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 import QRCode from 'qrcode';
-import { useQuery } from '@tanstack/react-query';
 
 /**
  * TicketCanvasView - A reusable canvas component for rendering tickets
@@ -39,7 +37,7 @@ const TicketCanvasView = forwardRef((props, ref) => {
   // Default to true so event name, date, time, venue etc. render when not explicitly disabled
   const showDetails = showDetailsProp !== false;
 
-  const { convertTo12HourFormat, formatDateRange, api } = useMyContext();
+  const { convertTo12HourFormat, formatDateRange } = useMyContext();
   const canvasRef = useRef(null);
   const fabricCanvasRef = useRef(null);
 
@@ -85,7 +83,6 @@ const TicketCanvasView = forwardRef((props, ref) => {
     'N/A';
 
   const address = venue?.address || event?.address || 'Address Not Specified';
-  const ticketBG = ticket?.background_image || '';
   // Format date range: comma-separated "2026-02-03,2026-02-05" → "3 Feb 2026 to 5 Feb 2026"
   const dateRangeSource = ticketData?.booking_date || event?.date_range;
   const date = (() => {
@@ -121,6 +118,9 @@ const TicketCanvasView = forwardRef((props, ref) => {
   const CANVAS_WIDTH = 300;
   const CANVAS_HEIGHT = 600;
 
+  // Background: only from parent (single API call in TicketModal). No image / error → white bg
+  const imageUrl = preloadedImage ?? null;
+
   // ─── Imperative handle ────────────────────────────────────────────────────
   useImperativeHandle(
     ref,
@@ -141,28 +141,6 @@ const TicketCanvasView = forwardRef((props, ref) => {
     }),
     [isCanvasReady] // eslint-disable-line react-hooks/exhaustive-deps
   );
-
-  // ─── TanStack Query: fetch background image ───────────────────────────────
-  const hasPreloadedImage = !!preloadedImage;
-
-  const { data: fetchedImageUrl, isError: isImageError } = useQuery({
-    queryKey: ['ticket-bg-image', ticketBG, api],
-    queryFn: () =>
-      axios
-        .post(`${api}get-image/retrive`, { path: ticketBG }, { responseType: 'blob' })
-        .then((r) => URL.createObjectURL(r.data)),
-    enabled: !!ticketBG && !hasPreloadedImage,
-    staleTime: 1000 * 60 * 30,
-    retry: 1,
-  });
-
-  const imageUrl = hasPreloadedImage ? preloadedImage : fetchedImageUrl;
-
-  useEffect(() => {
-    if (isImageError) {
-      onError?.('Failed to load ticket background');
-    }
-  }, [isImageError, onError]);
 
   // ─── Generate QR code ─────────────────────────────────────────────────────
   useEffect(() => {

@@ -142,7 +142,6 @@ const OnlineBookings = memo(() => {
   });
 
   const HandleSendTicket = useCallback(async (record) => {
-    console.log(record);
     if (!record?.id) return;
     setLoadingId(record.id);
     try {
@@ -157,7 +156,6 @@ const OnlineBookings = memo(() => {
 
   const DeleteBooking = useCallback(
     (data) => {
-      console.log(data);
       // const data = bookings?.find((item) => item?.id === id);
       if (!data) return;
 
@@ -659,6 +657,7 @@ const OnlineBookings = memo(() => {
         ticketType={ticketType}
         ticketData={ticketData}
         formatDateRange={formatDateRange}
+        showTicketDetails={true}
       />
 
       <RefundModal

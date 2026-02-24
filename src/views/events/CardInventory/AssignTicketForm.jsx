@@ -66,6 +66,12 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
         return (summary?.summary?.type_breakdown || []).filter(item => item.type !== 'unassigned');
     }, [summary]);
 
+    // Human-readable assigned ranges for validation messages (e.g. "1–100, 201–300")
+    const assignedRangesText = useMemo(() => {
+        if (!assignedBlocks?.length) return "";
+        return assignedBlocks.map(b => `${b.range_start}–${b.range_end}`).join(", ");
+    }, [assignedBlocks]);
+
     // Mutation for assign
     const assignTicketMutation = useMutation({
         mutationFn: async (payload) => {
@@ -224,7 +230,11 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                                                                     value >= block.range_start && value <= block.range_end
                                                                 );
                                                                 if (!isValid) {
-                                                                    return Promise.reject(new Error("Not in assigned range"));
+                                                                    return Promise.reject(new Error(
+                                                                        assignedRangesText
+                                                                            ? `Start must be within an assigned range: ${assignedRangesText}`
+                                                                            : "Not in assigned range"
+                                                                    ));
                                                                 }
                                                                 return Promise.resolve();
                                                             },
@@ -256,7 +266,11 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                                                                     value >= block.range_start && value <= block.range_end
                                                                 );
                                                                 if (!isValid) {
-                                                                    return Promise.reject(new Error("Not in assigned range"));
+                                                                    return Promise.reject(new Error(
+                                                                        assignedRangesText
+                                                                            ? `End must be within an assigned range: ${assignedRangesText}`
+                                                                            : "Not in assigned range"
+                                                                    ));
                                                                 }
                                                                 return Promise.resolve();
                                                             },
@@ -357,7 +371,7 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                                                             );
 
                                                             if (!inUnassigned) {
-                                                                return Promise.reject(new Error("Start not in unassigned range"));
+                                                                return Promise.reject(new Error("must be in unassigned range"));
                                                             }
 
                                                             // 2. Sequential check relative to previous row (optional for UX)
@@ -539,7 +553,7 @@ const AssignTicketForm = ({ selectedEventId, ticketOptions, summary, refetchSumm
                             const total = pageData.reduce((sum, record) => sum + (record.count || 0), 0);
                             return (
                                 <Table.Summary fixed>
-                                    <Table.Summary.Row>
+                                    <Table.Summary.Row className='bg-dark border-0'>
                                         <Table.Summary.Cell index={0}>
                                             <Text strong>Total</Text>
                                         </Table.Summary.Cell>

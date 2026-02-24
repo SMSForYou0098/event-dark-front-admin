@@ -8,6 +8,7 @@ import {
     QuestionCircleOutlined,
     RocketOutlined,
     PlusOutlined,
+    LeftOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import PermissionChecker from 'layouts/PermissionChecker';
@@ -67,6 +68,15 @@ const EmptyEventsState = ({ isJunk }) => {
                         <RocketOutlined style={{ fontSize: 36, color: '#fff' }} />
                     </div>
                     <Flex justifyContent="center" flexDirection="column" alignItems="center">
+                        <Button
+                            type="link"
+                            icon={<LeftOutlined />}
+                            onClick={() => navigate(-1)}
+                            style={{ marginBottom: 8 }}
+                            variant="primary"
+                        >
+                            Back
+                        </Button>
                         <Title level={2} style={{ marginBottom: 8 }}>
                             No Events Found
                         </Title>

@@ -2,6 +2,8 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import Html from 'react-pdf-html';
 
+const PDF_BUILTIN = ['Helvetica', 'Times-Roman', 'Times-Italic', 'Courier', 'Helvetica-Oblique'];
+
 // Create styles
 const styles = StyleSheet.create({
   page: {
@@ -140,10 +142,13 @@ const SignatureBlock = ({ signatureData, label, adminName }) => {
     signature_type,
     signature_text,
     signature_image,
+    signature_font_style,
     signatory_name,
     signing_date,
     updated_at,
   } = signatureData;
+
+  const fontFamily = signature_font_style && PDF_BUILTIN.includes(signature_font_style) ? signature_font_style : 'Helvetica';
 
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -163,7 +168,7 @@ const SignatureBlock = ({ signatureData, label, adminName }) => {
       <Text style={styles.signatureLabel}>{label}</Text>
 
       {signature_type === 'type' && signature_text && (
-        <Text style={[styles.signatureText, { fontFamily: 'Helvetica-Oblique' }]}>
+        <Text style={[styles.signatureText, { fontFamily }]}>
           {signature_text}
         </Text>
       )}

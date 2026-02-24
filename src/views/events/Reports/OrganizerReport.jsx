@@ -4,9 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import OrganizerService from 'services/OrganizerService';
 import { useMyContext } from 'Context/MyContextProvider';
 import OrganizerSummary from '../Dashboard/components/OrganizerSummary';
-import EventTicketsSummary from '../Dashboard/components/EventTicketsSummary';
+import EventTicketDropdowns from '../common/EventTicketDropdowns';
 import { TeamOutlined, BarChartOutlined, CalendarOutlined } from '@ant-design/icons';
-import { useOrganizerEvents } from '../Settings/hooks/useBanners';
 
 const { Title, Text } = Typography;
 
@@ -20,9 +19,6 @@ const OrganizerReport = () => {
         value: String(org.id),
         label: `${org.organisation} (${org.name})`,
     })) || [];
-
-    // Fetch events for selected organizer
-    const { data: eventsList, isLoading: eventsLoading } = useOrganizerEvents(selectedOrganizer, 'Organizer');
 
     // Fetch organizer report data using the new service
     const {
@@ -41,8 +37,8 @@ const OrganizerReport = () => {
         setSelectedEvent(null); // Reset event selection when organizer changes
     };
 
-    const handleEventChange = (value) => {
-        setSelectedEvent(value);
+    const handleEventChange = (eventObj) => {
+        setSelectedEvent(eventObj?.value ?? null);
     };
 
     return (
@@ -73,28 +69,25 @@ const OrganizerReport = () => {
                                         onChange={handleOrganizerChange}
                                         value={selectedOrganizer}
                                         style={{ width: '100%' }}
-                                        size="large"
+                                        size="medium"
                                     />
                                 </Space>
                             </Col>
                             <Col xs={24} sm={12}>
                                 <Space direction="vertical" size={4} style={{ width: '100%' }}>
                                     <Text strong style={{ fontSize: 12 }}>
-                                        <CalendarOutlined className="me-1" />
+                                        <CalendarOutlined className="mr-2" />
                                         Select Event *
                                     </Text>
-                                    <Select
-                                        showSearch
-                                        allowClear
-                                        placeholder={selectedOrganizer ? "Choose an event" : "Select organizer first"}
-                                        options={eventsList || []}
-                                        optionFilterProp="label"
-                                        onChange={handleEventChange}
-                                        value={selectedEvent}
-                                        style={{ width: '100%' }}
-                                        size="large"
+                                    <EventTicketDropdowns
+                                        organizerId={selectedOrganizer}
+                                        role="Organizer"
+                                        selectedEvent={selectedEvent ? { value: selectedEvent } : null}
+                                        onEventChange={handleEventChange}
+                                        showTicketDropdown={false}
                                         disabled={!selectedOrganizer}
-                                        loading={eventsLoading}
+                                        eventPlaceholder={selectedOrganizer ? "Choose an event" : "Select organizer first"}
+                                        eventSelectStyle={{ width: '100%' }}
                                     />
                                 </Space>
                             </Col>

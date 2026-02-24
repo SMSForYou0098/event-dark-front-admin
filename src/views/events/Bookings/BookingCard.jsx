@@ -306,8 +306,9 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
         ticketType={ticketType}
         ticketData={ticketData}
         isAccreditation={ticketData?.type === 'AccreditationBooking'}
-        showTicketDetails={ticketData?.type === 'AccreditationBooking'}
+        // showTicketDetails={ticketData?.type === 'AccreditationBooking'}
         formatDateRange={formatDateRange}
+        showTicketDetails={true}
       />
 
       <SendTicketsModal

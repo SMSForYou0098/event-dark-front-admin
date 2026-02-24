@@ -6,14 +6,30 @@ import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalle
 const { Text } = Typography;
 const { Option } = Select;
 
-// Signature font options
+// Signature font options – PDF built-in fonts only
 export const SIGNATURE_FONTS = [
-    { name: 'Brush Script', style: 'Brush Script MT, cursive' },
-    { name: 'Lucida Handwriting', style: 'Lucida Handwriting, cursive' },
-    { name: 'Snell Roundhand', style: 'Snell Roundhand, cursive' },
-    { name: 'Zapfino', style: 'Zapfino, cursive' },
-    { name: 'Edwardian Script', style: 'Edwardian Script ITC, cursive' }
+  { name: 'Helvetica', style: 'Helvetica' },
+  { name: 'Times Roman', style: 'Times-Roman' },
+  { name: 'Times Italic', style: 'Times-Italic' },
+  { name: 'Courier', style: 'Courier' },
+  { name: 'Helvetica Oblique', style: 'Helvetica-Oblique' },
 ];
+
+/** Browser-friendly style for signature preview (Times-Italic and Helvetica-Oblique need fontStyle) */
+function getBrowserFontStyle(font) {
+  if (!font?.style) return { fontFamily: 'Helvetica' };
+  if (font.style === 'Times-Italic') {
+    return { fontFamily: 'Times New Roman, serif', fontStyle: 'italic' };
+  }
+  if (font.style === 'Helvetica-Oblique') {
+    return { fontFamily: 'Helvetica, sans-serif', fontStyle: 'oblique' };
+  }
+  return { fontFamily: font.style };
+}
+
+function getPreviewFontStyle(selectedFont) {
+  return { ...getBrowserFontStyle(selectedFont), fontSize: '32px', color: '#000' };
+}
 
 /**
  * SignatureInput - Reusable signature input component
@@ -175,7 +191,7 @@ const SignatureInput = ({
                                 >
                                     {SIGNATURE_FONTS.map(font => (
                                         <Option key={font.name} value={font.name}>
-                                            <span style={{ fontFamily: font.style, fontSize: '20px' }}>
+                                            <span style={{ ...getBrowserFontStyle(font), fontSize: '20px' }}>
                                                 {font.name}
                                             </span>
                                         </Option>
@@ -202,11 +218,7 @@ const SignatureInput = ({
                             <div className="border border-2 rounded p-4 text-center" style={{ background: 'white' }}>
                                 <Text type="secondary" className="d-block mb-3 text-black">Signature Preview:</Text>
                                 {typedSignature ? (
-                                    <div style={{
-                                        fontFamily: selectedFont.style,
-                                        fontSize: '32px',
-                                        color: '#000'
-                                    }}>
+                                    <div style={getPreviewFontStyle(selectedFont)}>
                                         {typedSignature}
                                     </div>
                                 ) : (
