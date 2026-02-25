@@ -453,11 +453,24 @@ const BookingsTab = ({
     }
 
     return (
-      <Space direction="vertical" size="middle" className="w-100">
+      <Row gutter={ROW_GUTTER}>
         {displayBookings.map((booking, idx) => (
-          <BookingCard key={makeBookingKey(booking, idx)} booking={booking} showAction={showAction} isBoxOffice={isBoxOffice} />
+          <Col
+            key={makeBookingKey(booking, idx)}
+            xs={24}
+            sm={24}
+            md={12}
+            lg={8}
+            xl={8}
+          >
+            <BookingCard
+              booking={booking}
+              showAction={showAction}
+              isBoxOffice={isBoxOffice}
+            />
+          </Col>
         ))}
-      </Space>
+      </Row>
     );
   }, [displayBookings, isLoading, isFetching, serverSide, hasActiveFilters, makeBookingKey, showAction, isBoxOffice]);
 

@@ -15,7 +15,6 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
-  ShareAltOutlined,
   EnvironmentOutlined,
   //   RupeeOutlined,
   AppstoreOutlined,
@@ -27,12 +26,13 @@ import {
   HistoryOutlined,
 } from "@ant-design/icons";
 import { useMyContext } from "Context/MyContextProvider";
-import TicketModal from "../Tickets/modals/TicketModal";
+import TicketDrawer from "../Tickets/modals/TicketDrawer";
 import TicketActions from "../Tickets/modals/TicketActions";
-import SendTicketsModal from "../Tickets/modals/SendTicketsModal";
 import ReassignTokenModal from "./components/ReassignTokenModal";
 import PermissionChecker from "layouts/PermissionChecker";
 import ReassignmentHistoryDrawer from "./components/ReassignmentHistoryDrawer";
+import TransferBookingDrawer from "./components/TransferBookingDrawer";
+import { useParams } from "react-router-dom";
 // import TicketModal from "../../../components/Tickets/TicketModal";
 
 const { Text } = Typography;
@@ -65,14 +65,13 @@ const TypeIcon = ({ type, size = 16 }) => {
   }
 };
 
-const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOffice = false }) => {
+const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOffice = false, onTransferSuccess }) => {
   const [ticketData, setTicketData] = useState([]);
   const [ticketType, setTicketType] = useState({ id: "", type: "" });
   const [show, setShow] = useState(false);
-
-  const { isMobile, getCurrencySymbol, formatDateRange, formatDateTime } = useMyContext();
-  const [showSendModal, setShowSendModal] = useState(false);
-  const [sendData, setSendData] = useState(null);
+  const {id} = useParams();
+  const { getCurrencySymbol, formatDateRange, formatDateTime } = useMyContext();
+  const [showTransferDrawer, setShowTransferDrawer] = useState(false);
   /** Normalize booking (supports master with .bookings[]) */
   const bookingData = useMemo(() => {
     const normalize = booking?.bookings ? booking.bookings[0] : booking || {};
@@ -91,7 +90,7 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
       background: normalize?.event?.event_media?.thumbnail,
       id: booking?.id || booking?._id || normalize?.id || normalize?._id,
     };
-  }, [booking]);
+  }, [booking, formatDateTime]);
 
   /** Ticket preview handlers */
   const handleTicketPreview = useCallback((item, type, id) => {
@@ -100,14 +99,12 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
     setShow(true);
   }, []);
 
-  const handleOpenSendModal = (item) => {
-    setSendData(item);
-    setShowSendModal(true);
+  const handleOpenTransferDrawer = () => {
+    setShowTransferDrawer(true);
   };
 
-  const handleCloseSendModal = () => {
-    setShowSendModal(false);
-    setSendData(null);
+  const handleCloseTransferDrawer = () => {
+    setShowTransferDrawer(false);
   };
 
   const handleCloseModal = useCallback(() => {
@@ -232,50 +229,65 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
   const handleCloseReassignModal = () => setShowReassignModal(false);
 
   /** Right actions */
-  const rightActions = useMemo(
-    () => (
-      <Space direction="vertical" size="small" style={{ alignItems: "flex-end" }}>
-        <Space size="small" wrap>
-          {isBoxOffice && booking?.card_token && (
+  const rightActions = useMemo(() => (
+    <div className="w-100 mt-2">
+  
+        {/* Left side actions */}
+        {isBoxOffice && booking?.card_token && (
+          <div className="col-12 col-md-auto">
             <PermissionChecker role={["Admin", "Organizer", "Box Office"]}>
-              <Button
-                type="primary"
-                danger
-                onClick={handleOpenReassignModal}
-              >
-                Reassign Token
-              </Button>
-              <Button
-                type="default"
-                onClick={() => setShowHistoryModal(true)}
-                className="mt-2"
-                icon={<HistoryOutlined />}
-              >
-                View History
-              </Button>
+              <div className="d-flex flex-column flex-md-row gap-2">
+                <Button
+                  type="primary"
+                  danger
+                  onClick={handleOpenReassignModal}
+                >
+                  Reassign Token
+                </Button>
+  
+                <Button
+                  type="default"
+                  icon={<HistoryOutlined />}
+                  onClick={() => setShowHistoryModal(true)}
+                >
+                  View History
+                </Button>
+              </div>
             </PermissionChecker>
-          )}
-          {showAction &&
-            <>
+          </div>
+        )}
+  
+        {/* Right side actions */}
+        {showAction && (
+            <div className="d-flex justify-content-between align-items-center">
+  
+  
+              <TicketActions
+                onSendTickets={handleOpenTransferDrawer}
+                item={booking}
+                userId={id}
+              />
               <Dropdown
                 trigger={["click"]}
                 placement="bottomRight"
                 menu={{ items: menuItems, onClick: onMenuClick }}
               >
                 <Button type="primary">
-                  Generate E-Ticket <MoreOutlined style={{ marginLeft: 6 }} />
+                  Generate E-Ticket
+                  <MoreOutlined style={{ marginLeft: 6 }} />
                 </Button>
               </Dropdown>
-              <TicketActions
-                onSendTickets={handleOpenSendModal}
-                item={booking} />
-            </>
-          }
-        </Space>
-      </Space>
-    ),
-    [menuItems, onMenuClick, isBoxOffice, booking]
-  );
+            </div>
+        )}
+  
+    </div>
+  ), [
+    menuItems,
+    onMenuClick,
+    isBoxOffice,
+    booking,
+    showAction
+  ]);
 
   return (
     <>
@@ -283,24 +295,16 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
         size={compact ? "small" : "default"}
         bordered
         style={{ marginBottom: compact ? 12 : 16, borderRadius: 12 }}
-        bodyStyle={{ padding: compact ? 16 : 20 }}
       >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: isMobile ? "column" : "row",
-            alignItems: isMobile ? "stretch" : "center",
-            justifyContent: "space-between",
-            gap: 16,
-          }}
-        >
+        <div className="d-flex flex-column justify-content-between align-items-center gap-2 p-0 m-0">
+
           {leftContent}
           {rightActions}
         </div>
       </Card>
 
 
-      <TicketModal
+      <TicketDrawer
         show={show}
         handleCloseModal={handleCloseModal}
         ticketType={ticketType}
@@ -311,10 +315,11 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
         showTicketDetails={true}
       />
 
-      <SendTicketsModal
-        show={showSendModal}
-        handleClose={handleCloseSendModal}
-        bookingData={bookingData}
+      <TransferBookingDrawer
+        visible={showTransferDrawer}
+        onClose={handleCloseTransferDrawer}
+        booking={booking}
+        onTransferSuccess={onTransferSuccess}
       />
 
       <ReassignTokenModal

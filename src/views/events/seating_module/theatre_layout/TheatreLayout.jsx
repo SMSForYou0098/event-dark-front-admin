@@ -859,11 +859,11 @@ const AuditoriumLayoutDesigner = () => {
 
         message.success(`Successfully assigned tickets to ${ticketAssignments.length} seats!`);
       } else {
-        if (!vanueId?.trim()) {
+        if (!vanueId || String(vanueId).trim() === '') {
           message.error("Please Select Venue for the layout");
           return;
         }
-        if (!layoutName?.trim()) {
+        if (!layoutName || String(layoutName).trim() === '') {
           message.error("Please Enter Layout Name");
           return;
         }
@@ -896,7 +896,7 @@ const AuditoriumLayoutDesigner = () => {
         }
 
         message.success(layoutId ? 'Layout updated successfully!' : 'Layout saved successfully!');
-        console.log('Saved layout response:', response);
+        // console.log('Saved layout response:', response);
       }
 
     } catch (error) {

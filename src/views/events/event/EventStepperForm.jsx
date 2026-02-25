@@ -376,7 +376,6 @@ const EventStepperForm = () => {
     }, [id, form, getFormData, userRole, UserData?.id, updateEvent]);
     // Get orgId from detail or form (form is more reliable as it's set in all steps)
     const orgId = detail?.user_id || form.getFieldValue('org_id');
-    console.log(detail, 'detail');
     // Steps configuration
     const steps = useMemo(
         () => [

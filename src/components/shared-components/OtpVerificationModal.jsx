@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, Button, Input, Space, Alert } from 'antd';
+import { Modal, Button, Space, Alert } from 'antd';
+import OtpInput from './OtpInput';
 
 /**
  * Reusable OTP Verification Modal Component
@@ -52,24 +53,11 @@ const OtpVerificationModal = ({
                 <p style={{ marginBottom: 16 }}>
                     Enter the 6-digit OTP sent to your phone
                 </p>
-                {Input.OTP ? (
-                    <Input.OTP
-                        length={6}
-                        value={otpValue}
-                        onChange={onOtpChange}
-                        onKeyDown={handleKeyDown}
-                        style={{ marginBottom: 16 }}
-                    />
-                ) : (
-                    <Input
-                        maxLength={6}
-                        value={otpValue}
-                        onChange={(e) => onOtpChange(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        style={{ marginBottom: 16, width: 200, textAlign: 'center', letterSpacing: '0.5em', fontSize: 18 }}
-                        placeholder="000000"
-                    />
-                )}
+                <OtpInput
+                    value={otpValue}
+                    onChange={onOtpChange}
+                    onKeyDown={handleKeyDown}
+                />
                 <div style={{ marginTop: 24 }}>
                     <Space>
                         <Button onClick={onClose}>
