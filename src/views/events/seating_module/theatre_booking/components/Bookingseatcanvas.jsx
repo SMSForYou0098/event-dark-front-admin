@@ -11,8 +11,9 @@ import { LuSofa } from 'react-icons/lu';
 import { TbSofa } from 'react-icons/tb';
 import { GiRoundTable } from 'react-icons/gi';
 import { SiTablecheck } from 'react-icons/si';
-import { PlusOutlined, MinusOutlined, ReloadOutlined } from "@ant-design/icons";
-import { Button, Popover, Typography } from 'antd';
+import { PlusOutlined, MinusOutlined, ReloadOutlined, LayoutOutlined } from "@ant-design/icons";
+import { Button, Tag, Typography } from 'antd';
+import { motion } from 'framer-motion';
 
 const THEME = {
     // Primary brand color
@@ -46,8 +47,19 @@ const THEME = {
     hintBorder: 'rgba(181, 21, 21, 0.5)',
     legendBg: SECONDARY,
 
+    // Overlay
+    overlayBg: 'rgba(0, 0, 0, 0.65)',
+    overlayBlur: 'blur(6px)',
+
     // Effects
     errorColor: '#ef4444',
+};
+
+const OVERLAY_STYLE = {
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    backdropFilter: 'blur(6px)',
+    WebkitBackdropFilter: 'blur(6px)',
+    borderRadius: 8,
 };
 
 const IS_MOBILE = typeof navigator !== 'undefined' &&
@@ -219,12 +231,12 @@ const Seat = memo(({
                     width={radius * 2}
                     height={radius * 2}
                     fill="transparent"
-                    stroke="transparent"
+                    stroke="rgba(255, 255, 255, 0.15)"
                     strokeWidth={1}
                     dash={[3, 3]}
                     cornerRadius={4}
                     listening={false}
-                    opacity={0.3}
+                    opacity={0.4}
                     perfectDrawEnabled={false}
                 />
             </Group>
@@ -585,7 +597,8 @@ const BookingSeatCanvas = ({
     onSeatClick,
     handleWheel: externalHandleWheel,
     setStagePosition: externalSetStagePosition,
-    primaryColor = PRIMARY
+    primaryColor = PRIMARY,
+    layoutId
 }) => {
     const internalStageRef = useRef(null);
     const stageRef = externalStageRef || internalStageRef;
@@ -596,6 +609,10 @@ const BookingSeatCanvas = ({
     const dragStopped = useRef(false);
     const hasInitialized = useRef(false);
     const lastTapTime = useRef(0);
+    const animFrameRef = useRef(null);
+    const hoverTimerRef = useRef(null);
+    const leaveTimerRef = useRef(null);
+    const saveTimerRef = useRef(null);
 
     const [dimensions, setDimensions] = useState({ width: 800, height: 600 });
     const [scale, setScale] = useState(externalScale || 1);
@@ -603,6 +620,12 @@ const BookingSeatCanvas = ({
     const [isReady, setIsReady] = useState(false);
     const [showHint, setShowHint] = useState(true);
     const [hoveredSeat, setHoveredSeat] = useState(null);
+
+    // Refs to keep scale/position in sync for animation closures
+    const scaleRef = useRef(scale);
+    const positionRef = useRef(position);
+    useEffect(() => { scaleRef.current = scale; }, [scale]);
+    useEffect(() => { positionRef.current = position; }, [position]);
 
     // Update primary color
     useEffect(() => {
@@ -616,6 +639,77 @@ const BookingSeatCanvas = ({
             return () => clearTimeout(timer);
         }
     }, [isReady]);
+
+    // Prevent page scroll when wheeling over canvas
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container) return;
+        const preventScroll = (e) => e.preventDefault();
+        container.addEventListener('wheel', preventScroll, { passive: false });
+        return () => container.removeEventListener('wheel', preventScroll, { passive: false });
+    }, []);
+
+    // Cleanup animation frame on unmount
+    useEffect(() => {
+        return () => {
+            if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+            if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+            if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        };
+    }, []);
+
+    // ──── Smooth animated zoom/pan ────
+    const animateTo = useCallback((targetScale, targetPosition, duration = 280) => {
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        const startScale = scaleRef.current;
+        const startPos = { ...positionRef.current };
+        const startTime = performance.now();
+
+        const step = (now) => {
+            const elapsed = now - startTime;
+            const t = Math.min(elapsed / duration, 1);
+            const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+
+            const s = startScale + (targetScale - startScale) * ease;
+            const p = {
+                x: startPos.x + (targetPosition.x - startPos.x) * ease,
+                y: startPos.y + (targetPosition.y - startPos.y) * ease,
+            };
+
+            scaleRef.current = s;
+            positionRef.current = p;
+            setScale(s);
+            setPosition(p);
+
+            if (t < 1) {
+                animFrameRef.current = requestAnimationFrame(step);
+            } else {
+                animFrameRef.current = null;
+            }
+        };
+
+        animFrameRef.current = requestAnimationFrame(step);
+    }, []);
+
+    // ──── Save view to sessionStorage (debounced) ────
+    const saveView = useCallback((s, p) => {
+        if (!layoutId) return;
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => {
+            try {
+                sessionStorage.setItem(
+                    `seatingView_layout_${layoutId}`,
+                    JSON.stringify({ scale: s, position: p })
+                );
+            } catch (e) { /* quota exceeded – ignore */ }
+        }, 500);
+    }, [layoutId]);
+
+    // Persist on every zoom/pan change
+    useEffect(() => {
+        if (isReady) saveView(scale, position);
+    }, [scale, position, isReady, saveView]);
 
     // Selected seat IDs for O(1) lookup
     // Extract all seat_id values from the nested seats arrays
@@ -631,32 +725,50 @@ const BookingSeatCanvas = ({
         return seatIds;
     }, [selectedSeats]);
 
-    // Memoized seat click handler
+    // Memoized seat click handler with auto-center
     const handleSeatClick = useCallback((seat, sectionId, rowId) => {
         onSeatClick(seat, sectionId, rowId);
-    }, [onSeatClick]);
 
-    // Hover handlers
+        // Auto-center on the clicked seat
+        const section = sections.find(s => s.id === sectionId);
+        if (!section) return;
+
+        const seatAbsX = section.x + seat.x;
+        const seatAbsY = section.y + seat.y;
+
+        const ZOOM_THRESHOLD = 0.75;
+        const TARGET_ZOOM = 1.15;
+        const cur = scaleRef.current;
+
+        const targetScale = cur < ZOOM_THRESHOLD ? TARGET_ZOOM : cur;
+        const targetPos = {
+            x: dimensions.width / 2 - seatAbsX * targetScale,
+            y: dimensions.height / 2 - seatAbsY * targetScale,
+        };
+
+        animateTo(targetScale, targetPos);
+    }, [onSeatClick, sections, dimensions, animateTo]);
+
+    // Hover handlers with 400ms delay & stay-on-tooltip
     const handleSeatHover = useCallback((seat, rowTitle, x, y) => {
-        let relativeX = x;
-        let relativeY = y;
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current);
 
-        if (containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            relativeX = x - rect.left;
-            relativeY = y - rect.top;
-        }
-
-        setHoveredSeat({
-            seat,
-            rowTitle,
-            x: relativeX,
-            y: relativeY
-        });
+        hoverTimerRef.current = setTimeout(() => {
+            let relativeX = x;
+            let relativeY = y;
+            if (containerRef.current) {
+                const rect = containerRef.current.getBoundingClientRect();
+                relativeX = x - rect.left;
+                relativeY = y - rect.top;
+            }
+            setHoveredSeat({ seat, rowTitle, x: relativeX, y: relativeY });
+        }, 400);
     }, []);
 
     const handleSeatLeave = useCallback(() => {
-        setHoveredSeat(null);
+        if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+        leaveTimerRef.current = setTimeout(() => setHoveredSeat(null), 150);
     }, []);
 
     // Responsive dimensions
@@ -707,25 +819,97 @@ const BookingSeatCanvas = ({
         hasInitialized.current = false;
     }, [stage, dimensions]);
 
-    // Initial centering and scale
+    // Initial centering and scale (with sessionStorage + deep link support)
     useEffect(() => {
-        if (!stageRef.current || !stage || sections.length === 0) return;
-
-        // Only run initial setup once per stage/dimension change, prevent zoom reset when selecting seats
+        if (!stageRef.current || !stage) return;
         if (hasInitialized.current) return;
 
-        const { scale: fitScale, position: initialPos } = getInitialView();
-
-        setScale(fitScale);
-        setPosition(initialPos);
-
-        if (externalSetStagePosition) {
-            externalSetStagePosition(initialPos);
+        // Empty layout – mark ready and bail
+        if (sections.length === 0) {
+            setIsReady(true);
+            hasInitialized.current = true;
+            return;
         }
+
+        let initialScale = null;
+        let initialPos = null;
+
+        // 1. Try deep link URL params (?section=...&row=...)
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const sectionParam = params.get('section');
+            const rowParam = params.get('row');
+            if (sectionParam) {
+                let targetSection = sections.find(s => String(s.id) === sectionParam);
+                if (!targetSection) {
+                    const idx = parseInt(sectionParam, 10);
+                    if (!isNaN(idx) && idx >= 0 && idx < sections.length) targetSection = sections[idx];
+                }
+                if (targetSection) {
+                    const pad = 40;
+                    let targetRow = null;
+                    if (rowParam) targetRow = targetSection.rows?.find(r => r.title === rowParam);
+
+                    if (targetRow && targetRow.seats?.length) {
+                        let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
+                        targetRow.seats.forEach(s => {
+                            mnX = Math.min(mnX, targetSection.x + s.x - s.radius);
+                            mxX = Math.max(mxX, targetSection.x + s.x + s.radius);
+                            mnY = Math.min(mnY, targetSection.y + s.y - s.radius);
+                            mxY = Math.max(mxY, targetSection.y + s.y + s.radius);
+                        });
+                        const rw = mxX - mnX, rh = mxY - mnY;
+                        initialScale = Math.min((dimensions.width - pad * 2) / rw, (dimensions.height - pad * 2) / rh, 2);
+                        initialPos = {
+                            x: dimensions.width / 2 - (mnX + rw / 2) * initialScale,
+                            y: dimensions.height / 2 - (mnY + rh / 2) * initialScale,
+                        };
+                    } else {
+                        initialScale = Math.min(
+                            (dimensions.width - pad * 2) / targetSection.width,
+                            (dimensions.height - pad * 2) / targetSection.height,
+                            1.5
+                        );
+                        initialPos = {
+                            x: dimensions.width / 2 - (targetSection.x + targetSection.width / 2) * initialScale,
+                            y: dimensions.height / 2 - (targetSection.y + targetSection.height / 2) * initialScale,
+                        };
+                    }
+                }
+            }
+        } catch (_) { /* ignore */ }
+
+        // 2. Try sessionStorage
+        if (initialScale === null && layoutId) {
+            try {
+                const saved = sessionStorage.getItem(`seatingView_layout_${layoutId}`);
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed.scale && parsed.position) {
+                        initialScale = parsed.scale;
+                        initialPos = parsed.position;
+                    }
+                }
+            } catch (_) { /* ignore */ }
+        }
+
+        // 3. Default fit (top-aligned)
+        if (initialScale === null) {
+            const view = getInitialView();
+            initialScale = view.scale;
+            initialPos = view.position;
+        }
+
+        setScale(initialScale);
+        setPosition(initialPos);
+        scaleRef.current = initialScale;
+        positionRef.current = initialPos;
+
+        if (externalSetStagePosition) externalSetStagePosition(initialPos);
 
         setIsReady(true);
         hasInitialized.current = true;
-    }, [stage, sections, dimensions, stageRef, externalSetStagePosition, getInitialView]);
+    }, [stage, sections, dimensions, stageRef, externalSetStagePosition, getInitialView, layoutId]);
 
     // Mouse wheel zoom
     const handleWheel = useCallback((e) => {
@@ -876,51 +1060,83 @@ const BookingSeatCanvas = ({
         }
     }, [externalSetStagePosition]);
 
-    // Zoom button handlers
+    // Zoom button handlers (animated)
     const handleZoomIn = useCallback(() => {
-        const newScale = Math.min(3, scale * 1.3);
-        const centerX = dimensions.width / 2;
-        const centerY = dimensions.height / 2;
-
-        const mousePointTo = {
-            x: (centerX - position.x) / scale,
-            y: (centerY - position.y) / scale,
+        const newScale = Math.min(3, scaleRef.current * 1.3);
+        const cx = dimensions.width / 2;
+        const cy = dimensions.height / 2;
+        const mpt = {
+            x: (cx - positionRef.current.x) / scaleRef.current,
+            y: (cy - positionRef.current.y) / scaleRef.current,
         };
-
-        setScale(newScale);
-        setPosition({
-            x: centerX - mousePointTo.x * newScale,
-            y: centerY - mousePointTo.y * newScale,
-        });
-    }, [scale, position, dimensions]);
+        animateTo(newScale, { x: cx - mpt.x * newScale, y: cy - mpt.y * newScale });
+    }, [dimensions, animateTo]);
 
     const handleZoomOut = useCallback(() => {
-        const newScale = Math.max(0.5, scale / 1.3);
-        const centerX = dimensions.width / 2;
-        const centerY = dimensions.height / 2;
-
-        const mousePointTo = {
-            x: (centerX - position.x) / scale,
-            y: (centerY - position.y) / scale,
+        const newScale = Math.max(0.5, scaleRef.current / 1.3);
+        const cx = dimensions.width / 2;
+        const cy = dimensions.height / 2;
+        const mpt = {
+            x: (cx - positionRef.current.x) / scaleRef.current,
+            y: (cy - positionRef.current.y) / scaleRef.current,
         };
-
-        setScale(newScale);
-        setPosition({
-            x: centerX - mousePointTo.x * newScale,
-            y: centerY - mousePointTo.y * newScale,
-        });
-    }, [scale, position, dimensions]);
+        animateTo(newScale, { x: cx - mpt.x * newScale, y: cy - mpt.y * newScale });
+    }, [dimensions, animateTo]);
 
     const handleResetView = useCallback(() => {
         const { scale: fitScale, position: initialPos } = getInitialView();
-        setScale(fitScale);
-        setPosition(initialPos);
-    }, [getInitialView]);
+        animateTo(fitScale, initialPos);
+    }, [getInitialView, animateTo]);
+
+    // ──── Zoom-to-section ────
+    const handleZoomToSection = useCallback((sectionId) => {
+        const section = sections.find(s => s.id === sectionId);
+        if (!section) return;
+        const pad = 40;
+        const sx = (dimensions.width - pad * 2) / section.width;
+        const sy = (dimensions.height - pad * 2) / section.height;
+        const fitScale = Math.min(sx, sy, 1.5);
+        animateTo(fitScale, {
+            x: dimensions.width / 2 - (section.x + section.width / 2) * fitScale,
+            y: dimensions.height / 2 - (section.y + section.height / 2) * fitScale,
+        });
+    }, [sections, dimensions, animateTo]);
+
+    // ──── Viewport culling ────
+    const visibleSections = useMemo(() => {
+        if (!sections.length) return [];
+        const pad = 300; // generous padding in canvas coords
+        const vl = -position.x / scale - pad;
+        const vt = -position.y / scale - pad;
+        const vr = (dimensions.width - position.x) / scale + pad;
+        const vb = (dimensions.height - position.y) / scale + pad;
+        return sections.filter(s =>
+            s.x + s.width > vl && s.x < vr && s.y + s.height > vt && s.y < vb
+        );
+    }, [sections, position.x, position.y, scale, dimensions.width, dimensions.height]);
+
+    // Status label helper for tooltip
+    const getSeatStatusLabel = useCallback((seat) => {
+        if (selectedSeatIds.has(seat.id)) return 'Selected';
+        if (seat.status === 'booked') return 'Booked';
+        if (seat.status === 'hold' || seat.status === 'locked') return 'Locked';
+        if (seat.status === 'disabled') return 'Disabled';
+        return 'Available';
+    }, [selectedSeatIds]);
+
+    const getSeatStatusColor = useCallback((seat) => {
+        if (selectedSeatIds.has(seat.id)) return THEME.textMuted;
+        if (seat.status === 'booked' || seat.status === 'hold' || seat.status === 'locked' || seat.status === 'disabled') return THEME.textMuted;
+        return '#22c55e'; // green for available
+    }, [selectedSeatIds]);
 
     return (
-        <div
+        <motion.div
             ref={containerRef}
             className="booking-canvas-container"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
             style={{
                 cursor: "grab",
                 width: '100%',
@@ -935,7 +1151,23 @@ const BookingSeatCanvas = ({
                 WebkitTouchCallout: 'none',
             }}
         >
-            {/* Loading state */}
+            {/* ── Empty layout state ── */}
+            {isReady && sections.length === 0 && (
+                <div
+                    className="d-flex flex-column align-items-center justify-content-center"
+                    style={{ position: 'absolute', inset: 0, zIndex: 5 }}
+                >
+                    <LayoutOutlined style={{ fontSize: 52, color: THEME.textMuted, marginBottom: 16 }} />
+                    <div style={{ color: THEME.textSecondary, fontSize: 16, fontWeight: 600 }}>
+                        No seating layout
+                    </div>
+                    <div style={{ color: THEME.textMuted, fontSize: 13, marginTop: 4 }}>
+                        Layout not loaded or no sections available
+                    </div>
+                </div>
+            )}
+
+            {/* ── Loading state ── */}
             {!isReady && (
                 <div style={{
                     position: 'absolute',
@@ -950,116 +1182,165 @@ const BookingSeatCanvas = ({
                 </div>
             )}
 
-            <Stage
-                ref={stageRef}
-                width={dimensions.width}
-                height={dimensions.height}
-                scaleX={scale}
-                scaleY={scale}
-                x={position.x}
-                y={position.y}
-                draggable={true}
-                onWheel={handleWheel}
-                onDragEnd={handleDragEnd}
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
-                style={{
-                    opacity: isReady ? 1 : 0,
-                    transition: 'opacity 0.3s ease',
-                }}
-                pixelRatio={PIXEL_RATIO}
-            >
-                <Layer>
-                    <StageScreen stage={stage} />
+            {/* ── Canvas ── */}
+            {sections.length > 0 && (
+                <Stage
+                    ref={stageRef}
+                    width={dimensions.width}
+                    height={dimensions.height}
+                    scaleX={scale}
+                    scaleY={scale}
+                    x={position.x}
+                    y={position.y}
+                    draggable={true}
+                    onWheel={handleWheel}
+                    onDragEnd={handleDragEnd}
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    style={{
+                        opacity: isReady ? 1 : 0,
+                        transition: 'opacity 0.3s ease',
+                    }}
+                    pixelRatio={PIXEL_RATIO}
+                >
+                    <Layer>
+                        <StageScreen stage={stage} />
 
-                    {sections.map(section => (
-                        <Section
-                            key={section.id}
-                            section={section}
-                            selectedSeatIds={selectedSeatIds}
-                            onSeatClick={handleSeatClick}
-                            onSeatHover={handleSeatHover}
-                            onSeatLeave={handleSeatLeave}
-                        />
-                    ))}
-                </Layer>
-            </Stage>
+                        {/* Viewport-culled sections */}
+                        {visibleSections.map(section => (
+                            <Section
+                                key={section.id}
+                                section={section}
+                                selectedSeatIds={selectedSeatIds}
+                                onSeatClick={handleSeatClick}
+                                onSeatHover={handleSeatHover}
+                                onSeatLeave={handleSeatLeave}
+                            />
+                        ))}
+                    </Layer>
+                </Stage>
+            )}
 
-            {/* Legend - Fixed position bottom left */}
-            <div style={{
-                position: 'absolute',
-                top: 20,
-                left: 20,
-                display: 'flex',
-                flexDirection: 'row',
-                gap: 16,
-                padding: '12px 16px',
-                backgroundColor: THEME.legendBg,
-                borderRadius: 8,
-                zIndex: 10,
-            }}>
-                {[
-                    { color: SEAT_COLORS.available, label: 'Available' },
-                    { color: SEAT_COLORS.selected, label: 'Selected' },
-                    { color: SEAT_COLORS.booked, label: 'Booked' },
-                ].map((item) => (
-                    <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <div style={{
-                            width: 14,
-                            height: 14,
-                            backgroundColor: item.color,
-                            borderRadius: 3,
-                        }} />
-                        <span style={{ color: THEME.textPrimary, fontSize: 12 }}>{item.label}</span>
+            {/* ── Zoom controls – top right, with blur ── */}
+            {isReady && sections.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.3 }}
+                    style={{
+                        position: "absolute",
+                        top: 16,
+                        right: 16,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 6,
+                        padding: 6,
+                        ...OVERLAY_STYLE,
+                        zIndex: 10,
+                    }}
+                >
+                    <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<PlusOutlined />}
+                        onClick={handleZoomIn}
+                        size="small"
+                    />
+                    <Button
+                        type="primary"
+                        shape="circle"
+                        icon={<MinusOutlined />}
+                        onClick={handleZoomOut}
+                        size="small"
+                    />
+                    <Button
+                        shape="circle"
+                        icon={<ReloadOutlined />}
+                        onClick={handleResetView}
+                        size="small"
+                    />
+                </motion.div>
+            )}
+
+            {/* ── Bottom bar: legend + section chips ── */}
+            {isReady && sections.length > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: 0.2 }}
+                    style={{
+                        position: 'absolute',
+                        bottom: 16,
+                        ...(IS_MOBILE
+                            ? { left: 12 }
+                            : { left: '50%', transform: 'translateX(-50%)' }),
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 8,
+                        padding: '10px 14px',
+                        ...OVERLAY_STYLE,
+                        zIndex: 10,
+                        maxWidth: 'calc(100% - 24px)',
+                    }}
+                >
+                    {/* Legend row */}
+                    <div className="d-flex" style={{ gap: 14 }}>
+                        {[
+                            { color: SEAT_COLORS.available, label: 'Available', border: true },
+                            { color: SEAT_COLORS.selected, label: 'Selected' },
+                            { color: SEAT_COLORS.booked, label: 'Booked' },
+                        ].map((item) => (
+                            <div key={item.label} className="d-flex align-items-center" style={{ gap: 6 }}>
+                                <div style={{
+                                    width: 14,
+                                    height: 14,
+                                    backgroundColor: item.border ? 'transparent' : item.color,
+                                    border: item.border ? `1.5px solid ${item.color}` : 'none',
+                                    borderRadius: 3,
+                                }} />
+                                <span style={{ color: THEME.textPrimary, fontSize: 12 }}>{item.label}</span>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
 
-            {/* Zoom controls - Top right */}
-            <div
-                style={{
-                    position: "absolute",
-                    top: 20,
-                    right: 20,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    zIndex: 10,
-                }}
-            >
-                <Button
-                    type="primary"
-                    shape="circle"
-                    icon={<PlusOutlined />}
-                    onClick={handleZoomIn}
-                    size={'small'}
-                />
+                    {/* Section chips (only when 2+ sections) */}
+                    {sections.length >= 2 && (
+                        <div className="d-flex flex-wrap" style={{ gap: 6 }}>
+                            <span style={{ color: THEME.textMuted, fontSize: 11, lineHeight: '24px', marginRight: 2 }}>
+                                Go to:
+                            </span>
+                            {sections.map(sec => (
+                                <Tag
+                                    key={sec.id}
+                                    onClick={() => handleZoomToSection(sec.id)}
+                                    style={{
+                                        cursor: 'pointer',
+                                        background: 'rgba(255,255,255,0.08)',
+                                        border: '1px solid rgba(255,255,255,0.18)',
+                                        color: THEME.textPrimary,
+                                        fontSize: 11,
+                                        borderRadius: 12,
+                                        margin: 0,
+                                    }}
+                                >
+                                    {sec.name}
+                                </Tag>
+                            ))}
+                        </div>
+                    )}
+                </motion.div>
+            )}
 
-                <Button
-                    type="primary"
-                    shape="circle"
-                    icon={<MinusOutlined />}
-                    onClick={handleZoomOut}
-                    size={'small'}
-                />
-
-                <Button
-                    shape="circle"
-                    icon={<ReloadOutlined />}
-                    onClick={handleResetView}
-                    size={'small'}
-                />
-            </div>
-
-            {/* Pinch hint for mobile */}
+            {/* ── Mobile pinch hint ── */}
             {IS_MOBILE && showHint && isReady && (
                 <div
                     style={{
                         position: 'absolute',
-                        bottom: 80,
+                        bottom: sections.length >= 2 ? 120 : 80,
                         left: '50%',
                         transform: 'translateX(-50%)',
+                        ...OVERLAY_STYLE,
                         backgroundColor: THEME.hintBg,
                         color: THEME.textPrimary,
                         padding: '10px 20px',
@@ -1075,47 +1356,52 @@ const BookingSeatCanvas = ({
                     }}
                 >
                     <span style={{ fontSize: 18 }}>👆👆</span>
-                    Pinch to zoom • Double tap to reset
+                    Pinch to zoom &bull; Double tap to reset
                 </div>
             )}
 
-            {/* Seat Tooltip */}
+            {/* ── Seat tooltip on hover ── */}
             {hoveredSeat && (
-                <Popover
-                    open={true}
-                    content={
-                        <div>
-                            <Typography.Text strong>
-                                {hoveredSeat.rowTitle}{hoveredSeat.seat.number}
-                            </Typography.Text>
-
-                            {hoveredSeat.seat.ticket && (
-                                <>
-                                    <br />
-                                    <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                                        {hoveredSeat.seat.ticket.name}
-                                    </Typography.Text>
-                                    <br />
-                                    <Typography.Text strong style={{ color: THEME.primary }}>
-                                        ₹{hoveredSeat.seat.ticket.price}
-                                    </Typography.Text>
-                                </>
-                            )}
-                        </div>
-                    }
-                    destroyTooltipOnHide
+                <div
+                    onMouseEnter={() => { if (leaveTimerRef.current) clearTimeout(leaveTimerRef.current); }}
+                    onMouseLeave={() => setHoveredSeat(null)}
+                    style={{
+                        position: 'absolute',
+                        top: hoveredSeat.y - 90,
+                        left: hoveredSeat.x,
+                        transform: 'translateX(-50%)',
+                        ...OVERLAY_STYLE,
+                        padding: '10px 14px',
+                        zIndex: 20,
+                        pointerEvents: 'auto',
+                        minWidth: 110,
+                        color: THEME.textPrimary,
+                    }}
                 >
-                    <div
-                        style={{
-                            position: "absolute",
-                            top: hoveredSeat.y - 10,
-                            left: hoveredSeat.x,
-                            width: 1,
-                            height: 1,
-                            pointerEvents: "none",
-                        }}
-                    />
-                </Popover>
+                    <Typography.Text strong style={{ color: THEME.textPrimary, fontSize: 13 }}>
+                        {hoveredSeat.rowTitle}{hoveredSeat.seat.number}
+                    </Typography.Text>
+
+                    {hoveredSeat.seat.ticket && (
+                        <>
+                            <div style={{ color: THEME.textMuted, fontSize: 11, marginTop: 2 }}>
+                                {hoveredSeat.seat.ticket.name}
+                            </div>
+                            <div style={{ color: THEME.primary, fontWeight: 600, fontSize: 13, marginTop: 2 }}>
+                                &#8377;{hoveredSeat.seat.ticket.price}
+                            </div>
+                            <div style={{
+                                fontSize: 11,
+                                marginTop: 2,
+                                fontWeight: 600,
+                                color: getSeatStatusColor(hoveredSeat.seat),
+                                textTransform: 'capitalize',
+                            }}>
+                                {getSeatStatusLabel(hoveredSeat.seat)}
+                            </div>
+                        </>
+                    )}
+                </div>
             )}
 
             <style>{`
@@ -1126,7 +1412,7 @@ const BookingSeatCanvas = ({
                     100% { opacity: 0; }
                 }
             `}</style>
-        </div>
+        </motion.div>
     );
 };
 

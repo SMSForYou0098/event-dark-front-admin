@@ -291,6 +291,7 @@ const BookingLayout = forwardRef((props, ref) => {
                             onSeatClick={handleSeatClick}
                             handleWheel={handleWheel}
                             setStagePosition={setStagePosition}
+                            layoutId={layoutId}
                         />
                     </div>
                 </Col>

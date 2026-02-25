@@ -116,7 +116,7 @@ const TicketCanvasView = forwardRef((props, ref) => {
 
   const textColor = '#000';
   const CANVAS_WIDTH = 300;
-  const CANVAS_HEIGHT = 600;
+  const CANVAS_HEIGHT = 750;
 
   // Background: only from parent (single API call in TicketModal). No image / error → white bg
   const imageUrl = preloadedImage ?? null;
@@ -285,7 +285,7 @@ const TicketCanvasView = forwardRef((props, ref) => {
           currentY += 30;
 
           if (number !== 'N/A') {
-            centerText(`Seat/Number: ${number}`, 15, 'Arial', canvas, currentY);
+            centerText(`Seat: ${number}`, 15, 'Arial', canvas, currentY);
             currentY += 30;
           }
 

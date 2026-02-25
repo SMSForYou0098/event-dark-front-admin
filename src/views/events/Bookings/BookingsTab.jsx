@@ -457,11 +457,11 @@ const BookingsTab = ({
         {displayBookings.map((booking, idx) => (
           <Col
             key={makeBookingKey(booking, idx)}
-            xs={24}
-            sm={24}
-            md={12}
-            lg={8}
-            xl={8}
+            xs={24}   // Mobile → 1 column (24/24)
+            sm={24}   // Small devices → 1 column
+            md={12}   // Tablet → 2 columns (24/2 = 12 each)
+            lg={12}    // Large → 3 columns (24/3 = 8 each)
+            xl={8}    // Extra large → 3 columns
           >
             <BookingCard
               booking={booking}
