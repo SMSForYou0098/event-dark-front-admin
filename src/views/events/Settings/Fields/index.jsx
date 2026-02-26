@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Button, Table, Space, Tag, Modal, Typography, message } from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   HolderOutlined,
-  ExclamationCircleOutlined 
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -222,10 +222,10 @@ const AttendeeFields = () => {
         key: 'field_required',
         align: 'center',
         render: (required) =>
-          required === 1 ? (
-            <Tag color="red">Yes</Tag>
+          required === true ? (
+            <Tag color="green">Yes</Tag>
           ) : (
-            <Tag color="orange">No</Tag>
+            <Tag color="red">No</Tag>
           ),
       },
       {
