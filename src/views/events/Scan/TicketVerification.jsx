@@ -45,6 +45,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [show, setShow] = useState(false);
     const [showReceipt, setShowReceipt] = useState(false);
     const [showAdminModal, setShowAdminModal] = useState(false);
+    const [isErrorModalVisible, setIsErrorModalVisible] = useState(false);
     const [pendingQRData, setPendingQRData] = useState(null);
     const [resData, setResData] = useState(null);
     const [scanType, setScanType] = useState('verify');
@@ -112,6 +113,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Error Modal ─────────────────────────
     const showErrorModal = (errorMsg, checkInTime = null, checkpoints = null) => {
         playError();
+        setIsErrorModalVisible(true);
 
         Modal.error({
             maskClosable: true,
@@ -173,6 +175,11 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             },
             onOk: () => {
                 setQRData('');
+                setTimeout(() => setIsErrorModalVisible(false), 800);
+            },
+            afterClose: () => {
+                setQRData('');
+                setIsErrorModalVisible(false);
             },
         });
     };
@@ -302,9 +309,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
         onSuccess: (res) => {
             if (res.status) {
                 showSuccess('Ticket Found');
-                console.log(res, 'suvv');
                 const mainBookings = res.bookings || res.data;
-                console.log(mainBookings, 'suvv');
                 setTicketData(res);
                 setSessionId(res.session_id || mainBookings?.session_id);
                 setType(res.type || res.data?.type);
@@ -701,6 +706,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                                     setIsCardPrefix={setIsCardPrefix}
                                     onScan={(data) => handleAdminAction(scanType, data)}
                                     dispatchedTokens={dispatchedTokens}
+                                    pauseScan={show || showAdminModal || showReceipt || isErrorModalVisible || isProcessing || loading.fetching || loading.verifying}
                                 />
                             </Col>
                             <Col xs={24} sm={24} lg={6}>

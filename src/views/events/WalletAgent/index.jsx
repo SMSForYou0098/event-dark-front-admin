@@ -31,6 +31,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 import { capitilize } from '../users/wallet/Transaction';
 import QRScanner from '../Scan/QRScanner';
 import { IndianRupee } from 'lucide-react';
+import Utils from 'utils';
 
 const { Text, Title } = Typography;
 
@@ -154,7 +155,7 @@ const AgentCredit = ({ id }) => {
             }
         },
         onError: (error) => {
-            message.error(error.response?.data?.message || 'Failed to update balance');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 

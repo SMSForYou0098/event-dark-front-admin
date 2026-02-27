@@ -28,6 +28,8 @@ import {
   useDeleteEmailTemplate
 } from '../hooks/useSettings';
 import { joditConfig } from 'utils/consts';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const MailSettings = memo(() => {
   const { UserData } = useMyContext();
@@ -53,7 +55,7 @@ const MailSettings = memo(() => {
       message.success(res?.message || 'Email Configuration Stored Successfully');
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to store mail configuration');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -64,7 +66,7 @@ const MailSettings = memo(() => {
       refetchTemplates();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to create template');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -75,7 +77,7 @@ const MailSettings = memo(() => {
       refetchTemplates();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to update template');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -86,7 +88,7 @@ const MailSettings = memo(() => {
       refetchTemplates();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to delete template');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -278,7 +280,7 @@ const MailSettings = memo(() => {
   const isTemplateLoading = isCreatingTemplate || isUpdatingTemplate;
 
   return (
-    <>
+    <PermissionChecker role="Admin">
       {/* Delete Confirmation Modal */}
       <Modal
         title="Are you sure?"
@@ -494,7 +496,8 @@ const MailSettings = memo(() => {
 
 
 
-      </Row>    </>
+      </Row>
+    </PermissionChecker>
   );
 }
 );

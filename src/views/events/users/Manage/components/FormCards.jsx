@@ -43,7 +43,16 @@ const BankingDetailsCard = () => {
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                    <Form.Item label="IFSC Code" name="bankIfsc">
+                    <Form.Item
+                        label="IFSC Code"
+                        name="bankIfsc"
+                        rules={[
+                            {
+                                pattern: /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/,
+                                message: 'Please enter a valid IFSC code (e.g., ABCD0123456)'
+                            }
+                        ]}
+                    >
                         <Input placeholder="Enter IFSC code" />
                     </Form.Item>
                 </Col>

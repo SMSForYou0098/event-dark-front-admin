@@ -5,6 +5,7 @@ import { useMyContext } from '../../../Context/MyContextProvider';
 import { Eye, Trash2, AlertCircle } from 'lucide-react';
 import DataTable from '../common/DataTable';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const ContactUsApplications = () => {
   const { UserData, formatDateTime, truncateString, UserPermissions } = useMyContext();
@@ -64,11 +65,11 @@ const ContactUsApplications = () => {
           content: 'Contact application deleted successfully.',
         });
       } else {
-        message.error(res?.message || 'Failed to delete application');
+        message.error(Utils.getErrorMessage(res) || 'Failed to delete application');
       }
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || 'Failed to delete application');
+      message.error(Utils.getErrorMessage(err) || 'Failed to delete application');
     },
   });
 

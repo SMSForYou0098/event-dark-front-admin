@@ -11,6 +11,7 @@ import { updateUser } from 'store/slices/authSlice';
 import Flex from 'components/shared-components/Flex';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import Utils from 'utils';
 import { ORGANIZER_ALLOWED_ROLES } from '../constants';
 import { RoleSelect } from 'utils/CommonInputs';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
@@ -138,7 +139,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         queryFn: async () => {
             const res = await apiClient.get(`edit-user/${id}`);
             if (!res?.status) {
-                throw new Error(res?.message || res?.error || 'Failed to load user');
+                throw new Error(Utils.getErrorMessage(res));
             }
             return res;
         },
@@ -205,7 +206,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         },
         onError: (error) => {
             console.error('Send OTP error:', error);
-            message.error(error?.response?.data?.message || error?.response?.data?.error || 'Failed to send OTP');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 
@@ -233,7 +234,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         },
         onError: (error) => {
             console.error('Verify OTP error:', error);
-            message.error(error?.response?.data?.message || 'Failed to verify OTP');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 
@@ -603,7 +604,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 return false;
             }
         } catch (error) {
-            message.error(error?.response?.data?.message || 'Failed to send OTP');
+            message.error(Utils.getErrorMessage(error));
             return false;
         } finally {
             setOtpSending(false);
@@ -640,7 +641,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             setPendingFormValues(null);
 
         } catch (error) {
-            message.error(error?.response?.data?.message || 'OTP verification failed');
+            message.error(Utils.getErrorMessage(error));
         } finally {
             setOtpLoading(false);
         }
@@ -779,7 +780,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             const isCreatingVerifiedOrganizer =
                 mode === 'create' &&
                 formState.roleName === 'Organizer';
-                // && !values.verifiedEmail;  // Commented out: no direct create-user for organizer
+            // && !values.verifiedEmail;  // Commented out: no direct create-user for organizer
 
             // Check if editing own profile and email/name changed
             if (hasIdentityChanged(values)) {
@@ -801,7 +802,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 await saveUserProfile(values, false);
             }
         } catch (error) {
-            message.error(`Error: ${error.response?.data?.error || error.response?.data?.message || 'Something went wrong!'}`);
+            message.error(`Error: ${Utils.getErrorMessage(error)}`);
         } finally {
             setIsSubmitting(false);
         }

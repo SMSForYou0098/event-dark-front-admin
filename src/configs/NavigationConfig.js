@@ -85,14 +85,14 @@ const partnersClientsSubmenu = [
     title: 'Corporate',
     icon: CrownOutlined,
     breadcrumb: false,
-    permissions: ["View Corporate Bookings"],
+    permissions: [PERMISSIONS.VIEW_CORPORATE_BOOKINGS],
     submenu: [
       {
         key: 'corporate-manage',
         path: 'bookings/corporate',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View Corporate Bookings"]
+        permissions: [PERMISSIONS.VIEW_CORPORATE_BOOKINGS]
       }
     ]
   },
@@ -102,21 +102,21 @@ const partnersClientsSubmenu = [
     title: 'Sponsor',
     icon: TrophyOutlined,
     breadcrumb: false,
-    permissions: ["View Sponsor Bookings"],
+    permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
     submenu: [
       {
         key: 'sponsor-manage',
         path: 'bookings/sponsor',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View Sponsor Bookings"]
+        permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS]
       },
       {
         key: 'sponsor-new',
         path: 'bookings/sponsor/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Add Sponsor Booking"]
+        permissions: [PERMISSIONS.ADD_SPONSOR_BOOKING]
       }
     ]
   },
@@ -126,21 +126,21 @@ const partnersClientsSubmenu = [
     title: 'Complimentary',
     icon: TrophyOutlined,
     breadcrumb: false,
-    permissions: ["View Complimentary Bookings"],
+    permissions: [PERMISSIONS.VIEW_COMPLIMENTARY_BOOKINGS],
     submenu: [
       {
         key: 'complimentary-manage',
         path: 'bookings/complimentary',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View Complimentary Bookings"]
+        permissions: [PERMISSIONS.VIEW_COMPLIMENTARY_BOOKINGS]
       },
       {
         key: 'complimentary-new',
         path: 'bookings/complimentary/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Add Complimentary Booking"]
+        permissions: [PERMISSIONS.ADD_COMPLIMENTARY_BOOKING]
       }
     ]
   },

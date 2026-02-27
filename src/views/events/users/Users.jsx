@@ -30,6 +30,7 @@ import PermissionChecker from "layouts/PermissionChecker";
 import { APP_PREFIX_PATH } from "configs/AppConfig";
 import usePermission from "utils/hooks/usePermission";
 import { roles } from "./constants";
+import Utils from "utils";
 
 const Users = () => {
   const navigate = useNavigate();
@@ -153,9 +154,7 @@ const Users = () => {
       setMutationLoading(false);
     },
     onError: (err) => {
-      message.error(
-        err.response?.data?.message || err.message || "An error occurred"
-      );
+      message.error(Utils.getErrorMessage(err));
       setMutationLoading(false);
     },
   });
@@ -197,9 +196,7 @@ const Users = () => {
         persistor.purge();
         navigate("/sign-in");
       }
-      message.error(
-        err.response?.data?.error || err.message || "Unexpected error occurred"
-      );
+      message.error(Utils.getErrorMessage(err));
       setMutationLoading(false);
     },
   });

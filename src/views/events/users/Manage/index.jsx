@@ -5,6 +5,7 @@ import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from "Context/MyContextProvider";
 import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
 import Flex from "components/shared-components/Flex";
+import Utils from "utils";
 
 // Tabs
 import ProfileTab from "./ProfileTab";
@@ -38,7 +39,7 @@ const ManageUser = ({ mode = "edit" }) => {
         message.error(response?.message || 'Failed to reset OTP limits');
       }
     } catch (error) {
-      message.error(error?.response?.data?.message || 'Failed to reset OTP limits');
+      message.error(Utils.getErrorMessage(error));
     } finally {
       setResetOtpLoading(false);
     }

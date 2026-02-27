@@ -117,4 +117,13 @@ export const PERMISSIONS = {
     VIEW_WALLET_AGENT: "View Wallet Agent",
     VIEW_PROMOCODES: "View Promocodes",
     VIEW_PAYMENT_LOGS: "View Payment Logs",
+
+    EDIT_USER: "Edit User",
+    EDIT_PROFILE: "Edit Profile",
+    EDIT_EVENT: "Edit Event",
+    VIEW_LIVE_USERS: "View Live Users",
+    VIEW_CATEGORY_TICKETS: "View Category Tickets",
+    VIEW_MAIL_CONFIG_SETTING: "View Mail Config Setting",
+    VIEW_WHATSAPP_CONFIG_SETTING: "View WhatsApp Config Setting",
+    VIEW_SMS_CONFIG_SETTING: "View SMS Config Setting",
 };

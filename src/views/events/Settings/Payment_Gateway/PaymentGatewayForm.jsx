@@ -4,6 +4,7 @@ import { Button, Col, Form, Row, Switch, Input, Select, Space, message, Card, Di
 import { useMutation } from '@tanstack/react-query';
 import { SaveOutlined } from '@ant-design/icons';
 import apiClient from 'auth/FetchInterceptor';
+import Utils from 'utils';
 import { useMyContext } from 'Context/MyContextProvider';
 import GatewayOTPModal from 'components/shared-components/GatewayOTPModal';
 
@@ -42,7 +43,7 @@ const PaymentGatewayForm = ({
     },
     onError: (error) => {
       console.error('Error updating gateway:', error);
-      message.error(`Failed to store ${gatewayType} credentials!`);
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -61,7 +62,7 @@ const PaymentGatewayForm = ({
     },
     onError: (error) => {
       console.error('Error sending OTP:', error);
-      message.error(error?.response?.data?.message || 'Failed to send OTP. Please try again.');
+      message.error(Utils.getErrorMessage(error));
       // Reset refund switch on error
       setRefund(gateway?.refund || false);
       setPendingFormValues(null);
@@ -92,7 +93,7 @@ const PaymentGatewayForm = ({
     },
     onError: (error) => {
       console.error('Error verifying OTP:', error);
-      message.error(error?.response?.data?.message || 'Invalid OTP. Please try again.');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useMyContext } from '../../../../Context/MyContextProvider'
 import axios from 'axios'
 import SiteSettings from './SiteSettings'
+import PermissionChecker from 'layouts/PermissionChecker'
 
 const AdminSetting = () => {
     const { api, authToken } = useMyContext();
@@ -196,45 +197,47 @@ const AdminSetting = () => {
     };
 
     return (
-        <Spin spinning={configLoading} tip="Loading settings...">
-            <Row gutter={[16, 16]}>
-                <Col span={24}>
-                    <Card
-                        title="Admin Settings"
-                        bordered={false}
-                    >
-                        <Form
-                            form={form}
-                            layout="vertical"
-                            onFinish={handleAppConfig}
+        <PermissionChecker role="Admin">
+            <Spin spinning={configLoading} tip="Loading settings...">
+                <Row gutter={[16, 16]}>
+                    <Col span={24}>
+                        <Card
+                            title="Admin Settings"
+                            bordered={false}
                         >
-                            <SiteSettings
-                                loading={loading}
+                            <Form
                                 form={form}
-                                fileUploads={fileUploads}
-                                setFileUploads={setFileUploads}
-                            />
+                                layout="vertical"
+                                onFinish={handleAppConfig}
+                            >
+                                <SiteSettings
+                                    loading={loading}
+                                    form={form}
+                                    fileUploads={fileUploads}
+                                    setFileUploads={setFileUploads}
+                                />
 
-                            <Row gutter={[16, 16]}>
-                                <Col span={24}>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-                                        <Button
-                                            type="primary"
-                                            htmlType="submit"
-                                            loading={loading.saveLoading}
-                                            disabled={loading.saveLoading}
-                                            size="large"
-                                        >
-                                            Submit
-                                        </Button>
-                                    </div>
-                                </Col>
-                            </Row>
-                        </Form>
-                    </Card>
-                </Col>
-            </Row>
-        </Spin>
+                                <Row gutter={[16, 16]}>
+                                    <Col span={24}>
+                                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                                            <Button
+                                                type="primary"
+                                                htmlType="submit"
+                                                loading={loading.saveLoading}
+                                                disabled={loading.saveLoading}
+                                                size="large"
+                                            >
+                                                Submit
+                                            </Button>
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Form>
+                        </Card>
+                    </Col>
+                </Row>
+            </Spin>
+        </PermissionChecker>
     )
 }
 

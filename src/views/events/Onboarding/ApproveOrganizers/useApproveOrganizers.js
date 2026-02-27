@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 // ========================= API FUNCTIONS =========================
 
@@ -31,7 +32,7 @@ export const useGetOnboardingRequests = (options = {}) => {
         queryKey: ['onboarding-requests'],
         queryFn: getOnboardingRequests,
         onError: (error) => {
-            message.error('Failed to load onboarding requests');
+            message.error(Utils.getErrorMessage(error));
             console.error('Error fetching onboarding requests:', error);
         },
         ...options,
@@ -51,9 +52,7 @@ export const useUpdateOnboardingStatus = (options = {}) => {
         },
         onError: (error) => {
             console.error('Error updating status:', error);
-            message.error(
-                error.response?.data?.message || 'Failed to update status. Please try again.'
-            );
+            message.error(Utils.getErrorMessage(error));
             options.onError?.(error);
         },
     });

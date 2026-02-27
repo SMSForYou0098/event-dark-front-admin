@@ -428,9 +428,32 @@ const CenterCanvas = (props) => {
                 if (!row.seats || row.seats.length === 0) return null;
 
                 const firstSeatY = row.seats[0]?.y ?? 50;
+                const isRowSelected = selectedType === 'row' && selectedElement?.id === row.id;
+
+                let minX = 0, minY = 0, maxX = 0, maxY = 0;
+                if (isRowSelected) {
+                  minX = Math.min(0, ...row.seats.map(s => (s.x || 0) - (s.radius || 12)));
+                  minY = Math.min((firstSeatY), ...row.seats.map(s => (s.y || 0) - (s.radius || 12)));
+                  maxX = Math.max(30, ...row.seats.map(s => (s.x || 0) + (s.radius || 12)));
+                  maxY = Math.max((firstSeatY + 15), ...row.seats.map(s => (s.y || 0) + (s.radius || 12)));
+                }
 
                 return (
                   <Group key={row.id}>
+                    {isRowSelected && (
+                      <Rect
+                        x={minX}
+                        y={minY}
+                        width={(maxX - minX)}
+                        height={(maxY - minY)}
+                        fill={PRIMARY}
+                        stroke={PRIMARY}
+                        strokeWidth={1}
+                        opacity={0.2}
+                        cornerRadius={8}
+                        listening={false}
+                      />
+                    )}
                     <Text
                       x={10}
                       y={firstSeatY - 5}

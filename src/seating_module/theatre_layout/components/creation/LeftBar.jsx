@@ -2,13 +2,13 @@ import { Button, Card, Space } from 'antd';
 import Flex from 'components/shared-components/Flex';
 import React from 'react'
 import {
-  PlusOutlined,
-  DeleteOutlined,
-  CopyOutlined,
+    PlusOutlined,
+    DeleteOutlined,
+    CopyOutlined,
 } from '@ant-design/icons';
 
 const LeftBar = (props) => {
-    const {sections ,selectedType ,setSelectedElement , stage ,setSelectedType ,duplicateSection ,deleteSection ,selectedElement ,deleteRow ,addRowToSection} = props
+    const { sections, selectedType, setSelectedElement, stage, setSelectedType, duplicateSection, deleteSection, selectedElement, deleteRow, addRowToSection } = props
     return (
         <div className="left-panel">
             <div>

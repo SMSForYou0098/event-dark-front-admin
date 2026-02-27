@@ -6,6 +6,7 @@ import Utils from 'utils';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { message } from 'antd';
+import DataTable from '../common/DataTable';
 
 const PosReports = memo(() => {
   const { UserData, UserPermissions } = useMyContext();

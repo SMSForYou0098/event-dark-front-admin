@@ -3,7 +3,7 @@ import { Card, Row, Col, Form, Input, Select, Radio, Button, Space, Spin, messag
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
-
+import Utils from 'utils';
 const Commission = () => {
     const { api, UserData, authToken } = useMyContext();
     const [form] = Form.useForm();
@@ -35,7 +35,7 @@ const Commission = () => {
             });
         },
         onError: (error) => {
-            message.error('Error retrieving commission data');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 
@@ -62,7 +62,7 @@ const Commission = () => {
             queryClient.invalidateQueries(['commission', 1]);
         },
         onError: (error) => {
-            message.error('Error storing commission');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 

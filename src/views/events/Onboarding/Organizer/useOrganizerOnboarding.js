@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 // ========================= API FUNCTIONS =========================
 
@@ -33,7 +34,7 @@ export const useGetAllOrganizerOnboarding = (options = {}) => {
         queryKey: ['organizer-onboarding'],
         queryFn: getAllOrganizerOnboarding,
         onError: (error) => {
-            message.error('Failed to load onboarding requests');
+            message.error(Utils.getErrorMessage(error));
             console.error('Error fetching onboarding requests:', error);
         },
         ...options,
@@ -53,7 +54,7 @@ export const useApproveOrganizerOnboarding = (options = {}) => {
         },
         onError: (error) => {
             console.error('Error approving organizer:', error);
-            message.error(error.response?.data?.message || 'Failed to approve organizer. Please try again.');
+            message.error(Utils.getErrorMessage(error));
             options.onError?.(error);
         },
     });
@@ -72,7 +73,7 @@ export const useRejectOrganizerOnboarding = (options = {}) => {
         },
         onError: (error) => {
             console.error('Error rejecting organizer:', error);
-            message.error(error.response?.data?.message || 'Failed to reject organizer. Please try again.');
+            message.error(Utils.getErrorMessage(error));
             options.onError?.(error);
         },
     });

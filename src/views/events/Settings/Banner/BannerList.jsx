@@ -33,11 +33,13 @@ import {
   useBanners,
   useDeleteBanner,
 } from '../hooks/useBanners';
+import Utils from 'utils';
 import BannerForm from './BannerForm';
 import DataTable from 'views/events/common/DataTable';
 import { Bluetooth } from 'lucide-react';
-import TextArea from 'antd/es/input/TextArea';
 import Title from 'antd/es/skeleton/Title';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const BannerList = () => {
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
@@ -59,7 +61,7 @@ const BannerList = () => {
       refetch();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to delete banner');
+      message.error(Utils.getErrorMessage(error));
     },
   });
 
@@ -225,7 +227,7 @@ const BannerList = () => {
   ];
 
   return (
-    <>
+    <PermissionChecker permission={PERMISSIONS.VIEW_BANNERS}>
       {/* Delete Confirmation Modal */}
       <Modal
         title="Delete Banner"
@@ -243,14 +245,14 @@ const BannerList = () => {
 
       {/* Banner Form Modal */}
 
-        <BannerForm
-          mode={bannerModal.mode}
-          id={bannerModal.id}
-          bannerData={bannerModal.data}
-          onSuccess={handleBannerSuccess}
-          onCancel={closeBannerModal}
-          visible={bannerModal.visible}
-        />
+      <BannerForm
+        mode={bannerModal.mode}
+        id={bannerModal.id}
+        bannerData={bannerModal.data}
+        onSuccess={handleBannerSuccess}
+        onCancel={closeBannerModal}
+        visible={bannerModal.visible}
+      />
 
       {/* DataTable */}
       <DataTable
@@ -278,14 +280,14 @@ const BannerList = () => {
           scroll: { x: 1400 },
         }}
       />
-    </>
+    </PermissionChecker>
   );
 };
 // const BannerList = () => {
 //   const [mode, setMode] = useState('usb'); // 'usb' or 'ble'
 //   const [status, setStatus] = useState('Disconnected');
 //   const [isConnected, setIsConnected] = useState(false);
-  
+
 //   // Connection Objects
 //   const [usbPort, setUsbPort] = useState(null);
 //   const [usbWriter, setUsbWriter] = useState(null);
@@ -312,7 +314,7 @@ const BannerList = () => {
 //   // --- USB Logic ---
 //   const connectUSB = async () => {
 //       if (!("serial" in navigator)) return addLog('error', 'Web Serial not supported in this browser.');
-      
+
 //       try {
 //           addLog('info', 'Requesting USB Device...');
 //           const port = await navigator.serial.requestPort();
@@ -352,21 +354,21 @@ const BannerList = () => {
 
 //           addLog('info', `Selected: ${device.name || 'Unknown Device'}`);
 //           device.addEventListener('gattserverdisconnected', disconnect);
-          
+
 //           addLog('tx', 'Connecting to GATT Server...');
 //           const server = await device.gatt.connect();
 //           addLog('success', 'GATT Connected. Discovering Services...');
 
 //           const services = await server.getPrimaryServices();
-          
+
 //           let foundChar = null;
-          
+
 //           // 1. Service Scan Loop
 //           for (const service of services) {
 //               const uuid = service.uuid;
 //               const isPrinter = uuid.includes('18f0');
 //               addLog('info', `Found Service: ${uuid.substring(0,8)}... ${isPrinter ? '(PRINTER)' : ''}`);
-              
+
 //               try {
 //                   const chars = await service.getCharacteristics();
 //                   for (const char of chars) {
@@ -375,7 +377,7 @@ const BannerList = () => {
 //                       if(char.properties.write) props.push('WRITE');
 //                       if(char.properties.writeWithoutResponse) props.push('WRITE_NO_RESP');
 //                       if(char.properties.read) props.push('READ');
-                      
+
 //                       // addLog('info', `  -> Char: ${char.uuid.substring(0,8)}... [${props.join(',')}]`);
 
 //                       // Look for Write capability
@@ -448,7 +450,7 @@ const BannerList = () => {
 //               const encoder = new TextEncoder();
 //               // If isText is true, data is string. If false, data is Uint8Array
 //               const encodedData = isText ? encoder.encode(data + '\n') : data;
-              
+
 //               const CHUNK_SIZE = 100; // Safe for most BLE
 //               for (let i = 0; i < encodedData.byteLength; i += CHUNK_SIZE) {
 //                   const chunk = encodedData.slice(i, i + CHUNK_SIZE);
@@ -468,9 +470,9 @@ const BannerList = () => {
 //       try {
 //           const cleanHex = inputData.replace(/\s+/g, '');
 //           if (cleanHex.length % 2 !== 0) throw new Error("Invalid Hex");
-          
+
 //           const byteArray = new Uint8Array(cleanHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
-          
+
 //           if (mode === 'usb') {
 //               // USB can write raw bytes directly
 //               await usbWriter.write(byteArray);
@@ -504,7 +506,7 @@ const BannerList = () => {
 //   };
 //   return (
 //     <div className="min-vh-100 p-3" style={{ background: '#141414' }}>
-      
+
 //     {/* Header */}
 //     <Card className="mb-4" style={{ background: '#1f1f1f', borderColor: '#303030' }}>
 //       <Row justify="space-between" align="middle" gutter={[16, 16]}>
@@ -537,11 +539,11 @@ const BannerList = () => {
 //     </Card>
 
 //     <Row gutter={[16, 16]}>
-      
+
 //       {/* Left Column */}
 //       <Col xs={24} lg={16}>
 //         <Space direction="vertical" size="middle" className="w-100">
-          
+
 //           {/* Connection Panel */}
 //           {!isConnected ? (
 //             <Card style={{ background: '#1f1f1f', borderColor: '#303030' }}>
@@ -549,7 +551,7 @@ const BannerList = () => {
 //                 <Tag color={mode === 'usb' ? 'purple' : 'blue'} className="mb-3">
 //                   {mode === 'usb' ? 'USB OTG Connection' : 'Bluetooth Low Energy'}
 //                 </Tag>
-                
+
 //                 {mode === 'usb' && (
 //                   <Space className="mb-3 d-flex justify-content-center">
 //                     <Select
@@ -581,7 +583,7 @@ const BannerList = () => {
 //                 >
 //                   {mode === 'usb' ? 'Connect via USB' : 'Scan BLE Devices'}
 //                 </Button>
-                
+
 //                 <Typography.Text type="secondary" className="d-block mt-2" style={{ fontSize: 11 }}>
 //                   {mode === 'usb' ? 'Connect printer via USB OTG cable.' : 'Note: Classic Bluetooth printers will NOT appear here.'}
 //                 </Typography.Text>

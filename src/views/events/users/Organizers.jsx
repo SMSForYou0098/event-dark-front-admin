@@ -11,6 +11,7 @@ import api from 'auth/FetchInterceptor';
 import { persistor } from 'store';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { withAccess } from '../common/withAccess';
+import Utils from 'utils';
 
 const Organizers = () => {
   const {
@@ -60,8 +61,8 @@ const Organizers = () => {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     onError: (err) => {
-      setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
-      message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");
+      setError(Utils.getErrorMessage(err));
+      message.error(Utils.getErrorMessage(err));
     }
   });
 
@@ -99,8 +100,8 @@ const Organizers = () => {
         persistor.purge();
         navigate('/sign-in');
       }
-      setError(err.response?.data?.error || err.message || "Unexpected error occurred");
-      message.error(err.response?.data?.error || err.message || "Unexpected error occurred");
+      setError(Utils.getErrorMessage(err));
+      message.error(Utils.getErrorMessage(err));
       setMutationLoading(false);
     }
   });
@@ -146,9 +147,7 @@ const Organizers = () => {
       setMutationLoading(false);
     },
     onError: (err) => {
-      message.error(
-        err.response?.data?.message || err.message || "An error occurred"
-      );
+      message.error(Utils.getErrorMessage(err));
       setMutationLoading(false);
     },
   });

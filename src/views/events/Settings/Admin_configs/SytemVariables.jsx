@@ -4,6 +4,7 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, CheckOutlined
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
+import Utils from 'utils';
 
 const SytemVariables = () => {
   const { authToken, api } = useMyContext();
@@ -52,9 +53,7 @@ const SytemVariables = () => {
       handleCloseModal();
     },
     onError: (error) => {
-      const errorMessage =
-        error.response?.data?.message || 'Error saving system variable';
-      message.error(errorMessage);
+      message.error(Utils.getErrorMessage(error));
     },
   });
 
@@ -71,7 +70,7 @@ const SytemVariables = () => {
       cancelDeleteModal();
     },
     onError: (error) => {
-      message.error(error.response?.data?.message || 'Error deleting system variable');
+      message.error(Utils.getErrorMessage(error));
     },
   });
 

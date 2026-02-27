@@ -170,38 +170,38 @@ const TicketDrawer = ({
                                             <RightOutlined />
                                         </div>
                                     )}
-                                <Carousel
-                                    dots={false}
-                                    arrows={true}
-                                    draggable
-                                    className="cursor-grab pb-4 custom-ticket-carousel"
-                                    prevArrow={<div className="custom-arrow left-arrow"><LeftOutlined /></div>}
-                                    nextArrow={<div className="custom-arrow right-arrow"><RightOutlined /></div>}
-                                    afterChange={(current) => setActiveSlideIndex(current)}
-                                >
-                                    {ticketData.bookings.map((item, index) => (
-                                        <div key={index}>
-                                            <Col span={24}>
-                                                <div>
-                                                    <TicketCanvasView
-                                                        ref={(el) => { swiperCanvasRefs.current[index] = el; }}
-                                                        showDetails={showTicketDetails}
-                                                        ticketData={item}
-                                                        ticketNumber={index + 1}
-                                                        ticketLabel="(I)"
-                                                        onReady={() => {
-                                                            setIsCanvasReady(true);
-                                                        }}
-                                                        preloadedImage={bgImageForCanvas}
-                                                    />
-                                                </div>
-                                                <p className="text-center text-secondary m-0 mt-1">
-                                                    Ticket {index + 1} of {ticketData.bookings.length} (I)
-                                                </p>
-                                            </Col>
-                                        </div>
-                                    ))}
-                                </Carousel>
+                                    <Carousel
+                                        dots={false}
+                                        arrows={true}
+                                        draggable
+                                        className="cursor-grab pb-4 custom-ticket-carousel"
+                                        prevArrow={<div className="custom-arrow left-arrow"><LeftOutlined /></div>}
+                                        nextArrow={<div className="custom-arrow right-arrow"><RightOutlined /></div>}
+                                        afterChange={(current) => setActiveSlideIndex(current)}
+                                    >
+                                        {ticketData.bookings.map((item, index) => (
+                                            <div key={index}>
+                                                <Col span={24}>
+                                                    <div>
+                                                        <TicketCanvasView
+                                                            ref={(el) => { swiperCanvasRefs.current[index] = el; }}
+                                                            showDetails={showTicketDetails}
+                                                            ticketData={item}
+                                                            ticketNumber={index + 1}
+                                                            ticketLabel="(I)"
+                                                            onReady={() => {
+                                                                setIsCanvasReady(true);
+                                                            }}
+                                                            preloadedImage={bgImageForCanvas}
+                                                        />
+                                                    </div>
+                                                    <p className="text-center text-secondary m-0 mt-1">
+                                                        Ticket {index + 1} of {ticketData.bookings.length} (I)
+                                                    </p>
+                                                </Col>
+                                            </div>
+                                        ))}
+                                    </Carousel>
                                 </>
                             )
                         ) : ticketType?.type === 'combine' ? (

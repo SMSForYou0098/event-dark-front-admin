@@ -8,6 +8,7 @@ import { useOrganizerEvents, useCreateBanner, useUpdateBanner, useEventsByCatego
 import { IMAGE_FIELDS, SWITCH_FIELDS, TEXT_FIELDS, TEXTAREA_FIELDS } from './constants';
 import { CustomNextArrow, CustomPrevArrow } from 'views/events/Settings/Banner/CaroselArrows';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import Utils from 'utils';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -176,7 +177,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       onSuccess?.();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to create banner');
+      message.error(Utils.getErrorMessage(error));
     },
   });
 
@@ -186,7 +187,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       onSuccess?.();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to update banner');
+      message.error(Utils.getErrorMessage(error));
     },
   });
 

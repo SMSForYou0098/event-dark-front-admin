@@ -30,9 +30,15 @@ const TickeScanFeilds = ({
   isCardPrefix,
   setIsCardPrefix,
   onScan,
-  dispatchedTokens = []
+  dispatchedTokens = [],
+  pauseScan = false
 }) => {
   const videoElementRef = useRef(null);
+
+  const pauseScanRef = useRef(pauseScan);
+  useEffect(() => {
+    pauseScanRef.current = pauseScan;
+  }, [pauseScan]);
 
   // Helper to check if a checkpoint is active based on current time
   const isCheckpointActive = (checkpoint) => {
@@ -65,7 +71,7 @@ const TickeScanFeilds = ({
       const qrScanner = new QrScanner(
         videoElementRef.current,
         (result) => {
-          if (result?.data) setQRData(result.data);
+          if (result?.data && !pauseScanRef.current) setQRData(result.data);
         },
         {
           returnDetailedScanResult: true,

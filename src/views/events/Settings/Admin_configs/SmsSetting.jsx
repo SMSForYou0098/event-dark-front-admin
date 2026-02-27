@@ -27,6 +27,8 @@ import {
     useUpdateSMSTemplate,
     useDeleteSMSTemplate
 } from '../hooks/useSettings';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { TextArea } = Input;
 
@@ -52,7 +54,7 @@ const SmsSetting = () => {
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to save configuration');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -63,7 +65,7 @@ const SmsSetting = () => {
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to create template');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -76,7 +78,7 @@ const SmsSetting = () => {
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to update template');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -87,7 +89,7 @@ const SmsSetting = () => {
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to delete template');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -247,7 +249,7 @@ const SmsSetting = () => {
     const isTemplateLoading = isCreatingTemplate || isUpdatingTemplate;
 
     return (
-        <>
+        <PermissionChecker role="Admin">
             {/* Delete Confirmation Modal */}
             <Modal
                 title="Are you sure?"
@@ -524,7 +526,7 @@ const SmsSetting = () => {
                     </Row>
                 </Col>
             </Row>
-        </>
+        </PermissionChecker>
     );
 };
 

@@ -32,6 +32,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import apiClient from "auth/FetchInterceptor";
+import Utils from "utils";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -98,7 +99,7 @@ const FAQAdmin = ({ options }) => {
     },
     onError: (error) => {
       console.error("Error saving FAQ:", error);
-      message.error(error.response?.data?.message || "Failed to save FAQ");
+      message.error(Utils.getErrorMessage(error, "Failed to save FAQ"));
     },
   });
 
@@ -117,7 +118,7 @@ const FAQAdmin = ({ options }) => {
     },
     onError: (error) => {
       console.error("Error deleting FAQ:", error);
-      message.error(error.response?.data?.message || "Failed to delete FAQ");
+      message.error(Utils.getErrorMessage(error, "Failed to delete FAQ"));
     },
   });
 
@@ -143,9 +144,7 @@ const FAQAdmin = ({ options }) => {
     },
     onError: (error) => {
       console.error("Error updating FAQ status:", error);
-      message.error(
-        error.response?.data?.message || "Failed to update FAQ status"
-      );
+      message.error(Utils.getErrorMessage(error, "Failed to update FAQ status"));
     },
   });
 
@@ -179,9 +178,7 @@ const FAQAdmin = ({ options }) => {
       }
     } catch (error) {
       console.error("Error fetching FAQ details:", error);
-      message.error(
-        error.response?.data?.message || "Failed to fetch FAQ details"
-      );
+      message.error(Utils.getErrorMessage(error, "Failed to fetch FAQ details"));
     }
   };
 
