@@ -12,6 +12,7 @@ import {
   WhatsAppOutlined
 } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
+import Utils from 'utils';
 
 const { Title, Text, Paragraph } = Typography;
 

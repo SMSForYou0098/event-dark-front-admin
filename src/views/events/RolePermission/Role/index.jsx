@@ -5,6 +5,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import api from "auth/FetchInterceptor";
+import Utils from "utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import PermissionChecker from "layouts/PermissionChecker";
 
 const { Search } = Input;
 
@@ -23,8 +26,8 @@ const Roles = memo(() => {
             const response = await api.get('role-list');
             return response.role ? response.role.reverse() : [];
         },
-        onError: () => {
-            ErrorAlert('Failed to fetch roles');
+        onError: (error) => {
+            ErrorAlert(Utils.getErrorMessage(error));
         },
     });
 
@@ -194,7 +197,7 @@ const Roles = memo(() => {
     }, [searchText, filteredRoles.length, roles.length]);
 
     return (
-        <Fragment>
+        <PermissionChecker permission={PERMISSIONS.VIEW_ROLES}>
             {/* Modal */}
             <Modal
                 title={`${isEdit ? 'Edit' : 'Create New'} Role`}
@@ -263,7 +266,7 @@ const Roles = memo(() => {
                     }}
                 />
             </Card>
-        </Fragment>
+        </PermissionChecker>
     );
 });
 

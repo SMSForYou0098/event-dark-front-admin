@@ -5,6 +5,10 @@ import { useMyContext } from 'Context/MyContextProvider';
 import api from 'auth/FetchInterceptor';
 import EventTicketDropdowns from '../common/EventTicketDropdowns';
 import StatSection from '../Dashboard/components/StatSection';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
+import { message } from 'antd';
 
 const { Title, Text } = Typography;
 const CARD_DASHBOARD = 'card-dashboard';
@@ -45,6 +49,7 @@ const CardReport = () => {
         queryKey: ['card-dashboard-overview', eventId],
         queryFn: () => api.post(`${CARD_DASHBOARD}/overview`, { event_id: eventId }),
         enabled: !!eventId,
+        onError: (err) => message.error(Utils.getErrorMessage(err)),
     });
 
     const { data: agentBoardRaw, isLoading: agentBoardLoading } = useQuery({
@@ -55,12 +60,14 @@ const CardReport = () => {
                 ticket_id: selectedTicketId,
             }),
         enabled: !!eventId && !!selectedTicketId,
+        onError: (err) => message.error(Utils.getErrorMessage(err)),
     });
 
     const { data: myReportRaw, isLoading: myReportLoading } = useQuery({
         queryKey: ['card-dashboard-my-report', eventId, userRole],
         queryFn: () => api.post(`${CARD_DASHBOARD}/my-report`, { event_id: eventId }),
         enabled: !!eventId && userRole === 'Agent',
+        onError: (err) => message.error(Utils.getErrorMessage(err)),
     });
 
     const { data: dispatchProgressRaw, isLoading: dispatchProgressLoading } = useQuery({
@@ -73,6 +80,7 @@ const CardReport = () => {
                 per_page: 20,
             }),
         enabled: !!eventId,
+        onError: (err) => message.error(Utils.getErrorMessage(err)),
     });
 
     const overview = getData(overviewRaw);
@@ -119,7 +127,7 @@ const CardReport = () => {
         { title: 'Ticket', dataIndex: 'ticket_name', key: 'ticket_name', align: 'center' },
         { title: 'Prefix', dataIndex: 'prefix', key: 'prefix', align: 'center' },
         { title: 'Total', dataIndex: 'total', key: 'total', align: 'center', },
-        { title: 'Claimed', dataIndex: 'claimed', key: 'claimed', align: 'center',  },
+        { title: 'Claimed', dataIndex: 'claimed', key: 'claimed', align: 'center', },
         { title: 'Available', dataIndex: 'available', key: 'available', align: 'center', },
         { title: 'Online', dataIndex: 'online', key: 'online', align: 'center', },
         { title: 'Offline', dataIndex: 'offline', key: 'offline', align: 'center', },
@@ -175,259 +183,261 @@ const CardReport = () => {
     ];
 
     return (
-        <Card
-            bordered={false}
-            className="min-vh-100"
-            title={<Title level={2} className="m-0">Card Report</Title>}
-            extra={
-                <EventTicketDropdowns
-                    organizerId={UserData?.id}
-                    role={UserData?.role}
-                    selectedEvent={selectedEvent}
-                    selectedTicketId={selectedTicketId}
-                    onEventChange={handleEventChange}
-                    onTicketChange={setSelectedTicketId}
-                />
-            }
-        >
-            {!selectedEvent ? (
-                <Empty description="Select an event (and optionally a ticket) from the dropdowns above to view the card report." />
-            ) : anyLoading ? (
-                <div className="text-center p-5">
-                    <Spin size="large" tip="Loading dashboard…" />
-                </div>
-            ) : (
-                <>
-                    {/* 1. Dashboard Overview */}
-                    {overview && (
-                        <div className="mb-4 rounded shadow-sm overflow-hidden">
-                            {overviewStats.length > 0 && (
-                                <Row>
-                                    <StatSection
-                                        title="Dashboard Overview"
-                                        stats={overviewStats.map(s => ({ title: s.title, value: s.value }))}
-                                        colConfig={{ xs: 12, sm: 8, md: 4 }}
-                                        containerCol={{ span: 24 }}
-                                        isMobile={isMobile}
-                                    />
-                                </Row>
-                            )}
-
-                            <Row gutter={[16, 16]} align="stretch" className="mb-4">
-                                {tokens?.by_type && (
-                                    <StatSection
-                                        title={<span style={{ fontWeight: 500, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8c8c8c' }}>Tokens by Type</span>}
-                                        stats={[
-                                            { title: 'Online', value: tokens.by_type.online ?? 0 },
-                                            { title: 'Offline', value: tokens.by_type.offline ?? 0 },
-                                            { title: 'Untyped', value: tokens.by_type.untyped ?? 0 }
-                                        ]}
-                                        colConfig={{ span: 8 }}
-                                        containerCol={{ xs: 24, md: 12 }}
-                                        isMobile={isMobile}
-                                    />
+        <PermissionChecker permission={PERMISSIONS.VIEW_CARD_REPORTS}>
+            <Card
+                bordered={false}
+                className="min-vh-100"
+                title={<Title level={2} className="m-0">Card Report</Title>}
+                extra={
+                    <EventTicketDropdowns
+                        organizerId={UserData?.id}
+                        role={UserData?.role}
+                        selectedEvent={selectedEvent}
+                        selectedTicketId={selectedTicketId}
+                        onEventChange={handleEventChange}
+                        onTicketChange={setSelectedTicketId}
+                    />
+                }
+            >
+                {!selectedEvent ? (
+                    <Empty description="Select an event (and optionally a ticket) from the dropdowns above to view the card report." />
+                ) : anyLoading ? (
+                    <div className="text-center p-5">
+                        <Spin size="large" tip="Loading dashboard…" />
+                    </div>
+                ) : (
+                    <>
+                        {/* 1. Dashboard Overview */}
+                        {overview && (
+                            <div className="mb-4 rounded shadow-sm overflow-hidden">
+                                {overviewStats.length > 0 && (
+                                    <Row>
+                                        <StatSection
+                                            title="Dashboard Overview"
+                                            stats={overviewStats.map(s => ({ title: s.title, value: s.value }))}
+                                            colConfig={{ xs: 12, sm: 8, md: 4 }}
+                                            containerCol={{ span: 24 }}
+                                            isMobile={isMobile}
+                                        />
+                                    </Row>
                                 )}
-                                {agentsOverview && (
-                                    <StatSection
-                                        title={<span style={{ fontWeight: 500, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8c8c8c' }}>Agent Allocation</span>}
-                                        stats={[
-                                            { title: 'Total Agents', value: agentsOverview.total_agents },
-                                            { title: 'Tokens Under Agents', value: agentsOverview.total_tokens_under_agents }
-                                        ]}
-                                        colConfig={{ span: 8 }}
-                                        containerCol={{ xs: 24, md: 12 }}
-                                        isMobile={isMobile}
-                                    />
-                                )}
-                            </Row>
 
-                            {dispatchOverview && (
-                                <Row className="mb-4">
-                                    <StatSection
-                                        title={<span style={{ fontWeight: 500, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8c8c8c' }}>Global Dispatch Status</span>}
-                                        stats={[
-                                            { title: 'Total', value: dispatchOverview.total },
-                                            { title: 'Pending', value: dispatchOverview.pending },
-                                            { title: 'Dispatched', value: dispatchOverview.dispatched },
-                                            { title: 'In Transit', value: dispatchOverview.in_transit },
-                                            { title: 'Delivered', value: dispatchOverview.delivered },
-                                            { title: 'Returned/Cancel', value: (dispatchOverview.returned || 0) + (dispatchOverview.cancelled || 0) }
-                                        ]}
-                                        colConfig={{ xs: 12, sm: 8, md: 4 }}
-                                        containerCol={{ span: 24 }}
-                                        isMobile={isMobile}
-                                    />
-                                </Row>
-                            )}
-
-                            {byTicket.length > 0 && (
-                                <div className="mt-4">
-                                    <Title level={5}>Ticket Breakdown</Title>
-                                    <Table
-                                        size="small"
-                                        rowKey="ticket_id"
-                                        dataSource={byTicket}
-                                        columns={byTicketColumns}
-                                        pagination={false}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* 2. My Agent Report */}
-                    {(myReport || myReportMessage) && (
-                        <div className="mb-4 rounded shadow-sm overflow-hidden">
-                            {myReportMessage && <Text type="secondary" className="d-block mb-3">{myReportMessage}</Text>}
-                            {myReportSummary && (
-                                <Row>
-                                    <StatSection
-                                        title={<span style={{ color: '#722ed1' }}>My Agent Report</span>}
-                                        stats={[
-                                            { title: 'Total Allocated', value: myReportSummary.total },
-                                            { title: 'Claimed', value: myReportSummary.claimed },
-                                            { title: 'Available', value: myReportSummary.available }
-                                        ]}
-                                        colConfig={{ xs: 24, sm: 8 }}
-                                        containerCol={{ span: 24 }}
-                                        isMobile={isMobile}
-                                    />
-                                </Row>
-                            )}
-                            {myReportRanges.length > 0 && (
-                                <div className="mt-4">
-                                    <Title level={5}>Assigned Ranges</Title>
-                                    <Table
-                                        dataSource={myReportRanges}
-                                        columns={myReportRangesColumns}
-                                        rowKey={(r) => `${r.range_start}-${r.range_end}`}
-                                        size="small"
-                                        pagination={{ pageSize: 5 }}
-                                    />
-                                </div>
-                            )}
-                            {myReportTokens.length > 0 && (
-                                <div className="mt-4">
-                                    <Title level={5}>Individual Tokens</Title>
-                                    <Table
-                                        dataSource={myReportTokens}
-                                        columns={myReportTokensColumns}
-                                        rowKey="token_number"
-                                        size="small"
-                                        pagination={{ pageSize: 10 }}
-                                    />
-                                </div>
-                            )}
-                            {!myReportSummary && !myReportRanges.length && !myReportTokens.length && !myReportMessage && (
-                                <Empty description="No data" />
-                            )}
-                        </div>
-                    )}
-
-                    {/* 3. Dispatch Progress */}
-                    {dispatchProgress && (
-                        <div className="mb-4 rounded shadow-sm overflow-hidden">
-                            {dispatchSummary && (
-                                <Row>
-                                    <StatSection
-                                        title="Dispatch Progress"
-                                        stats={[
-                                            { title: 'Total', value: dispatchSummary.total },
-                                            { title: 'Dispatched', value: dispatchSummary.dispatched },
-                                            { title: 'In transit', value: dispatchSummary.in_transit },
-                                            { title: 'Delivered', value: dispatchSummary.delivered },
-                                            { title: 'Returned', value: dispatchSummary.returned },
-                                            { title: 'Cancelled', value: dispatchSummary.cancelled },
-                                            { title: 'Pending', value: dispatchSummary.pending },
-                                        ]}
-                                        colConfig={{ xs: 12, sm: 8, md: 4, xl: 3 }}
-                                        containerCol={{ span: 24 }}
-                                        isMobile={isMobile}
-                                    />
-                                </Row>
-                            )}
-                            {recentReassignments.length > 0 && (
-                                <>
-                                    <Title level={5}>Recent reassignments</Title>
-                                    <Table
-                                        size="small"
-                                        rowKey="id"
-                                        dataSource={recentReassignments}
-                                        columns={reassignmentColumns}
-                                        pagination={dispatchPagination ? { pageSize: 10, total: dispatchPagination.total } : false}
-                                    />
-                                </>
-                            )}
-                            {!dispatchSummary && recentReassignments.length === 0 && (
-                                <Empty description="No dispatch data" />
-                            )}
-                        </div>
-                    )}
-
-                    {/* 4. Agent Board (when ticket selected) */}
-                    {selectedTicketId && (
-                        <div className="mb-4 rounded shadow-sm overflow-hidden">
-                            <div className="">
-                                <Title level={4} className="m-0 text-info">Agent Board</Title>
-                            </div>
-                            {agentBoardLoading ? (
-                                <div className="text-center p-4"><Spin /></div>
-                            ) : agentsList.length === 0 ? (
-                                <Empty description="No agents / assignments for this ticket" />
-                            ) : (
-                                <>
-                                    {totalAgents != null && (
-                                        <Row className="mb-4">
-                                            <StatSection
-                                                title=""
-                                                stats={[{ title: 'Total Agents', value: totalAgents }]}
-                                                colConfig={{ xs: 24, sm: 8, md: 4 }}
-                                                containerCol={{ span: 24 }}
-                                                isMobile={isMobile}
-                                            />
-                                        </Row>
+                                <Row gutter={[16, 16]} align="stretch" className="mb-4">
+                                    {tokens?.by_type && (
+                                        <StatSection
+                                            title={<span style={{ fontWeight: 500, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8c8c8c' }}>Tokens by Type</span>}
+                                            stats={[
+                                                { title: 'Online', value: tokens.by_type.online ?? 0 },
+                                                { title: 'Offline', value: tokens.by_type.offline ?? 0 },
+                                                { title: 'Untyped', value: tokens.by_type.untyped ?? 0 }
+                                            ]}
+                                            colConfig={{ span: 8 }}
+                                            containerCol={{ xs: 24, md: 12 }}
+                                            isMobile={isMobile}
+                                        />
                                     )}
-                                    {agentsList.map((agent) => (
-                                        <Card key={agent.user_id} bordered={true} className="mb-3 rounded border-light">
-                                            <Row gutter={[16, 8]}>
-                                                <Col span={24}>
-                                                    <Text strong>{agent.user_name}</Text>
-                                                    {agent.user_email && <><br /><Text type="secondary">{agent.user_email}</Text></>}
-                                                    {agent.user_number && <><br /><Text type="secondary">{agent.user_number}</Text></>}
-                                                </Col>
-                                                <Col xs={12} sm={6}>
-                                                    <Statistic title="Total tokens" value={agent.total_tokens} />
-                                                </Col>
-                                                <Col xs={12} sm={12}>
-                                                    <Text type="secondary" className="d-block mb-1" style={{ fontSize: '12px' }}>Claimed vs Available</Text>
-                                                    <Progress
-                                                        percent={agent.total_tokens > 0 ? Math.round((agent.claimed_tokens / agent.total_tokens) * 100) : 0}
-                                                        success={{ percent: agent.total_tokens > 0 ? Math.round((agent.claimed_tokens / agent.total_tokens) * 100) : 0, strokeColor: '#52c41a' }}
-                                                        format={() => `${agent.claimed_tokens} Claimed / ${agent.available_tokens} Avail`}
-                                                        strokeColor="#1890ff"
-                                                        status="active"
-                                                    />
-                                                </Col>
-                                            </Row>
-                                            {agent.ranges && agent.ranges.length > 0 && (
-                                                <Table
-                                                    size="small"
-                                                    rowKey="assignment_id"
-                                                    dataSource={agent.ranges}
-                                                    columns={agentRangesColumns}
-                                                    pagination={false}
-                                                    className="mt-3"
+                                    {agentsOverview && (
+                                        <StatSection
+                                            title={<span style={{ fontWeight: 500, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8c8c8c' }}>Agent Allocation</span>}
+                                            stats={[
+                                                { title: 'Total Agents', value: agentsOverview.total_agents },
+                                                { title: 'Tokens Under Agents', value: agentsOverview.total_tokens_under_agents }
+                                            ]}
+                                            colConfig={{ span: 8 }}
+                                            containerCol={{ xs: 24, md: 12 }}
+                                            isMobile={isMobile}
+                                        />
+                                    )}
+                                </Row>
+
+                                {dispatchOverview && (
+                                    <Row className="mb-4">
+                                        <StatSection
+                                            title={<span style={{ fontWeight: 500, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#8c8c8c' }}>Global Dispatch Status</span>}
+                                            stats={[
+                                                { title: 'Total', value: dispatchOverview.total },
+                                                { title: 'Pending', value: dispatchOverview.pending },
+                                                { title: 'Dispatched', value: dispatchOverview.dispatched },
+                                                { title: 'In Transit', value: dispatchOverview.in_transit },
+                                                { title: 'Delivered', value: dispatchOverview.delivered },
+                                                { title: 'Returned/Cancel', value: (dispatchOverview.returned || 0) + (dispatchOverview.cancelled || 0) }
+                                            ]}
+                                            colConfig={{ xs: 12, sm: 8, md: 4 }}
+                                            containerCol={{ span: 24 }}
+                                            isMobile={isMobile}
+                                        />
+                                    </Row>
+                                )}
+
+                                {byTicket.length > 0 && (
+                                    <div className="mt-4">
+                                        <Title level={5}>Ticket Breakdown</Title>
+                                        <Table
+                                            size="small"
+                                            rowKey="ticket_id"
+                                            dataSource={byTicket}
+                                            columns={byTicketColumns}
+                                            pagination={false}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* 2. My Agent Report */}
+                        {(myReport || myReportMessage) && (
+                            <div className="mb-4 rounded shadow-sm overflow-hidden">
+                                {myReportMessage && <Text type="secondary" className="d-block mb-3">{myReportMessage}</Text>}
+                                {myReportSummary && (
+                                    <Row>
+                                        <StatSection
+                                            title={<span style={{ color: '#722ed1' }}>My Agent Report</span>}
+                                            stats={[
+                                                { title: 'Total Allocated', value: myReportSummary.total },
+                                                { title: 'Claimed', value: myReportSummary.claimed },
+                                                { title: 'Available', value: myReportSummary.available }
+                                            ]}
+                                            colConfig={{ xs: 24, sm: 8 }}
+                                            containerCol={{ span: 24 }}
+                                            isMobile={isMobile}
+                                        />
+                                    </Row>
+                                )}
+                                {myReportRanges.length > 0 && (
+                                    <div className="mt-4">
+                                        <Title level={5}>Assigned Ranges</Title>
+                                        <Table
+                                            dataSource={myReportRanges}
+                                            columns={myReportRangesColumns}
+                                            rowKey={(r) => `${r.range_start}-${r.range_end}`}
+                                            size="small"
+                                            pagination={{ pageSize: 5 }}
+                                        />
+                                    </div>
+                                )}
+                                {myReportTokens.length > 0 && (
+                                    <div className="mt-4">
+                                        <Title level={5}>Individual Tokens</Title>
+                                        <Table
+                                            dataSource={myReportTokens}
+                                            columns={myReportTokensColumns}
+                                            rowKey="token_number"
+                                            size="small"
+                                            pagination={{ pageSize: 10 }}
+                                        />
+                                    </div>
+                                )}
+                                {!myReportSummary && !myReportRanges.length && !myReportTokens.length && !myReportMessage && (
+                                    <Empty description="No data" />
+                                )}
+                            </div>
+                        )}
+
+                        {/* 3. Dispatch Progress */}
+                        {dispatchProgress && (
+                            <div className="mb-4 rounded shadow-sm overflow-hidden">
+                                {dispatchSummary && (
+                                    <Row>
+                                        <StatSection
+                                            title="Dispatch Progress"
+                                            stats={[
+                                                { title: 'Total', value: dispatchSummary.total },
+                                                { title: 'Dispatched', value: dispatchSummary.dispatched },
+                                                { title: 'In transit', value: dispatchSummary.in_transit },
+                                                { title: 'Delivered', value: dispatchSummary.delivered },
+                                                { title: 'Returned', value: dispatchSummary.returned },
+                                                { title: 'Cancelled', value: dispatchSummary.cancelled },
+                                                { title: 'Pending', value: dispatchSummary.pending },
+                                            ]}
+                                            colConfig={{ xs: 12, sm: 8, md: 4, xl: 3 }}
+                                            containerCol={{ span: 24 }}
+                                            isMobile={isMobile}
+                                        />
+                                    </Row>
+                                )}
+                                {recentReassignments.length > 0 && (
+                                    <>
+                                        <Title level={5}>Recent reassignments</Title>
+                                        <Table
+                                            size="small"
+                                            rowKey="id"
+                                            dataSource={recentReassignments}
+                                            columns={reassignmentColumns}
+                                            pagination={dispatchPagination ? { pageSize: 10, total: dispatchPagination.total } : false}
+                                        />
+                                    </>
+                                )}
+                                {!dispatchSummary && recentReassignments.length === 0 && (
+                                    <Empty description="No dispatch data" />
+                                )}
+                            </div>
+                        )}
+
+                        {/* 4. Agent Board (when ticket selected) */}
+                        {selectedTicketId && (
+                            <div className="mb-4 rounded shadow-sm overflow-hidden">
+                                <div className="">
+                                    <Title level={4} className="m-0 text-info">Agent Board</Title>
+                                </div>
+                                {agentBoardLoading ? (
+                                    <div className="text-center p-4"><Spin /></div>
+                                ) : agentsList.length === 0 ? (
+                                    <Empty description="No agents / assignments for this ticket" />
+                                ) : (
+                                    <>
+                                        {totalAgents != null && (
+                                            <Row className="mb-4">
+                                                <StatSection
+                                                    title=""
+                                                    stats={[{ title: 'Total Agents', value: totalAgents }]}
+                                                    colConfig={{ xs: 24, sm: 8, md: 4 }}
+                                                    containerCol={{ span: 24 }}
+                                                    isMobile={isMobile}
                                                 />
-                                            )}
-                                        </Card>
-                                    ))}
-                                </>
-                            )}
-                        </div>
-                    )}
-                </>
-            )}
-        </Card>
+                                            </Row>
+                                        )}
+                                        {agentsList.map((agent) => (
+                                            <Card key={agent.user_id} bordered={true} className="mb-3 rounded border-light">
+                                                <Row gutter={[16, 8]}>
+                                                    <Col span={24}>
+                                                        <Text strong>{agent.user_name}</Text>
+                                                        {agent.user_email && <><br /><Text type="secondary">{agent.user_email}</Text></>}
+                                                        {agent.user_number && <><br /><Text type="secondary">{agent.user_number}</Text></>}
+                                                    </Col>
+                                                    <Col xs={12} sm={6}>
+                                                        <Statistic title="Total tokens" value={agent.total_tokens} />
+                                                    </Col>
+                                                    <Col xs={12} sm={12}>
+                                                        <Text type="secondary" className="d-block mb-1" style={{ fontSize: '12px' }}>Claimed vs Available</Text>
+                                                        <Progress
+                                                            percent={agent.total_tokens > 0 ? Math.round((agent.claimed_tokens / agent.total_tokens) * 100) : 0}
+                                                            success={{ percent: agent.total_tokens > 0 ? Math.round((agent.claimed_tokens / agent.total_tokens) * 100) : 0, strokeColor: '#52c41a' }}
+                                                            format={() => `${agent.claimed_tokens} Claimed / ${agent.available_tokens} Avail`}
+                                                            strokeColor="#1890ff"
+                                                            status="active"
+                                                        />
+                                                    </Col>
+                                                </Row>
+                                                {agent.ranges && agent.ranges.length > 0 && (
+                                                    <Table
+                                                        size="small"
+                                                        rowKey="assignment_id"
+                                                        dataSource={agent.ranges}
+                                                        columns={agentRangesColumns}
+                                                        pagination={false}
+                                                        className="mt-3"
+                                                    />
+                                                )}
+                                            </Card>
+                                        ))}
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </>
+                )}
+            </Card>
+        </PermissionChecker>
     );
 };
 

@@ -1,10 +1,14 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { Button, Space, Tooltip, Input, Tag } from 'antd';
+import { Button, Space, Tooltip, Input, Tag, message } from 'antd';
 import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataTable from '../../common/DataTable';
 import Popconfirm from 'antd/es/popconfirm';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import usePermission from 'utils/hooks/usePermission';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { TextArea } = Input;
 
@@ -14,6 +18,8 @@ const RefundBookings = () => {
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [remark, setRemark] = useState('');
     const [actionType, setActionType] = useState(null);
+
+    const canManageRefunds = usePermission(PERMISSIONS.MANAGE_REFUND_REQUEST);
 
     // Backend pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -68,6 +74,9 @@ const RefundBookings = () => {
                     ? 'Refund approved successfully'
                     : 'Refund rejected successfully',
             };
+        },
+        onError: (error) => {
+            message.error(Utils.getErrorMessage(error, 'Failed to update refund status'));
         },
         onSuccess: (data) => {
             // Update local cache to reflect changes (for demo)
@@ -289,22 +298,24 @@ const RefundBookings = () => {
 
                     return (
                         <Space>
-                            <Tooltip title="Approve">
-                                <Button
-                                    type="primary"
-                                    size="small"
-                                    icon={<CheckOutlined />}
-                                    onClick={() => handleActionClick(record, 'approve')}
-                                />
-                            </Tooltip>
-                            <Tooltip title="Reject">
-                                <Button
-                                    danger
-                                    size="small"
-                                    icon={<CloseOutlined />}
-                                    onClick={() => handleActionClick(record, 'reject')}
-                                />
-                            </Tooltip>
+                            <PermissionChecker permission={PERMISSIONS.MANAGE_REFUND_REQUEST}>
+                                <Tooltip title="Approve">
+                                    <Button
+                                        type="primary"
+                                        size="small"
+                                        icon={<CheckOutlined />}
+                                        onClick={() => handleActionClick(record, 'approve')}
+                                    />
+                                </Tooltip>
+                                <Tooltip title="Reject">
+                                    <Button
+                                        danger
+                                        size="small"
+                                        icon={<CloseOutlined />}
+                                        onClick={() => handleActionClick(record, 'reject')}
+                                    />
+                                </Tooltip>
+                            </PermissionChecker>
                         </Space>
                     );
                 },

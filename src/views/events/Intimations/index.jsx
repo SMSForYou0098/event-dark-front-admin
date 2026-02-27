@@ -2,6 +2,10 @@ import React, { memo, useState, useMemo } from 'react';
 import { Card, Form, Select, DatePicker, Radio, Button, Spin, Table, Typography, Row, Col, Space, message } from 'antd';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useMyContext } from '../../../Context/MyContextProvider';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
+import usePermission from 'utils/hooks/usePermission';
 import api from 'auth/FetchInterceptor';
 import dayjs from 'dayjs';
 
@@ -17,7 +21,7 @@ const Intimations = memo(() => {
     const {
         data: eventsData = { events: [], pagination: null },
         isLoading: eventsLoading,
-        isError: eventsError,
+        isError: eventsError, // using Utils for error messages
         error: eventsErrObj,
     } = useQuery({
         queryKey: ['intimation-events', UserData?.id],
@@ -76,6 +80,7 @@ const Intimations = memo(() => {
     });
 
     // Handle event selection change
+    const canViewIntimations = usePermission(PERMISSIONS.VIEW_INTIMATIONS);
     const handleEventChange = (value, option) => {
         setSelectedEvent(option?.event || null);
         form.setFieldsValue({ event_id: value });
@@ -129,157 +134,159 @@ const Intimations = memo(() => {
     ], []);
 
     return (
-        <div className="intimations-container">
-            <Card
-                title={
-                    <Title level={4} style={{ margin: 0 }}>
-                        Event Intimations
-                    </Title>
-                }
-                className="mb-4"
-            >
-                <Form
-                    form={form}
-                    layout="vertical"
-                    onFinish={handleSubmit}
-                    initialValues={{
-                        type: 'both',
-                        booking_type: 'online',
-                    }}
-                >
-                    <Row gutter={[16, 16]}>
-                        {/* Event Selection */}
-                        <Col xs={24} md={12} lg={8}>
-                            <Form.Item
-                                name="event_id"
-                                label="Select Event"
-                                rules={[{ required: true, message: 'Please select an event' }]}
-                            >
-                                <Select
-                                    placeholder="Select an event"
-                                    loading={eventsLoading}
-                                    disabled={eventsLoading}
-                                    showSearch
-                                    optionFilterProp="label"
-                                    options={eventOptions}
-                                    onChange={handleEventChange}
-                                    notFoundContent={
-                                        eventsLoading ? <Spin size="small" /> : 'No events found'
-                                    }
-                                    status={eventsError ? 'error' : undefined}
-                                />
-                            </Form.Item>
-                            {eventsError && (
-                                <Text type="danger" className="d-block mb-2">
-                                    {eventsErrObj?.message || 'Failed to load events'}
-                                </Text>
-                            )}
-                        </Col>
-
-                        {/* Date Range */}
-                        <Col xs={24} md={12} lg={8}>
-                            <Form.Item
-                                name="date_range"
-                                label="Date Range"
-                                rules={[{ required: true, message: 'Please select date range' }]}
-                            >
-                                <RangePicker
-                                    style={{ width: '100%' }}
-                                    format="YYYY-MM-DD"
-                                    placeholder={['Start Date', 'End Date']}
-                                />
-                            </Form.Item>
-                        </Col>
-
-                        {/* Type Selection */}
-                        <Col xs={24} md={12} lg={8}>
-                            <Form.Item
-                                name="type"
-                                label="Contact Type"
-                            >
-                                <Radio.Group>
-                                    <Radio value="attendee">Attendees</Radio>
-                                    <Radio value="user">Users</Radio>
-                                    <Radio value="both">Both</Radio>
-                                </Radio.Group>
-                            </Form.Item>
-                        </Col>
-
-                        {/* Booking Type */}
-                        <Col xs={24} md={12} lg={8}>
-                            <Form.Item
-                                name="booking_type"
-                                label="Booking Type"
-                            >
-                                <Select
-                                    placeholder="Select booking type"
-                                    options={[
-                                        { value: 'online', label: 'Online' },
-                                        { value: 'sponsor', label: 'Sponsor' },
-                                        { value: 'agent', label: 'Agent' },
-                                        { value: 'all', label: 'All' },
-                                    ]}
-                                />
-                            </Form.Item>
-                        </Col>
-
-                        {/* Submit Button */}
-                        <Col xs={24}>
-                            <Form.Item>
-                                <Space>
-                                    <Button
-                                        type="primary"
-                                        htmlType="submit"
-                                        loading={contactsLoading}
-                                        disabled={eventsLoading}
-                                    >
-                                        Fetch Contacts
-                                    </Button>
-                                    <Button
-                                        onClick={() => {
-                                            form.resetFields();
-                                            setSelectedEvent(null);
-                                            resetContacts();
-                                        }}
-                                    >
-                                        Reset
-                                    </Button>
-                                </Space>
-                            </Form.Item>
-                        </Col>
-                    </Row>
-                </Form>
-            </Card>
-
-            {/* Contacts Results */}
-            {(contactsData.contacts?.length > 0 || contactsLoading || contactsError) && (
+        <PermissionChecker permission={PERMISSIONS.VIEW_INTIMATIONS}>
+            <div className="intimations-container">
                 <Card
                     title={
-                        <Title level={5} style={{ margin: 0 }}>
-                            Contacts ({contactsData.contacts?.length || 0})
+                        <Title level={4} style={{ margin: 0 }}>
+                            Event Intimations
                         </Title>
                     }
+                    className="mb-4"
                 >
-                    {contactsError && (
-                        <Text type="danger" className="d-block mb-3">
-                            {contactsErrObj?.message || 'Failed to fetch contacts'}
-                        </Text>
-                    )}
-                    <Table
-                        dataSource={contactsData.contacts}
-                        columns={contactColumns}
-                        loading={contactsLoading}
-                        rowKey={(record) => record.id || record.email || record.phone}
-                        pagination={{
-                            pageSize: 15,
-                            showSizeChanger: true,
-                            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} contacts`,
+                    <Form
+                        form={form}
+                        layout="vertical"
+                        onFinish={handleSubmit}
+                        initialValues={{
+                            type: 'both',
+                            booking_type: 'online',
                         }}
-                        scroll={{ x: 'max-content' }}
-                    />
+                    >
+                        <Row gutter={[16, 16]}>
+                            {/* Event Selection */}
+                            <Col xs={24} md={12} lg={8}>
+                                <Form.Item
+                                    name="event_id"
+                                    label="Select Event"
+                                    rules={[{ required: true, message: 'Please select an event' }]}
+                                >
+                                    <Select
+                                        placeholder="Select an event"
+                                        loading={eventsLoading}
+                                        disabled={eventsLoading}
+                                        showSearch
+                                        optionFilterProp="label"
+                                        options={eventOptions}
+                                        onChange={handleEventChange}
+                                        notFoundContent={
+                                            eventsLoading ? <Spin size="small" /> : 'No events found'
+                                        }
+                                        status={eventsError ? 'error' : undefined}
+                                    />
+                                </Form.Item>
+                                {eventsError && (
+                                    <Text type="danger" className="d-block mb-2">
+                                        {Utils.getErrorMessage(eventsErrObj)}
+                                    </Text>
+                                )}
+                            </Col>
+
+                            {/* Date Range */}
+                            <Col xs={24} md={12} lg={8}>
+                                <Form.Item
+                                    name="date_range"
+                                    label="Date Range"
+                                    rules={[{ required: true, message: 'Please select date range' }]}
+                                >
+                                    <RangePicker
+                                        style={{ width: '100%' }}
+                                        format="YYYY-MM-DD"
+                                        placeholder={['Start Date', 'End Date']}
+                                    />
+                                </Form.Item>
+                            </Col>
+
+                            {/* Type Selection */}
+                            <Col xs={24} md={12} lg={8}>
+                                <Form.Item
+                                    name="type"
+                                    label="Contact Type"
+                                >
+                                    <Radio.Group>
+                                        <Radio value="attendee">Attendees</Radio>
+                                        <Radio value="user">Users</Radio>
+                                        <Radio value="both">Both</Radio>
+                                    </Radio.Group>
+                                </Form.Item>
+                            </Col>
+
+                            {/* Booking Type */}
+                            <Col xs={24} md={12} lg={8}>
+                                <Form.Item
+                                    name="booking_type"
+                                    label="Booking Type"
+                                >
+                                    <Select
+                                        placeholder="Select booking type"
+                                        options={[
+                                            { value: 'online', label: 'Online' },
+                                            { value: 'sponsor', label: 'Sponsor' },
+                                            { value: 'agent', label: 'Agent' },
+                                            { value: 'all', label: 'All' },
+                                        ]}
+                                    />
+                                </Form.Item>
+                            </Col>
+
+                            {/* Submit Button */}
+                            <Col xs={24}>
+                                <Form.Item>
+                                    <Space>
+                                        <Button
+                                            type="primary"
+                                            htmlType="submit"
+                                            loading={contactsLoading}
+                                            disabled={eventsLoading}
+                                        >
+                                            Fetch Contacts
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                form.resetFields();
+                                                setSelectedEvent(null);
+                                                resetContacts();
+                                            }}
+                                        >
+                                            Reset
+                                        </Button>
+                                    </Space>
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    </Form>
                 </Card>
-            )}
-        </div>
+
+                {/* Contacts Results */}
+                {(contactsData.contacts?.length > 0 || contactsLoading || contactsError) && (
+                    <Card
+                        title={
+                            <Title level={5} style={{ margin: 0 }}>
+                                Contacts ({contactsData.contacts?.length || 0})
+                            </Title>
+                        }
+                    >
+                        {contactsError && (
+                            <Text type="danger" className="d-block mb-3">
+                                {Utils.getErrorMessage(contactsErrObj)}
+                            </Text>
+                        )}
+                        <Table
+                            dataSource={contactsData.contacts}
+                            columns={contactColumns}
+                            loading={contactsLoading}
+                            rowKey={(record) => record.id || record.email || record.phone}
+                            pagination={{
+                                pageSize: 15,
+                                showSizeChanger: true,
+                                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} contacts`,
+                            }}
+                            scroll={{ x: 'max-content' }}
+                        />
+                    </Card>
+                )}
+            </div>
+        </PermissionChecker>
     );
 });
 

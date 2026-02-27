@@ -6,6 +6,7 @@ import { message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const NewPost = () => {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ const NewPost = () => {
 
       // Normalize meta before appending
       const normalizedMeta = { ...meta };
-      
+
       // ✅ Ensure categories contains only IDs
       if (Array.isArray(normalizedMeta.categories)) {
         normalizedMeta.categories = normalizedMeta.categories.map(cat =>
@@ -69,6 +70,10 @@ const NewPost = () => {
         },
       });
 
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to save blog post'));
+      }
+
       return response;
     },
     onSuccess: (data) => {
@@ -77,7 +82,7 @@ const NewPost = () => {
     },
     onError: (error) => {
       console.error('❌ Error saving blog post:', error);
-      message.error(error.response?.data?.message || 'Failed to save blog post');
+      message.error(Utils.getErrorMessage(error, 'Failed to save blog post'));
     },
   });
 

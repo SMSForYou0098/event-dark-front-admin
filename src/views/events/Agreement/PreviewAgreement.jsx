@@ -8,6 +8,7 @@ import { getBackgroundWithOpacity } from '../common/CustomUtil';
 import { PRIMARY } from 'utils/consts';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../components/shared-components/SignatureInput';
 import { useMyContext } from 'Context/MyContextProvider';
+import Utils from 'utils';
 
 const PreviewAgreement = () => {
     const navigate = useNavigate();
@@ -62,7 +63,7 @@ const PreviewAgreement = () => {
         },
         onError: (error) => {
             console.error('Signature submission error:', error);
-            message.error(error?.response?.data?.message || 'Failed to submit signature');
+            message.error(Utils.getErrorMessage(error, 'Failed to submit signature'));
         }
     });
 
@@ -79,7 +80,7 @@ const PreviewAgreement = () => {
         },
         onError: (error) => {
             console.error('Agreement confirmation error:', error);
-            message.error(error?.response?.data?.message || 'Failed to confirm agreement');
+            message.error(Utils.getErrorMessage(error, 'Failed to confirm agreement'));
         }
     });
 
@@ -97,7 +98,7 @@ const PreviewAgreement = () => {
             if (previewData?.status) {
                 setAgreementData(previewData.data);
             } else {
-                message.error('Failed to load agreement');
+                message.error(Utils.getErrorMessage(previewData, 'Failed to load agreement'));
             }
         };
 

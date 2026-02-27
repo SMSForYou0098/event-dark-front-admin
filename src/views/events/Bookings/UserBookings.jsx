@@ -5,6 +5,7 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Alert, Button } from "antd";
 import api from "auth/FetchInterceptor";
 import BookingsTab from "./BookingsTab";
+import Utils from "utils";
 
 const PER_PAGE = 10;
 
@@ -78,7 +79,7 @@ const UserBookings = ({ id, activeTab }) => {
     return (
       <Alert
         message="Error Loading Bookings"
-        description={error.message}
+        description={Utils.getErrorMessage(error)}
         type="error"
         showIcon
         action={

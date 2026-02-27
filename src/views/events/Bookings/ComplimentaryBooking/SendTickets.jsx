@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Button, Modal, Spin, message } from 'antd';
 import { LoadingOutlined, CheckCircleOutlined, SendOutlined } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const SendTickets = ({ batchId }) => {
     const [showModal, setShowModal] = useState(false);
@@ -33,13 +35,13 @@ const SendTickets = ({ batchId }) => {
             if (response.status) {
                 showSuccessAlert();
             } else {
-                message.error(response.message || "Failed to send tickets.");
+                message.error(Utils.getErrorMessage(response, "Failed to send tickets."));
             }
         } catch (error) {
             console.error('Error sending tickets:', error);
             Modal.error({
                 title: 'Error',
-                content: 'Failed to send tickets. Please try again.',
+                content: Utils.getErrorMessage(error, 'Failed to send tickets. Please try again.'),
             });
         } finally {
             setIsProcessing(false);
@@ -71,14 +73,16 @@ const SendTickets = ({ batchId }) => {
                 </div>
             </Modal>
 
-            <Button
-                type="primary"
-                icon={<SendOutlined />}
-                onClick={handleSend}
-                loading={isProcessing}
-            >
-                Send Bulk Tickets
-            </Button>
+            <PermissionChecker permission="Resend Complimentary Booking">
+                <Button
+                    type="primary"
+                    icon={<SendOutlined />}
+                    onClick={handleSend}
+                    loading={isProcessing}
+                >
+                    Send Bulk Tickets
+                </Button>
+            </PermissionChecker>
         </>
     );
 };

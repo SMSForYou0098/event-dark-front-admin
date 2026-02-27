@@ -24,6 +24,9 @@ import { useMyContext } from "Context/MyContextProvider";
 import { useNavigate } from "react-router-dom";
 import { ExpandDataTable } from "views/events/common/ExpandDataTable";
 import PermissionChecker from "layouts/PermissionChecker";
+import Utils from "utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import usePermission from "utils/hooks/usePermission";
 
 const { confirm } = Modal;
 const { Text } = Typography;
@@ -36,6 +39,9 @@ const PosBooking = memo(() => {
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const printerRef = useRef(null);
+
+  const canViewContact = usePermission(PERMISSIONS.VIEW_CONTACT_NUMBER);
+  const canExportPos = usePermission(PERMISSIONS.EXPORT_POS_REPORTS);
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -178,7 +184,7 @@ const PosBooking = memo(() => {
       );
     },
     onError: (error) => {
-      message.error(error.response?.data?.message || 'Failed to update ticket status');
+      message.error(Utils.getErrorMessage(error, 'Failed to update ticket status'));
       queryClient.invalidateQueries(['pos-bookings', UserData?.id, formattedDateRange]);
     },
   });
@@ -464,7 +470,6 @@ const PosBooking = memo(() => {
     ];
 
     // Conditionally add Contact column if user is Admin or has 'View Contact Number' permission
-    const canViewContact = userRole === 'Admin' || UserPermissions?.includes('View Contact Number');
     if (canViewContact) {
       baseColumns.splice(baseColumns.length - 3, 0, {
         title: 'Contact',
@@ -482,8 +487,7 @@ const PosBooking = memo(() => {
     handlePrintBooking,
     handleToggleStatus,
     toggleStatusMutation.isPending,
-    userRole,
-    UserPermissions
+    canViewContact
   ]);
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -533,10 +537,12 @@ const PosBooking = memo(() => {
         innerColumns={expandedRowColumns}
         columns={columns}
         data={bookings}
-        // exportRoute={config.exportRoute}
-        // ExportPermission={UserPermissions?.includes(config.exportPermission)}
+        enableExport={true}
+        exportRoute={'/bookings/pos/export'}
+        ExportPermission={canExportPos}
+        type={'pos'}
         extraHeaderContent={
-          <PermissionChecker permission={["Add POS Booking"]}>
+          <PermissionChecker permission={[PERMISSIONS.ADD_POS_BOOKING]}>
             <Tooltip title="Add Booking">
               <Button
                 type="primary"
@@ -561,9 +567,6 @@ const PosBooking = memo(() => {
         // Loading and error
         loading={isLoading}
         error={error}
-        enableExport={true}
-        exportRoute={'/bookings/pos/export'}
-        type={'pos'}
       />
 
     </>

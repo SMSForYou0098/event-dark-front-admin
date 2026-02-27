@@ -3,6 +3,7 @@ import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { calcTicketTotals, distributeDiscount } from "utils/ticketCalculations";
+import Utils from "utils";
 
 
 export const sanitizeInput = (value) => {
@@ -169,8 +170,8 @@ export const resendTickets = async (record, type, setLoading = null) => {
       throw new Error(response?.message || 'Failed to resend tickets');
     }
   } catch (error) {
-    message.error(error.message || 'Failed to resend tickets');
-    return { success: false, error: error.message };
+    message.error(Utils.getErrorMessage(error, 'Failed to resend tickets'));
+    return { success: false, error: Utils.getErrorMessage(error, 'Failed to resend tickets') };
   } finally {
     if (setLoading) setLoading(false);
   }

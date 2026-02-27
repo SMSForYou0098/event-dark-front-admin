@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { message } from 'antd';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const API_PREFIX = 'refund-policies';
 
@@ -59,7 +60,7 @@ export const useGetRefundPolicies = (options = {}) => {
         queryKey: ['refund-policies'],
         queryFn: getRefundPolicies,
         onError: (error) => {
-            message.error('Failed to load refund policies');
+            message.error(Utils.getErrorMessage(error));
             console.error('Error fetching refund policies:', error);
         },
         ...options,
@@ -74,7 +75,7 @@ export const useGetEvents = (id, options = {}) => {
         enabled: !!id,
         staleTime: 5 * 60 * 1000,
         onError: (error) => {
-            message.error('Failed to load events');
+            message.error(Utils.getErrorMessage(error));
             console.error('Error fetching events:', error);
         },
         ...options,
@@ -94,9 +95,7 @@ export const useCreateRefundPolicy = (options = {}) => {
         },
         onError: (error) => {
             console.error('Error creating refund policy:', error);
-            message.error(
-                error.response?.data?.message || 'Failed to create refund policy.'
-            );
+            message.error(Utils.getErrorMessage(error));
             options.onError?.(error);
         },
     });
@@ -115,9 +114,7 @@ export const useUpdateRefundPolicy = (options = {}) => {
         },
         onError: (error) => {
             console.error('Error updating refund policy:', error);
-            message.error(
-                error.response?.data?.message || 'Failed to update refund policy.'
-            );
+            message.error(Utils.getErrorMessage(error));
             options.onError?.(error);
         },
     });
@@ -136,9 +133,7 @@ export const useDeleteRefundPolicy = (options = {}) => {
         },
         onError: (error) => {
             console.error('Error deleting refund policy:', error);
-            message.error(
-                error.response?.data?.message || 'Failed to delete refund policy.'
-            );
+            message.error(Utils.getErrorMessage(error));
             options.onError?.(error);
         },
     });

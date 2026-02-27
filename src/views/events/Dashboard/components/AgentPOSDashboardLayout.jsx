@@ -9,8 +9,12 @@ import {
 } from "./dashboardConfig";
 import { useAgentPOSDashboard } from "./useAgentPOSDashboard";
 import DashSkeleton from "../Admin/DashSkeleton";
+import Utils from "utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import PermissionChecker from "layouts/PermissionChecker";
+import usePermission from "utils/hooks/usePermission";
 
-const AgentPOSDashboardLayout = ({type}) => {
+const AgentPOSDashboardLayout = ({ type }) => {
   const { api, UserData, authToken, userRole } = useMyContext();
 
   const { sale, isLoading, error } = useAgentPOSDashboard(
@@ -19,6 +23,9 @@ const AgentPOSDashboardLayout = ({type}) => {
     authToken,
     type
   );
+
+  const canViewAgentBookings = usePermission(PERMISSIONS.VIEW_AGENT_BOOKINGS);
+  const canViewPOSBookings = usePermission(PERMISSIONS.VIEW_POS_BOOKINGS);
 
   const getLast7DaysWeekdays = () => {
     const days = ["S", "M", "T", "W", "T", "F", "S"];
@@ -33,7 +40,7 @@ const AgentPOSDashboardLayout = ({type}) => {
   };
 
   const colors = useMemo(() => ["var(--primary-color)", "var(--secondary-color)"], []);
-  
+
   const commonChartOptions = useMemo(() => ({
     chart: { stacked: true, toolbar: { show: false } },
     plotOptions: { bar: { columnWidth: "10%", borderRadius: 4 } },
@@ -80,7 +87,7 @@ const AgentPOSDashboardLayout = ({type}) => {
       <div className="p-4">
         <Alert
           message="Error"
-          description="Failed to load dashboard data. Please try again later."
+          description={Utils.getErrorMessage(error, "Failed to load dashboard data. Please try again later.")}
           type="error"
           showIcon
         />
@@ -111,9 +118,9 @@ const AgentPOSDashboardLayout = ({type}) => {
 
 
 
-//   const bookingRoute = userRole === "Agent" 
-//     ? "/dashboard/agent-bookings/new" 
-//     : "/dashboard/pos";
+  //   const bookingRoute = userRole === "Agent" 
+  //     ? "/dashboard/agent-bookings/new" 
+  //     : "/dashboard/pos";
 
   return (
     <Fragment>
@@ -121,7 +128,7 @@ const AgentPOSDashboardLayout = ({type}) => {
         <MobBookingButton to={bookingRoute} />
       )} */}
 
-      {(isAgent || isPOS) && (
+      {(canViewAgentBookings || canViewPOSBookings) && (
         <>
           {/* Graph and DataCards Section - Uses DataCard internally */}
           <Row gutter={[16, 16]}>
@@ -130,7 +137,7 @@ const AgentPOSDashboardLayout = ({type}) => {
         </>
       )}
 
-      {!isAgent && !isPOS && (
+      {!canViewAgentBookings && !canViewPOSBookings && (
         <div className="p-4">
           <Alert
             message="Access Denied"

@@ -4,6 +4,9 @@ import apiClient from 'auth/FetchInterceptor';
 import { UserOutlined, TagsOutlined, SaveOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import useTicketInventory from "./hooks/useTicketInventory";
 import TicketSelect from "./TicketSelect";
+import Utils from "utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import PermissionChecker from "layouts/PermissionChecker";
 import { useMemo, useState } from 'react';
 
 const { Text } = Typography;
@@ -31,7 +34,7 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
             refetchSummary?.();
         },
         onError: (err) => {
-            message.error(err?.response?.data?.message || err?.message || "Failed to assign");
+            message.error(Utils.getErrorMessage(err, "Failed to assign"));
         }
     });
 
@@ -116,7 +119,7 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
                     </Text>
 
                     {error ? (
-                        <Alert message="Failed to load agents" type="error" showIcon />
+                        <Alert message="Failed to load agents" description={Utils.getErrorMessage(error)} type="error" showIcon />
                     ) : (
                         <Select
                             placeholder="Select an Agent"
@@ -464,15 +467,17 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
                                 </>
                             )}
                         </Form.List>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            icon={<SaveOutlined />}
-                            block
-                            loading={assignMutation.isPending}
-                        >
-                            Assign to Agent
-                        </Button>
+                        <PermissionChecker permission={PERMISSIONS.ASSIGN_CARD_TOKENS}>
+                            <Button
+                                type="primary"
+                                htmlType="submit"
+                                icon={<SaveOutlined />}
+                                block
+                                loading={assignMutation.isPending}
+                            >
+                                Assign to Agent
+                            </Button>
+                        </PermissionChecker>
                     </Form>
                 </div>
             )}

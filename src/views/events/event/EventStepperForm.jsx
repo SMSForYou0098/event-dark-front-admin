@@ -41,6 +41,8 @@ import {
     useAssignEventInfluencers,
 } from './hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
+import usePermission from 'utils/hooks/usePermission';
+import Utils from 'utils';
 
 const { Step } = Steps;
 const { Title } = Typography;
@@ -62,6 +64,9 @@ const EventStepperForm = () => {
     const location = useLocation();
     const { id } = useParams();
     const isEdit = !!id;
+
+    const canCreate = usePermission('Create Event');
+    const canEdit = usePermission('Edit Event');
 
     const [current, setCurrent] = useState(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -302,30 +307,37 @@ const EventStepperForm = () => {
 
     const { mutateAsync: createEvent, isPending: creating } = useCreateEvent({
         onSuccess: (res) => {
-            message.success(res?.message || 'Event created successfully!');
-            const eventId = res?.event?.event_key || res?.data?.event_key || res?.event_key;
-            // refetchDetail();
-            if (eventId) {
-                setTimeout(() => {
-                    navigate(`/events/update/${eventId}`, { state: { step: 1 } });
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }, 500);
+            if (res?.status) {
+                message.success(res?.message || 'Event created successfully!');
+                const eventId = res?.event?.event_key || res?.data?.event_key || res?.event_key;
+                if (eventId) {
+                    setTimeout(() => {
+                        navigate(`/events/update/${eventId}`, { state: { step: 1 } });
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 500);
+                } else {
+                    message.error('Event created but ID not found. Please refresh.');
+                }
             } else {
-                message.error('Event created but ID not found. Please refresh.');
+                message.error(Utils.getErrorMessage(res, 'Failed to create event'));
             }
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to create event');
+            message.error(Utils.getErrorMessage(error, 'Failed to create event'));
         },
     });
 
     const { mutateAsync: updateEvent, isPending: updating } = useUpdateEvent({
         onSuccess: (res) => {
-            message.success(res?.message || 'Event updated successfully!');
-            refetchDetail();
+            if (res?.status) {
+                message.success(res?.message || 'Event updated successfully!');
+                refetchDetail();
+            } else {
+                message.error(Utils.getErrorMessage(res, 'Failed to update event'));
+            }
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to update event');
+            message.error(Utils.getErrorMessage(error, 'Failed to update event'));
         },
     });
 
@@ -335,7 +347,7 @@ const EventStepperForm = () => {
             // Silent success - main update already shows success message
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to assign influencers');
+            message.error(Utils.getErrorMessage(error, 'Failed to assign influencers'));
         },
     });
 
@@ -487,7 +499,7 @@ const EventStepperForm = () => {
                 form.setFields(fields);
                 // message.error('Please check the highlighted fields.');
             } else {
-                message.error(error?.response?.data?.message || 'Please fill all required fields correctly');
+                message.error(Utils.getErrorMessage(error, 'Please fill all required fields correctly'));
             }
         }
     };
@@ -519,7 +531,7 @@ const EventStepperForm = () => {
             }
         } catch (error) {
             console.error('Save draft error:', error);
-            message.error('Failed to save draft. Please check your form.');
+            message.error(Utils.getErrorMessage(error, 'Failed to save draft. Please check your form.'));
         }
     }, [getFormData, id, updateEvent]);
 
@@ -548,7 +560,7 @@ const EventStepperForm = () => {
             }
         } catch (error) {
             console.error('Submit error:', error);
-            message.error('Please complete all required fields before submitting.');
+            message.error(Utils.getErrorMessage(error, 'Please complete all required fields before submitting.'));
         }
     };
 
@@ -606,8 +618,12 @@ const EventStepperForm = () => {
                     >
                         {
                             isEdit && current !== steps.length - 1 &&
-                            <Tooltip title="Save current progress">
-                                <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading || componentLoader}>
+                            <Tooltip title={!canEdit ? "You don't have permission to edit events" : "Save current progress"}>
+                                <Button
+                                    icon={<SaveOutlined />}
+                                    onClick={handleSaveDraft}
+                                    disabled={isLoading || componentLoader || !canEdit}
+                                >
                                     Save Draft
                                 </Button>
                             </Tooltip>
@@ -620,29 +636,31 @@ const EventStepperForm = () => {
                                 </Button>
                             )}
 
-                            {current < steps.length - 2 && (
+                            <Tooltip title={(!isEdit && !canCreate) ? "No permission to create" : (isEdit && !canEdit) ? "No permission to edit" : ""}>
                                 <Button
                                     type="primary"
                                     onClick={next}
                                     size="large"
                                     loading={isLoading}
-                                    disabled={isLoading || componentLoader}
+                                    disabled={isLoading || componentLoader || (isEdit ? !canEdit : !canCreate)}
                                 >
                                     {current === 0 && !isEdit ? 'Create & Continue' : 'Save & Continue'}
                                 </Button>
-                            )}
+                            </Tooltip>
 
                             {current === steps.length - 2 && (
-                                <Button
-                                    type="primary"
-                                    onClick={handleSubmit}
-                                    size="large"
-                                    loading={isLoading}
-                                    disabled={isLoading || componentLoader}
-                                    icon={<CheckCircleOutlined />}
-                                >
-                                    Publish Event
-                                </Button>
+                                <Tooltip title={!canEdit ? "No permission to edit/publish" : ""}>
+                                    <Button
+                                        type="primary"
+                                        onClick={handleSubmit}
+                                        size="large"
+                                        loading={isLoading}
+                                        disabled={isLoading || componentLoader || !canEdit}
+                                        icon={<CheckCircleOutlined />}
+                                    >
+                                        Publish Event
+                                    </Button>
+                                </Tooltip>
                             )}
                             {
 

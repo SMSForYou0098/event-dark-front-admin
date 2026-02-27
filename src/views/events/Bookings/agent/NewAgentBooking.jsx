@@ -29,6 +29,7 @@ import { calcTicketTotals, distributeDiscount, getSubtotal } from 'utils/ticketC
 import BookingLayout from 'views/events/seating_module/theatre_booking/Bookinglayout';
 import SeatingModuleSummary from './components/SeatingModuleSummary';
 import EventSeatsListener from '../components/EventSeatsListener';
+import Utils from 'utils';
 
 const NewAgentBooking = memo(({ type }) => {
   const {
@@ -141,7 +142,7 @@ const NewAgentBooking = memo(({ type }) => {
     },
     onError: (error) => {
       console.error('Create user error:', error);
-      message.error(error.message || 'Failed to create user');
+      message.error(Utils.getErrorMessage(error, 'Failed to create user'));
     },
   });
 
@@ -153,7 +154,7 @@ const NewAgentBooking = memo(({ type }) => {
     // },
     onError: (error) => {
       console.error('Update user error:', error);
-      message.error(error.message || 'Failed to update user');
+      message.error(Utils.getErrorMessage(error, 'Failed to update user'));
     },
   });
 
@@ -192,7 +193,7 @@ const NewAgentBooking = memo(({ type }) => {
     },
     onError: (error) => {
       console.error('Corporate booking error:', error);
-      message.error(error.message || 'Failed to process corporate ticket purchase');
+      message.error(Utils.getErrorMessage(error, 'Failed to process corporate ticket purchase'));
     },
   });
 
@@ -348,12 +349,12 @@ const NewAgentBooking = memo(({ type }) => {
             message.error(errMsg);
             setBookingError(errMsg);
           } else {
-            const errMsg = error?.response?.data?.message || error.message || 'Some seats are no longer available';
+            const errMsg = Utils.getErrorMessage(error, 'Some seats are no longer available');
             message.error(errMsg);
             setBookingError(errMsg);
           }
         } else {
-          const errMsg = error?.response?.data?.message || error.message || 'Booking failed';
+          const errMsg = Utils.getErrorMessage(error, 'Booking failed');
           message.error(errMsg);
           setBookingError(errMsg);
         }
@@ -545,7 +546,7 @@ const NewAgentBooking = memo(({ type }) => {
 
     } catch (err) {
       console.error('Error in handleUserSubmit:', err);
-      message.error(err.message || "An error occurred, please try again.");
+      message.error(Utils.getErrorMessage(err, "An error occurred, please try again."));
 
       // ✅ Reset submission state on error
       setTimeout(() => {
@@ -612,7 +613,7 @@ const NewAgentBooking = memo(({ type }) => {
             message.success({ content: 'Seats locked successfully', key: 'lockSeats' });
           } catch (error) {
             console.error('Failed to lock seats:', error);
-            message.error({ content: error?.message || 'Failed to lock seats', key: 'lockSeats' });
+            message.error({ content: Utils.getErrorMessage(error, 'Failed to lock seats'), key: 'lockSeats' });
             return; // Don't proceed if seat locking fails
           }
         }
@@ -682,7 +683,7 @@ const NewAgentBooking = memo(({ type }) => {
       return { success: true, response };
     } catch (error) {
       console.error('Failed to lock seats:', error);
-      message.error(error?.message || 'Failed to lock seats');
+      message.error(Utils.getErrorMessage(error, 'Failed to lock seats'));
       return { success: false, error };
     }
   }, [selectedTickets, lockSeatsMutation, eventID]);

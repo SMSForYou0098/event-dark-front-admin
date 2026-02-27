@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useDispatch, useSelector } from 'react-redux';
 import api from 'auth/FetchInterceptor';
 import { setRefundHashKey } from 'store/slices/refundSlice';
+import Utils from 'utils';
 
 const { Text } = Typography;
 
@@ -28,11 +29,11 @@ const PasswordModal = ({ open, onClose, onSuccess, loading }) => {
                 // Move to OTP step
                 setStep('otp');
             } else {
-                setError(data.message || 'Failed to send OTP');
+                setError(Utils.getErrorMessage(data, 'Failed to send OTP'));
             }
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'Failed to send OTP');
+            setError(Utils.getErrorMessage(err, 'Failed to send OTP'));
         },
     });
 
@@ -59,11 +60,11 @@ const PasswordModal = ({ open, onClose, onSuccess, loading }) => {
                 // Proceed to next step
                 onSuccess();
             } else {
-                setError(data.message || 'OTP verification failed');
+                setError(Utils.getErrorMessage(data, 'OTP verification failed'));
             }
         },
         onError: (err) => {
-            setError(err.response?.data?.message || 'OTP verification failed');
+            setError(Utils.getErrorMessage(err, 'OTP verification failed'));
         },
     });
 
@@ -205,7 +206,7 @@ const RefundPercentageModal = ({ open, onClose, bookingData, onRefundComplete })
             }
         },
         onError: (err) => {
-            const errorMessage = err.response?.data?.message || 'Refund processing failed';
+            const errorMessage = Utils.getErrorMessage(err, 'Refund processing failed');
             const responseData = err.response?.data || {};
             setError(errorMessage);
 

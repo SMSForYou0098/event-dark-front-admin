@@ -30,11 +30,18 @@ import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 import AssignTicketForm from "./AssignTicketForm";
 import AgentCardInventory from "./AgentCardInventory";
 import ExportTokensDrawer from "./ExportTokensDrawer";
+import Utils from "utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import usePermission from "utils/hooks/usePermission";
+import PermissionChecker from "layouts/PermissionChecker";
 
 const { Text } = Typography;
 
 const CardInventory = () => {
     const { UserData } = useMyContext();
+    const canCreate = usePermission(PERMISSIONS.CREATE_CARD_TOKENS);
+    const canExport = usePermission(PERMISSIONS.EXPORT_CARD_TOKENS);
+    const canView = usePermission(PERMISSIONS.VIEW_CARD_INVENTORY);
 
     // Event selection
     const [selectedEventId, setSelectedEventId] = useState(null);
@@ -110,9 +117,7 @@ const CardInventory = () => {
             refetchSummary?.();
         },
         onError: (error) => {
-            message.error(
-                error?.response?.data?.message || "Failed to create tokens"
-            );
+            message.error(Utils.getErrorMessage(error, "Failed to create tokens"));
         },
     });
 
@@ -214,19 +219,7 @@ const CardInventory = () => {
             setExportDrawerOpen(false);
         },
         onError: async (error) => {
-            const data = error?.response?.data;
-            if (data instanceof Blob) {
-                try {
-                    const text = await data.text();
-                    const json = JSON.parse(text);
-                    const msg = json?.message || error?.message || 'Failed to export tokens';
-                    message.error(msg);
-                    return;
-                } catch (_) {}
-            }
-            message.error(
-                error?.response?.data?.message || error?.message || 'Failed to export tokens'
-            );
+            message.error(Utils.getErrorMessage(error, 'Failed to export tokens'));
         },
     });
     const handleExport = (payload) => {
@@ -251,306 +244,314 @@ const CardInventory = () => {
     };
 
     return (
-        <div>
-            {/* Event Selection */}
-            <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16 }}
-                title="Card Inventory"
-                extra={
-                    <>
-                    <Select
-                            placeholder="Select an Event"
-                            allowClear
-                            showSearch
-                            loading={eventsLoading}
-                            value={selectedEventId}
-                            onChange={handleEventChange}
-                            style={{ minWidth: 280 }}
-                            optionFilterProp="label"
-                            options={events}
-                            className="mr-2 mb-2"
-                    />
-                    {selectedEventId && (
-                        <Button
-                            onClick={() => setExportDrawerOpen(true)}
-                            icon={<ExportOutlined />}
-                            disabled={!selectedEventId}
-                        >
-                            Export
-                        </Button>
-                    )}
-                    </>
-                }>
+        <PermissionChecker permission={PERMISSIONS.VIEW_CARD_INVENTORY}>
+            <div>
+                {/* Event Selection */}
+                <Card bordered={false} style={{ borderRadius: 12, marginBottom: 16 }}
+                    title="Card Inventory"
+                    extra={
+                        <>
+                            <Select
+                                placeholder="Select an Event"
+                                allowClear
+                                showSearch
+                                loading={eventsLoading}
+                                value={selectedEventId}
+                                onChange={handleEventChange}
+                                style={{ minWidth: 280 }}
+                                optionFilterProp="label"
+                                options={events}
+                                className="mr-2 mb-2"
+                            />
+                            {selectedEventId && canExport && (
+                                <Button
+                                    onClick={() => setExportDrawerOpen(true)}
+                                    icon={<ExportOutlined />}
+                                    disabled={!selectedEventId}
+                                >
+                                    Export
+                                </Button>
+                            )}
+                        </>
+                    }>
 
-            </Card>
+                </Card>
 
-            <ExportTokensDrawer
-                open={exportDrawerOpen}
-                onClose={() => setExportDrawerOpen(false)}
-                selectedEventId={selectedEventId}
-                loading={exportTokensMutation.isPending}
-                onExport={(payload) => handleExport(payload)}
-            />
-
-            {!selectedEventId && (
-                <Alert
-                    message="Please select an event to manage card inventory"
-                    type="info"
-                    showIcon
-                    style={{ marginBottom: 16, borderRadius: 8 }}
+                <ExportTokensDrawer
+                    open={exportDrawerOpen}
+                    onClose={() => setExportDrawerOpen(false)}
+                    selectedEventId={selectedEventId}
+                    loading={exportTokensMutation.isPending}
+                    onExport={(payload) => handleExport(payload)}
                 />
-            )}
 
-            {/* Summary */}
-            {/* Summary */}
-            {selectedEventId && (
-                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-                    <Col xs={12} md={6}>
-                        <Card bordered={false} style={{ borderRadius: 12 }}>
-                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
-                                <Statistic title="Total Tokens" value={summary?.summary?.total} />
-                            </Skeleton>
-                        </Card>
-                    </Col>
-                    <Col xs={12} md={6}>
-                        <Card bordered={false} style={{ borderRadius: 12 }}>
-                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
-                                <Statistic title="Online" value={summary?.summary?.type_counts?.online || 0} valueStyle={{ color: '#52c41a' }} />
-                            </Skeleton>
-                        </Card>
-                    </Col>
-                    <Col xs={12} md={6}>
-                        <Card bordered={false} style={{ borderRadius: 12 }}>
-                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
-                                <Statistic title="Offline" value={summary?.summary?.type_counts?.offline || 0} valueStyle={{ color: '#1890ff' }} />
-                            </Skeleton>
-                        </Card>
-                    </Col>
-                    <Col xs={12} md={6}>
-                        <Card bordered={false} style={{ borderRadius: 12 }}>
-                            <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
-                                <Statistic title="Available" value={summary?.summary?.status_counts?.available || 0} valueStyle={{ color: '#faad14' }} />
-                            </Skeleton>
-                        </Card>
-                    </Col>
-                </Row>
-            )}
-
-            {/* Action Cards */}
-            {selectedEventId && (
-                summaryError ? (
+                {!selectedEventId && (
                     <Alert
-                        message="Failed to load summary"
-                        description={summaryErrorData?.response?.data?.message || summaryErrorData?.message || 'Something went wrong'}
-                        type="error"
+                        message="Please select an event to manage card inventory"
+                        type="info"
                         showIcon
                         style={{ marginBottom: 16, borderRadius: 8 }}
                     />
-                ) : (
-                    <>
-                        {/* View Mode Selector */}
+                )}
 
-                        <Row gutter={[16, 16]}>
-                            {/* 1. Create Card Tokens */}
-                            <Col xs={24} md={10}>
-                                <Card
-                                    title={
-                                        summaryLoading === false &&
-                                        <Space>
-                                            <PlusCircleOutlined />
-                                            <span>Create Card Tokens</span>
-                                        </Space>
-                                    }
-                                    bordered={false}
-                                    style={cardStyle}
-                                >
+                {/* Summary */}
+                {/* Summary */}
+                {selectedEventId && (
+                    <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                        <Col xs={12} md={6}>
+                            <Card bordered={false} style={{ borderRadius: 12 }}>
+                                <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                    <Statistic title="Total Tokens" value={summary?.summary?.total} />
+                                </Skeleton>
+                            </Card>
+                        </Col>
+                        <Col xs={12} md={6}>
+                            <Card bordered={false} style={{ borderRadius: 12 }}>
+                                <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                    <Statistic title="Online" value={summary?.summary?.type_counts?.online || 0} valueStyle={{ color: '#52c41a' }} />
+                                </Skeleton>
+                            </Card>
+                        </Col>
+                        <Col xs={12} md={6}>
+                            <Card bordered={false} style={{ borderRadius: 12 }}>
+                                <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                    <Statistic title="Offline" value={summary?.summary?.type_counts?.offline || 0} valueStyle={{ color: '#1890ff' }} />
+                                </Skeleton>
+                            </Card>
+                        </Col>
+                        <Col xs={12} md={6}>
+                            <Card bordered={false} style={{ borderRadius: 12 }}>
+                                <Skeleton loading={summaryLoading} active paragraph={{ rows: 1 }}>
+                                    <Statistic title="Available" value={summary?.summary?.status_counts?.available || 0} valueStyle={{ color: '#faad14' }} />
+                                </Skeleton>
+                            </Card>
+                        </Col>
+                    </Row>
+                )}
 
-                                    <Skeleton loading={summaryLoading} active>
-                                        <div style={{ marginBottom: 16 }}>
-                                            {usePreprintedCards ? (
-                                                <>
-                                                    <Text style={fieldLabelStyle}>Card Prefix</Text>
-                                                    <Input
-                                                        placeholder="Enter card prefix"
-                                                        value={createPrefix}
-                                                        onChange={(e) => setCreatePrefix(e.target.value)}
-                                                        style={{ width: "100%" }}
-                                                        disabled={!selectedEventId}
-                                                    />
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Text style={fieldLabelStyle}>Quantity (1 - 10,000)</Text>
-                                                    <InputNumber
-                                                        placeholder="Enter quantity"
-                                                        min={1}
-                                                        max={10000}
-                                                        value={createQuantity}
-                                                        onChange={setCreateQuantity}
-                                                        style={{ width: "100%" }}
-                                                        disabled={!selectedEventId}
-                                                    />
-                                                </>
-                                            )}
-                                        </div>
-                                        <Button
-                                            type="primary"
-                                            block
-                                            onClick={handleCreateTokens}
-                                            loading={createTokensMutation.isPending}
-                                            disabled={!selectedEventId || (usePreprintedCards ? !createPrefix : !createQuantity)}
-                                            icon={<PlusCircleOutlined />}
-                                        >
-                                            Create Tokens
-                                        </Button>
-                                        <Select
-                                            value={viewMode}
-                                            className="mt-3 w-100"
-                                            onChange={setViewMode}
-                                            options={[
-                                                { label: 'Assign', value: 'assign' },
-                                                { label: 'Unassign', value: 'unassign' },
-                                                { label: 'All', value: 'all' },
-                                            ]}
-                                        />
-                                        {createTokensMutation.data?.data && (
-                                            <Alert
-                                                message={`Created ${createTokensMutation.data.data.tokens_created} tokens (Index ${createTokensMutation.data.data.batch_index_range?.start} - ${createTokensMutation.data.data.batch_index_range?.end})`}
-                                                type="success"
-                                                showIcon
-                                                style={{ marginTop: 12, borderRadius: 8 }}
+                {/* Action Cards */}
+                {selectedEventId && (
+                    summaryError ? (
+                        <Alert
+                            message="Failed to load summary"
+                            description={Utils.getErrorMessage(summaryErrorData)}
+                            type="error"
+                            showIcon
+                            style={{ marginBottom: 16, borderRadius: 8 }}
+                        />
+                    ) : (
+                        <>
+                            {/* View Mode Selector */}
+
+                            <Row gutter={[16, 16]}>
+                                {/* 1. Create Card Tokens */}
+                                <Col xs={24} md={10}>
+                                    <Card
+                                        title={
+                                            summaryLoading === false &&
+                                            <Space>
+                                                <PlusCircleOutlined />
+                                                <span>Create Card Tokens</span>
+                                            </Space>
+                                        }
+                                        bordered={false}
+                                        style={cardStyle}
+                                    >
+
+                                        <Skeleton loading={summaryLoading} active>
+                                            <div style={{ marginBottom: 16 }}>
+                                                {usePreprintedCards ? (
+                                                    <>
+                                                        <Text style={fieldLabelStyle}>Card Prefix</Text>
+                                                        <Input
+                                                            placeholder="Enter card prefix"
+                                                            value={createPrefix}
+                                                            onChange={(e) => setCreatePrefix(e.target.value)}
+                                                            style={{ width: "100%" }}
+                                                            disabled={!selectedEventId}
+                                                        />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Text style={fieldLabelStyle}>Quantity (1 - 10,000)</Text>
+                                                        <InputNumber
+                                                            placeholder="Enter quantity"
+                                                            min={1}
+                                                            max={10000}
+                                                            value={createQuantity}
+                                                            onChange={setCreateQuantity}
+                                                            style={{ width: "100%" }}
+                                                            disabled={!selectedEventId}
+                                                        />
+                                                    </>
+                                                )}
+                                            </div>
+                                            <PermissionChecker permission={PERMISSIONS.CREATE_CARD_TOKENS}>
+                                                <Button
+                                                    type="primary"
+                                                    block
+                                                    onClick={handleCreateTokens}
+                                                    loading={createTokensMutation.isPending}
+                                                    disabled={!selectedEventId || (usePreprintedCards ? !createPrefix : !createQuantity)}
+                                                    icon={<PlusCircleOutlined />}
+                                                >
+                                                    Create Tokens
+                                                </Button>
+                                            </PermissionChecker>
+                                            <Select
+                                                value={viewMode}
+                                                className="mt-3 w-100"
+                                                onChange={setViewMode}
+                                                options={[
+                                                    { label: 'Assign', value: 'assign' },
+                                                    { label: 'Unassign', value: 'unassign' },
+                                                    { label: 'All', value: 'all' },
+                                                ]}
                                             />
-                                        )}
-                                        {/* Table with filtered data based on viewMode */}
-                                        {filteredTypeBreakdown.length > 0 && (() => {
-                                            const total = filteredTypeBreakdown.reduce((sum, record) => sum + (record.count || 0), 0);
-
-                                            const tableColumns = [
-                                                {
-                                                    title: 'Type',
-                                                    dataIndex: 'type',
-                                                    render: (v) => {
-                                                        const colorMap = {
-                                                            'online': 'green',
-                                                            'offline': 'blue',
-                                                            'unassigned': 'default',
-                                                        };
-                                                        return (
-                                                            <Tag color={colorMap[v] || 'default'}>
-                                                                {v?.toUpperCase()}
-                                                            </Tag>
-                                                        );
-                                                    },
-                                                },
-                                                {
-                                                    title: () => (
-                                                        <span>
-                                                            Quantity
-                                                        </span>
-                                                    ),
-                                                    dataIndex: 'count',
-                                                },
-                                                { title: 'Range', render: (_, record) => `${record.range_start}-${record.range_end}` },
-                                                {
-                                                    title: 'Export',
-                                                    key: 'export',
-                                                    width: 120,
-                                                    render: (_, record) =>
-                                                        record.type === 'unassigned' ? (
-                                                            <Button
-                                                                size="small"
-                                                                icon={<ExportOutlined />}
-                                                                loading={exportTokensMutation.isPending}
-                                                                onClick={() => handleExportRow(record, 'all')}
-                                                            />
-                                                        ) : (
-                                                            <Dropdown
-                                                                trigger={['click']}
-                                                                placement="bottomRight"
-                                                                menu={{
-                                                                    items: [
-                                                                        { key: 'claimed', label: 'Claimed' },
-                                                                        { key: 'available', label: 'Available' },
-                                                                        { key: 'all', label: 'All' },
-                                                                    ],
-                                                                    onClick: ({ key }) => handleExportRow(record, key),
-                                                                }}
-                                                            >
-                                                                <Button
-                                                                    size="small"
-                                                                    icon={<ExportOutlined />}
-                                                                    loading={exportTokensMutation.isPending}
-                                                                >
-                                                                    <MoreOutlined style={{ marginLeft: 4, fontSize: 10 }} />
-                                                                </Button>
-                                                            </Dropdown>
-                                                        ),
-                                                },
-                                            ];
-
-                                            return (
-                                                <Table
-                                                    dataSource={filteredTypeBreakdown}
-                                                    rowKey={(r, i) => `${r.type}-${r.range_start}-${i}`}
-                                                    pagination={false}
-                                                    size="small"
-                                                    className="mt-3"
-                                                    columns={tableColumns}
-                                                    summary={() => (
-                                                        <Table.Summary  >
-                                                            <Table.Summary.Row className='bg-dark border-0'>
-                                                                <Table.Summary.Cell index={0}>
-                                                                    <Text strong>Total</Text>
-                                                                </Table.Summary.Cell>
-                                                                <Table.Summary.Cell index={1}>
-                                                                    <Text strong>{total}</Text>
-                                                                </Table.Summary.Cell>
-                                                                <Table.Summary.Cell index={2}>
-                                                                    <Text type="secondary">—</Text>
-                                                                </Table.Summary.Cell>
-                                                                <Table.Summary.Cell index={3} />
-                                                            </Table.Summary.Row>
-                                                        </Table.Summary>
-                                                    )}
+                                            {createTokensMutation.data?.data && (
+                                                <Alert
+                                                    message={`Created ${createTokensMutation.data.data.tokens_created} tokens (Index ${createTokensMutation.data.data.batch_index_range?.start} - ${createTokensMutation.data.data.batch_index_range?.end})`}
+                                                    type="success"
+                                                    showIcon
+                                                    style={{ marginTop: 12, borderRadius: 8 }}
                                                 />
-                                            );
-                                        })()}
-                                    </Skeleton>
-                                </Card>
+                                            )}
+                                            {/* Table with filtered data based on viewMode */}
+                                            {filteredTypeBreakdown.length > 0 && (() => {
+                                                const total = filteredTypeBreakdown.reduce((sum, record) => sum + (record.count || 0), 0);
 
-                            </Col>
+                                                const tableColumns = [
+                                                    {
+                                                        title: 'Type',
+                                                        dataIndex: 'type',
+                                                        render: (v) => {
+                                                            const colorMap = {
+                                                                'online': 'green',
+                                                                'offline': 'blue',
+                                                                'unassigned': 'default',
+                                                            };
+                                                            return (
+                                                                <Tag color={colorMap[v] || 'default'}>
+                                                                    {v?.toUpperCase()}
+                                                                </Tag>
+                                                            );
+                                                        },
+                                                    },
+                                                    {
+                                                        title: () => (
+                                                            <span>
+                                                                Quantity
+                                                            </span>
+                                                        ),
+                                                        dataIndex: 'count',
+                                                    },
+                                                    { title: 'Range', render: (_, record) => `${record.range_start}-${record.range_end}` },
+                                                    {
+                                                        title: 'Export',
+                                                        key: 'export',
+                                                        width: 120,
+                                                        render: (_, record) =>
+                                                            record.type === 'unassigned' ? (
+                                                                <PermissionChecker permission={PERMISSIONS.EXPORT_CARD_TOKENS} color="transparent">
+                                                                    <Button
+                                                                        size="small"
+                                                                        icon={<ExportOutlined />}
+                                                                        loading={exportTokensMutation.isPending}
+                                                                        onClick={() => handleExportRow(record, 'all')}
+                                                                    />
+                                                                </PermissionChecker>
+                                                            ) : (
+                                                                <PermissionChecker permission={PERMISSIONS.EXPORT_CARD_TOKENS} color="transparent">
+                                                                    <Dropdown
+                                                                        trigger={['click']}
+                                                                        placement="bottomRight"
+                                                                        menu={{
+                                                                            items: [
+                                                                                { key: 'claimed', label: 'Claimed' },
+                                                                                { key: 'available', label: 'Available' },
+                                                                                { key: 'all', label: 'All' },
+                                                                            ],
+                                                                            onClick: ({ key }) => handleExportRow(record, key),
+                                                                        }}
+                                                                    >
+                                                                        <Button
+                                                                            size="small"
+                                                                            icon={<ExportOutlined />}
+                                                                            loading={exportTokensMutation.isPending}
+                                                                        >
+                                                                            <MoreOutlined style={{ marginLeft: 4, fontSize: 10 }} />
+                                                                        </Button>
+                                                                    </Dropdown>
+                                                                </PermissionChecker>
+                                                            ),
+                                                    },
+                                                ];
 
-                            {/* 2. Assign/Unassign Ticket & Types */}
-                            <Col xs={24} md={14}>
-                                {summaryLoading ? (
-                                    <>
-                                        <Card bordered={false} style={cardStyle}><Skeleton active paragraph={{ rows: 4 }} /></Card>
-                                        <Card bordered={false} style={{ ...cardStyle, marginTop: 16 }}><Skeleton active paragraph={{ rows: 4 }} /></Card>
-                                    </>
-                                ) : (
-                                    <>
-                                        <AssignTicketForm
-                                            selectedEventId={selectedEventId}
-                                            ticketOptions={ticketOptions}
-                                            summary={summary}
-                                            refetchSummary={refetchSummary}
-                                            mode={viewMode === 'unassign' ? 'unassign' : 'assign'}
-                                        />
-                                        {viewMode !== 'unassign' && (
-                                            <AgentCardInventory
+                                                return (
+                                                    <Table
+                                                        dataSource={filteredTypeBreakdown}
+                                                        rowKey={(r, i) => `${r.type}-${r.range_start}-${i}`}
+                                                        pagination={false}
+                                                        size="small"
+                                                        className="mt-3"
+                                                        columns={tableColumns}
+                                                        summary={() => (
+                                                            <Table.Summary  >
+                                                                <Table.Summary.Row className='bg-dark border-0'>
+                                                                    <Table.Summary.Cell index={0}>
+                                                                        <Text strong>Total</Text>
+                                                                    </Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={1}>
+                                                                        <Text strong>{total}</Text>
+                                                                    </Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={2}>
+                                                                        <Text type="secondary">—</Text>
+                                                                    </Table.Summary.Cell>
+                                                                    <Table.Summary.Cell index={3} />
+                                                                </Table.Summary.Row>
+                                                            </Table.Summary>
+                                                        )}
+                                                    />
+                                                );
+                                            })()}
+                                        </Skeleton>
+                                    </Card>
+
+                                </Col>
+
+                                {/* 2. Assign/Unassign Ticket & Types */}
+                                <Col xs={24} md={14}>
+                                    {summaryLoading ? (
+                                        <>
+                                            <Card bordered={false} style={cardStyle}><Skeleton active paragraph={{ rows: 4 }} /></Card>
+                                            <Card bordered={false} style={{ ...cardStyle, marginTop: 16 }}><Skeleton active paragraph={{ rows: 4 }} /></Card>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <AssignTicketForm
                                                 selectedEventId={selectedEventId}
                                                 ticketOptions={ticketOptions}
                                                 summary={summary}
                                                 refetchSummary={refetchSummary}
+                                                mode={viewMode === 'unassign' ? 'unassign' : 'assign'}
                                             />
-                                        )}
-                                    </>
-                                )}
-                            </Col>
-                        </Row>
-                    </>
-                )
-            )}
-        </div>
+                                            {viewMode !== 'unassign' && (
+                                                <AgentCardInventory
+                                                    selectedEventId={selectedEventId}
+                                                    ticketOptions={ticketOptions}
+                                                    summary={summary}
+                                                    refetchSummary={refetchSummary}
+                                                />
+                                            )}
+                                        </>
+                                    )}
+                                </Col>
+                            </Row>
+                        </>
+                    )
+                )}
+            </div>
+        </PermissionChecker>
     );
 };
 

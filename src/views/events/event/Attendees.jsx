@@ -18,6 +18,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import apiClient from "auth/FetchInterceptor";
 import { API_BASE_URL } from "configs/AppConfig";
 import PermissionChecker from "layouts/PermissionChecker";
+import Utils from "utils";
 const { Text } = Typography;
 
 /** Trigger browser download from a Blob */
@@ -38,7 +39,7 @@ function getZipFilename(downloadUrl, eventLabelOrValue) {
     const pathname = new URL(downloadUrl).pathname;
     const fromPath = pathname.split("/").pop();
     if (fromPath && fromPath.endsWith(".zip")) return fromPath;
-  } catch (_) {}
+  } catch (_) { }
   return `attendee_images_${String(eventLabelOrValue || "event").replace(/[^\w-]/g, "_")}.zip`;
 }
 
@@ -257,7 +258,7 @@ const Attendees = memo(() => {
     } catch (err) {
       console.error(err);
       setZipLoading(false);
-      message.error(err?.response?.data?.message || err?.message || "Download failed.");
+      message.error(Utils.getErrorMessage(err, "Download failed."));
     }
   }, [selectedEvent, attendeeType, selectedTicketId, authToken, downloadZipFromUrl]);
 

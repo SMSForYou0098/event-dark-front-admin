@@ -6,6 +6,7 @@ import { signOutSuccess, logout } from 'store/slices/authSlice'; // adjust path
 import { AUTH_TOKEN } from 'constants/AuthConstant';
 import { API_BASE_URL } from 'configs/AppConfig';
 import { message } from 'antd';
+import Utils from 'utils';
 
 const DEFAULT_TIMEOUT = 60000;
 // NOTE: you included 400 earlier — keep if you intentionally treat 400 as auth-related
@@ -127,12 +128,8 @@ api.interceptors.response.use(
       message.error('Request Timeout: Request timed out.');
     } else {
       // Generic fallback: prefer server-supplied message if present
-      const serverMsg =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.response?.data ||
-        'An error occurred';
-      // message.error(`${serverMsg}`);
+      const serverMsg = Utils.getErrorMessage(error);
+      message.error(serverMsg);
     }
 
     return Promise.reject(error);

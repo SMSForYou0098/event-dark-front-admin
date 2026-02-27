@@ -5,6 +5,7 @@ import { useReactToPrint } from 'react-to-print';
 import { useMyContext } from 'Context/MyContextProvider';
 import { Bluetooth } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
+import Utils from 'utils';
 import { usePrinter } from '../../../../Context/PrinterContext';
 import {
     selectConnectionMode,
@@ -268,8 +269,9 @@ const SummaryPrintModal = ({ show, onClose, counts = {}, date, type }) => {
                     }
                 } catch (err) {
                     console.error('Connection error:', err);
-                    setConnectionError(err.message || 'Failed to connect to printer');
-                    message.error({ content: err.message || 'Failed to connect to printer', key: 'connect' });
+                    const errorMsg = Utils.getErrorMessage(err, 'Failed to connect to printer');
+                    setConnectionError(errorMsg);
+                    message.error({ content: errorMsg, key: 'connect' });
                     return;
                 }
 
@@ -290,7 +292,7 @@ const SummaryPrintModal = ({ show, onClose, counts = {}, date, type }) => {
 
         } catch (err) {
             console.error('Print error:', err);
-            const errorMsg = err.message || 'Failed to print';
+            const errorMsg = Utils.getErrorMessage(err, 'Failed to print');
             setConnectionError(errorMsg);
             message.error({ content: errorMsg, key: 'print' });
         } finally {

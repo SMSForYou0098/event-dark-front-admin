@@ -11,6 +11,10 @@ import BookingCount from "./BookingCount";
 import RefundModal from "./RefundModal";
 import { resendTickets } from "../agent/utils";
 import { LoadingOutlined } from '@ant-design/icons';
+import Utils from "utils";
+import PermissionChecker from "layouts/PermissionChecker";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import usePermission from "utils/hooks/usePermission";
 
 const OnlineBookings = memo(() => {
 
@@ -22,6 +26,8 @@ const OnlineBookings = memo(() => {
     UserPermissions,
     userRole,
   } = useMyContext();
+
+  const canExportOnline = usePermission(PERMISSIONS.EXPORT_ONLINE_BOOKINGS);
 
   const [dateRange, setDateRange] = useState(null);
   const [ticketData, setTicketData] = useState(null);
@@ -105,7 +111,7 @@ const OnlineBookings = memo(() => {
 
         return { bookings: allBookings, pagination: paginationData };
       } else {
-        throw new Error(res?.message || "Failed to fetch bookings");
+        throw new Error(Utils.getErrorMessage(res, "Failed to fetch bookings"));
       }
     },
     enabled: !!UserData?.id,
@@ -137,7 +143,7 @@ const OnlineBookings = memo(() => {
       }
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || "Operation failed");
+      message.error(Utils.getErrorMessage(err, "Operation failed"));
     },
   });
 
@@ -280,7 +286,7 @@ const OnlineBookings = memo(() => {
       }
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || 'Approval action failed');
+      message.error(Utils.getErrorMessage(err, 'Approval action failed'));
     },
   });
 
@@ -413,25 +419,27 @@ const OnlineBookings = memo(() => {
         // Only show buttons if approval_status is "pending"
         if (approvalStatus === "pending") {
           return (
-            <Space size="small">
-              <Tooltip title="Approve">
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<CheckCircleOutlined />}
-                  onClick={() => handleApproval(record, 'approved')}
-                  style={{ background: '#52c41a', borderColor: '#52c41a' }}
-                />
-              </Tooltip>
-              <Tooltip title="Reject">
-                <Button
-                  danger
-                  size="small"
-                  icon={<CloseCircleOutlined />}
-                  onClick={() => handleApproval(record, 'rejected')}
-                />
-              </Tooltip>
-            </Space>
+            <PermissionChecker permission={PERMISSIONS.APPROVE_ONLINE_BOOKING}>
+              <Space size="small">
+                <Tooltip title="Approve">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => handleApproval(record, 'approved')}
+                    style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                  />
+                </Tooltip>
+                <Tooltip title="Reject">
+                  <Button
+                    danger
+                    size="small"
+                    icon={<CloseCircleOutlined />}
+                    onClick={() => handleApproval(record, 'rejected')}
+                  />
+                </Tooltip>
+              </Space>
+            </PermissionChecker>
           );
         }
 
@@ -571,36 +579,46 @@ const OnlineBookings = memo(() => {
 
         return (
           <Space size="small" className="p-0">
-            <Button
-              type="primary"
-              size="small"
-              // show spinner only for current record
-              icon={
-                loadingId === record.id ? (
-                  <LoadingOutlined style={{ fontSize: 14 }} spin />
-                ) : (
-                  <Send size={14} />
-                )
-              }
-              onClick={() => HandleSendTicket(record)}
-              disabled={isDisabled}
-              title="Resend Ticket"
-            />
-            <Button
-              danger
-              size="small"
-              icon={<Ticket size={14} />}
-              onClick={() => GenerateTicket(record)}
-              disabled={isDisabled}
-              title="Generate Ticket"
-            />
-            <Switch
-              size="small"
-              checked={!record?.is_deleted}
-              onChange={() => DeleteBooking(record)}
-              checkedChildren="Active"
-              unCheckedChildren="Disabled"
-            />
+            <PermissionChecker permission={PERMISSIONS.RESEND_TICKETS}>
+              <Button
+                type="primary"
+                size="small"
+                // show spinner only for current record
+                icon={
+                  loadingId === record.id ? (
+                    <LoadingOutlined style={{ fontSize: 14 }} spin />
+                  ) : (
+                    <Send size={14} />
+                  )
+                }
+                onClick={() => HandleSendTicket(record)}
+                disabled={isDisabled}
+                title="Resend Ticket"
+              />
+            </PermissionChecker>
+            <PermissionChecker permission={PERMISSIONS.GENERATE_ONLINE_TICKETS}>
+              <Button
+                danger
+                size="small"
+                icon={<Ticket size={14} />}
+                onClick={() => GenerateTicket(record)}
+                disabled={isDisabled}
+                title="Ticket"
+              />
+            </PermissionChecker>
+            <PermissionChecker permission={PERMISSIONS.DELETE_ONLINE_BOOKING} fallback={
+              <Tag color={!record?.is_deleted ? 'success' : 'error'}>
+                {!record?.is_deleted ? 'Active' : 'Disabled'}
+              </Tag>
+            }>
+              <Switch
+                size="small"
+                checked={!record?.is_deleted}
+                onChange={() => DeleteBooking(record)}
+                checkedChildren="Active"
+                unCheckedChildren="Disabled"
+              />
+            </PermissionChecker>
           </Space>
         );
       },
@@ -622,13 +640,17 @@ const OnlineBookings = memo(() => {
         dateRange={dateRange}
         extraHeaderContent={
           <Space>
-            <span style={{ fontSize: 14 }}>Gateway Report:</span>
-            <Switch
-              checked={showGatewayReport}
-              onChange={(checked) => setShowGatewayReport(checked)}
-              checkedChildren="Show"
-              unCheckedChildren="Hide"
-            />
+            <PermissionChecker permission={PERMISSIONS.VIEW_GATEWAY}>
+              <>
+                <span style={{ fontSize: 14 }}>Gateway Report:</span>
+                <Switch
+                  checked={showGatewayReport}
+                  onChange={(checked) => setShowGatewayReport(checked)}
+                  checkedChildren="Show"
+                  unCheckedChildren="Hide"
+                />
+              </>
+            </PermissionChecker>
           </Space>
         }
         onDateRangeChange={handleDateRangeChange}
@@ -646,7 +668,7 @@ const OnlineBookings = memo(() => {
         // Export functionality
         enableExport={true}
         exportRoute="export-onlineBooking"
-        ExportPermission={UserPermissions?.includes("Export Online Bookings")}
+        ExportPermission={canExportOnline}
         onRefresh={refetch}
         emptyText="No bookings found"
       />

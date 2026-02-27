@@ -1,8 +1,11 @@
 import React, { memo, useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useMyContext } from '../../../Context/MyContextProvider';
-import DataTable from '../common/DataTable';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
+import { message } from 'antd';
 
 const AgentReports = memo(() => {
   const { UserData, UserPermissions } = useMyContext();
@@ -34,6 +37,9 @@ const AgentReports = memo(() => {
     enabled: !!UserData?.id,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (err) => {
+      message.error(Utils.getErrorMessage(err));
+    },
   });
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -169,25 +175,27 @@ const AgentReports = memo(() => {
   );
 
   return (
-    <DataTable
-      title="Agent Reports"
-      data={reports}
-      columns={columns}
-      showDateRange={true}
-      showRefresh={true}
-      dateRange={dateRange}
-      onDateRangeChange={handleDateRangeChange}
-      loading={isLoading}
-      error={isError ? error : null}
-      enableSearch={true}
-      showSearch={true}
-      enableExport={true}
-      exportRoute="export-agent-reports"
-      ExportPermission={UserPermissions?.includes('Export Agent Reports')}
-      onRefresh={refetch}
-      emptyText="No agent reports found"
+    <PermissionChecker permission={PERMISSIONS.VIEW_AGENT_REPORTS}>
+      <DataTable
+        title="Agent Reports"
+        data={reports}
+        columns={columns}
+        showDateRange={true}
+        showRefresh={true}
+        dateRange={dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        loading={isLoading}
+        error={isError ? error : null}
+        enableSearch={true}
+        showSearch={true}
+        enableExport={true}
+        exportRoute="export-agent-reports"
+        ExportPermission={UserPermissions?.includes('Export Agent Reports')}
+        onRefresh={refetch}
+        emptyText="No agent reports found"
 
-    />
+      />
+    </PermissionChecker>
   );
 });
 

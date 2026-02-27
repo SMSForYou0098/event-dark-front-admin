@@ -7,6 +7,9 @@ import Loader from 'utils/Loader';
 import dayjs from 'dayjs';
 import { CalendarOutlined, DollarOutlined, ShoppingCartOutlined, CreditCardOutlined } from '@ant-design/icons';
 import DataTable from 'views/events/common/DataTable';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { Title, Text } = Typography;
 
@@ -147,7 +150,7 @@ const GatewayReport = () => {
                 <Col span={24}>
                     <Alert
                         message="Error Loading Report"
-                        description={error?.message || 'Failed to fetch gateway report data'}
+                        description={Utils.getErrorMessage(error)}
                         type="error"
                         showIcon
                     />
@@ -160,116 +163,118 @@ const GatewayReport = () => {
     const hasData = reportData?.data?.report?.length > 0;
 
     return (
-        <Row gutter={[16, 16]}>
-            {/* Header with Date Picker */}
-            <Col span={24}>
-                <Card bordered={false}>
-                    <Row justify="space-between" align="middle">
-                        <Col>
-                            <Space direction="vertical" size={0}>
-                                <Title level={4} style={{ margin: 0 }}>Payment Gateway Report</Title>
-                                {reportData?.data?.month && (
-                                    <Text type="secondary">
-                                        {reportData.data.start_date} to {reportData.data.end_date}
-                                    </Text>
-                                )}
-                            </Space>
-                        </Col>
-                        <Col>
-                            <Space>
-                                <Text strong>Select Month:</Text>
-                                <DatePicker
-                                    picker="month"
-                                    value={selectedMonth}
-                                    onChange={handleMonthChange}
-                                    format="MMMM YYYY"
-                                    allowClear={false}
-                                    style={{ width: 180 }}
-                                    disabledDate={(current) => current && current > dayjs().endOf('month')}
-                                />
-                            </Space>
-                        </Col>
-                    </Row>
-                </Card>
-            </Col>
-
-            {/* Gateway Summary Cards */}
-            {gateways.map((gateway) => {
-                const color = gatewayColors[gateway] || { primary: '#6b7280', gradient: 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)' };
-                const totals = gatewayTotals[gateway] || { amount: 0, bookings: 0 };
-
-                return (
-                    <Col xs={24} sm={12} lg={8} key={gateway}>
-                        <Card
-                            bordered={false}
-                            style={{
-                                background: color.gradient,
-                                borderRadius: 12,
-                            }}
-                            styles={{ body: { padding: '20px 24px' } }}
-                        >
-                            <Row gutter={16} align="middle">
-                                <Col flex="auto">
-                                    <Space direction="vertical" size={4}>
-                                        <Text style={{ color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1 }}>
-                                            {gateway}
+        <PermissionChecker permission={PERMISSIONS.VIEW_GATEWAY}>
+            <Row gutter={[16, 16]}>
+                {/* Header with Date Picker */}
+                <Col span={24}>
+                    <Card bordered={false}>
+                        <Row justify="space-between" align="middle">
+                            <Col>
+                                <Space direction="vertical" size={0}>
+                                    <Title level={4} style={{ margin: 0 }}>Payment Gateway Report</Title>
+                                    {reportData?.data?.month && (
+                                        <Text type="secondary">
+                                            {reportData.data.start_date} to {reportData.data.end_date}
                                         </Text>
-                                        <Title level={3} style={{ color: '#fff', margin: 0 }}>
-                                            ₹{totals.amount.toLocaleString()}
-                                        </Title>
-                                        <Space size={16}>
-                                            <Space size={4}>
-                                                <ShoppingCartOutlined style={{ color: 'rgba(255,255,255,0.9)' }} />
-                                                <Text style={{ color: 'rgba(255,255,255,0.9)' }}>
-                                                    {totals.bookings} bookings
-                                                </Text>
+                                    )}
+                                </Space>
+                            </Col>
+                            <Col>
+                                <Space>
+                                    <Text strong>Select Month:</Text>
+                                    <DatePicker
+                                        picker="month"
+                                        value={selectedMonth}
+                                        onChange={handleMonthChange}
+                                        format="MMMM YYYY"
+                                        allowClear={false}
+                                        style={{ width: 180 }}
+                                        disabledDate={(current) => current && current > dayjs().endOf('month')}
+                                    />
+                                </Space>
+                            </Col>
+                        </Row>
+                    </Card>
+                </Col>
+
+                {/* Gateway Summary Cards */}
+                {gateways.map((gateway) => {
+                    const color = gatewayColors[gateway] || { primary: '#6b7280', gradient: 'linear-gradient(135deg, #6b7280 0%, #9ca3af 100%)' };
+                    const totals = gatewayTotals[gateway] || { amount: 0, bookings: 0 };
+
+                    return (
+                        <Col xs={24} sm={12} lg={8} key={gateway}>
+                            <Card
+                                bordered={false}
+                                style={{
+                                    background: color.gradient,
+                                    borderRadius: 12,
+                                }}
+                                styles={{ body: { padding: '20px 24px' } }}
+                            >
+                                <Row gutter={16} align="middle">
+                                    <Col flex="auto">
+                                        <Space direction="vertical" size={4}>
+                                            <Text style={{ color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', fontSize: 12, letterSpacing: 1 }}>
+                                                {gateway}
+                                            </Text>
+                                            <Title level={3} style={{ color: '#fff', margin: 0 }}>
+                                                ₹{totals.amount.toLocaleString()}
+                                            </Title>
+                                            <Space size={16}>
+                                                <Space size={4}>
+                                                    <ShoppingCartOutlined style={{ color: 'rgba(255,255,255,0.9)' }} />
+                                                    <Text style={{ color: 'rgba(255,255,255,0.9)' }}>
+                                                        {totals.bookings} bookings
+                                                    </Text>
+                                                </Space>
                                             </Space>
                                         </Space>
-                                    </Space>
-                                </Col>
-                                <Col>
-                                    <div style={{
-                                        width: 56,
-                                        height: 56,
-                                        borderRadius: '50%',
-                                        background: 'rgba(255,255,255,0.2)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                    }}>
-                                        <CreditCardOutlined style={{ fontSize: 28, color: '#fff' }} />
-                                    </div>
-                                </Col>
-                            </Row>
-                        </Card>
-                    </Col>
-                );
-            })}
+                                    </Col>
+                                    <Col>
+                                        <div style={{
+                                            width: 56,
+                                            height: 56,
+                                            borderRadius: '50%',
+                                            background: 'rgba(255,255,255,0.2)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}>
+                                            <CreditCardOutlined style={{ fontSize: 28, color: '#fff' }} />
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        </Col>
+                    );
+                })}
 
-            {/* Report Table */}
-            <Col span={24}>
-                {hasData ? (
-                    <DataTable
-                        title="Daily Breakdown"
-                        data={tableData}
-                        columns={columns}
-                        showSearch={false}
-                        defaultPageSize={10}
-                        emptyText={`No transactions found for ${selectedMonth.format('MMMM YYYY')}`}
-                    />
-                ) : (
-                    <Card>
-                        <Empty
-                            description={
-                                <Text type="secondary">
-                                    No transactions found for {selectedMonth.format('MMMM YYYY')}
-                                </Text>
-                            }
+                {/* Report Table */}
+                <Col span={24}>
+                    {hasData ? (
+                        <DataTable
+                            title="Daily Breakdown"
+                            data={tableData}
+                            columns={columns}
+                            showSearch={false}
+                            defaultPageSize={10}
+                            emptyText={`No transactions found for ${selectedMonth.format('MMMM YYYY')}`}
                         />
-                    </Card>
-                )}
-            </Col>
-        </Row>
+                    ) : (
+                        <Card>
+                            <Empty
+                                description={
+                                    <Text type="secondary">
+                                        No transactions found for {selectedMonth.format('MMMM YYYY')}
+                                    </Text>
+                                }
+                            />
+                        </Card>
+                    )}
+                </Col>
+            </Row>
+        </PermissionChecker>
     );
 };
 

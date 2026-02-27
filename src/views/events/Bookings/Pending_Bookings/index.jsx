@@ -5,9 +5,14 @@ import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CreditCard, AlertCircle } from "lucide-react";
 import DataTable from "../../common/DataTable";
 import api from "auth/FetchInterceptor";
+import Utils from "utils";
+import PermissionChecker from "layouts/PermissionChecker";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import usePermission from "utils/hooks/usePermission";
 
 const PendingBookings = memo(() => {
   const { UserData, formatDateTime, truncateString } = useMyContext();
+  const canExportOnline = usePermission(PERMISSIONS.EXPORT_ONLINE_BOOKINGS);
   const [dateRange, setDateRange] = useState(null);
   const queryClient = useQueryClient();
 
@@ -113,9 +118,7 @@ const PendingBookings = memo(() => {
       }
     },
     onError: (err) => {
-      message.error(
-        err.response?.data?.message || "Failed to confirm booking"
-      );
+      message.error(Utils.getErrorMessage(err, "Failed to confirm booking"));
     },
   });
 
@@ -143,7 +146,7 @@ const PendingBookings = memo(() => {
           },
         });
       } catch (error) {
-        message.error("Failed to process payment confirmation");
+        message.error(Utils.getErrorMessage(error, "Failed to process payment confirmation"));
       }
     },
     [bookings, confirmPaymentMutation]
@@ -280,16 +283,18 @@ const PendingBookings = memo(() => {
       width: 120,
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="primary"
-            size="small"
-            icon={<CreditCard size={14} />}
-            onClick={() => HandlePay(record.id)}
-            loading={confirmPaymentMutation.isPending}
-            title="Pay Now"
-          >
-            Pay Now
-          </Button>
+          <PermissionChecker permission={PERMISSIONS.CONFIRM_PENDING_BOOKING}>
+            <Button
+              type="primary"
+              size="small"
+              icon={<CreditCard size={14} />}
+              onClick={() => HandlePay(record.id)}
+              loading={confirmPaymentMutation.isPending}
+              title="Pay Now"
+            >
+              Pay Now
+            </Button>
+          </PermissionChecker>
         </Space>
       ),
     },
@@ -353,10 +358,9 @@ const PendingBookings = memo(() => {
       onSearch={handleSearchChange}
       onSortChange={handleSortChange}
       searchValue={searchText}
-      // Export functionality
       enableExport={true}
       exportRoute="booking/pending/export"
-      ExportPermission={true}
+      ExportPermission={canExportOnline}
       onRefresh={refetch}
       emptyText="No pending bookings found"
     />

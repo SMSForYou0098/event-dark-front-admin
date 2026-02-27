@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Modal, Button, Form, Input, Radio, Space, Typography } from "antd";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import axios from "axios";
+import Utils from "../../../../utils";
 
 const { Text } = Typography;
 
@@ -56,7 +57,7 @@ const POSAttendeeModal = (props) => {
           setName("");
           form.setFieldsValue({ name: "" });
         } else {
-          setError("Failed to fetch user details. Please try again.");
+          setError(Utils.getErrorMessage(error, "Failed to fetch user details"));
         }
         setShowNameField(true);
       } finally {

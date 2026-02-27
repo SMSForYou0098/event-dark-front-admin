@@ -4,10 +4,12 @@ import JoditEditor from 'jodit-react';
 import {
   Button, Form, Card, Row, Col, Alert, Switch, Input, Image, message
 } from 'antd';
+import PermissionChecker from 'layouts/PermissionChecker';
 import { DeleteOutlined, SaveOutlined, CloseOutlined, PictureOutlined } from '@ant-design/icons';
 import MetaFields from './MetaFields';
 import { joditConfig } from 'utils/consts';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import Utils from 'utils';
 
 const BlogPostEditor = ({
   initialContent = '',
@@ -103,8 +105,9 @@ const BlogPostEditor = ({
       });
     } catch (err) {
       console.error('Error saving post:', err);
-      setError('Failed to save post. Please try again.');
-      message.error('Failed to save post. Please try again.');
+      const errorMessage = Utils.getErrorMessage(err, 'Failed to save post. Please try again.');
+      setError(errorMessage);
+      message.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -223,16 +226,18 @@ const BlogPostEditor = ({
           <Button danger icon={<CloseOutlined />} onClick={onCancel} size="large">
             Cancel
           </Button>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={handleSave}
-            disabled={isSubmitting || !formData.title}
-            loading={isSubmitting}
-            size="large"
-          >
-            {isEditing ? 'Update Post' : 'Publish Post'}
-          </Button>
+          <PermissionChecker permission={isEditing ? 'Edit Blog Post' : 'Create Blog Post'}>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={handleSave}
+              disabled={isSubmitting || !formData.title}
+              loading={isSubmitting}
+              size="large"
+            >
+              {isEditing ? 'Update Post' : 'Publish Post'}
+            </Button>
+          </PermissionChecker>
         </div>
       </Card>
 

@@ -17,6 +17,9 @@ import DispatchUserData from './components/DispatchUserData';
 import StickyBottom from 'utils/MobileStickyBottom.jsx/StickyBottom';
 import PosEvents from '../Bookings/components/PosEvents';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const {
@@ -88,7 +91,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             }
         },
         onError: (err) => {
-            showErrorModal(err?.response?.data?.message ?? 'Dispatch Verification failed');
+            showErrorModal(Utils.getErrorMessage(err));
         },
         onSettled: () => {
             setLoading(prev => ({ ...prev, verifying: false }));
@@ -336,7 +339,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             }
         },
         onError: (err) => {
-            showErrorModal(err?.response?.data?.message ?? 'Verification failed');
+            showErrorModal(Utils.getErrorMessage(err));
         },
         onSettled: () => {
             setLoading(prev => ({ ...prev, verifying: false }));
@@ -371,7 +374,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 await handleDispatchVerification(token);
             }
         } catch (err) {
-            showErrorModal(err?.response?.data?.message);
+            showErrorModal(Utils.getErrorMessage(err));
         } finally {
             setShowAdminModal(false);
             setPendingQRData(null);
@@ -483,7 +486,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             }
         },
         onError: (err) => {
-            showErrorModal(err?.response?.data?.message);
+            showErrorModal(Utils.getErrorMessage(err));
         },
         onSettled: () => {
             setLoading(prev => ({ ...prev, verifying: false }));
@@ -522,7 +525,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             }
         },
         onError: (err) => {
-            showErrorModal(err?.response?.data?.message);
+            showErrorModal(Utils.getErrorMessage(err));
         },
         onSettled: () => {
             setIsProcessing(false);
@@ -559,7 +562,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             }
         },
         onError: (err) => {
-            showErrorModal(err?.response?.data?.message ?? 'Update failed');
+            showErrorModal(Utils.getErrorMessage(err));
         },
         onSettled: () => {
             setLoading(prev => ({ ...prev, updating: false }));
@@ -602,7 +605,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     //     loadCategoryData(data)
     // }
     return (
-        <>
+        <PermissionChecker permission={scanMode === 'manual' ? PERMISSIONS.SCAN_BY_SCANNER : PERMISSIONS.SCAN_BY_CAMERA}>
             <AdminActionModal
                 show={showAdminModal}
                 onHide={() => {
@@ -749,7 +752,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                     }
                 </Row>
             </>
-        </>
+        </PermissionChecker>
     );
 });
 

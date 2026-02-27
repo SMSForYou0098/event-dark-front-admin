@@ -1,6 +1,7 @@
 // hooks/useAgentBookingHooks.js
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 /**
  * Helper: Convert base64/dataURL to File object
@@ -130,10 +131,8 @@ export const useCategoryData = (categoryId, options = {}) =>
     enabled: !!categoryId,
     queryFn: async () => {
       const res = await api.get(`category-detail/${categoryId}`);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to fetch category data');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch category data'));
       }
       // return raw server object so calling code can access categoryData, customFieldsData etc.
       return res;
@@ -153,10 +152,8 @@ export const useCategoryDetail = (categoryId, options = {}) =>
     enabled: !!categoryId,
     queryFn: async () => {
       const res = await api.get(`category-data/${categoryId}`);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to fetch category data');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch category data'));
       }
       // return raw server object so calling code can access categoryData, customFieldsData etc.
       return res;
@@ -176,9 +173,8 @@ export const useEventFields = (eventId, options = {}) =>
     enabled: !!eventId,
     queryFn: async () => {
       const res = await api.get(`event/attendee/fields/${eventId}`);
-      if (!res?.status) {
-        // gracefully return empty array or handle error
-        return [];
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to load event fields'));
       }
       return res.data || [];
     },
@@ -206,6 +202,9 @@ export const useCheckEmail = (options = {}) =>
       // keep raw response for upstream logic
       return res;
     },
+    onError: (error) => {
+      options.onError?.(error);
+    },
     retry: (count, err) => {
       const status = err?.response?.status;
       return status >= 500 && count < 2;
@@ -222,12 +221,13 @@ export const useCreateUser = (options = {}) =>
   useMutation({
     mutationFn: async (formData) => {
       const res = await api.post('create-user', formData);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to create user');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create user'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -246,12 +246,13 @@ export const useUpdateUserAddress = (options = {}) =>
     mutationFn: async ({ userId, formData }) => {
       if (!userId) throw new Error('userId is required');
       const res = await api.post(`update-user-address/${userId}`, formData);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to update user');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to update user address'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -279,10 +280,8 @@ export const useStoreAttendees = (options = {}) => {
       // ✅ Don't set Content-Type manually - browser will set it with boundary automatically
       // This ensures FormData is properly serialized and visible in Network tab
       const res = await api.post(endpoint, formData);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to store attendees');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to store attendees'));
       }
       // ✅ Return full response with saved attendee data
       return res;
@@ -295,6 +294,9 @@ export const useStoreAttendees = (options = {}) => {
       if (typeof onSuccess === 'function') {
         onSuccess(data, variables, context);
       }
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -313,12 +315,13 @@ export const useCorporateBooking = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('corporate-pos/true', payload);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to create corporate booking');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create corporate booking'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -339,7 +342,13 @@ export const useAgentBooking = (options = {}) => {
         `${url}`,
         payload, // ✅ Send as JSON
       );
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to create agent booking'));
+      }
       return response;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     ...options
   });
@@ -355,12 +364,13 @@ export const useMasterBooking = (options = {}) =>
     mutationFn: async ({ url, payload }) => {
       if (!url) throw new Error('URL is required for master booking');
       const res = await api.post(url, payload);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to create master booking');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create master booking'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -381,12 +391,13 @@ export const useLockSeats = (options = {}) =>
       if (!seats || seats.length === 0) throw new Error('seats array is required');
 
       const res = await api.post('seats/lock', { event_id, seats, user_id });
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to lock seats');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to lock seats'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;

@@ -17,44 +17,44 @@ class Utils {
 	 * @return {Object} object that contained the path string
 	 */
 	static getRouteInfo(navTree, path) {
-		if( navTree.path === path ){
-		  	return navTree;
+		if (navTree.path === path) {
+			return navTree;
 		}
-		let route; 
+		let route;
 		for (let p in navTree) {
-			if( navTree.hasOwnProperty(p) && typeof navTree[p] === 'object' ) {
+			if (navTree.hasOwnProperty(p) && typeof navTree[p] === 'object') {
 				route = this.getRouteInfo(navTree[p], path);
-				if(route){
+				if (route) {
 					return route;
 				}
 			}
 		}
 		return route;
-	}	
+	}
 
 	/**
 	 * Get accessible color contrast
 	 * @param {String} hex - Hex color code e.g '#3e82f7'
 	 * @return {String} 'dark' or 'light'
 	 */
-	static getColorContrast(hex){
-		if(!hex) {
+	static getColorContrast(hex) {
+		if (!hex) {
 			return 'dark'
 		}
 		const threshold = 130;
 		const hRed = hexToR(hex);
 		const hGreen = hexToG(hex);
 		const hBlue = hexToB(hex);
-		function hexToR(h) {return parseInt((cutHex(h)).substring(0,2),16)}
-		function hexToG(h) {return parseInt((cutHex(h)).substring(2,4),16)}
-		function hexToB(h) {return parseInt((cutHex(h)).substring(4,6),16)}
-		function cutHex(h) {return (h.charAt(0) === '#') ? h.substring(1,7):h}
+		function hexToR(h) { return parseInt((cutHex(h)).substring(0, 2), 16) }
+		function hexToG(h) { return parseInt((cutHex(h)).substring(2, 4), 16) }
+		function hexToB(h) { return parseInt((cutHex(h)).substring(4, 6), 16) }
+		function cutHex(h) { return (h.charAt(0) === '#') ? h.substring(1, 7) : h }
 		const cBrightness = ((hRed * 299) + (hGreen * 587) + (hBlue * 114)) / 1000;
-		if (cBrightness > threshold){
+		if (cBrightness > threshold) {
 			return 'dark'
-		} else { 
+		} else {
 			return 'light'
-		}	
+		}
 	}
 
 	/**
@@ -64,19 +64,19 @@ class Utils {
 	 * @return {String} Darken or lighten color 
 	 */
 	static shadeColor(color, percent) {
-		let R = parseInt(color.substring(1,3),16);
-		let G = parseInt(color.substring(3,5),16);
-		let B = parseInt(color.substring(5,7),16);
+		let R = parseInt(color.substring(1, 3), 16);
+		let G = parseInt(color.substring(3, 5), 16);
+		let B = parseInt(color.substring(5, 7), 16);
 		R = parseInt(R * (100 + percent) / 100);
 		G = parseInt(G * (100 + percent) / 100);
 		B = parseInt(B * (100 + percent) / 100);
-		R = (R<255)?R:255;  
-		G = (G<255)?G:255;  
-		B = (B<255)?B:255;  
+		R = (R < 255) ? R : 255;
+		G = (G < 255) ? G : 255;
+		B = (B < 255) ? B : 255;
 		const RR = ((R.toString(16).length === 1) ? `0${R.toString(16)}` : R.toString(16));
 		const GG = ((G.toString(16).length === 1) ? `0${G.toString(16)}` : G.toString(16));
 		const BB = ((B.toString(16).length === 1) ? `0${B.toString(16)}` : B.toString(16));
-		return `#${RR}${GG}${BB}`; 
+		return `#${RR}${GG}${BB}`;
 	}
 
 	/**
@@ -85,13 +85,13 @@ class Utils {
 	 * @return {String} HEX color 
 	 */
 	static rgbaToHex(rgba) {
-		const trim = str => (str.replace(/^\s+|\s+$/gm,''))
+		const trim = str => (str.replace(/^\s+|\s+$/gm, ''))
 		const inParts = rgba.substring(rgba.indexOf("(")).split(","),
 			r = parseInt(trim(inParts[0].substring(1)), 10),
 			g = parseInt(trim(inParts[1]), 10),
 			b = parseInt(trim(inParts[2]), 10),
 			a = parseFloat(trim(inParts[3].substring(0, inParts[3].length - 1))).toFixed(2);
-			const outParts = [
+		const outParts = [
 			r.toString(16),
 			g.toString(16),
 			b.toString(16),
@@ -131,11 +131,11 @@ class Utils {
 	 * @return {any} a value minus b value
 	 */
 	static antdTableSorter(a, b, key) {
-		if(typeof a[key] === 'number' && typeof b[key] === 'number') {
+		if (typeof a[key] === 'number' && typeof b[key] === 'number') {
 			return a[key] - b[key]
 		}
 
-		if(typeof a[key] === 'string' && typeof b[key] === 'string') {
+		if (typeof a[key] === 'string' && typeof b[key] === 'string') {
 			a = a[key].toLowerCase();
 			b = b[key].toLowerCase();
 			return a > b ? -1 : b > a ? 1 : 0;
@@ -152,7 +152,7 @@ class Utils {
 	 */
 	static filterArray(list, key, value) {
 		let data = list
-		if(list) {
+		if (list) {
 			data = list.filter(item => item[key] === value)
 		}
 		return data
@@ -167,7 +167,7 @@ class Utils {
 	 */
 	static deleteArrayRow(list, key, value) {
 		let data = list
-		if(list) {
+		if (list) {
 			data = list.filter(item => item[key] !== value)
 		}
 		return data
@@ -210,6 +210,18 @@ class Utils {
 			}
 		}
 		return breakpoints
+	}
+
+	/**
+	 * Extracts error message from API response or error object
+	 * @param {Object} err - Error object or direct Response data
+	 * @param {String} defaultMessage - Default message if no message found
+	 * @return {String} error message
+	 */
+	static getErrorMessage(err, defaultMessage = 'An error occurred') {
+		// If it's an axios error, look into response.data. Otherwise, use the object itself
+		const errorData = err?.response?.data || err;
+		return errorData?.message || errorData?.error || err?.message || defaultMessage;
 	}
 }
 

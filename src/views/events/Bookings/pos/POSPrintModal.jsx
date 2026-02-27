@@ -21,6 +21,7 @@ import InvoicePreview from './components/InvoicePreview';
 import { generateQRCodeDataURL } from './utils/qrCodeUtils';
 import { generateESCPOSNativeQR, generateESCPOSBitmapQR, generateTSPL } from './utils/printerCommands';
 import Loader from 'utils/Loader';
+import Utils from 'utils';
 
 // Helper function to detect if device is mobile
 const isMobileDevice = () => {
@@ -113,7 +114,7 @@ const POSPrintModal = ({
                 }
             } catch (err) {
                 console.error('Connection error:', err);
-                message.error({ content: `Settings saved but connection failed: ${err.message}`, key: 'connect' });
+                message.error({ content: Utils.getErrorMessage(err, `Settings saved but connection failed`), key: 'connect' });
             }
         } else {
             message.success('Printer settings saved successfully!');
@@ -171,8 +172,9 @@ const POSPrintModal = ({
                     }
                 } catch (err) {
                     console.error('Connection error:', err);
-                    setConnectionError(err.message || 'Failed to connect to printer');
-                    message.error({ content: err.message || 'Failed to connect to printer', key: 'connect' });
+                    const errorMessage = Utils.getErrorMessage(err, 'Failed to connect to printer');
+                    setConnectionError(errorMessage);
+                    message.error({ content: errorMessage, key: 'connect' });
                     return;
                 }
 
@@ -203,7 +205,7 @@ const POSPrintModal = ({
             }, 1000);
         } catch (err) {
             console.error('Print error:', err);
-            const errorMsg = err.message || 'Failed to print';
+            const errorMsg = Utils.getErrorMessage(err, 'Failed to print');
             setConnectionError(errorMsg);
         } finally {
             setIsPrinting(false);
@@ -284,7 +286,7 @@ const POSPrintModal = ({
                 }
                 placement={isMobile ? 'bottom' : "right"}
                 open={showConfig}
-                onClose={()=> setShowConfig(false)}
+                onClose={() => setShowConfig(false)}
                 height="auto"
                 width={500}
                 styles={{
@@ -311,7 +313,7 @@ const POSPrintModal = ({
                     onDisconnect={handleDisconnect}
                 />
             </Drawer>
-            
+
             <Drawer
                 title={
                     <Space>

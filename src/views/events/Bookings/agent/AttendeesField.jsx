@@ -21,6 +21,7 @@ import FaceDetector from './FaceDetector';
 import { processImageFile } from './utils';
 import { buildAttendeesFormData, useStoreAttendees } from './useAgentBookingHooks';
 import { useMyContext } from 'Context/MyContextProvider';
+import Utils from 'utils';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -87,19 +88,19 @@ const AttendeesField = ({
         const ticketId = t.id;
         const currentId = currentTicketId;
         // Handle both number and string comparisons
-        return ticketId === currentId || 
-               ticketId === String(currentId) || 
-               String(ticketId) === String(currentId) ||
-               Number(ticketId) === Number(currentId);
+        return ticketId === currentId ||
+          ticketId === String(currentId) ||
+          String(ticketId) === String(currentId) ||
+          Number(ticketId) === Number(currentId);
       });
-      
+
       // Try multiple possible fields for ticket name
-      const ticketName = currentTicket?.category || 
-                        currentTicket?.name || 
-                        currentTicket?.ticket_name ||
-                        currentTicket?.ticket?.name ||
-                        currentTicket?.ticket?.category ||
-                        '';
+      const ticketName = currentTicket?.category ||
+        currentTicket?.name ||
+        currentTicket?.ticket_name ||
+        currentTicket?.ticket?.name ||
+        currentTicket?.ticket?.category ||
+        '';
 
       // 👇 Include id when editing (same API) and add ticket name
       const attendeePayload = initialData?.id
@@ -161,7 +162,7 @@ const AttendeesField = ({
         const fieldNames = error.errorFields.map(f => f.name?.[0]).join(', ');
         message.error(`Please fill required fields: ${fieldNames}`);
       } else {
-        message.error(error?.message || 'Failed to save attendee');
+        message.error(Utils.getErrorMessage(error, 'Failed to save attendee'));
       }
     } finally {
       setIsSaving(false);

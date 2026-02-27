@@ -18,6 +18,7 @@ import { ROW_GUTTER } from "constants/ThemeConstant";
 import ErrorDrawer from "./components/ErrorDrawer";
 import { useLockSeats } from "../agent/useAgentBookingHooks";
 import EventSeatsListener from "../components/EventSeatsListener";
+import Utils from "utils";
 
 const { Title, Text } = Typography;
 
@@ -119,22 +120,20 @@ const POS = memo(() => {
         if (seatingModule && bookingLayoutRef.current) {
           bookingLayoutRef.current.markSeatsAsBooked();
         }
-        
+
         setShowPrintModel(true);
         setBookingData(res.data?.bookings);
       }
     } catch (err) {
-      console.log(err);
-      
+      setErrorMessage(Utils.getErrorMessage(err, 'Booking failed'));
+      setShowErrorDrawer(true);
+
       // ✅ Handle 409 conflict - seats no longer available
       const errorData = err?.response?.data;
       if (errorData?.meta === 409 || err?.response?.status === 409) {
         const unavailableSeatIds = errorData?.seats || [];
         if (seatingModule && bookingLayoutRef.current && unavailableSeatIds.length > 0) {
           bookingLayoutRef.current.markSeatIdsAsBooked(unavailableSeatIds);
-          message.error(errorData?.message || 'Some seats are no longer available');
-        } else {
-          message.error(errorData?.message || 'Some seats are no longer available');
         }
       }
     }
@@ -255,7 +254,7 @@ const POS = memo(() => {
           bookingLayoutRef={bookingLayoutRef}
           enabled={seatingModule}
           id={UserData?.id}
-          
+
         />
       )}
 

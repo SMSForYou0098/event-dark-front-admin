@@ -9,11 +9,18 @@ import {
     Modal,
     Skeleton,
     Divider,
+    message, // Added message import
 } from 'antd';
 import {
     ExclamationCircleOutlined,
 } from '@ant-design/icons';
 
+
+import Utils from 'utils'; // Added Utils import
+import { PERMISSIONS } from 'constants/PermissionConstant'; // Added PERMISSIONS import
+import PermissionChecker from 'layouts/PermissionChecker'; // Added PermissionChecker import
+import usePermission from 'utils/hooks/usePermission'; // Added usePermission import
+import api from 'auth/FetchInterceptor'; // Added api import
 // Components
 import FolderCard from './components/FolderCard';
 import MediaCard from './components/MediaCard';
@@ -45,6 +52,7 @@ const { Title, Text } = Typography;
 const { confirm } = Modal;
 
 const MediaGallery = () => {
+    const canViewMedia = usePermission(PERMISSIONS.VIEW_MEDIA);
     // State
     const [currentFolder, setCurrentFolder] = useState(null); // Current category ID
     const [folderPath, setFolderPath] = useState([]); // Breadcrumb path
@@ -64,15 +72,27 @@ const MediaGallery = () => {
     const {
         data: rootData = { categories: [], media: [], parent: null },
         isLoading: rootLoading,
-        refetch: refetchRoot
-    } = useMediaCategories();
+        refetch: refetchRoot,
+        error: rootError, // Added error
+        isError: rootIsError // Added isError
+    } = useMediaCategories({
+        onError: (error) => {
+            message.error(Utils.getErrorMessage(error));
+        }
+    });
 
     // Child data (when inside a folder)
     const {
         data: childData = { categories: [], media: [], parent: null },
         isLoading: childLoading,
-        refetch: refetchChild
-    } = useChildCategories(currentFolder);
+        refetch: refetchChild,
+        error: childError, // Added error
+        isError: childIsError // Added isError
+    } = useChildCategories(currentFolder, {
+        onError: (error) => {
+            message.error(Utils.getErrorMessage(error));
+        }
+    });
 
     // Mutations
     const createCategoryMutation = useCreateCategory();
@@ -152,19 +172,23 @@ const MediaGallery = () => {
     };
 
     const handleFolderSubmit = async (data, folderId) => {
-        if (folderId) {
-            // Update
-            await updateCategoryMutation.mutateAsync({ id: folderId, data });
-        } else {
-            // Create
-            const payload = { ...data };
-            if (currentFolder) {
-                payload.parent_id = currentFolder;
+        try {
+            if (folderId) {
+                // Update
+                await updateCategoryMutation.mutateAsync({ id: folderId, data });
+            } else {
+                // Create
+                const payload = { ...data };
+                if (currentFolder) {
+                    payload.parent_id = currentFolder;
+                }
+                await createCategoryMutation.mutateAsync(payload);
             }
-            await createCategoryMutation.mutateAsync(payload);
+            setFolderModalOpen(false);
+            setEditingFolder(null);
+        } catch (error) {
+            message.error(Utils.getErrorMessage(error));
         }
-        setFolderModalOpen(false);
-        setEditingFolder(null);
     };
 
     const handleDeleteFolder = (folder) => {
@@ -175,7 +199,11 @@ const MediaGallery = () => {
             okText: 'Delete',
             okType: 'danger',
             onOk: async () => {
-                await deleteCategoryMutation.mutateAsync(folder.id);
+                try {
+                    await deleteCategoryMutation.mutateAsync(folder.id);
+                } catch (error) {
+                    message.error(Utils.getErrorMessage(error));
+                }
             },
         });
     };
@@ -185,12 +213,16 @@ const MediaGallery = () => {
     };
 
     const handleUploadFiles = async (files) => {
-        await bulkUploadMutation.mutateAsync({
-            files,
-            categoryId: currentFolder,
-        });
-        // Refresh data after upload
-        handleRefresh();
+        try {
+            await bulkUploadMutation.mutateAsync({
+                files,
+                categoryId: currentFolder,
+            });
+            // Refresh data after upload
+            handleRefresh();
+        } catch (error) {
+            message.error(Utils.getErrorMessage(error));
+        }
     };
 
     const handleMediaSelect = (media) => {
@@ -216,10 +248,14 @@ const MediaGallery = () => {
             okText: 'Delete',
             okType: 'danger',
             onOk: async () => {
-                await deleteMediaMutation.mutateAsync(media.id);
-                setPreviewModalOpen(false);
-                // Refresh data after delete
-                handleRefresh();
+                try {
+                    await deleteMediaMutation.mutateAsync(media.id);
+                    setPreviewModalOpen(false);
+                    // Refresh data after delete
+                    handleRefresh();
+                } catch (error) {
+                    message.error(Utils.getErrorMessage(error));
+                }
             },
         });
     };
@@ -234,10 +270,14 @@ const MediaGallery = () => {
             okText: 'Delete All',
             okType: 'danger',
             onOk: async () => {
-                await bulkDeleteMutation.mutateAsync(selectedMedia);
-                setSelectedMedia([]);
-                // Refresh data after bulk delete
-                handleRefresh();
+                try {
+                    await bulkDeleteMutation.mutateAsync(selectedMedia);
+                    setSelectedMedia([]);
+                    // Refresh data after bulk delete
+                    handleRefresh();
+                } catch (error) {
+                    message.error(Utils.getErrorMessage(error));
+                }
             },
         });
     };
@@ -253,43 +293,51 @@ const MediaGallery = () => {
     const handleDropOnFolder = async (dragData, targetFolder) => {
         if (!dragData || !targetFolder) return;
 
-        if (dragData.type === 'media') {
-            // Moving media to folder - use ids array for multi-select
-            const idsToMove = dragData.ids || [dragData.id];
-            await moveMediaMutation.mutateAsync({
-                mediaIds: idsToMove,
-                categoryId: targetFolder.id,
-            });
-            // Clear selection after move
-            setSelectedMedia([]);
-        } else if (dragData.type === 'folder') {
-            // Moving folder to another folder
-            if (dragData.id === targetFolder.id) return; // Can't move to itself
-            await moveCategoryMutation.mutateAsync({
-                categoryId: dragData.id,
-                parentId: targetFolder.id,
-            });
+        try {
+            if (dragData.type === 'media') {
+                // Moving media to folder - use ids array for multi-select
+                const idsToMove = dragData.ids || [dragData.id];
+                await moveMediaMutation.mutateAsync({
+                    mediaIds: idsToMove,
+                    categoryId: targetFolder.id,
+                });
+                // Clear selection after move
+                setSelectedMedia([]);
+            } else if (dragData.type === 'folder') {
+                // Moving folder to another folder
+                if (dragData.id === targetFolder.id) return; // Can't move to itself
+                await moveCategoryMutation.mutateAsync({
+                    categoryId: dragData.id,
+                    parentId: targetFolder.id,
+                });
+            }
+        } catch (error) {
+            message.error(Utils.getErrorMessage(error));
         }
     };
 
     const handleDropOnRoot = async (dragData) => {
         if (!dragData) return;
 
-        if (dragData.type === 'media') {
-            // Moving media to root (null category) - use ids array for multi-select
-            const idsToMove = dragData.ids || [dragData.id];
-            await moveMediaMutation.mutateAsync({
-                mediaIds: idsToMove,
-                categoryId: null,
-            });
-            // Clear selection after move
-            setSelectedMedia([]);
-        } else if (dragData.type === 'folder') {
-            // Moving folder to root (null parent)
-            await moveCategoryMutation.mutateAsync({
-                categoryId: dragData.id,
-                parentId: null,
-            });
+        try {
+            if (dragData.type === 'media') {
+                // Moving media to root (null category) - use ids array for multi-select
+                const idsToMove = dragData.ids || [dragData.id];
+                await moveMediaMutation.mutateAsync({
+                    mediaIds: idsToMove,
+                    categoryId: null,
+                });
+                // Clear selection after move
+                setSelectedMedia([]);
+            } else if (dragData.type === 'folder') {
+                // Moving folder to root (null parent)
+                await moveCategoryMutation.mutateAsync({
+                    categoryId: dragData.id,
+                    parentId: null,
+                });
+            }
+        } catch (error) {
+            message.error(Utils.getErrorMessage(error));
         }
     };
 
@@ -305,153 +353,156 @@ const MediaGallery = () => {
     const hasContent = filteredFolders.length > 0 || filteredMedia.length > 0;
 
     return (
-        <Card
-        className="media-gallery"
+        <PermissionChecker permission={PERMISSIONS.VIEW_MEDIA}>
+            <Card
+                className="media-gallery"
             // title="Media Gallery"
             // extra={
             // }
             // style={{ minHeight: 'calc(100vh - 180px)' }}
-        >
+            >
                 <Row gap={ROW_GUTTER}>
                     <Col xs={8} md={4}>
-                      <Text>Media Gallery</Text>
+                        <Text>Media Gallery</Text>
                     </Col>
                     <Col xs={16} md={14}>
-                    <Toolbar
-                        onCreateFolder={handleCreateFolder}
-                        onUpload={handleUpload}
-                        onDeleteSelected={handleDeleteSelected}
-                        onRefresh={handleRefresh}
-                        selectedCount={selectedMedia.length}
-                        viewMode={viewMode}
-                        onViewModeChange={setViewMode}
-                        searchQuery={searchQuery}
-                        onSearchChange={setSearchQuery}
-                        loading={isLoading}
-                    />
-                </Col>
-                <Col xs={24} md={6}>
-                    <StorageStats />
-                </Col>
-            </Row>
-            <div className="d-block d-sm-none">
-                <Divider className='mb-0'/>
-            </div>
-            {/* Breadcrumb */}
-            <Breadcrumb
-                path={folderPath}
-                onNavigate={handleBreadcrumbNavigate}
-                onDropOnRoot={handleDropOnRoot}
-                onDropOnFolder={handleDropOnFolder}
-            />
+                        <Toolbar
+                            onCreateFolder={handleCreateFolder}
+                            onUpload={handleUpload}
+                            onDeleteSelected={handleDeleteSelected}
+                            onRefresh={handleRefresh}
+                            selectedCount={selectedMedia.length}
+                            viewMode={viewMode}
+                            onViewModeChange={setViewMode}
+                            searchQuery={searchQuery}
+                            onSearchChange={setSearchQuery}
+                            loading={isLoading}
+                        />
+                    </Col>
+                    <Col xs={24} md={6}>
+                        <StorageStats />
+                    </Col>
+                </Row>
+                <div className="d-block d-sm-none">
+                    <Divider className='mb-0' />
+                </div>
+                {/* Breadcrumb */}
+                <Breadcrumb
+                    path={folderPath}
+                    onNavigate={handleBreadcrumbNavigate}
+                    onDropOnRoot={handleDropOnRoot}
+                    onDropOnFolder={handleDropOnFolder}
+                />
 
-            {/* Content */}
-            <Spin spinning={isLoading}>
-                {!hasContent && !isLoading ? (
-                    <Empty
-                        image={Empty.PRESENTED_IMAGE_SIMPLE}
-                        description={
-                            searchQuery
-                                ? 'No results found'
-                                : 'No folders or files yet'
-                        }
-                        style={{ padding: '60px 0' }}
-                    />
-                ) : (
-                    <>
-                        {/* Folders Row */}
-                        {filteredFolders && filteredFolders.length > 0 && (
-                            <>
-                                {/* add name with divider  , use antd divider*/}
+                {/* Content */}
+                <Spin spinning={isLoading}>
+                    {!hasContent && !isLoading ? (
+                        <Empty
+                            image={Empty.PRESENTED_IMAGE_SIMPLE}
+                            description={
+                                searchQuery
+                                    ? 'No results found'
+                                    : 'No folders or files yet'
+                            }
+                            style={{ padding: '60px 0' }}
+                        />
+                    ) : (
+                        <>
+                            {/* Folders Row */}
+                            {filteredFolders && filteredFolders.length > 0 && (
+                                <>
+                                    {/* add name with divider  , use antd divider*/}
 
-                                <Divider> <Text className='fw-bold'>Folders</Text> </Divider>
-                                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                                    {filteredFolders.map((folder) => (
-                                        <Col key={folder.id} {...getColSpan()}>
-                                            <FolderCard
-                                                folder={folder}
-                                                onOpen={handleOpenFolder}
-                                                onEdit={handleEditFolder}
-                                                onDelete={handleDeleteFolder}
-                                                onDrop={handleDropOnFolder}
-                                            />
-                                        </Col>
-                                    ))}
-                                </Row>
-                            </>
-                        )}
+                                    <Divider> <Text className='fw-bold'>Folders</Text> </Divider>
+                                    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                                        {filteredFolders.map((folder) => (
+                                            <Col key={folder.id} {...getColSpan()}>
+                                                <FolderCard
+                                                    folder={folder}
+                                                    onOpen={handleOpenFolder}
+                                                    onEdit={handleEditFolder}
+                                                    onDelete={handleDeleteFolder}
+                                                    onDrop={handleDropOnFolder}
+                                                />
+                                            </Col>
+                                        ))}
+                                    </Row>
+                                </>
+                            )}
 
-                        {/* Media Files Row */}
-                        {filteredMedia && filteredMedia.length > 0 && (
-                            <>
-                                <Divider> <Text className='fw-bold'>Media Files</Text> </Divider>
+                            {/* Media Files Row */}
+                            {filteredMedia && filteredMedia.length > 0 && (
+                                <>
+                                    <Divider> <Text className='fw-bold'>Media Files</Text> </Divider>
+                                    <Row gutter={[16, 16]}>
+                                        {filteredMedia.map((media) => (
+                                            <Col key={media.id} {...getColSpan()}>
+                                                <MediaCard
+                                                    media={media}
+                                                    selected={selectedMedia.includes(media.id)}
+                                                    onSelect={handleMediaSelect}
+                                                    onPreview={handleMediaPreview}
+                                                    onDelete={handleDeleteMedia}
+                                                    selectionMode={selectedMedia.length > 0}
+                                                    selectedMediaIds={selectedMedia}
+                                                />
+                                            </Col>
+                                        ))}
+                                    </Row>
+                                </>
+                            )}
+
+                            {/* Loading skeleton */}
+                            {isLoading && (
                                 <Row gutter={[16, 16]}>
-                                    {filteredMedia.map((media) => (
-                                        <Col key={media.id} {...getColSpan()}>
-                                            <MediaCard
-                                                media={media}
-                                                selected={selectedMedia.includes(media.id)}
-                                                onSelect={handleMediaSelect}
-                                                onPreview={handleMediaPreview}
-                                                onDelete={handleDeleteMedia}
-                                                selectionMode={selectedMedia.length > 0}
-                                                selectedMediaIds={selectedMedia}
-                                            />
+                                    {[1, 2, 3, 4].map((i) => (
+                                        <Col key={`skeleton-${i}`} {...getColSpan()}>
+                                            <Card style={{ background: '#1f1f1f' }}>
+                                                <Skeleton active paragraph={{ rows: 2 }} />
+                                            </Card>
                                         </Col>
                                     ))}
                                 </Row>
-                            </>
-                        )}
+                            )}
+                        </>
+                    )}
+                </Spin>
 
-                        {/* Loading skeleton */}
-                        {isLoading && (
-                            <Row gutter={[16, 16]}>
-                                {[1, 2, 3, 4].map((i) => (
-                                    <Col key={`skeleton-${i}`} {...getColSpan()}>
-                                        <Card style={{ background: '#1f1f1f' }}>
-                                            <Skeleton active paragraph={{ rows: 2 }} />
-                                        </Card>
-                                    </Col>
-                                ))}
-                            </Row>
-                        )}
-                    </>
-                )}
-            </Spin>
+                {/* Modals */}
+                <FolderModal
+                    open={folderModalOpen}
+                    onCancel={() => {
+                        setFolderModalOpen(false);
+                        setEditingFolder(null);
+                    }}
+                    onSubmit={handleFolderSubmit}
+                    folder={editingFolder}
+                    loading={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                    parentId={currentFolder}
+                />
 
-            {/* Modals */}
-            <FolderModal
-                open={folderModalOpen}
-                onCancel={() => {
-                    setFolderModalOpen(false);
-                    setEditingFolder(null);
-                }}
-                onSubmit={handleFolderSubmit}
-                folder={editingFolder}
-                loading={createCategoryMutation.isPending || updateCategoryMutation.isPending}
-                parentId={currentFolder}
-            />
+                <MediaUploadModal
+                    open={uploadModalOpen}
+                    onCancel={() => setUploadModalOpen(false)}
+                    onUpload={handleUploadFiles}
+                    categoryId={currentFolder}
+                    loading={bulkUploadMutation.isPending}
+                />
 
-            <MediaUploadModal
-                open={uploadModalOpen}
-                onCancel={() => setUploadModalOpen(false)}
-                onUpload={handleUploadFiles}
-                categoryId={currentFolder}
-                loading={bulkUploadMutation.isPending}
-            />
-
-            <MediaPreviewModal
-                open={previewModalOpen}
-                onCancel={() => {
-                    setPreviewModalOpen(false);
-                    setPreviewMedia(null);
-                }}
-                media={previewMedia}
-                mediaList={filteredMedia}
-                onDelete={handleDeleteMedia}
-            />
-        </Card>
+                <MediaPreviewModal
+                    open={previewModalOpen}
+                    onCancel={() => {
+                        setPreviewModalOpen(false);
+                        setPreviewMedia(null);
+                    }}
+                    media={previewMedia}
+                    mediaList={filteredMedia}
+                    onDelete={handleDeleteMedia}
+                />
+            </Card>
+        </PermissionChecker>
     );
 };
 
 export default MediaGallery;
+

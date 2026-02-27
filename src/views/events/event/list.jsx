@@ -20,6 +20,7 @@ import api from 'auth/FetchInterceptor';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { USERSITE_URL } from 'utils/consts';
 import EmptyEventsState from './components/EmptyEventsState';
+import Utils from 'utils';
 
 const EventList = ({ isJunk = false }) => {
   const navigate = useNavigate();
@@ -101,13 +102,13 @@ const EventList = ({ isJunk = false }) => {
     onSuccess: (res) => {
       if (res.status) {
         queryClient.invalidateQueries({ queryKey: ['eventList'] });
-        message.success('Event deleted successfully');
+        message.success(res?.message || 'Event deleted successfully');
       } else {
-        message.error(res?.message || 'Failed to delete event');
+        message.error(Utils.getErrorMessage(res, 'Failed to delete event'));
       }
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || 'Failed to delete event');
+      message.error(Utils.getErrorMessage(err, 'Failed to delete event'));
     },
   });
 
@@ -188,6 +189,7 @@ const EventList = ({ isJunk = false }) => {
 
   const hasEditPermission = usePermission('Edit Event');
   const hasDeletePermission = usePermission('Delete Event');
+  const hasTicketPermission = usePermission('Manage Tickets');
 
   const handleViewEvent = useMemo(() => (row) => {
     const path = `${USERSITE_URL}events/${row?.venue?.city}/${createSlug(row?.user?.organisation)}/${createSlug(row?.name)}/${row?.event_key}`;
@@ -197,35 +199,41 @@ const EventList = ({ isJunk = false }) => {
 
   // API function to restore event
   const restoreEvent = async (eventId) => {
-    const response = await api.post(`/event/restore/${eventId}`);
-    return response.data;
+    return api.post(`/event/restore/${eventId}`);
   };
   // API function to permanently delete event
   const permanentDeleteEvent = async (eventId) => {
-    const response = await api.delete(`/event/destroy/${eventId}`);
-    return response.data;
+    return api.delete(`/event/destroy/${eventId}`);
   };
 
   const permanentDeleteMutation = useMutation({
     mutationFn: permanentDeleteEvent,
-    onSuccess: (data, variables) => {
-      message.success('Event permanently deleted');
-      // Invalidate and refetch events list
-      queryClient.invalidateQueries({ queryKey: ['eventList'] });
+    onSuccess: (res) => {
+      if (res?.status) {
+        message.success(res?.message || 'Event permanently deleted');
+        queryClient.invalidateQueries({ queryKey: ['eventList'] });
+      } else {
+        message.error(Utils.getErrorMessage(res, 'Failed to delete event permanently'));
+      }
     },
     onError: (error) => {
-      message.error(error?.response?.data?.message || 'Failed to delete event permanently');
+      message.error(Utils.getErrorMessage(error, 'Failed to delete event permanently'));
     },
   });
 
   const restoreMutation = useMutation({
     mutationFn: restoreEvent,
-    onSuccess: (data, variables) => {
-      // Invalidate and refetch events list
-      queryClient.invalidateQueries({ queryKey: ['eventList'] });
+    onSuccess: (res) => {
+      if (res?.status) {
+        message.success(res?.message || 'Event restored successfully');
+        queryClient.invalidateQueries({ queryKey: ['eventList'] });
+        refetch();
+      } else {
+        message.error(Utils.getErrorMessage(res, 'Failed to restore event'));
+      }
     },
     onError: (error) => {
-      message.error(error?.response?.data?.message || 'Failed to restore event');
+      message.error(Utils.getErrorMessage(error, 'Failed to restore event'));
     },
   });
 
@@ -257,12 +265,14 @@ const EventList = ({ isJunk = false }) => {
       cancelText: 'Cancel',
       onOk: () => {
         restoreMutation.mutate(row?.id, {
-          onSuccess: () => {
-            message.success(`Event "${row?.name}" restored successfully`);
-            refetch();
+          onSuccess: (res) => {
+            // Success handled in mutation definition or if you want specific behavior here:
+            if (res?.status) {
+              // refetch already handled in restoreMutation onSuccess if we want it there
+            }
           },
           onError: (error) => {
-            message.error(`Failed to restore event: ${error.message}`);
+            // Error already handled in restoreMutation definition
           },
         });
       },
@@ -410,7 +420,7 @@ const EventList = ({ isJunk = false }) => {
               to: `ticket/${row?.event_key}/${createSlug(row?.name)}`,
               type: 'default',
               icon: <Ticket size={16} />,
-              permission: null,
+              permission: hasTicketPermission,
             },
             {
               tooltip: 'Edit Event',
@@ -592,6 +602,7 @@ const EventList = ({ isJunk = false }) => {
       hasEditPermission,
       // HandleGateModal,
       createSlug,
+      hasTicketPermission,
       deleteMutation.isPending,
     ]
   );

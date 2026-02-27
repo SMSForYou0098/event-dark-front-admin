@@ -5,6 +5,7 @@ import DOMPurify from "dompurify";
 import ContentFormModal from "views/events/EventContent/ContentFormModal";
 import { useGetAllContentMaster } from "views/events/EventContent/useContentMaster";
 import { useMyContext } from "Context/MyContextProvider";
+import PermissionChecker from "layouts/PermissionChecker";
 
 const { Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -143,14 +144,16 @@ export const ContentSelect = ({
                           <Space direction="vertical" size="small">
                             <Text type="secondary">No content available</Text>
                             {allowAdd && (
-                              <Button
-                                type="link"
-                                size="small"
-                                icon={<PlusOutlined />}
-                                onClick={handleAddContent}
-                              >
-                                Create your first {getContentTypeLabel().toLowerCase()}
-                              </Button>
+                              <PermissionChecker permission="Create Content Master">
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  icon={<PlusOutlined />}
+                                  onClick={handleAddContent}
+                                >
+                                  Create your first {getContentTypeLabel().toLowerCase()}
+                                </Button>
+                              </PermissionChecker>
                             )}
                           </Space>
                         }
@@ -175,15 +178,17 @@ export const ContentSelect = ({
                             padding: '8px 12px',
                             textAlign: 'center',
                           }}>
-                            <Button
-                              type="link"
-                              size="small"
-                              icon={<PlusOutlined />}
-                              onClick={handleAddContent}
-                              disabled={contentLoading}
-                            >
-                              Create New {getContentTypeLabel()}
-                            </Button>
+                            <PermissionChecker permission="Create Content Master">
+                              <Button
+                                type="link"
+                                size="small"
+                                icon={<PlusOutlined />}
+                                onClick={handleAddContent}
+                                disabled={contentLoading}
+                              >
+                                Create New {getContentTypeLabel()}
+                              </Button>
+                            </PermissionChecker>
                           </div>
                         </>
                       )}

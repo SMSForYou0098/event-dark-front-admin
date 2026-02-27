@@ -8,6 +8,7 @@ import api from 'auth/FetchInterceptor';
 import { PlusOutlined } from '@ant-design/icons';
 import VenueModal from './VaneModal';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 
 const Venues = () => {
   const { api: apiUrl, UserPermissions, authToken, UserData, isMobile, userRole } = useMyContext();
@@ -348,7 +349,7 @@ const Venues = () => {
         addButtonProps={null}
         enableExport={true}
         exportRoute={'export-venues'}
-        ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Venues")}
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes(PERMISSIONS.EXPORT_VENUES)}
         authToken={authToken}
         loading={loading}
         // Backend pagination props
@@ -359,7 +360,7 @@ const Venues = () => {
         onSortChange={handleSortChange}
         searchValue={searchText}
         extraHeaderContent={
-          <PermissionChecker permission="Create Venue">
+          <PermissionChecker permission={PERMISSIONS.CREATE_VENUE}>
             <Tooltip title="Create Venue">
               <Button
                 type="primary"

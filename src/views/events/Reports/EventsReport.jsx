@@ -2,8 +2,11 @@ import React, { memo, useState, useCallback, useMemo } from 'react';
 import { Switch, Space, Typography } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useMyContext } from '../../../Context/MyContextProvider';
-import DataTable from '../common/DataTable';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
+import { message } from 'antd';
 
 const { Text } = Typography;
 
@@ -39,6 +42,7 @@ const EventReports = memo(() => {
     enabled: !!UserData?.id,
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (err) => message.error(Utils.getErrorMessage(err)),
   });
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -142,7 +146,7 @@ const EventReports = memo(() => {
         render: (val) => `₹${Number(val || 0).toFixed(2)}`,
         sorter: (a, b) =>
           (a.phonepe_total_amount || 0) - (b.phonepe_total_amount || 0),
-      }, 
+      },
       {
         title: 'CashFree',
         dataIndex: 'cashfree_total_amount',
@@ -282,25 +286,27 @@ const EventReports = memo(() => {
   );
 
   return (
-    <DataTable
-      title="Events Report"
-      data={reports}
-      columns={columns}
-      showDateRange={true}
-      showRefresh={true}
-      dateRange={dateRange}
-      onDateRangeChange={handleDateRangeChange}
-      loading={isLoading}
-      error={isError ? error : null}
-      enableSearch={true}
-      showSearch={true}
-      enableExport={true}
-      exportRoute="export-event-reports"
-      ExportPermission={UserPermissions?.includes('Export Event Reports')}
-      onRefresh={refetch}
-      emptyText="No event reports found"
-      extraHeaderContent={extraHeaderContent}
-    />
+    <PermissionChecker permission={PERMISSIONS.VIEW_EVENT_REPORTS}>
+      <DataTable
+        title="Events Report"
+        data={reports}
+        columns={columns}
+        showDateRange={true}
+        showRefresh={true}
+        dateRange={dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        loading={isLoading}
+        error={isError ? error : null}
+        enableSearch={true}
+        showSearch={true}
+        enableExport={true}
+        exportRoute="export-event-reports"
+        ExportPermission={UserPermissions?.includes('Export Event Reports')}
+        onRefresh={refetch}
+        emptyText="No event reports found"
+        extraHeaderContent={extraHeaderContent}
+      />
+    </PermissionChecker>
   );
 });
 

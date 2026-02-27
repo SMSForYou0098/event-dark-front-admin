@@ -4,8 +4,10 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useMyContext } from '../../../Context/MyContextProvider';
 import { Spin, Alert, message } from 'antd';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import usePermission from 'utils/hooks/usePermission';
 import BlogPostEditor from './Components/BlogPostEditor';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const EditPost = () => {
   const { id } = useParams();
@@ -23,13 +25,17 @@ const EditPost = () => {
     tags: [],
   });
 
+  const canView = usePermission('View Blog Post');
+
   // Fetch blog post data
-  const { data: postData, isLoading, error,refetch } = useQuery({
+  const { data: postData, isLoading, error, refetch } = useQuery({
     queryKey: ['blogPost', id],
     queryFn: async () => {
       const response = await api.get(`blog-show/${id}`);
-
-      if (response?.status && response.data) {
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to fetch blog post'));
+      }
+      if (response?.data) {
         const metaPayload = {
           metaTitle: response.data.meta_title || '',
           canonicalUrl: response.data.canonical_url || '',
@@ -45,11 +51,11 @@ const EditPost = () => {
         setMeta(metaPayload);
         return response.data;
       }
-      throw new Error('Invalid response format.');
+      return null;
     },
+    enabled: canView && !!id,
     onError: (err) => {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch blog post.';
-      message.error(errorMessage);
+      message.error(Utils.getErrorMessage(err, 'Failed to fetch blog post.'));
     },
   });
 
@@ -96,6 +102,10 @@ const EditPost = () => {
         },
       });
 
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to update post'));
+      }
+
       return response;
     },
     onSuccess: (data) => {
@@ -105,7 +115,7 @@ const EditPost = () => {
     },
     onError: (error) => {
       console.error('❌ Error updating blog post:', error);
-      message.error(error.response?.data?.message || 'Failed to update post');
+      message.error(Utils.getErrorMessage(error, 'Failed to update post'));
     },
   });
 
@@ -115,11 +125,11 @@ const EditPost = () => {
 
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        minHeight: '400px' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '400px'
       }}>
         <Spin size="large" tip="Loading blog post..." />
       </div>
@@ -130,7 +140,7 @@ const EditPost = () => {
     return (
       <Alert
         message="Error"
-        description={error.response?.data?.message || error.message || 'Failed to fetch blog post.'}
+        description={Utils.getErrorMessage(error, 'Failed to fetch blog post.')}
         type="error"
         showIcon
         style={{ margin: '20px' }}

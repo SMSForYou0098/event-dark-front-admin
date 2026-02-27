@@ -490,7 +490,7 @@ const BookingList = memo(({ type = 'agent' }) => {
             fixed: isNested ? undefined : 'right',
             width: isMobile ? 70 : 120,
             render: (_, record) => {
-                const isDisabled = record?.is_deleted === true || record?.status === "1";
+                const isDisabled = record?.is_deleted === true || record?.status === true;
 
                 const actions = [
                     {

@@ -5,6 +5,7 @@ import { UserOutlined, TeamOutlined, StarOutlined, PictureOutlined, DeleteOutlin
 import apiClient from 'auth/FetchInterceptor';
 import { useMyContext } from 'Context/MyContextProvider';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import Utils from 'utils';
 
 const { TextArea } = Input;
 
@@ -139,18 +140,7 @@ const ArtistCrewModal = ({
             }
         } catch (error) {
             console.error('Error:', error);
-
-            let errorMessage = `Failed to ${mode === 'edit' ? 'update' : 'create'} ${type.toLowerCase()}`;
-
-            if (error.response) {
-                errorMessage = error.response.data?.message || error.response.data?.error || errorMessage;
-            } else if (error.request) {
-                errorMessage = 'No response from server. Please check your connection.';
-            } else {
-                errorMessage = error.message || errorMessage;
-            }
-
-            message.error(errorMessage);
+            message.error(Utils.getErrorMessage(error, `Failed to ${mode === 'edit' ? 'update' : 'create'} ${type.toLowerCase()}`));
         } finally {
             setLoading(false);
         }

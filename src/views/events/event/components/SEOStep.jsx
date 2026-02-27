@@ -5,6 +5,7 @@ import { Sparkles, Loader2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import { PRIMARY } from 'utils/consts';
+import Utils from 'utils';
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -17,6 +18,9 @@ const SEOStep = ({ form, eventKey, componentLoader, setComponentLoader }) => {
                 throw new Error('Event key is required');
             }
             const response = await api.get(`/generate-seo/${eventKey}`);
+            if (response?.status === false) {
+                throw new Error(Utils.getErrorMessage(response, 'Failed to generate SEO content'));
+            }
             return response;
         },
         onSuccess: (response) => {
@@ -44,7 +48,7 @@ const SEOStep = ({ form, eventKey, componentLoader, setComponentLoader }) => {
         },
         onError: (error) => {
             console.error('SEO generation failed:', error);
-            message.error(error?.message || 'Failed to generate SEO content');
+            message.error(Utils.getErrorMessage(error, 'Failed to generate SEO content'));
         },
     });
 

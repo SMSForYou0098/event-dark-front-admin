@@ -1,8 +1,9 @@
 import React from 'react';
-import {
-    Row, Col, Form, Input, Select, Button, Card, Divider, Typography, Tooltip
-} from 'antd';
-import { PlusOutlined, DeleteOutlined, KeyOutlined, RobotOutlined } from '@ant-design/icons';
+import { Row, Col, Form, Input, Select, Button, Card, Divider, Typography, Tooltip, message } from 'antd';
+import { PlusOutlined, DeleteOutlined, KeyOutlined, RobotOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useMutation } from '@tanstack/react-query';
+import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const { Text } = Typography;
 
@@ -58,12 +59,40 @@ const DeveloperSettings = ({ form }) => {
         return AI_MODELS[provider] || [];
     };
 
+    const clearCacheMutation = useMutation({
+        mutationFn: async () => {
+            const response = await api.get('/operation');
+            return response;
+        },
+        onSuccess: (res) => {
+            if (res.status) {
+                message.success(res.message || 'Cache cleared successfully');
+            } else {
+                message.error(res.message || 'Failed to clear cache');
+            }
+        },
+        onError: (err) => {
+            message.error(Utils.getErrorMessage(err, 'Failed to clear cache'));
+        }
+    });
+
     return (
         <>
-            <h4 style={{ marginBottom: '16px' }}>
-                <RobotOutlined style={{ marginRight: 8 }} />
-                AI API Keys
-            </h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <h4 style={{ margin: 0 }}>
+                    <RobotOutlined style={{ marginRight: 8 }} />
+                    AI API Keys
+                </h4>
+                <Button
+                    danger
+                    type="primary"
+                    icon={<ReloadOutlined />}
+                    loading={clearCacheMutation.isPending}
+                    onClick={() => clearCacheMutation.mutate()}
+                >
+                    Clear Cache
+                </Button>
+            </div>
             <Text type="secondary" style={{ display: 'block', marginBottom: 16 }}>
                 Configure API keys for AI providers used across the platform.
             </Text>

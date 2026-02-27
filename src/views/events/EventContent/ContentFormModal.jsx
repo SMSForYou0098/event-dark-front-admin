@@ -1,10 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import JoditEditor from 'jodit-react';
-import { Form, Input, Modal, Row, Col, Radio, message } from 'antd';
+import { Form, Input, Modal, Row, Col, Radio, message, Button } from 'antd';
 import { useCreateContentMaster, useUpdateContentMaster } from './useContentMaster';
 import { useMyContext } from 'Context/MyContextProvider';
 import { OrganisationList } from 'utils/CommonInputs';
 import { joditConfig } from 'utils/consts';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 /**
  * Reusable Content Form Modal
@@ -141,11 +142,26 @@ const ContentFormModal = ({
             open={open}
             title={editRecord ? 'Edit Content' : 'New Content'}
             onCancel={handleClose}
-            onOk={handleSubmit}
-            okText="Save"
             width={900}
             confirmLoading={isSubmitting}
             destroyOnClose
+            footer={[
+                <Button key="cancel" onClick={handleClose}>
+                    Cancel
+                </Button>,
+                <PermissionChecker
+                    key="save"
+                    permission={editRecord ? "Update Content Master" : "Create Content Master"}
+                >
+                    <Button
+                        type="primary"
+                        loading={isSubmitting}
+                        onClick={handleSubmit}
+                    >
+                        Save
+                    </Button>
+                </PermissionChecker>
+            ]}
         >
             <Form
                 form={form}

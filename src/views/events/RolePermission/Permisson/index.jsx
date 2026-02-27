@@ -18,6 +18,9 @@ import {
 import { PlusOutlined, EditOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import Flex from 'components/shared-components/Flex';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { Panel } = Collapse;
 const { Search } = Input;
@@ -108,7 +111,7 @@ const RolePermission = ({ isUser = false }) => {
             setInitialExistPermission(Array.isArray(response.data.exist) ? response.data.exist : []);
         } catch (error) {
             console.error('Error fetching permissions:', error);
-            message.error('Failed to fetch permissions');
+            message.error(Utils.getErrorMessage(error));
         }
     }, [api, id, authToken, permissionType, userRole, UserPermissions]);
 
@@ -160,7 +163,7 @@ const RolePermission = ({ isUser = false }) => {
             scrollToTop();
         } catch (error) {
             console.error('Error assigning permissions:', error);
-            message.error('Failed to assign permissions');
+            message.error(Utils.getErrorMessage(error));
         } finally {
             setConfirmLoading(false);
         }
@@ -207,7 +210,7 @@ const RolePermission = ({ isUser = false }) => {
         } catch (error) {
             if (error.errorFields) return;
             console.error('Error creating permission:', error);
-            message.error('Failed to create permission');
+            message.error(Utils.getErrorMessage(error));
             handleCancel();
         } finally {
             setConfirmLoading(false);
@@ -233,7 +236,7 @@ const RolePermission = ({ isUser = false }) => {
         } catch (error) {
             if (error.errorFields) return;
             console.error('Error updating permission:', error);
-            message.error('Failed to update permission');
+            message.error(Utils.getErrorMessage(error));
             handleCancel();
         } finally {
             setConfirmLoading(false);
@@ -352,7 +355,7 @@ const RolePermission = ({ isUser = false }) => {
     );
 
     return (
-        <>
+        <PermissionChecker permission={PERMISSIONS.VIEW_PERMISSIONS}>
             <Modal
                 title={isEdit ? 'Edit Permission' : 'Create New Permission'}
                 open={open}
@@ -488,7 +491,7 @@ const RolePermission = ({ isUser = false }) => {
                     <ActionButtons />
                 </Flex>
             </Card>
-        </>
+        </PermissionChecker>
     );
 };
 

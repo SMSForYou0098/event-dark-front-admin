@@ -12,6 +12,8 @@ import { useMyContext } from 'Context/MyContextProvider';
 import DataTable from 'views/events/common/DataTable';
 import { resendTickets } from '../agent/utils';
 import SendTickets from './SendTickets';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const BatchDataModel = ({ show, onHide, batchData = [], batchId }) => {
   const { handleWhatsappAlert, extractDetails, HandleSendSMS, sendMail } = useMyContext();
@@ -65,7 +67,7 @@ const BatchDataModel = ({ show, onHide, batchData = [], batchId }) => {
     } catch (error) {
       hideLoading();
       message.error({
-        content: `Failed to send ${processName}. Please try again.`,
+        content: Utils.getErrorMessage(error, `Failed to send ${processName}. Please try again.`),
         duration: 3,
       });
       console.error(`${processName} Error:`, error);
@@ -228,14 +230,16 @@ const BatchDataModel = ({ show, onHide, batchData = [], batchId }) => {
                 borderColor: isLoading && processingType === 'Email' ? '#f5222d' : undefined
               }}
             /> */}
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={() => sendTickets(record)}
-              disabled={record?.is_deleted}
-              title="Resend Tickets"
-              size="small"
-            />
+            <PermissionChecker permission="Resend Complimentary Booking">
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                onClick={() => sendTickets(record)}
+                disabled={record?.is_deleted}
+                title="Resend Tickets"
+                size="small"
+              />
+            </PermissionChecker>
           </Space>
         );
       },

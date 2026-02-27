@@ -19,6 +19,7 @@ import {
   FontSizeOutlined,
   CheckCircleOutlined
 } from '@ant-design/icons';
+import Utils from 'utils';
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;

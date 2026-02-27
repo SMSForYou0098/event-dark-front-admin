@@ -10,6 +10,10 @@ import {
 import apiClient from 'auth/FetchInterceptor';
 import { useMyContext } from '../../../Context/MyContextProvider';
 import DataTable from 'views/events/common/DataTable';
+import usePermission from 'utils/hooks/usePermission';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
+import Utils from 'utils';
 
 const { confirm } = Modal;
 const { Option } = Select;
@@ -59,7 +63,7 @@ const Promocode = memo(() => {
     },
     onError: (error) => {
       console.error('Error saving promocode:', error);
-      message.error('Failed to save promocode');
+      message.error(Utils.getErrorMessage(error));
     },
   });
 
@@ -79,7 +83,7 @@ const Promocode = memo(() => {
     },
     onError: (error) => {
       console.error('Error deleting promocode:', error);
-      message.error('Failed to delete promocode');
+      message.error(Utils.getErrorMessage(error));
     },
   });
 
@@ -258,7 +262,7 @@ const Promocode = memo(() => {
   );
 
   return (
-    <>
+    <PermissionChecker permission={PERMISSIONS.VIEW_PROMOCODES}>
       {/* Create/Edit Modal */}
       <Modal
         title={editingId ? 'Update Promocode' : 'Add New Promocode'}
@@ -406,7 +410,7 @@ const Promocode = memo(() => {
           bordered: false,
         }}
       />
-    </>
+    </PermissionChecker>
   );
 });
 

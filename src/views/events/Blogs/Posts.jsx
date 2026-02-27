@@ -1,25 +1,35 @@
 import React from 'react';
 import { Button, Space, Image, Tag, message, Modal } from 'antd';
+import PermissionChecker from 'layouts/PermissionChecker';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import usePermission from 'utils/hooks/usePermission';
 import DataTable from '../common/DataTable';
 import dayjs from 'dayjs';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const Posts = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const canView = usePermission('View Blog Post');
+
   const { data: posts = [], isLoading: loading, error, refetch } = useQuery({
     queryKey: ['blog-posts'],
     queryFn: async () => {
       const response = await api.get('blog-list');
-      if (response?.status && Array.isArray(response.data)) {
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to fetch blogs'));
+      }
+      if (Array.isArray(response.data)) {
         return response.data;
       }
-      throw new Error('Invalid response format.');
+      return response.data || [];
     },
+    enabled: canView,
   });
 
   const deleteMutation = useMutation({
@@ -28,8 +38,8 @@ const Posts = () => {
       queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
       message.success('The blog post has been deleted.');
     },
-    onError: () => {
-      message.error('Failed to delete the post.');
+    onError: (error) => {
+      message.error(Utils.getErrorMessage(error, 'Failed to delete the post.'));
     },
   });
 
@@ -100,18 +110,22 @@ const Posts = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`update/${record.id}`)}
-            size="small"
-          />
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-            size="small"
-          />
+          <PermissionChecker permission={PERMISSIONS.EDIT_BLOG_POST}>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`update/${record.id}`)}
+              size="small"
+            />
+          </PermissionChecker>
+          <PermissionChecker permission={PERMISSIONS.DELETE_BLOG_POST}>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+              size="small"
+            />
+          </PermissionChecker>
         </Space>
       ),
     },
@@ -131,13 +145,15 @@ const Posts = () => {
         enableSearch={true}
         emptyText="No blog posts found"
         extraHeaderContent={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('new')}
-          >
-            Create Post
-          </Button>
+          <PermissionChecker permission={PERMISSIONS.CREATE_BLOG_POST}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('new')}
+            >
+              Create Post
+            </Button>
+          </PermissionChecker>
         }
         tableProps={{
           rowKey: 'id',

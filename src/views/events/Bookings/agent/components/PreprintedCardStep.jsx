@@ -6,6 +6,7 @@ import { CalendarOutlined, CreditCardOutlined, SearchOutlined } from '@ant-desig
 import { useMyContext } from 'Context/MyContextProvider';
 import { useMutation, useInfiniteQuery } from '@tanstack/react-query';
 import apiClient from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const { Text } = Typography;
 
@@ -35,6 +36,9 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
                 search: searchText,
                 mode: 'assign'
             });
+            if (res?.status === false) {
+                throw new Error(Utils.getErrorMessage(res, 'Failed to load card tokens'));
+            }
             return res?.data || res;
         },
         getNextPageParam: (lastPage) => {
@@ -130,6 +134,9 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
                 handleTokenSelected(data.token);
             }
         },
+        onError: (error) => {
+            message.error(Utils.getErrorMessage(error, 'Token not found'));
+        }
     });
 
     // Format prefix_index label (e.g. "Hello 2")
@@ -278,9 +285,7 @@ const PreprintedCardStep = ({ event, tickets, setSelectedTickets, onTokenSelect,
                 tokenDetailMutation.isError && (
                     <div style={{ marginTop: 16 }}>
                         <Tag color="error" style={{ padding: '8px 16px', fontSize: 14 }}>
-                            {tokenDetailMutation.error?.response?.data?.message ||
-                                tokenDetailMutation.error?.message ||
-                                'Token not found'}
+                            {Utils.getErrorMessage(tokenDetailMutation.error, 'Token not found')}
                         </Tag>
                     </div>
                 )

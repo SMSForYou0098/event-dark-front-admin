@@ -25,6 +25,7 @@ import {
 } from './useOrganizerAgreement';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
 import { joditConfig } from 'utils/consts';
+import Utils from 'utils';
 
 const OrganizerAgreement = () => {
   // ========================= STATE =========================
@@ -140,7 +141,8 @@ const OrganizerAgreement = () => {
       }
     } catch (err) {
       // Form validation error - handled by antd
-      message.error(err?.message || 'Please fill all required fields');
+      if (err.errorFields) return; // ignore form validation errors
+      message.error(Utils.getErrorMessage(err, 'Please fill all required fields'));
     }
   }, [form, content, editRecord, createMutation, updateMutation, signatureType, getSignatureData]);
 

@@ -9,10 +9,16 @@ import { getBookingStats, getCncData, getDiscountData, getEventStats, getGateway
 import DashSkeleton from '../Admin/DashSkeleton';
 import { useDashboardData } from './useDashboardData';
 import GatewayWiseSales from './GatewayWiseSales';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import usePermission from 'utils/hooks/usePermission';
+import Utils from 'utils';
 
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
     const { isMobile } = useMyContext();
     const [showToday, setShowToday] = useState(true);
+
+    const canViewGateway = usePermission(PERMISSIONS.VIEW_GATEWAY);
+    const canViewUsers = usePermission(PERMISSIONS.VIEW_USER);
 
     const { bookingData, salesData, isLoading, error, gatewayWiseSalesData, gatewayLoading, organizerSummary, organizerTickets, userStats } = useDashboardData(userId);
 
@@ -55,7 +61,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
             <div className="p-4">
                 <Alert
                     message="Error"
-                    description={error.message}
+                    description={Utils.getErrorMessage(error)}
                     type="error"
                     showIcon
                 />
@@ -160,7 +166,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 />
 
                 {/* User Management Section - Conditional */}
-                {showUserManagement && (
+                {canViewUsers && showUserManagement && (
                     <StatSection
                         title="User Management"
                         stats={getUserStats(userStats?.data)}
@@ -194,7 +200,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                         type='area'
                     />
                 </Col>
-                {userRole === 'Admin' &&
+                {canViewGateway &&
                     <Col xs={24} lg={12}>
                         <PaymentGatewayTable
                             data={getGatewayData(salesData.pgData)}

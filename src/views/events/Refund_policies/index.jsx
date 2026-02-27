@@ -23,6 +23,8 @@ import {
     useDeleteRefundPolicy,
 } from './useRefundPolicies';
 import { useMyContext } from 'Context/MyContextProvider';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const RefundPolicies = () => {
     // ========================= STATE =========================
@@ -223,7 +225,7 @@ const RefundPolicies = () => {
 
     // ========================= RENDER =========================
     return (
-        <>
+        <PermissionChecker permission={PERMISSIONS.VIEW_REFUND_POLICIES}>
             <DataTable
                 title="Refund Policies"
                 data={policies}
@@ -381,7 +383,7 @@ const RefundPolicies = () => {
                     })()}
                 </Form>
             </Modal>
-        </>
+        </PermissionChecker>
     );
 };
 

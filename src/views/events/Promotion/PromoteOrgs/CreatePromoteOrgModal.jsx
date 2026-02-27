@@ -6,6 +6,7 @@ import { OrganisationList } from 'utils/CommonInputs';
 import api from 'auth/FetchInterceptor';
 import { useMyContext } from 'Context/MyContextProvider';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import Utils from 'utils';
 
 const normFile = (e) => {
   if (Array.isArray(e)) return e;
@@ -41,10 +42,7 @@ export default function CreatePromoteOrgModal({ visible, onClose, editingOrg = n
       onClose();
     },
     onError: (error) => {
-      message.error(
-        error?.response?.data?.message ||
-        `Failed to ${isEditing ? 'update' : 'create'} entry`
-      );
+      message.error(Utils.getErrorMessage(error));
     },
   });
 

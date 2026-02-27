@@ -8,6 +8,7 @@ import api from 'auth/FetchInterceptor';
 import { PlusOutlined } from '@ant-design/icons';
 import ArtistModal from './artistModal';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 
 const Artist = () => {
   const { api: apiUrl, UserPermissions, authToken, UserData } = useMyContext();
@@ -158,14 +159,14 @@ const Artist = () => {
 
         const actions = [
           {
-            permission: "Update Artist",
+            permission: PERMISSIONS.UPDATE_ARTIST,
             tooltip: "Update Artist",
             icon: <Pencil size={14} />,
             onClick: () => handleEdit(record),
             type: "default",
           },
           {
-            permission: "Delete Artist",
+            permission: PERMISSIONS.DELETE_ARTIST,
             tooltip: "Delete Artist",
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(record.id),
@@ -274,7 +275,7 @@ const Artist = () => {
         addButtonProps={null}
         enableExport={true}
         exportRoute={'export-artists'}
-        ExportPermission={UserPermissions?.includes("Export Artists")}
+        ExportPermission={UserPermissions?.includes(PERMISSIONS.EXPORT_ARTISTS)}
         authToken={authToken}
         loading={loading}
         // Backend pagination props
@@ -285,7 +286,7 @@ const Artist = () => {
         onSortChange={handleSortChange}
         searchValue={searchText}
         extraHeaderContent={
-          <PermissionChecker permission="Create Artist">
+          <PermissionChecker permission={PERMISSIONS.CREATE_ARTIST}>
             <Tooltip title="Create Artist">
               <Button
                 type="primary"

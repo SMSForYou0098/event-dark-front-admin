@@ -1,6 +1,7 @@
 // hooks/useEventOptions.js
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 export const useOrganizers = () =>
   useQuery({
     queryKey: ['organizers'],
@@ -8,7 +9,7 @@ export const useOrganizers = () =>
       const res = await api.get('organizers');
 
       if (res?.status !== true) {
-        throw new Error(res?.message || 'Failed to fetch organizers');
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch organizers'));
       }
       // Return only the array of organizers
       return Array.isArray(res?.data) ? res.data : [];
@@ -29,7 +30,7 @@ export const useVenues = () =>
       const res = await api.get(`/venues`);
 
       if (res?.status !== true) {
-        throw new Error(res?.message || 'Failed to fetch venues');
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch venues'));
       }
 
       // Return the raw list; map to Select options in the component
@@ -51,9 +52,11 @@ export const useEventCategories = (options = {}) =>
     queryFn: async () => {
       const res = await api.get("category-title"); // auth header added automatically by interceptor
 
-      // If your interceptor returns { status, categoryData }
-      const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, "Failed to fetch event categories"));
+      }
 
+      const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
       if (!rawData) throw new Error("Invalid response structure");
 
       const transformed = Object.values(rawData).map((item) => ({
@@ -95,9 +98,7 @@ export const useCreateEvent = (options = {}) =>
         headers: { /* let browser set multipart boundary; omit Content-Type */ },
       });
       if (res?.status === false) {
-        const err = new Error(res?.message || 'Failed to create event');
-        err.server = res;
-        throw err;
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create event'));
       }
       return res;
     },
@@ -320,9 +321,7 @@ export const useEventDetail = (id, step = null, options = {}) =>
       const res = await api.get(url);
 
       if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to fetch event details');
-        err.server = res;
-        throw err;
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch event details'));
       }
 
       return res?.event || {}; // Return event data
@@ -349,9 +348,7 @@ export const useUpdateEvent = (options = {}) =>
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (res?.status === false) {
-        const err = new Error(res?.message || 'Failed to update event');
-        err.server = res;
-        throw err;
+        throw new Error(Utils.getErrorMessage(res, 'Failed to update event'));
       }
       return res;
     },
@@ -436,9 +433,7 @@ export const useAssignEventInfluencers = (options = {}) =>
     mutationFn: async ({ eventId, influencer_ids }) => {
       const res = await api.post(`event/${eventId}/influencers/bulk-assign`, { influencer_ids });
       if (res?.status === false) {
-        const err = new Error(res?.message || 'Failed to assign influencers');
-        err.server = res;
-        throw err;
+        throw new Error(Utils.getErrorMessage(res, 'Failed to assign influencers'));
       }
       return res;
     },
@@ -510,7 +505,10 @@ export const useCreateArtist = (options = {}) =>
     mutationFn: async (payload) => {
       // payload can be FormData or a plain object
       const res = await api.post('artist-store', payload);
-      return res?.data;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create artist'));
+      }
+      return res?.data || res;
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -529,7 +527,10 @@ export const useUpdateArtist = (options = {}) =>
     mutationFn: async ({ id, payload }) => {
       if (!id) throw new Error('Artist ID is required');
       const res = await api.post(`artist-update/${id}`, payload);
-      return res?.data;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to update artist'));
+      }
+      return res?.data || res;
     },
     retry: (count, err) => {
       const status = err?.response?.status;

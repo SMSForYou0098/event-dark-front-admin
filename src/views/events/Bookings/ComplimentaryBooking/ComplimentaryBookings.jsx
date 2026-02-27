@@ -38,6 +38,9 @@ import generateQRCodeZip from "views/events/Tickets/generateQRCodeZip";
 import QRGenerator from "views/events/Tickets/QRGenerator";
 import PosEvents from "../components/PosEvents";
 import DataTable from "views/events/common/DataTable";
+import Utils from "utils";
+import PermissionChecker from "layouts/PermissionChecker";
+import { PERMISSIONS } from "constants/PermissionConstant";
 // import CommonEventAccordion from "./CommonEventAccordion";
 
 const { Title, Text } = Typography;
@@ -93,7 +96,7 @@ const ComplimentaryBookings = memo(() => {
       }
     },
     onError: (error) => {
-      message.error("An error occurred while checking user booking.");
+      message.error(Utils.getErrorMessage(error, "An error occurred while checking user booking."));
     },
   });
 
@@ -128,7 +131,7 @@ const ComplimentaryBookings = memo(() => {
       }
     },
     onError: (error) => {
-      message.error(error.response?.data?.message || "Something went wrong");
+      message.error(Utils.getErrorMessage(error, "Something went wrong"));
     },
   });
 
@@ -157,7 +160,7 @@ const ComplimentaryBookings = memo(() => {
       });
     } catch (e) {
       console.error('Error generating ZIP:', e);
-      message.error('Failed to generate QR codes. Please try again.');
+      message.error(Utils.getErrorMessage(e, 'Failed to generate QR codes. Please try again.'));
     } finally {
       // Always stop button loading when done (success or error)
       setZipLoading(false);
@@ -179,11 +182,11 @@ const ComplimentaryBookings = memo(() => {
       if (response.status) {
         message.success("Tickets sent successfully!");
       } else {
-        message.error(response.message || "Failed to send tickets.");
+        message.error(Utils.getErrorMessage(response, "Failed to send tickets."));
       }
     } catch (error) {
       console.error(error);
-      message.error("Failed to send tickets.");
+      message.error(Utils.getErrorMessage(error, "Failed to send tickets."));
     } finally {
       setSending(false);
     }
@@ -348,7 +351,7 @@ const ComplimentaryBookings = memo(() => {
           }
         } catch (error) {
           resetFileInput();
-          message.error(error.message);
+          message.error(Utils.getErrorMessage(error));
         } finally {
           loadingAlert.close();
         }
@@ -634,15 +637,17 @@ const ComplimentaryBookings = memo(() => {
                           ) : (
                             <Col xs={24} sm={12} md={8} lg={12}>
                               <Form.Item label="Download Sample">
-                                <Button
-                                  icon={<FileExcelOutlined />}
-                                  href={`/uploads/sample.xlsx`}
-                                  download
-                                  className="d-flex justify-content-center align-items-center"
-                                  block
-                                >
-                                  Sample File
-                                </Button>
+                                <PermissionChecker permission={PERMISSIONS.DOWNLOAD_COMPLIMENTARY_BOOKING}>
+                                  <Button
+                                    icon={<FileExcelOutlined />}
+                                    href={`/uploads/sample.xlsx`}
+                                    download
+                                    className="d-flex justify-content-center align-items-center"
+                                    block
+                                  >
+                                    Sample File
+                                  </Button>
+                                </PermissionChecker>
                               </Form.Item>
                             </Col>
                           )}
@@ -680,37 +685,43 @@ const ComplimentaryBookings = memo(() => {
                         <Form.Item label="Action">
                           {bookings.length > 0 || batchId ? (
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              <Button
-                                type="primary"
-                                icon={<DownloadOutlined />}
-                                onClick={handleZip}
-                                loading={zipLoading}
-                                disabled={zipLoading || sending || bookings.length === 0}
-                                style={{ flex: 1 }}
-                              >
-                                {zipLoading ? 'Generating...' : 'Download ZIP'}
-                              </Button>
-                              <Button
-                                type="primary"
-                                icon={<SendOutlined />}
-                                onClick={handleSendTickets}
-                                loading={sending}
-                                disabled={sending || zipLoading || !batchId}
-                                style={{ flex: 1 }}
-                              >
-                                {sending ? 'Sending...' : 'Send Tickets'}
-                              </Button>
+                              <PermissionChecker permission={PERMISSIONS.DOWNLOAD_COMPLIMENTARY_BOOKING}>
+                                <Button
+                                  type="primary"
+                                  icon={<DownloadOutlined />}
+                                  onClick={handleZip}
+                                  loading={zipLoading}
+                                  disabled={zipLoading || sending || bookings.length === 0}
+                                  style={{ flex: 1 }}
+                                >
+                                  {zipLoading ? 'Generating...' : 'Download ZIP'}
+                                </Button>
+                              </PermissionChecker>
+                              <PermissionChecker permission={PERMISSIONS.RESEND_COMPLIMENTARY_BOOKING}>
+                                <Button
+                                  type="primary"
+                                  icon={<SendOutlined />}
+                                  onClick={handleSendTickets}
+                                  loading={sending}
+                                  disabled={sending || zipLoading || !batchId}
+                                  style={{ flex: 1 }}
+                                >
+                                  {sending ? 'Sending...' : 'Send Tickets'}
+                                </Button>
+                              </PermissionChecker>
                             </div>
                           ) : (
-                            <Button
-                              type="primary"
-                              disabled={disable}
-                              onClick={handleSubmit}
-                              loading={createBookingMutation.isPending}
-                              block
-                            >
-                              Submit Booking
-                            </Button>
+                            <PermissionChecker permission={PERMISSIONS.ADD_COMPLIMENTARY_BOOKING}>
+                              <Button
+                                type="primary"
+                                disabled={disable}
+                                onClick={handleSubmit}
+                                loading={createBookingMutation.isPending}
+                                block
+                              >
+                                Submit Booking
+                              </Button>
+                            </PermissionChecker>
                           )}
                         </Form.Item>
                       </Col>

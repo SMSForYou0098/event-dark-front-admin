@@ -11,6 +11,7 @@ import { VanueList } from './CONSTANTS';
 import { ContentSelect } from './ContentSelect';
 import apiClient from 'auth/FetchInterceptor';
 import SelectFields from 'views/events/Settings/Fields/SelectFields';
+import Utils from 'utils';
 
 const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
   const [selectFieldsModalOpen, setSelectFieldsModalOpen] = useState(false);
@@ -39,6 +40,9 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
     queryKey: ['category-show', selectedCategory],
     queryFn: async () => {
       const response = await apiClient.get(`category-show/${selectedCategory}`);
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to fetch category details'));
+      }
       return response?.data || response;
     },
     enabled: !!selectedCategory,
@@ -58,6 +62,9 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
     queryKey: ['fields-list'],
     queryFn: async () => {
       const response = await apiClient.get('fields-list');
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to fetch fields list'));
+      }
       return response?.customFields || response?.data?.customFields || [];
     },
     staleTime: 5 * 60 * 1000,

@@ -6,6 +6,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import BookingsTab from "../Bookings/BookingsTab";
 import api from "auth/FetchInterceptor";
 import debounce from "utils/debounce";
+import Utils from "utils";
 const { Text } = Typography;
 
 const BOOKINGS_PER_PAGE = 10;
@@ -273,7 +274,7 @@ const BoxOffice = () => {
                     >
                         <Spin spinning={isLoading}>
                             {error ? (
-                                <Empty description="Failed to load bookings" />
+                                <Empty description={Utils.getErrorMessage(error, "Failed to load bookings")} />
                             ) : bookings?.length > 0 ? (
                                 <BookingsTab
                                     userBookings={bookings || []}

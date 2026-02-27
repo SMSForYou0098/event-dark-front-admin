@@ -1,5 +1,6 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 // previewing aggreement
 
@@ -8,9 +9,12 @@ export const useAgreementPreview = (id, options = {}) => {
     queryKey: ['agreement-preview', id],
     queryFn: async () => {
       const response = await api.get(`/agreement/preview/${id}`);
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to fetch agreement'));
+      }
       return response;
     },
-    enabled: false, // Don't auto-fetch, will be triggered manually
+    enabled: false,
     retry: false,
     ...options
   });
@@ -23,7 +27,13 @@ export const useVerifyUser = (options = {}) => {
         user_agreement_id,
         password
       });
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Verification failed'));
+      }
       return response;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     ...options
   });
@@ -38,7 +48,13 @@ export const useUpdateUserSignature = (options = {}) => {
           'Content-Type': 'multipart/form-data',
         }
       });
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to update signature'));
+      }
       return response;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     ...options
   });
@@ -53,7 +69,13 @@ export const useConfirmAgreement = (options = {}) => {
         user_id,
         action
       });
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to confirm agreement'));
+      }
       return response;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     ...options
   });

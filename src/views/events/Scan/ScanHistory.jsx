@@ -4,6 +4,8 @@ import { Tag, Typography, Tooltip, Select, Space, Table, Spin } from "antd";
 import apiClient from "auth/FetchInterceptor";
 import { ExpandDataTable } from "views/events/common/ExpandDataTable";
 import { useMyContext } from "Context/MyContextProvider";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import PermissionChecker from "layouts/PermissionChecker";
 import { useOrganizerEvents } from "views/events/Settings/hooks/useBanners";
 
 const { Text } = Typography;
@@ -379,51 +381,53 @@ const ScanHistory = () => {
   );
 
   return (
-    <ExpandDataTable
-      title="Scan History"
-      data={transformedData}
-      columns={columns}
-      innerColumns={innerColumns}
-      loading={isLoading}
-      error={error}
-      showDateRange
-      dateRange={dateRange}
-      onDateRangeChange={handleDateRangeChange}
-      showRefresh
-      onRefresh={refetch}
-      enableExport
-      exportRoute="/export/scan-logs"
-      ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Scan History")}
-      emptyText="No scan history found"
-      enableSearch
-      showSearch
-      // Server-side pagination props
-      serverSide
-      pagination={pagination}
-      onPaginationChange={handlePaginationChange}
-      // Custom stats component for scan statistics
-      // statsComponent={ScanStatistics}
-      showReportSwitch={false}
-      tableProps={{
-        bordered: false,
-        expandable: {
-          expandedRowRender: (record) => (
-            <ExpandedScanDetails
-              bookingId={record.booking_id}
-              eventId={record.event?.id}
-              columns={innerColumns}
-            />
-          ),
-          rowExpandable: (record) => record.total_scans > 0,
-          expandedRowKeys: expandedRowKeys,
-          onExpand: (expanded, record) => {
-            const key = record.booking_id; // Using booking_id as key
-            setExpandedRowKeys(prev => expanded ? [...prev, key] : prev.filter(k => k !== key));
+    <PermissionChecker permission={PERMISSIONS.VIEW_SCAN_HISTORY}>
+      <ExpandDataTable
+        title="Scan History"
+        data={transformedData}
+        columns={columns}
+        innerColumns={innerColumns}
+        loading={isLoading}
+        error={error}
+        showDateRange
+        dateRange={dateRange}
+        onDateRangeChange={handleDateRangeChange}
+        showRefresh
+        onRefresh={refetch}
+        enableExport
+        exportRoute="/export/scan-logs"
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Scan History")}
+        emptyText="No scan history found"
+        enableSearch
+        showSearch
+        // Server-side pagination props
+        serverSide
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        // Custom stats component for scan statistics
+        // statsComponent={ScanStatistics}
+        showReportSwitch={false}
+        tableProps={{
+          bordered: false,
+          expandable: {
+            expandedRowRender: (record) => (
+              <ExpandedScanDetails
+                bookingId={record.booking_id}
+                eventId={record.event?.id}
+                columns={innerColumns}
+              />
+            ),
+            rowExpandable: (record) => record.total_scans > 0,
+            expandedRowKeys: expandedRowKeys,
+            onExpand: (expanded, record) => {
+              const key = record.booking_id; // Using booking_id as key
+              setExpandedRowKeys(prev => expanded ? [...prev, key] : prev.filter(k => k !== key));
+            }
           }
-        }
-      }}
-      extraHeaderContent={eventFilterDropdown}
-    />
+        }}
+        extraHeaderContent={eventFilterDropdown}
+      />
+    </PermissionChecker>
   );
 };
 

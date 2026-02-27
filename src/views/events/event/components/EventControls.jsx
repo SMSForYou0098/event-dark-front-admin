@@ -11,6 +11,7 @@ import { ArrowRightOutlined, CheckCircleFilled, PlusOutlined, EditOutlined } fro
 import MultiScanCheckpoints from './MultiScanCheckpoints';
 import SelectFields from 'views/events/Settings/Fields/SelectFields';
 import apiClient from 'auth/FetchInterceptor';
+import Utils from 'utils';
 const { Text } = Typography;
 
 // helpers — convert to boolean
@@ -43,6 +44,9 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
     queryKey: ['category-show', categoryId],
     queryFn: async () => {
       const response = await apiClient.get(`category-show/${categoryId}`);
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to fetch category details'));
+      }
       return response?.data || response;
     },
     enabled: !!categoryId,
@@ -439,33 +443,33 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                             onChange={(checked) => {
                               // If this is one of the exclusive fields and it's being turned ON
                               if (isExclusive && checked) {
-                                    // Turn off the other exclusive fields
-                                    exclusiveFields.forEach((fieldName) => {
-                                      if (fieldName !== f.name) {
-                                        form.setFieldValue(fieldName, false);
-                                      }
-                                    });
+                                // Turn off the other exclusive fields
+                                exclusiveFields.forEach((fieldName) => {
+                                  if (fieldName !== f.name) {
+                                    form.setFieldValue(fieldName, false);
                                   }
+                                });
+                              }
 
-                                  // When Event Cancelled is turned ON, turn off all appropriate switches
-                                  if (f.name === 'is_cancelled' && checked) {
-                                    const fieldsToTurnOff = [
-                                      'online_booking',
-                                      'agent_booking',
-                                      'pos_booking',
-                                      'complimentary_booking',
-                                      'sponsor_booking',
-                                      'status',
-                                      'house_full',
-                                      'show_on_home',
-                                      'event_feature'
-                                    ];
+                              // When Event Cancelled is turned ON, turn off all appropriate switches
+                              if (f.name === 'is_cancelled' && checked) {
+                                const fieldsToTurnOff = [
+                                  'online_booking',
+                                  'agent_booking',
+                                  'pos_booking',
+                                  'complimentary_booking',
+                                  'sponsor_booking',
+                                  'status',
+                                  'house_full',
+                                  'show_on_home',
+                                  'event_feature'
+                                ];
 
-                                    fieldsToTurnOff.forEach((fieldName) => {
-                                      form.setFieldValue(fieldName, false);
-                                    });
-                                  }
-                                }}
+                                fieldsToTurnOff.forEach((fieldName) => {
+                                  form.setFieldValue(fieldName, false);
+                                });
+                              }
+                            }}
                           />
                         </Form.Item>
                       );

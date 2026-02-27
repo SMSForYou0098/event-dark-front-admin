@@ -7,6 +7,7 @@ import {
 } from './useContentMaster';
 import { useMyContext } from 'Context/MyContextProvider';
 import ContentFormModal from './ContentFormModal';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const ContentMaster = () => {
     const { UserData, userRole } = useMyContext();
@@ -102,18 +103,22 @@ const ContentMaster = () => {
                 width: 120,
                 render: (_, record) => (
                     <Space>
-                        <Button
-                            type="primary"
-                            size="small"
-                            icon={<EditOutlined />}
-                            onClick={() => handleEdit(record)}
-                        />
-                        <Popconfirm
-                            title="Delete this content?"
-                            onConfirm={() => handleDelete(record.id)}
-                        >
-                            <Button danger size="small" icon={<DeleteOutlined />} />
-                        </Popconfirm>
+                        <PermissionChecker permission="Update Content Master">
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<EditOutlined />}
+                                onClick={() => handleEdit(record)}
+                            />
+                        </PermissionChecker>
+                        <PermissionChecker permission="Delete Content Master">
+                            <Popconfirm
+                                title="Delete this content?"
+                                onConfirm={() => handleDelete(record.id)}
+                            >
+                                <Button danger size="small" icon={<DeleteOutlined />} />
+                            </Popconfirm>
+                        </PermissionChecker>
                     </Space>
                 ),
             },
@@ -134,13 +139,15 @@ const ContentMaster = () => {
                         onChange={(e) => setSearchText(e.target.value)}
                         style={{ width: 250 }}
                     />
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={handleModalOpen}
-                    >
-                        Add New Content
-                    </Button>
+                    <PermissionChecker permission="Create Content Master">
+                        <Button
+                            type="primary"
+                            icon={<PlusOutlined />}
+                            onClick={handleModalOpen}
+                        >
+                            Add New Content
+                        </Button>
+                    </PermissionChecker>
                 </Space>
             }
         >

@@ -6,6 +6,10 @@ import StatSection from 'views/events/Dashboard/components/StatSection';
 import { useOrganizerEvents } from 'views/events/Settings/hooks/useBanners';
 import DataTable from 'views/events/common/DataTable';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
+import { message } from 'antd';
 const { Text } = Typography;
 const ScannerReport = () => {
   const { isMobile, UserData } = useMyContext();
@@ -34,6 +38,7 @@ const ScannerReport = () => {
     },
     staleTime: 30000,
     retry: 1,
+    onError: (err) => message.error(Utils.getErrorMessage(err)),
   });
 
   const stats = response?.statistics || {};
@@ -122,75 +127,77 @@ const ScannerReport = () => {
   ];
 
   return (
-    <div style={{ marginBottom: 16 }}>
-      {/* Event Filter */}
-      <Card size="small" style={{ marginBottom: 16 }}>
-        <Space wrap>
-          <Text strong>Filter by Event:</Text>
-          <Select
-            placeholder="All Events"
-            allowClear
-            showSearch
-            loading={eventsLoading}
-            value={selectedEventId}
-            onChange={setSelectedEventId}
-            style={{ minWidth: 250 }}
-            optionFilterProp="label"
-            options={events}
-          />
-        </Space>
-      </Card>
+    <PermissionChecker permission={PERMISSIONS.VIEW_SCANNER_REPORTS}>
+      <div style={{ marginBottom: 16 }}>
+        {/* Event Filter */}
+        <Card size="small" style={{ marginBottom: 16 }}>
+          <Space wrap>
+            <Text strong>Filter by Event:</Text>
+            <Select
+              placeholder="All Events"
+              allowClear
+              showSearch
+              loading={eventsLoading}
+              value={selectedEventId}
+              onChange={setSelectedEventId}
+              style={{ minWidth: 250 }}
+              optionFilterProp="label"
+              options={events}
+            />
+          </Space>
+        </Card>
 
-      {/* Stats Cards */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <StatSection
-          stats={[...statsData, ...bookingTypeStats]}
-          colConfig={{ xs: 12, sm: 8, md: 6, lg: 4 }}
-          isMobile={isMobile}
-        />
-      </Row>
-
-      {/* Data Tables */}
-      <Row gutter={[16, 16]}>
-        {/* Checkpoint Stats */}
-        <Col xs={24} md={12}>
-          <DataTable
-            title="Scans by Checkpoint"
-            data={stats.scans_by_checkpoint || []}
-            columns={checkpointColumns}
-            loading={statsLoading}
-            emptyText="No checkpoint data"
-            showSearch={false}
-            enableSearch={false}
-            tableProps={{
-              rowKey: (record) => record.checkpoint_id,
-              pagination: false,
-              size: 'small',
-              scroll: { x: false },
-            }}
+        {/* Stats Cards */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+          <StatSection
+            stats={[...statsData, ...bookingTypeStats]}
+            colConfig={{ xs: 12, sm: 8, md: 6, lg: 4 }}
+            isMobile={isMobile}
           />
-        </Col>
+        </Row>
 
-        {/* Scanner Stats */}
-        <Col xs={24} md={12}>
-          <DataTable
-            title="Scans by Scanner"
-            data={stats.scans_by_scanner || []}
-            columns={scannerColumns}
-            loading={statsLoading}
-            emptyText="No scanner data"
-            showSearch={false}
-            enableSearch={false}
-            tableProps={{
-              rowKey: (record) => record.user_id,
-              pagination: false,
-              size: 'small',
-              scroll: { x: false },
-            }}
-          />
-        </Col>
-      </Row>
-    </div>
+        {/* Data Tables */}
+        <Row gutter={[16, 16]}>
+          {/* Checkpoint Stats */}
+          <Col xs={24} md={12}>
+            <DataTable
+              title="Scans by Checkpoint"
+              data={stats.scans_by_checkpoint || []}
+              columns={checkpointColumns}
+              loading={statsLoading}
+              emptyText="No checkpoint data"
+              showSearch={false}
+              enableSearch={false}
+              tableProps={{
+                rowKey: (record) => record.checkpoint_id,
+                pagination: false,
+                size: 'small',
+                scroll: { x: false },
+              }}
+            />
+          </Col>
+
+          {/* Scanner Stats */}
+          <Col xs={24} md={12}>
+            <DataTable
+              title="Scans by Scanner"
+              data={stats.scans_by_scanner || []}
+              columns={scannerColumns}
+              loading={statsLoading}
+              emptyText="No scanner data"
+              showSearch={false}
+              enableSearch={false}
+              tableProps={{
+                rowKey: (record) => record.user_id,
+                pagination: false,
+                size: 'small',
+                scroll: { x: false },
+              }}
+            />
+          </Col>
+        </Row>
+      </div>
+    </PermissionChecker>
   );
 };
 
