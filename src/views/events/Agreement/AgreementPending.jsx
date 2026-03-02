@@ -12,8 +12,8 @@ const AgreementPending = () => {
       <Card bordered={false} style={{ maxWidth: 640, width: '100%' }}>
         <Result
           status="warning"
-          title="Your organizer agreement is not approved yet"
-          subTitle="Your organizer account is under review. Once your agreement is approved, you will get access to all organizer features."
+          title="Your organizer agreement is not executed"
+          subTitle="Your organizer account is under review. Once your agreement is executed, you will get access to all organizer features."
           extra={[
             <Button
               key="dashboard"
@@ -34,7 +34,7 @@ const AgreementPending = () => {
             <Text type="secondary">
               This space is reserved for organizers whose onboarding or legal agreement is still pending.
               You can safely browse basic areas of the panel, but access to event management, sales,
-              and other restricted routes is temporarily disabled until an admin approves your agreement.
+              and other restricted routes is temporarily disabled until an admin executes your agreement.
             </Text>
           </Paragraph>
         </Result>

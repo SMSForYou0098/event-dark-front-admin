@@ -12,13 +12,12 @@ import {
   Select,
   Tooltip,
 } from 'antd';
-import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
+import { PlusSquareOutlined } from '@ant-design/icons';
 import DOMPurify from 'dompurify';
 import AgreementPdfViewer from 'components/shared-components/AgreementPdfViewer';
 import {
   useGetAllOrganizerOnboarding,
   useApproveOrganizerOnboarding,
-  useRejectOrganizerOnboarding,
 } from './useOrganizerOnboarding';
 import { useGetAllOrganizerAgreements } from '../../Agreement/Organizer/useOrganizerAgreement';
 
@@ -36,8 +35,6 @@ const OrganizerOnboarding = () => {
   const approveMutation = useApproveOrganizerOnboarding({
     onSuccess: () => handleModalClose(),
   });
-
-  const rejectMutation = useRejectOrganizerOnboarding();
 
   // Get the selected agreement
   const selectedAgreement = useMemo(() => {
@@ -209,12 +206,6 @@ const OrganizerOnboarding = () => {
     setAgreementAccepted(false);
   }, []);
 
-  const handleReject = useCallback(
-    (id) => {
-      rejectMutation.mutate(id);
-    },
-    [rejectMutation]
-  );
 
   // ========================= TABLE COLUMNS =========================
   const columns = useMemo(
@@ -248,28 +239,18 @@ const OrganizerOnboarding = () => {
         fixed: 'right',
         width: 150,
         render: (_, record) => (
-          <Space>
-            <Tooltip title="Approve">
-              <Button
-                type="primary"
-                size="small"
-                icon={<CheckOutlined />}
-                onClick={() => handleApproveClick(record)}
-              />
-            </Tooltip>
-            <Tooltip title="Reject">
-              <Popconfirm
-                title="Reject this request?"
-                onConfirm={() => handleReject(record.id)}
-              >
-                <Button danger size="small" icon={<CloseOutlined />} />
-              </Popconfirm>
-            </Tooltip>
-          </Space>
+          <Tooltip title="Assign">
+            <Button
+              type="primary"
+              size="small"
+              icon={<PlusSquareOutlined />}
+              onClick={() => handleApproveClick(record)}
+            />
+          </Tooltip>
         ),
       },
     ],
-    [handleApproveClick, handleReject]
+    [handleApproveClick]
   );
 
   const isSubmitting = approveMutation.isPending;

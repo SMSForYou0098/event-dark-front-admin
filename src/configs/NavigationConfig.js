@@ -575,48 +575,57 @@ const financialManagementNav = {
 // Settings Submenu
 const settingsSubmenu = [
   {
-    key: 'label-printing',
-    path: 'label-printing',
-    title: 'Label Printing',
+    key: 'label-management',
+    title: 'Label Management',
     icon: SafetyOutlined,
     breadcrumb: false,
-    submenu: [],
-    roles: ["Admin"]
-  },
-  {
-    key: 'label-forge',
-    path: 'label-forge',
-    title: 'Label Forge',
-    icon: SafetyOutlined,
-    breadcrumb: false,
-    submenu: [],
-    roles: ["Admin"]
-  },
-  {
-    key: 'dynamic-label-print',
-    path: 'dynamic-label-print',
-    title: 'Dynamic Label Print',
-    icon: SafetyOutlined,
-    breadcrumb: false,
-    submenu: [],
-    roles: ["Admin"]
-  },
-  {
-    key: 'label-designer',
-    path: 'label-designer',
-    title: 'Label Designer',
-    icon: SafetyOutlined,
-    breadcrumb: false,
-    submenu: [],
-    roles: ["Admin"]
-  },
-  {
-    key: 'printer-testing',
-    path: 'printer-testing',
-    title: 'Printer Testing',
-    icon: SafetyOutlined,
-    breadcrumb: false,
-    submenu: [],
+    submenu: [
+      {
+        key: 'label-printing',
+        path: 'label-printing',
+        title: 'Label Printing',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'label-forge',
+        path: 'label-forge',
+        title: 'Label Forge',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'dynamic-label-print',
+        path: 'dynamic-label-print',
+        title: 'Dynamic Label Print',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'label-designer',
+        path: 'label-designer',
+        title: 'Label Designer',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'printer-testing',
+        path: 'printer-testing',
+        title: 'Printer Testing',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+    ],
     roles: ["Admin"]
   },
   {

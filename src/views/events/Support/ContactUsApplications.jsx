@@ -29,7 +29,7 @@ const ContactUsApplications = () => {
       const queryParams = dateRange
         ? `?date=${dateRange.startDate},${dateRange.endDate}`
         : '';
-      const url = `contac-list${queryParams}`;
+      const url = `contact-list${queryParams}`;
 
       const response = await api.get(url);
 

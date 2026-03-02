@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Button, Space, Alert } from 'antd';
 import OtpInput from './OtpInput';
 
@@ -19,9 +19,31 @@ const OtpVerificationModal = ({
     isVerifying = false,
     isSending = false,
     verifyButtonText = "Verify",
-    cooldownSeconds = 0, // Optional: remaining cooldown time in seconds
+    cooldownSeconds = 0, // Optional: remaining cooldown time in seconds from parent
 }) => {
     const defaultDescription = `Please enter the OTP sent to ${phoneNumber} to complete the verification.`;
+    const [internalCooldown, setInternalCooldown] = useState(0);
+
+    // Initial cooldown and countdown logic
+    useEffect(() => {
+        let timer;
+        if (open) {
+            // Set initial 30s cooldown when modal opens
+            setInternalCooldown(30);
+
+            timer = setInterval(() => {
+                setInternalCooldown(prev => (prev > 0 ? prev - 1 : 0));
+            }, 1000);
+        } else {
+            setInternalCooldown(0);
+        }
+
+        return () => {
+            if (timer) clearInterval(timer);
+        };
+    }, [open]);
+
+    const activeCooldown = Math.max(cooldownSeconds, internalCooldown);
 
     const handleKeyDown = (e) => {
         if (e.key === 'Enter') {
@@ -30,6 +52,12 @@ const OtpVerificationModal = ({
                 onVerify();
             }
         }
+    };
+
+    const handleResend = () => {
+        onOtpChange(''); // Clear OTP input on resend
+        onResend();
+        setInternalCooldown(30); // Reset internal cooldown after clicking resend
     };
 
     return (
@@ -65,15 +93,12 @@ const OtpVerificationModal = ({
                         </Button>
                         <Button
                             type="link"
-                            onClick={() => {
-                                onOtpChange(''); // Clear OTP input on resend
-                                onResend();
-                            }}
+                            onClick={handleResend}
                             loading={isSending}
-                            disabled={cooldownSeconds > 0}
+                            disabled={activeCooldown > 0}
                         >
-                            {cooldownSeconds > 0
-                                ? `Resend OTP (${Math.floor(cooldownSeconds / 60)}:${String(cooldownSeconds % 60).padStart(2, '0')})`
+                            {activeCooldown > 0
+                                ? `Resend OTP (${Math.floor(activeCooldown / 60)}:${String(activeCooldown % 60).padStart(2, '0')})`
                                 : 'Resend OTP'
                             }
                         </Button>

@@ -1419,79 +1419,40 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
 
 
 
-            {/* OTP Verification Modal */}
-            <Modal
+            {/* OTP Verification Modal for Profile Edit */}
+            <OtpVerificationModal
+                open={otpModalVisible && otpSent}
+                onClose={handleOtpModalCancel}
+                onVerify={verifyOtpAndSave}
+                onResend={handleResendOtp}
+                phoneNumber={
+                    pendingFormValues?.email !== originalEmail.current && pendingFormValues?.number !== originalNumber.current
+                        ? 'email and phone'
+                        : pendingFormValues?.email !== originalEmail.current
+                            ? 'email'
+                            : 'phone'
+                }
                 title="Verify OTP"
-                open={otpModalVisible}
-                onCancel={handleOtpModalCancel}
-                footer={null}
-                maskClosable={false}
-                destroyOnClose
-            >
-                <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                    <Alert
-                        message="Verification Required"
-                        description="You've changed your email or phone number. Please verify with OTP to save changes."
-                        type="info"
-                        showIcon
-                        style={{ marginBottom: 24 }}
-                    />
+                description="You've changed your email or phone number. Please verify with OTP to save changes."
+                otpValue={otpValue}
+                onOtpChange={setOtpValue}
+                isVerifying={otpLoading}
+                isSending={otpSending}
+                verifyButtonText="Verify & Save"
+            />
 
-                    {otpSent ? (
-                        <>
-                            <p style={{ marginBottom: 16 }}>
-                                Enter the OTP sent to your {pendingFormValues?.email !== originalEmail.current && pendingFormValues?.number !== originalNumber.current
-                                    ? 'email and phone'
-                                    : pendingFormValues?.email !== originalEmail.current
-                                        ? 'email'
-                                        : 'phone'}
-                            </p>
-                            {Input.OTP ? (
-                                <Input.OTP
-                                    length={6}
-                                    value={otpValue}
-                                    onChange={setOtpValue}
-                                    style={{ marginBottom: 16 }}
-                                />
-                            ) : (
-                                <Input
-                                    maxLength={6}
-                                    value={otpValue}
-                                    onChange={(e) => setOtpValue(e.target.value)}
-                                    style={{ marginBottom: 16, width: 200, textAlign: 'center', letterSpacing: '0.5em', fontSize: 18 }}
-                                    placeholder="000000"
-                                />
-                            )}
-                            <div style={{ marginTop: 24 }}>
-                                <Space>
-                                    <Button onClick={handleOtpModalCancel}>
-                                        Cancel
-                                    </Button>
-                                    <Button
-                                        type="link"
-                                        onClick={handleResendOtp}
-                                        loading={otpSending}
-                                    >
-                                        Resend OTP
-                                    </Button>
-                                    <Button
-                                        type="primary"
-                                        onClick={verifyOtpAndSave}
-                                        loading={otpLoading}
-                                        disabled={!otpValue || otpValue.length < 6}
-                                    >
-                                        Verify & Save
-                                    </Button>
-                                </Space>
-                            </div>
-                        </>
-                    ) : (
-                        <div style={{ padding: '20px 0' }}>
-                            <Spin tip="Sending OTP..." />
-                        </div>
-                    )}
-                </div>
-            </Modal>
+            {!otpSent && otpModalVisible && (
+                <Modal
+                    open={otpModalVisible}
+                    footer={null}
+                    closable={false}
+                    centered
+                >
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <Spin tip="Sending OTP..." />
+                    </div>
+                </Modal>
+            )}
 
             {/* Agreement Selection Modal for Organizer with Verified Email */}
             <AgreementSelectionModal
