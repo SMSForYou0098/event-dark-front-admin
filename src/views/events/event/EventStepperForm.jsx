@@ -424,7 +424,7 @@ const EventStepperForm = () => {
             // },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
             { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} isEdit={isEdit} eventId={detail?.event_key} id={detail?.id} />, icon: <EnvironmentOutlined /> },
-            { title: 'SEO', content: <SEOStep form={form} eventKey={id} componentLoader={componentLoader} setComponentLoader={setComponentLoader} />, icon: <GlobalOutlined /> },
+            { title: 'SEO', content: <SEOStep form={form} eventKey={id} eventData={detail} componentLoader={componentLoader} setComponentLoader={setComponentLoader} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
         [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
@@ -648,7 +648,7 @@ const EventStepperForm = () => {
                                 </Button>
                             </Tooltip>
 
-                            {current === steps.length - 2 && (
+                            {/* {current === steps.length - 2 && (
                                 <Tooltip title={!canEdit ? "No permission to edit/publish" : ""}>
                                     <Button
                                         type="primary"
@@ -661,7 +661,7 @@ const EventStepperForm = () => {
                                         Publish Event
                                     </Button>
                                 </Tooltip>
-                            )}
+                            )} */}
                             {
 
                             }

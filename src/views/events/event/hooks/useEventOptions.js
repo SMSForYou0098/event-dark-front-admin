@@ -282,6 +282,16 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('meta_tag', values.meta_tag);
     appendIfDefined('meta_keyword', values.meta_keyword);
     appendIfDefined('seo_type', 'event');
+
+    // Tracking IDs
+    appendIfDefined('google_tag_manager_id', values.google_tag_manager_id);
+    appendIfDefined('google_analytics_id', values.google_analytics_id);
+    appendIfDefined('google_ads_conversion_id', values.google_ads_conversion_id);
+    appendIfDefined('meta_pixel_id', values.meta_pixel_id);
+
+    // Schema
+    appendIfDefined('schema_enabled', values.schema_enabled ? 1 : 0);
+    appendIfDefined('schema_override_json', values.schema_override_json);
   }
 
   // ---------- PUBLISH ----------
@@ -297,6 +307,16 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('meta_tag', values.meta_tag);
     appendIfDefined('meta_keyword', values.meta_keyword);
     appendIfDefined('seo_type', 'event');
+
+    // Tracking IDs
+    appendIfDefined('google_tag_manager_id', values.google_tag_manager_id);
+    appendIfDefined('google_analytics_id', values.google_analytics_id);
+    appendIfDefined('google_ads_conversion_id', values.google_ads_conversion_id);
+    appendIfDefined('meta_pixel_id', values.meta_pixel_id);
+
+    // Schema
+    appendIfDefined('schema_enabled', values.schema_enabled ? 1 : 0);
+    appendIfDefined('schema_override_json', values.schema_override_json);
   }
 
   // Always append the step identifier

@@ -477,9 +477,10 @@ const BookingsTab = ({
   return (
     <>
       <div className="mb-3">
-        {/* Filters */}
-        <Row gutter={ROW_GUTTER} className='justify-content-start'>
-          <Col xs={24} md={6}>
+        <Row gutter={[16, 16]} align="middle">
+
+          {/* Search */}
+          <Col xs={24} sm={12} md={8} lg={6}>
             <Search
               placeholder="Search bookings..."
               value={searchTerm}
@@ -488,11 +489,16 @@ const BookingsTab = ({
               enterButton={<SearchOutlined />}
             />
           </Col>
-          <Col xs={24} md={6}>
+
+          {/* Date Range */}
+          <Col xs={24} sm={12} md={8} lg={6}>
             <RangePicker
               value={
                 dateRange.length === 2 && dateRange[0] && dateRange[1]
-                  ? [dayjs(dateRange[0], 'YYYY-MM-DD'), dayjs(dateRange[1], 'YYYY-MM-DD')]
+                  ? [
+                    dayjs(dateRange[0], 'YYYY-MM-DD'),
+                    dayjs(dateRange[1], 'YYYY-MM-DD')
+                  ]
                   : null
               }
               onChange={handleDateRangeChange}
@@ -501,6 +507,8 @@ const BookingsTab = ({
               style={{ width: '100%' }}
             />
           </Col>
+
+          {/* Clear Filters */}
           {hasActiveFilters && (
             <Col xs={24} sm={12} md={6} lg={4}>
               <Button
@@ -512,13 +520,20 @@ const BookingsTab = ({
               </Button>
             </Col>
           )}
-          <Col xs={24} md={1}>
+
+          {/* Refresh Button */}
+          <Col
+            span={3}
+            className="d-flex justify-content-md-end"
+          >
             <Button
               icon={<ReloadOutlined />}
               onClick={onRefresh}
               loading={loading}
+              block
             />
           </Col>
+
         </Row>
       </div>
 

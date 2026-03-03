@@ -1,6 +1,6 @@
 // SEOStep.jsx
 import React, { useEffect } from 'react';
-import { Form, Input, Row, Col, Button, Typography, message } from 'antd';
+import { Form, Input, Row, Col, Button, Typography, message, Switch, Divider } from 'antd';
 import { Sparkles, Loader2 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
@@ -10,7 +10,7 @@ import Utils from 'utils';
 const { TextArea } = Input;
 const { Text } = Typography;
 
-const SEOStep = ({ form, eventKey, componentLoader, setComponentLoader }) => {
+const SEOStep = ({ form, eventKey, eventData, componentLoader, setComponentLoader }) => {
     // TanStack Query mutation for SEO generation
     const { mutate: generateSEO, isPending: generating } = useMutation({
         mutationFn: async () => {
@@ -272,6 +272,148 @@ const SEOStep = ({ form, eventKey, componentLoader, setComponentLoader }) => {
                             placeholder="event, music, concert, live show"
                             size="large"
                         />
+                    </Form.Item>
+                </Col>
+
+                <Col xs={24}>
+                    <Divider orientation="left">Tracking & Analytics</Divider>
+                </Col>
+
+                <Col xs={24} sm={12}>
+                    <Form.Item name="google_tag_manager_id" label="Google Tag Manager ID">
+                        <Input placeholder="GTM-XXXXXXX" size="large" />
+                    </Form.Item>
+                </Col>
+
+                <Col xs={24} sm={12}>
+                    <Form.Item name="google_analytics_id" label="Google Analytics ID">
+                        <Input placeholder="G-XXXXXXXXXX" size="large" />
+                    </Form.Item>
+                </Col>
+
+                <Col xs={24} sm={12}>
+                    <Form.Item name="google_ads_conversion_id" label="Google Ads Conversion ID">
+                        <Input placeholder="AW-XXXXXXXXXX" size="large" />
+                    </Form.Item>
+                </Col>
+
+                <Col xs={24} sm={12}>
+                    <Form.Item name="meta_pixel_id" label="Meta Pixel ID">
+                        <Input placeholder="123456789012345" size="large" />
+                    </Form.Item>
+                </Col>
+
+                <Col xs={24}>
+                    <Divider orientation="left">Schema Markup</Divider>
+                </Col>
+
+                <Col xs={24}>
+                    <Form.Item name="schema_enabled" label="Enable Schema Markup" valuePropName="checked">
+                        <Switch />
+                    </Form.Item>
+                </Col>
+
+                <Col xs={24}>
+                    <Form.Item
+                        noStyle
+                        shouldUpdate={(prevValues, currentValues) => prevValues.schema_enabled !== currentValues.schema_enabled}
+                    >
+                        {({ getFieldValue }) => {
+                            const isEnabled = getFieldValue('schema_enabled');
+
+                            // Generate dynamic default schema if enabled and no string is set yet
+                            if (isEnabled && !getFieldValue('schema_override_json') && eventKey && eventKey !== 'new') {
+                                // Extract required dynamic data from the form's other state if available
+                                // Some data comes from other steps. Form instance should have them if we've been there.
+                                // We are making a best effort to assemble this dynamically.
+                                const name = eventData?.name || getFieldValue('name') || '';
+                                const description = eventData?.description || getFieldValue('description') || '';
+                                const startDateRaw = eventData?.date_range || getFieldValue('date_range') || '';
+                                let startDate = '';
+                                let endDate = '';
+
+                                if (startDateRaw) {
+                                    const dates = startDateRaw.split(',');
+                                    startDate = dates[0]?.trim() || '';
+                                    endDate = dates[1]?.trim() || '';
+
+                                    // Append start_time/end_time if available
+                                    const st = eventData?.start_time || getFieldValue('start_time');
+                                    const et = eventData?.end_time || getFieldValue('end_time');
+
+                                    if (startDate && st) startDate = `${startDate}T${st}:00+05:30`;
+                                    if (endDate && et) endDate = `${endDate}T${et}:00+05:30`;
+                                    else if (startDate && et) endDate = `${startDate}T${et}:00+05:30`;
+                                }
+
+                                const orgName = eventData?.user?.organisation || (typeof getFieldValue('user') === 'object' ? getFieldValue('user')?.organisation : '');
+                                const cityName = eventData?.venue?.city || '';
+                                const venueName = eventData?.venue?.name || '';
+                                const thumbnail = eventData?.event_media?.thumbnail || getFieldValue('thumbnail') || '';
+
+                                // helper to slugify strings for URL
+                                const slugify = (text) => text?.toString().toLowerCase()
+                                    .replace(/\s+/g, '-')           // Replace spaces with -
+                                    .replace(/[^\w-]+/g, '')       // Remove all non-word chars
+                                    .replace(/--+/g, '-')         // Replace multiple - with single -
+                                    .replace(/^-+/, '')             // Trim - from start of text
+                                    .replace(/-+$/, '');            // Trim - from end of text
+
+                                const dynamicUrl = `https://getyourticket.in/events/${slugify(cityName)}/${slugify(orgName)}/${slugify(name)}/${eventData?.event_key || eventKey}`;
+
+                                const defaultSchema = {
+                                    "@context": "https://schema.org",
+                                    "@type": "Event",
+                                    "name": name,
+                                    "url": dynamicUrl,
+                                    "description": description.replace(/(<([^>]+)>)/gi, ""), // Strip HTML tags
+                                    "startDate": startDate,
+                                    "endDate": endDate,
+                                    "eventStatus": "https://schema.org/EventScheduled",
+                                    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+                                    "location": {
+                                        "@type": "Place",
+                                        "name": venueName || "Venue Name",
+                                        "address": {
+                                            "@type": "PostalAddress",
+                                            "addressLocality": cityName || "City",
+                                            "addressRegion": "Gujarat"
+                                        }
+                                    },
+                                    "organizer": {
+                                        "@type": "Organization",
+                                        "name": orgName,
+                                        "url": "https://getyourticket.in"
+                                    },
+                                    "image": thumbnail || "https://getyourticket.in/uploads/default-event.jpg",
+                                    "offers": {
+                                        "@type": "Offer",
+                                        "url": `${dynamicUrl}`,
+                                        "priceCurrency": "INR",
+                                        "availability": "https://schema.org/InStock"
+                                    }
+                                };
+
+                                // To correctly update the field inside a render prop, we wait for a tick
+                                setTimeout(() => {
+                                    form.setFieldValue('schema_override_json', JSON.stringify(defaultSchema, null, 2));
+                                }, 0);
+                            }
+
+                            return isEnabled ? (
+                                <Form.Item
+                                    name="schema_override_json"
+                                    label="Schema Override JSON"
+                                    tooltip="Enter custom JSON-LD schema to override the default generated schema."
+                                >
+                                    <TextArea
+                                        rows={12}
+                                        placeholder='{&#10;  "@context": "https://schema.org",&#10;  "@type": "Event",&#10;  "name": "Event Name",&#10;  ...&#10;}'
+                                        style={{ fontFamily: 'monospace' }}
+                                    />
+                                </Form.Item>
+                            ) : null;
+                        }}
                     </Form.Item>
                 </Col>
 
