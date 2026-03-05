@@ -576,7 +576,7 @@ const financialManagementNav = {
 const settingsSubmenu = [
   {
     key: 'label-management',
-    title: 'Label Management',
+    title: 'Label MGT',
     icon: SafetyOutlined,
     breadcrumb: false,
     submenu: [

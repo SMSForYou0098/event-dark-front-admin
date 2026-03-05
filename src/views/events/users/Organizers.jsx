@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Button, message, Image, Tooltip, Modal } from 'antd';
+import { Button, message, Image, Tooltip, Modal, Select } from 'antd';
 import { User, Mail, LogIn, PlusIcon, Settings, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMyContext } from '../../../Context/MyContextProvider';
@@ -28,7 +28,18 @@ const Organizers = () => {
 
   const [dateRange, setDateRange] = useState(null);
   const [error, setError] = useState(null);
+  const [selectedRole, setSelectedRole] = useState('Organizer');
   const [mutationLoading, setMutationLoading] = useState(false);
+  // Fetch roles
+  const { data: roles = [] } = useQuery({
+    queryKey: ["roles"],
+    queryFn: async () => {
+      const res = await api.get(`role-list`);
+      return (res?.role || []);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Fetch organizers with React Query
   const fetchOrganizers = async () => {
     const params = new URLSearchParams();
@@ -38,7 +49,7 @@ const Organizers = () => {
     } else {
       params.set('type', 'all');
     }
-    const url = `organizers?${params.toString()}`;
+    const url = `users-by-role/${selectedRole}?${params.toString()}`;
     const response = await api.get(url);
     if (!response.status) {
       throw new Error('Failed to fetch organizers');
@@ -52,7 +63,7 @@ const Organizers = () => {
     error: organizersError,
     refetch: refetchOrganizers
   } = useQuery({
-    queryKey: ['organizers', { dateRange }],
+    queryKey: ['organizers', { dateRange, selectedRole }],
     queryFn: fetchOrganizers,
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -113,7 +124,7 @@ const Organizers = () => {
 
 
   const handleNavigate = () => {
-    navigate('/users/new?type=Organizer');
+    navigate(`/users/new?type=${selectedRole}`);
   };
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -216,18 +227,11 @@ const Organizers = () => {
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
       render: (name) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'left' }}>
           <User size={16} className="text-primary" />
           <span>{name}</span>
         </div>
       )
-    },
-    {
-      title: 'Contact',
-      dataIndex: 'number',
-      key: 'number',
-      searchable: true,
-      render: (number) => number || 'N/A'
     },
     {
       title: 'Email',
@@ -235,11 +239,18 @@ const Organizers = () => {
       key: 'email',
       searchable: true,
       render: (email) => email ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'left' }}>
           <Mail size={16} className="text-primary" />
           <span>{email}</span>
         </div>
       ) : 'N/A'
+    },
+    {
+      title: 'Contact',
+      dataIndex: 'number',
+      key: 'number',
+      searchable: true,
+      render: (number) => number || 'N/A'
     },
   ];
 
@@ -301,7 +312,7 @@ const Organizers = () => {
       {renderMutationLoader()}
 
       <DataTable
-        title="Organizers Management"
+        title={`${selectedRole} Management`}
         data={formatOrganizerData(organizers)}
         columns={columns}
         showDateRange={true}
@@ -312,15 +323,29 @@ const Organizers = () => {
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
         extraHeaderContent={
-          <PermissionChecker permission="Add User">
-            <Tooltip title={"Add Organizer"}>
-              <Button
-                type="primary"
-                icon={<PlusIcon size={16} />}
-                onClick={handleNavigate}
-              />
-            </Tooltip>
-          </PermissionChecker>
+          <div className="d-flex align-items-center gap-2">
+            <Select
+              placeholder="Select Role"
+              value={selectedRole}
+              onChange={(value) => setSelectedRole(value)}
+              style={{ minWidth: 150 }}
+            >
+              {roles.filter(role => role.name !== 'User').map((role) => (
+                <Select.Option key={role.id} value={role.name}>
+                  {role.name}
+                </Select.Option>
+              ))}
+            </Select>
+            <PermissionChecker permission="Add User">
+              <Tooltip title={`Add ${selectedRole}`}>
+                <Button
+                  type="primary"
+                  icon={<PlusIcon size={16} />}
+                  onClick={handleNavigate}
+                />
+              </Tooltip>
+            </PermissionChecker>
+          </div>
         }
         enableExport={true}
         exportRoute={'export-organizers'}

@@ -2,6 +2,77 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import Utils from 'utils';
+import { USERSITE_URL } from 'utils/consts';
+
+const slugify = (text) => text?.toString().toLowerCase()
+  .replace(/\s+/g, '-')           // Replace spaces with -
+  .replace(/[^\w-]+/g, '')       // Remove all non-word chars
+  .replace(/--+/g, '-')         // Replace multiple - with single -
+  .replace(/^-+/, '')             // Trim - from start of text
+  .replace(/-+$/, '');            // Trim - from end of text
+
+const generateEventSchema = (values, eventData) => {
+  const name = eventData?.name || values.name || '';
+  const description = eventData?.description || values.description || '';
+  const startDateRaw = eventData?.date_range || values.date_range || '';
+  let startDate = '';
+  let endDate = '';
+
+  if (startDateRaw) {
+    const dates = startDateRaw.split(',');
+    startDate = dates[0]?.trim() || '';
+    endDate = dates[1]?.trim() || '';
+
+    // Append start_time/end_time if available
+    const st = eventData?.start_time || values.start_time;
+    const et = eventData?.end_time || values.end_time;
+
+    if (startDate && st) startDate = `${startDate}T${st}:00+05:30`;
+    if (endDate && et) endDate = `${endDate}T${et}:00+05:30`;
+    else if (startDate && et) endDate = `${startDate}T${et}:00+05:30`;
+  }
+
+  const orgName = eventData?.user?.organisation || (typeof values?.user === 'object' ? values?.user?.organisation : '');
+  const cityName = eventData?.venue?.city || values.city || '';
+  const venueName = eventData?.venue?.name || values.venue_name || '';
+  const thumbnail = eventData?.event_media?.thumbnail || values.thumbnail || '';
+  const eventKey = eventData?.event_key || values.event_key;
+
+  const dynamicUrl = `${USERSITE_URL}events/${slugify(cityName)}/${slugify(orgName)}/${slugify(name)}/${eventKey}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": name,
+    "url": dynamicUrl,
+    "description": description.replace(/(<([^>]+)>)/gi, ""), // Strip HTML tags
+    "startDate": startDate,
+    "endDate": endDate,
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": venueName || "Venue Name",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": cityName || "City",
+        "addressRegion": "Gujarat"
+      }
+    },
+    "organizer": {
+      "@type": "Organization",
+      "name": orgName || "Organizer",
+      "url": `${USERSITE_URL}`
+    },
+    "image": thumbnail || `${USERSITE_URL}uploads/default-event.jpg`,
+    "offers": {
+      "@type": "Offer",
+      "url": `${dynamicUrl}`,
+      "priceCurrency": "INR",
+      "availability": "https://schema.org/InStock"
+    }
+  };
+};
 export const useOrganizers = () =>
   useQuery({
     queryKey: ['organizers'],
@@ -290,8 +361,12 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('meta_pixel_id', values.meta_pixel_id);
 
     // Schema
-    appendIfDefined('schema_enabled', values.schema_enabled ? 1 : 0);
-    appendIfDefined('schema_override_json', values.schema_override_json);
+    appendIfDefined('schema_enabled', values.schema_enabled ?? false);
+    if (values.schema_enabled) {
+      const existingSchema = values.schema_override_json;
+      const generatedSchema = JSON.stringify(generateEventSchema(values, values.eventData), null, 2);
+      fd.append('schema_override_json', existingSchema || generatedSchema);
+    }
   }
 
   // ---------- PUBLISH ----------
@@ -315,8 +390,12 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('meta_pixel_id', values.meta_pixel_id);
 
     // Schema
-    appendIfDefined('schema_enabled', values.schema_enabled ? 1 : 0);
-    appendIfDefined('schema_override_json', values.schema_override_json);
+    appendIfDefined('schema_enabled', values.schema_enabled ?? false);
+    if (values.schema_enabled) {
+      const existingSchema = values.schema_override_json;
+      const generatedSchema = JSON.stringify(generateEventSchema(values, values.eventData), null, 2);
+      fd.append('schema_override_json', existingSchema || generatedSchema);
+    }
   }
 
   // Always append the step identifier

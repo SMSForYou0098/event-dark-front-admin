@@ -290,6 +290,8 @@ const EventStepperForm = () => {
                 meta_keyword: event_seo?.meta_keyword,
                 meta_title: event_seo?.meta_title,
                 meta_description: event_seo?.meta_description,
+                schema_enabled: toBool(event_seo?.schema_enabled),
+                schema_override_json: event_seo?.schema_override_json,
             });
         }
 
@@ -370,8 +372,8 @@ const EventStepperForm = () => {
     // Memoized form data from form values + tickets
     const getFormData = useCallback(() => {
         const values = form.getFieldsValue();
-        return { ...values, tickets };
-    }, [form, tickets]);
+        return { ...values, tickets, eventData: detail };
+    }, [form, tickets, detail]);
 
     // Save controls step — used by EventControlsStep before navigating to layout
     const saveControlsStep = useCallback(async () => {

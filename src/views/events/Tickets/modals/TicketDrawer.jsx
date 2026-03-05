@@ -92,15 +92,11 @@ const TicketDrawer = ({
     // Drawer content - Notice before generating ticket
     const noticeContent = (
         <div className="p-4">
-            <div className="d-flex align-items-center gap-2 mb-3">
-                <AlertCircle size={24} className="text-warning" />
-                <h6 className="mb-0 fw-bold">Important Information</h6>
-            </div>
 
+            {/* Ticket Type Notice */}
             {ticketType?.type === 'individual' && (
-                <div className="alert alert-warning mb-3">
-                    <h6 className="alert-heading mb-2 fw-bold">Single Ticket</h6>
-                    <p className="mb-0">
+                <div className="alert alert-warning mb-4 py-3">
+                    <p className="mb-0 small">
                         If you select single ticket, each attendee receives a personal QR code for entry,
                         and group tickets won&apos;t work.
                     </p>
@@ -108,39 +104,56 @@ const TicketDrawer = ({
             )}
 
             {ticketType?.type === 'combine' && (
-                <div className="alert alert-info mb-3">
-                    <h6 className="alert-heading mb-2 fw-bold">Group Ticket</h6>
-                    <p className="mb-0">
+                <div className="alert alert-info mb-4 py-3">
+                    <p className="mb-0 small">
                         If you select group ticket, all attendees must arrive together and show the group ticket
                         at the venue for entry. Individual tickets will not work.
                     </p>
                 </div>
             )}
-            <div className="text-center h6">
-                Note: Sharing This Ticket manually is the sole responsibility of the Event Organizer.
+
+            {ticketType?.type === 'single' && (
+                <ul className="mt-2 ps-3 mb-4 small">
+                    <li className="mb-1">
+                        To ensure a smooth and hassle-free entry, please scan your ticket before arriving at the venue.
+                    </li>
+                    <li className="mb-1">
+                        Kindly watch the video guide for step-by-step instructions on how to scan your ticket easily.
+                    </li>
+                    <li>
+                        Thank you, and we look forward to welcoming you!
+                    </li>
+                </ul>
+            )}
+
+            {/* Note */}
+            <div className="text-center small text-muted mb-3">
+                <strong>Note:</strong> Sharing This Ticket manually is the sole responsibility of the Event Organizer.
             </div>
 
-            <div className="d-flex justify-content-center align-items-center gap-4 mt-3 mb-1">
+            {/* Social Links */}
+            <div className="d-flex justify-content-center align-items-center gap-4 pt-2 border-top">
+
                 <a
                     href="https://www.youtube.com/@Get-Your-Ticket"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-decoration-none text-white d-flex align-items-center"
-                    style={{ gap: 6, marginRight: 10 }}
+                    className="text-decoration-none text-white d-flex align-items-center gap-2"
                 >
                     <YoutubeFilled style={{ fontSize: 20 }} />
                     <span className="small fw-semibold">YouTube</span>
                 </a>
+
                 <a
                     href="https://www.instagram.com/getyourticket.in"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-decoration-none text-white d-flex align-items-center"
-                    style={{ gap: 6 }}
+                    className="text-decoration-none text-white d-flex align-items-center gap-2"
                 >
                     <InstagramFilled style={{ fontSize: 20 }} />
                     <span className="small fw-semibold">Instagram</span>
                 </a>
+
             </div>
 
         </div>
@@ -183,6 +196,9 @@ const TicketDrawer = ({
                                             <div key={index}>
                                                 <Col span={24}>
                                                     <div>
+                                                        <p className="text-center text-secondary m-0 mt-1">
+                                                            Ticket {index + 1} of {ticketData.bookings.length} (I)
+                                                        </p>
                                                         <TicketCanvasView
                                                             ref={(el) => { swiperCanvasRefs.current[index] = el; }}
                                                             showDetails={showTicketDetails}
@@ -195,16 +211,14 @@ const TicketDrawer = ({
                                                             preloadedImage={bgImageForCanvas}
                                                         />
                                                     </div>
-                                                    <p className="text-center text-secondary m-0 mt-1">
-                                                        Ticket {index + 1} of {ticketData.bookings.length} (I)
-                                                    </p>
+
                                                 </Col>
                                             </div>
                                         ))}
                                     </Carousel>
                                 </>
                             )
-                        ) : ticketType?.type === 'combine' ? (
+                        ) : ticketType?.type === 'combine' || ticketType?.type === 'single' ? (
                             <div style={{ height: "auto" }}>
                                 <Col span={24}>
                                     <div>
@@ -281,7 +295,7 @@ const TicketDrawer = ({
 
     return (
         <Drawer
-            title={ticketType?.type === 'individual' ? 'Individual Tickets' : 'Group Ticket'}
+            title={ticketType?.type === 'individual' ? 'Individual Tickets' : ticketType?.type === 'single' ? 'Single Ticket' : 'Group Ticket'}
             placement="right"
             closable={true}
             onClose={handleClose}

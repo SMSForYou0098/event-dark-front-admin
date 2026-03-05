@@ -5,7 +5,7 @@ import { useMyContext } from "../../../../Context/MyContextProvider";
 import { Send, Ticket, AlertCircle } from "lucide-react";
 import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, DollarOutlined } from '@ant-design/icons';
 import DataTable from "../../common/DataTable";
-import TicketModal from "views/events/Tickets/modals/TicketModal";
+import TicketDrawer from "views/events/Tickets/modals/TicketDrawer";
 import api from "auth/FetchInterceptor";
 import BookingCount from "./BookingCount";
 import RefundModal from "./RefundModal";
@@ -673,7 +673,7 @@ const OnlineBookings = memo(() => {
         emptyText="No bookings found"
       />
 
-      <TicketModal
+      <TicketDrawer
         show={show}
         handleCloseModal={handleCloseModal}
         ticketType={ticketType}

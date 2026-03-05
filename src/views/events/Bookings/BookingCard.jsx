@@ -69,7 +69,7 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
   const [ticketData, setTicketData] = useState([]);
   const [ticketType, setTicketType] = useState({ id: "", type: "" });
   const [show, setShow] = useState(false);
-  const {id} = useParams();
+  const { id } = useParams();
   const { getCurrencySymbol, formatDateRange, formatDateTime } = useMyContext();
   const [showTransferDrawer, setShowTransferDrawer] = useState(false);
   /** Normalize booking (supports master with .bookings[]) */
@@ -231,62 +231,72 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
   /** Right actions */
   const rightActions = useMemo(() => (
     <div className="w-100 mt-2">
-  
-        {/* Left side actions */}
-        {isBoxOffice && booking?.card_token && (
-          <div className="col-12 col-md-auto">
-            <PermissionChecker role={["Admin", "Organizer", "Box Office"]}>
-              <div className="d-flex flex-column flex-md-row gap-2">
-                <Button
-                  type="primary"
-                  danger
-                  onClick={handleOpenReassignModal}
-                >
-                  Reassign Token
-                </Button>
-  
-                <Button
-                  type="default"
-                  icon={<HistoryOutlined />}
-                  onClick={() => setShowHistoryModal(true)}
-                >
-                  View History
-                </Button>
-              </div>
-            </PermissionChecker>
-          </div>
-        )}
-  
-        {/* Right side actions */}
-        {showAction && (
-            <div className="d-flex justify-content-between align-items-center">
-  
-  
-              <TicketActions
-                onSendTickets={handleOpenTransferDrawer}
-                item={booking}
-                userId={id}
-              />
-              <Dropdown
-                trigger={["click"]}
-                placement="bottomRight"
-                menu={{ items: menuItems, onClick: onMenuClick }}
+
+      {/* Left side actions */}
+      {isBoxOffice && booking?.card_token && (
+        <div className="col-12 col-md-auto">
+          <PermissionChecker role={["Admin", "Organizer", "Box Office"]}>
+            <div className="d-flex flex-column flex-md-row gap-2">
+              <Button
+                type="primary"
+                danger
+                onClick={handleOpenReassignModal}
               >
-                <Button type="primary">
-                  Generate E-Ticket
-                  <MoreOutlined style={{ marginLeft: 6 }} />
-                </Button>
-              </Dropdown>
+                Reassign Token
+              </Button>
+
+              <Button
+                type="default"
+                icon={<HistoryOutlined />}
+                onClick={() => setShowHistoryModal(true)}
+              >
+                View History
+              </Button>
             </div>
-        )}
-  
+          </PermissionChecker>
+        </div>
+      )}
+
+      {/* Right side actions */}
+      {showAction && (
+        <div className="d-flex justify-content-between align-items-center">
+
+
+          <TicketActions
+            onSendTickets={handleOpenTransferDrawer}
+            item={booking}
+            userId={id}
+          />
+          {Number(bookingData.quantity) === 1 ? (
+            <Button
+              type="primary"
+              onClick={() => handleTicketPreview(booking, "single", bookingData.id)}
+            >
+              Generate E-Ticket
+            </Button>
+          ) : (
+            <Dropdown
+              trigger={["click"]}
+              placement="bottomRight"
+              menu={{ items: menuItems, onClick: onMenuClick }}
+            >
+              <Button type="primary">
+                Generate E-Ticket
+                <MoreOutlined style={{ marginLeft: 6 }} />
+              </Button>
+            </Dropdown>
+          )}
+        </div>
+      )}
+
     </div>
   ), [
     menuItems,
     onMenuClick,
     isBoxOffice,
     booking,
-    showAction
+    showAction,
+    bookingData
   ]);
 
   return (
