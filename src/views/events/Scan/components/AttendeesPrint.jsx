@@ -14,6 +14,8 @@ import { generateTSPLFromExcel, generateZPLFromExcel, generateCPCLFromExcel } fr
 const FIELD_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days
 const ATTENDEES_PRINT_SIZE_KEY = 'attendees_print_size';
 const ATTENDEES_PRINT_PRINTER_TYPE_KEY = 'attendees_print_printer_type';
+const ATTENDEES_PRINT_FIELDS_KEY = 'attendees_print_fields';
+const ATTENDEES_PRINT_SOURCE_KEY = 'attendees_print_source';
 
 const setWithExpiry = (key, value, ttlMs) => {
   const now = Date.now();
@@ -85,12 +87,13 @@ const extractDynamicFields = (dataArray) => {
       });
     }
   });
-  return Array.from(keySet).map((key) => ({
+  const fields = Array.from(keySet).map((key) => ({
     key,
     label: toLabel(key),
     defaultEnabled: false,
     defaultSize: key === 'name' ? 1.5 : 1.0,
   }));
+  return fields;
 };
 
 const AttendeesPrint = forwardRef(({
@@ -98,7 +101,8 @@ const AttendeesPrint = forwardRef(({
   eventData,
   ticket,
   bookings,
-  primaryColor = '#B51515'
+  primaryColor = '#B51515',
+  onStateChange
 }, ref) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -118,6 +122,7 @@ const AttendeesPrint = forwardRef(({
   const [fieldFontSizes, setFieldFontSizes] = useState({});
   const printRef = useRef(null);
   const modeInitializedRef = useRef(false);
+  const [initialLoad, setInitialLoad] = useState(true);
 
   // Printer context
   const {
@@ -136,10 +141,20 @@ const AttendeesPrint = forwardRef(({
   useEffect(() => {
     const size = getWithExpiry(ATTENDEES_PRINT_SIZE_KEY);
     const savedPrinterType = getWithExpiry(ATTENDEES_PRINT_PRINTER_TYPE_KEY);
+    const savedSource = getWithExpiry(ATTENDEES_PRINT_SOURCE_KEY);
+    const savedFields = getWithExpiry(ATTENDEES_PRINT_FIELDS_KEY);
 
     if (size) setSelectedDimension(size);
     if (savedPrinterType) setPrinterType(savedPrinterType);
-  }, []);
+    if (savedSource) setPrintDataSource(savedSource);
+    if (savedFields && Array.isArray(savedFields)) setSelectedFields(savedFields);
+
+    onStateChange?.(isModalOpen);
+    setTimeout(() => setInitialLoad(false), 50);
+  }, [isModalOpen, onStateChange]);
+  useEffect(() => {
+    onStateChange?.(isModalOpen || showConfig || showPrintSettings);
+  }, [isModalOpen, showConfig, showPrintSettings, onStateChange]);
 
   // Dynamically extract available fields based on selected data source
   const userData = useMemo(() => bookings?.user ? [bookings.user] : [], [bookings]);
@@ -158,8 +173,18 @@ const AttendeesPrint = forwardRef(({
 
   // Reset selected fields when data source changes (available fields change)
   useEffect(() => {
-    setSelectedFields([]);
-  }, [printDataSource]);
+    if (!initialLoad) {
+      setSelectedFields([]);
+      setWithExpiry(ATTENDEES_PRINT_FIELDS_KEY, [], FIELD_TTL);
+    }
+  }, [printDataSource, initialLoad]);
+
+  // Save fields when they change
+  useEffect(() => {
+    if (!initialLoad) {
+      setWithExpiry(ATTENDEES_PRINT_FIELDS_KEY, selectedFields, FIELD_TTL);
+    }
+  }, [selectedFields, initialLoad]);
 
   // Get selected dimension
   const selectedDim = DIMENSION_OPTIONS.find(d => d.value === selectedDimension) || DIMENSION_OPTIONS[0];
@@ -378,7 +403,27 @@ const AttendeesPrint = forwardRef(({
 
   // Expose functions to parent
   useImperativeHandle(ref, () => ({
-    handlePrintAllAttendees: showModal
+    // Check if print settings have been configured (fields selected)
+    isPrintConfigured: () => selectedFields.length > 0,
+
+    // Open print config drawer (for manual settings access)
+    openPrintSettings: () => {
+      showModal();
+    },
+
+    // Manual print button: always opens configuration drawer
+    handlePrintAllAttendees: () => {
+      showModal();
+    },
+
+    // Auto print: prints silently if configured, warns if not
+    handleAutoPrint: async () => {
+      if (!selectedFields.length) {
+        message.warning('Auto-Print skipped: No fields selected to print.');
+        return;
+      }
+      await handleThermalPrint();
+    }
   }));
 
 
@@ -408,16 +453,20 @@ const AttendeesPrint = forwardRef(({
         width={isMobile ? '95%' : 700}
         height={isMobile ? '85vh' : undefined}
         className={isMobile ? 'attendees-print-modal-mobile' : 'attendees-print-modal'}
-        bodyStyle={{
-          padding: isMobile ? '12px' : '16px',
-          maxHeight: isMobile ? 'calc(100vh - 200px)' : 'calc(100vh - 300px)',
-          overflowY: 'auto'
-        }}
-        headerStyle={{
-          padding: isMobile ? '12px 16px' : '16px 24px'
-        }}
-        footerStyle={{
-          padding: isMobile ? '12px' : '16px'
+        styles={{
+          body: {
+            padding: isMobile ? '12px' : '16px',
+            background: 'rgba(0,0,0,0.05)'
+          },
+          header: {
+            padding: isMobile ? '12px 16px' : '18px 24px',
+            borderBottom: '1px solid rgba(255,255,255,0.05)'
+          },
+          footer: {
+            padding: isMobile ? '12px' : '16px 24px',
+            background: 'rgba(0,0,0,0.2)',
+            borderTop: '1px solid rgba(255,255,255,0.05)'
+          }
         }}
         footer={
           <Space direction="vertical" size="middle" className="w-100">
@@ -457,7 +506,10 @@ const AttendeesPrint = forwardRef(({
             <Segmented
               block
               value={printDataSource}
-              onChange={setPrintDataSource}
+              onChange={(val) => {
+                setPrintDataSource(val);
+                setWithExpiry(ATTENDEES_PRINT_SOURCE_KEY, val, FIELD_TTL);
+              }}
               options={[
                 {
                   label: (
@@ -511,39 +563,41 @@ const AttendeesPrint = forwardRef(({
           </div>
 
           <div
-            className="mb-4 p-3 rounded"
+            className="mb-4 p-3 rounded-4"
             style={{
-              background: 'rgba(181, 21, 21, 0.15)',
-              border: '1px solid rgba(181, 21, 21, 0.3)'
+              background: 'linear-gradient(145deg, rgba(181, 21, 21, 0.1), rgba(181, 21, 21, 0.05))',
+              border: '1px solid rgba(181, 21, 21, 0.2)',
+              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.2)'
             }}
           >
-            <div className="small text-white-50 mb-2 d-flex justify-content-between align-items-center">
-              <span>Printing:</span>
-              <span className="fw-bold text-white ms-2" style={{ fontSize: '14px' }}>
-                {printDataSource === 'user' ? 'User Data' : 'Attendee Data'}
-              </span>
-            </div>
-            <div className="small text-white-50 mb-2 d-flex justify-content-between align-items-center">
-              <span>Total Items:</span>
-              <span className="fw-bold text-white ms-2" style={{ fontSize: '16px' }}>
-                {printableData?.length || 0}
-              </span>
-            </div>
-            <div className="small text-white-50 mb-2 d-flex justify-content-between align-items-center">
-              <span>Selected Fields:</span>
-              <span className="fw-bold text-white ms-2" style={{ fontSize: '14px' }}>
-                {selectedFields.length || 'None'}
-              </span>
-            </div>
-            <div className="small text-white-50 d-flex justify-content-between align-items-center">
-              <span>Ticket:</span>
-              <span className="fw-semibold text-white ms-2">
-                {ticket?.name || 'N/A'}
-              </span>
+            <div className="d-flex flex-wrap gap-3">
+              <div className="flex-grow-1">
+                <div className="small text-white-50 mb-1">Printing Mode</div>
+                <div className="fw-bold text-white mb-1">
+                  {printDataSource === 'user' ? 'User Data' : 'Attendee Data'}
+                </div>
+                <div className="small text-white-50 mt-2">Ticket Type</div>
+                <div className="small fw-semibold text-white">
+                  {ticket?.name || 'N/A'}
+                </div>
+              </div>
+              <div
+                className="text-center p-2 rounded-3"
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  minWidth: '100px',
+                  border: '1px solid rgba(255,255,255,0.05)'
+                }}
+              >
+                <div className="small text-white-50 mb-1">Total Items</div>
+                <div className="fs-4 fw-bold text-white">{printableData?.length || 0}</div>
+                <div className="mt-2" style={{ height: '2px', background: primaryColor, width: '40%', margin: '0 auto' }} />
+                <div style={{ fontSize: '11px' }} className="mt-1 text-white-50">{selectedFields.length} Fields</div>
+              </div>
             </div>
           </div>
 
-          <div className="overflow-auto pe-1" style={{ maxHeight: isMobile ? '40vh' : '50vh' }}>
+          <div className="overflow-auto pe-1 flex-grow-1">
             {printableData?.map((item, index) => (
               <AttendeeCard
                 key={index}
@@ -551,6 +605,21 @@ const AttendeesPrint = forwardRef(({
                 primaryColor={primaryColor}
               />
             ))}
+          </div>
+          <div className="mt-3">
+            <Button
+              danger
+              block
+              onClick={() => {
+                localStorage.removeItem(ATTENDEES_PRINT_SIZE_KEY);
+                localStorage.removeItem(ATTENDEES_PRINT_PRINTER_TYPE_KEY);
+                localStorage.removeItem(ATTENDEES_PRINT_FIELDS_KEY);
+                localStorage.removeItem(ATTENDEES_PRINT_SOURCE_KEY);
+                window.location.reload();
+              }}
+            >
+              Reset Print Settings
+            </Button>
           </div>
         </div>
       </Drawer>

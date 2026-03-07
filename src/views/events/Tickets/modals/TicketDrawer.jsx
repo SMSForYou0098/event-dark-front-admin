@@ -2,6 +2,9 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Row, Col, Drawer, Button, Spin, Carousel } from 'antd';
 import { CloudDownloadOutlined, PrinterOutlined, LeftOutlined, RightOutlined, YoutubeFilled, InstagramFilled } from '@ant-design/icons';
 import { AlertCircle } from 'lucide-react';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
+import { message } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { useMyContext } from 'Context/MyContextProvider';
 import TicketCanvasView from '../TicketCanvasView';
@@ -72,13 +75,44 @@ const TicketDrawer = ({
     }, []);
 
     // Handle download click
-    const handleDownload = useCallback(() => {
+    const handleDownload = useCallback(async () => {
         if (ticketType?.type === 'individual') {
             swiperCanvasRefs.current[activeSlideIndex]?.download();
-        } else {
+        } else if (ticketType?.type === 'combine' || ticketType?.type === 'single') {
             singleCanvasRef.current?.download();
+        } else if (ticketType?.type === 'zip') {
+            try {
+                const zip = new JSZip();
+                // Ensure refs is an array or object we can iterate. Object.values gets all valid refs.
+                // We map over ticketData.bookings to ensure correct ordering if needed.
+                const bookingsCount = ticketData?.bookings?.length || 0;
+                let hasImages = false;
+
+                for (let i = 0; i < bookingsCount; i++) {
+                    const ref = swiperCanvasRefs.current[i];
+                    if (ref && ref.isReady()) {
+                        const dataUrl = ref.getDataURL();
+                        if (dataUrl) {
+                            const base64Data = dataUrl.split(',')[1];
+                            zip.file(`ticket_${i + 1}.jpg`, base64Data, { base64: true });
+                            hasImages = true;
+                        }
+                    }
+                }
+
+                if (hasImages) {
+                    const content = await zip.generateAsync({ type: 'blob' });
+                    saveAs(content, 'tickets.zip');
+                    message.success('Tickets downloaded successfully!');
+                } else {
+                    message.error('Tickets are not ready yet. Please wait or try again.');
+                }
+            } catch (error) {
+                console.error('Error generating ZIP:', error);
+                message.error('Failed to generate ZIP file.');
+            }
         }
-    }, [ticketType, activeSlideIndex]);
+    }, [ticketType, activeSlideIndex, ticketData]);
 
     // Handle print click
     const handlePrint = useCallback(() => {
@@ -173,7 +207,7 @@ const TicketDrawer = ({
             {isImageReady && (
                 <Row>
                     <Col span={24}>
-                        {ticketType?.type === 'individual' ? (
+                        {ticketType?.type === 'individual' || ticketType?.type === 'zip' ? (
                             ticketData?.bookings?.length > 0 && (
                                 <>
                                     {isMobile && ticketData.bookings.length > 1 && (
@@ -257,7 +291,7 @@ const TicketDrawer = ({
                         className="flex-grow-1"
                         onClick={handleDownload}
                     >
-                        Download
+                        {ticketType?.type === 'zip' ? 'Download Zip' : 'Download'}
                     </Button>
 
                     {showPrintButton && (

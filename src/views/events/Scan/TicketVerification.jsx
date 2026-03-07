@@ -12,6 +12,8 @@ import ScanedUserData from './components/ScanedUserData';
 import TransactionReceiptModal from './components/TransactionReceiptModal';
 import TickeScanFeilds from './components/TickeScanFeilds';
 import AdminActionModal from './components/AdminActionModal';
+import AttendeesPrint from './components/AttendeesPrint';
+
 import ShopKeeperModal from './components/ShopKeeperModal';
 import DispatchUserData from './components/DispatchUserData';
 import StickyBottom from 'utils/MobileStickyBottom.jsx/StickyBottom';
@@ -21,7 +23,7 @@ import Utils from 'utils';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 
-const TicketVerification = memo(({ scanMode = 'manual' }) => {
+const TicketVerification = ({ scanMode = 'manual' }) => {
     const {
         userRole,
         formatDateTime,
@@ -51,10 +53,20 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     const [scanType, setScanType] = useState('verify');
     const [tokenLength, setTokenLength] = useState(8);
     const [isCardPrefix, setIsCardPrefix] = useState(false);
+    const attendeesPrintRef = React.useRef(null);
+    const setAttendeesPrintRef = useCallback((node) => {
+        attendeesPrintRef.current = node;
+    }, []);
+    const [autoPrint, setAutoPrint] = useState(() => localStorage.getItem('autoPrint') === 'true');
+    const [isConfiguringPrint, setIsConfiguringPrint] = useState(false);
     const [loading, setLoading] = useState({
         fetching: false,
         verifying: false
     });
+
+    useEffect(() => {
+        localStorage.setItem('autoPrint', autoPrint);
+    }, [autoPrint]);
 
     // ... (existing code)
 
@@ -288,12 +300,22 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // ─── Handle Attendees ────────────────────
     const handleAttendees = (data) => {
         const { bookings, is_master } = data;
+        let list = [];
         if (is_master) {
-            const combined = bookings?.bookings?.flatMap((b) => b.attendee) || [];
-            setAttendees(combined);
+            // Priority 1: Direct attendees array (often used in modern scans)
+            if (bookings?.attendees && Array.isArray(bookings.attendees)) {
+                list = bookings.attendees;
+            }
+            // Priority 2: Flattened attendee from bookings array
+            else if (bookings?.bookings) {
+                list = bookings.bookings.flatMap((b) => b.attendee || b.attendees || []).filter(Boolean);
+            }
         } else if (bookings?.attendee) {
-            setAttendees([bookings.attendee]);
+            list = [bookings.attendee];
+        } else if (bookings?.attendees) {
+            list = Array.isArray(bookings.attendees) ? bookings.attendees : [bookings.attendees];
         }
+        setAttendees(list);
     };
 
     // ─── Get Ticket Detail (TanStack Query Mutation) ───────────────────
@@ -315,8 +337,23 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 setType(res.type || res.data?.type);
                 handleAttendees(res);
                 setShow(true);
+
+                // Auto-print: only open config on FIRST time (when not yet configured)
+                // Once configured, printing happens silently after verify
+                if (autoPrint) {
+                    setTimeout(() => {
+                        const isConfigured = attendeesPrintRef.current?.isPrintConfigured?.();
+                        if (!isConfigured) {
+                            // First time: open print settings for one-time configuration
+                            attendeesPrintRef.current?.openPrintSettings();
+                        }
+                        // If already configured: skip modal, auto-check + auto-print
+                        // will handle everything after verify completes
+                    }, 300);
+                }
             }
         },
+
         onError: (err) => {
             setShow(false);
             const { message: msg, time, checkpoints } = err.response?.data ?? {};
@@ -469,11 +506,11 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
 
     // ─── Auto-Check Mode ─────────────────────
     useEffect(() => {
-        if (show && autoCheck) {
+        if (show && autoCheck && !isConfiguringPrint) {
             const timer = setTimeout(() => handleVerify(), 900);
             return () => clearTimeout(timer);
         }
-    }, [show, autoCheck]);
+    }, [show, autoCheck, isConfiguringPrint]);
 
     // ─── Check-In Mutation (TanStack Query) ───────────────────
     const checkInMutation = useMutation({
@@ -488,8 +525,16 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                 message.success(res?.message || 'Ticket Scanned Successfully!');
                 setQRData('');
                 setShow(false);
+
+                if (autoPrint) {
+                    setTimeout(() => {
+                        attendeesPrintRef.current?.handleAutoPrint();
+                    }, 500); // Slight delay ensures drawer closes first and print engages smoothly
+                }
             }
         },
+
+
         onError: (err) => {
             showErrorModal(Utils.getErrorMessage(err));
         },
@@ -609,6 +654,7 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
     // const handleEventChange = (data) => {
     //     loadCategoryData(data)
     // }
+
     return (
         <PermissionChecker permission={scanMode === 'manual' ? PERMISSIONS.SCAN_BY_SCANNER : PERMISSIONS.SCAN_BY_CAMERA}>
             <AdminActionModal
@@ -659,8 +705,21 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                     loading={loading}
                     categoryData={categoryData}
                     handleVerify={handleVerify}
+                    handlePrintAttendees={() => {
+                        attendeesPrintRef.current?.handlePrintAllAttendees();
+                    }}
                 />
             )}
+
+            <AttendeesPrint
+                ref={setAttendeesPrintRef}
+                attendeesList={attendees}
+                eventData={event}
+                ticket={ticketData?.bookings?.tickets?.[0] || ticketData?.bookings?.tickets || undefined}
+                bookings={ticketData?.bookings || {}}
+                primaryColor="#B51515"
+                onStateChange={setIsConfiguringPrint}
+            />
 
             <>
                 <Row gutter={[16, 16]}>
@@ -693,8 +752,19 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
                                     QRdata={QRdata}
                                     setQRData={setQRData}
                                     autoCheck={autoCheck}
-                                    setSelectedFields={setSelectedFields}
                                     setAutoCheck={setAutoCheck}
+                                    autoPrint={autoPrint}
+                                    setAutoPrint={setAutoPrint}
+                                    setShowAutoPrintSettings={() => {
+                                        if (ticketData?.bookings && attendees?.length > 0) {
+                                            // Always open the full config drawer for manual settings
+                                            attendeesPrintRef.current?.openPrintSettings();
+                                        } else {
+                                            message.warning('Please scan a ticket first to configure Auto Print.');
+                                        }
+                                    }}
+
+                                    setSelectedFields={setSelectedFields}
                                     scanType={scanType}
                                     eventId={event?.id}
                                     setScanType={setScanType}
@@ -760,6 +830,6 @@ const TicketVerification = memo(({ scanMode = 'manual' }) => {
             </>
         </PermissionChecker>
     );
-});
+};
 
 export default TicketVerification;

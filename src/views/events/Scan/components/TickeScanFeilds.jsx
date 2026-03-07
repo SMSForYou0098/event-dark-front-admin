@@ -1,6 +1,6 @@
 import React, { useRef, useEffect } from "react";
 import { Card, Form, Input, Select, Switch, Space, Typography, Button, Row, Col } from "antd";
-import { CloseCircleOutlined } from "@ant-design/icons";
+import { CloseCircleOutlined, SettingOutlined } from "@ant-design/icons";
 import QrScanner from "qr-scanner";
 import dayjs from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
@@ -29,16 +29,13 @@ const TickeScanFeilds = ({
   setSelectedCheckpoints,
   isCardPrefix,
   setIsCardPrefix,
+  autoPrint,
+  setAutoPrint,
+  setShowAutoPrintSettings,
   onScan,
-  dispatchedTokens = [],
-  pauseScan = false
+  dispatchedTokens = []
 }) => {
   const videoElementRef = useRef(null);
-
-  const pauseScanRef = useRef(pauseScan);
-  useEffect(() => {
-    pauseScanRef.current = pauseScan;
-  }, [pauseScan]);
 
   // Helper to check if a checkpoint is active based on current time
   const isCheckpointActive = (checkpoint) => {
@@ -71,7 +68,7 @@ const TickeScanFeilds = ({
       const qrScanner = new QrScanner(
         videoElementRef.current,
         (result) => {
-          if (result?.data && !pauseScanRef.current) setQRData(result.data);
+          if (result?.data) setQRData(result.data);
         },
         {
           returnDetailedScanResult: true,
@@ -108,6 +105,21 @@ const TickeScanFeilds = ({
               eventId={eventId} 
             />
           )} */}
+
+              <Switch
+                checked={autoPrint}
+                onChange={setAutoPrint}
+              />
+              <span>Auto Print</span>
+              {autoPrint && (
+                <Button
+                  type="text"
+                  icon={<SettingOutlined />}
+                  onClick={() => setShowAutoPrintSettings(true)}
+                  title="Auto Print Settings"
+                />
+              )}
+
             </Space>
           </Col>
 

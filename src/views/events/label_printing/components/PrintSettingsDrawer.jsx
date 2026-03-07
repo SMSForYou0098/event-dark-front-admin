@@ -206,15 +206,15 @@ const PrintSettingsDrawer = ({
                         }}
                     >
                         <Space direction="vertical" size="small" className="w-100">
-                            <div style={{ 
-                                padding: '8px 12px', 
-                                background: 'rgba(22, 119, 255, 0.06)', 
-                                borderRadius: 6, 
+                            <div style={{
+                                padding: '8px 12px',
+                                background: 'rgba(22, 119, 255, 0.06)',
+                                borderRadius: 6,
                                 marginBottom: 8,
                                 fontSize: 12,
                                 color: 'rgba(255,255,255,0.65)'
                             }}>
-                                Set each field's font size in <b>points (pt)</b>. 
+                                Set each field's font size in <b>points (pt)</b>.
                                 This directly controls the thermal print size.
                                 The "Effective" column shows the final size after global scaling.
                             </div>
@@ -254,7 +254,7 @@ const PrintSettingsDrawer = ({
                                                 style={{ width: 100 }}
                                                 size="small"
                                             />
-                                            <Tag 
+                                            <Tag
                                                 color={effectivePt !== currentPt ? 'orange' : 'green'}
                                                 style={{ minWidth: 42, textAlign: 'center', margin: 0 }}
                                             >

@@ -6,7 +6,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import api from 'auth/FetchInterceptor';
-import TicketModal from "../Tickets/modals/TicketModal";
+import TicketDrawer from "../Tickets/modals/TicketDrawer";
 import { downloadTickets } from "../Tickets/ticketUtils";
 import { ExpandDataTable } from "../common/ExpandDataTable";
 import PermissionChecker from "layouts/PermissionChecker";
@@ -661,17 +661,13 @@ const BookingList = memo(({ type = 'agent' }) => {
                 </div>
             </Modal>
 
-            {/* Ticket Display Modal */}
-            <TicketModal
+            {/* Ticket Display Drawer */}
+            <TicketDrawer
                 show={show}
                 handleCloseModal={handleCloseModal}
                 ticketType={ticketType}
                 ticketData={ticketData}
-                ticketRefs={ticketRefs}
-                loading={loading}
                 showTicketDetails={true}
-                downloadTicket={downloadTicket}
-                isMobile={isMobile}
                 formatDateRange={dateRange}
             />
             <ExpandDataTable
