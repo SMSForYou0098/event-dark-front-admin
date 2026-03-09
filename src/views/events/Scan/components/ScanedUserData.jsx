@@ -145,9 +145,9 @@ const ScanedUserData = ({
     {
       label: <><CalendarOutlined className='text-primary me-2' /> Booking Date</>,
       value: bookings?.created_at
-        ? dayjs(bookings.created_at).format('DD MMM YYYY, hh:mm A')
+        ? dayjs(bookings?.created_at).format('DD MMM YYYY, hh:mm A')
         : bookings?.booking_date
-          ? dayjs(bookings.booking_date).format('DD MMM YYYY, hh:mm A')
+          ? dayjs(bookings?.booking_date).format('DD MMM YYYY, hh:mm A')
           : 'N/A',
     },
     {
@@ -158,10 +158,10 @@ const ScanedUserData = ({
         </Tag>
       ),
     },
-    ...(bookings?.status ? [{
-      label: 'Booking Status',
-      value: <Tag color={statusInfo.color}>{statusInfo.text}</Tag>,
-    }] : []),
+    // ...(bookings?.status ? [{
+    //   label: 'Booking Status',
+    //   value: <Tag color={statusInfo.color}>{statusInfo.text}</Tag>,
+    // }] : []),
     {
       label: <><CalendarOutlined className='text-primary me-2' /> Event Name</>,
       value: <Text strong>{eventData?.name || 'N/A'}</Text>,
@@ -169,10 +169,10 @@ const ScanedUserData = ({
     {
       label: <><TagOutlined className="text-primary me-2" /> Ticket</>,
       value: Array.isArray(ticket)
-        ? ticket.length > 0
-          ? ticket.map((t) => (
-            <Tag color="cyan" key={t.id} className="mb-1">
-              {t.name} - {t?.quantity}
+        ? ticket?.length > 0
+          ? ticket?.map((t) => (
+            <Tag color="cyan" key={t?.id} className="mb-1">
+              {t?.name} - {t?.quantity}
             </Tag>
           ))
           : "N/A"
@@ -212,8 +212,8 @@ const ScanedUserData = ({
           {attendee?.photo && (
             <div className="flex-shrink-0">
               <Image
-                src={attendee.photo}
-                alt={attendee.name || `Attendee ${idx + 1}`}
+                src={attendee?.photo}
+                alt={attendee?.name || `Attendee ${idx + 1}`}
                 width={isMobile ? 60 : 80}
                 height={isMobile ? 60 : 80}
                 style={{ objectFit: 'cover', borderRadius: '8px' }}
@@ -255,8 +255,8 @@ const ScanedUserData = ({
           autoplay={false}
           dotPosition="bottom"
         >
-          {attendeesList.map((attendee, idx) => (
-            <div key={attendee.id || idx} style={{ padding: '0 4px' }}>
+          {attendeesList?.map((attendee, idx) => (
+            <div key={attendee?.id || idx} style={{ padding: '0 4px' }}>
               {renderAttendeeCard(attendee, idx)}
             </div>
           ))}
@@ -265,8 +265,8 @@ const ScanedUserData = ({
     }
     return (
       <Row gutter={[12, 12]}>
-        {attendeesList.map((attendee, idx) => (
-          <Col xs={24} sm={24} md={24} lg={24} xl={24} key={attendee.id || idx}>
+        {attendeesList?.map((attendee, idx) => (
+          <Col xs={24} sm={24} md={24} lg={24} xl={24} key={attendee?.id || idx}>
             {renderAttendeeCard(attendee, idx)}
           </Col>
         ))}
@@ -275,7 +275,7 @@ const ScanedUserData = ({
   };
 
   const isAlreadyScanned = bookings?.is_scaned;
-  const hasAttendees = attendeesList.length > 0;
+  const hasAttendees = attendeesList?.length > 0;
 
   return (
     <Drawer
@@ -324,7 +324,7 @@ const ScanedUserData = ({
               size={isMobile ? 'middle' : 'large'}
               block
             >
-              Print Attendees ({attendeesList.length})
+              Print Attendees ({attendeesList?.length})
             </Button>
           )}
           <Button
@@ -362,9 +362,9 @@ const ScanedUserData = ({
               wordBreak: 'break-word',
             }}
           >
-            {bookingInfo.map((item, idx) => (
-              <Descriptions.Item key={idx} label={item.label}>
-                {item.value}
+            {bookingInfo?.map((item, idx) => (
+              <Descriptions.Item key={idx} label={item?.label}>
+                {item?.value}
               </Descriptions.Item>
             ))}
           </Descriptions>
@@ -376,7 +376,7 @@ const ScanedUserData = ({
                 title={
                   <span style={{ fontSize: isMobile ? 13 : 14 }}>
                     <HistoryOutlined className="me-2" />
-                    Scan History ({scan_history.length})
+                    Scan History ({scan_history?.length})
                   </span>
                 }
                 data={scan_history}
@@ -397,7 +397,7 @@ const ScanedUserData = ({
             <div className="mt-2">
               <Divider orientation="left" className="mt-2 mb-2" style={{ fontSize: isMobile ? 13 : 14 }}>
                 <TeamOutlined className="me-1" />
-                Attendees ({attendeesList.length})
+                Attendees ({attendeesList?.length})
               </Divider>
               {renderAttendeesSection()}
             </div>

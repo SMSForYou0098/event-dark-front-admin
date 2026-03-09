@@ -43,13 +43,14 @@ const Organizers = () => {
   // Fetch organizers with React Query
   const fetchOrganizers = async () => {
     const params = new URLSearchParams();
+
     if (dateRange && dateRange.startDate && dateRange.endDate) {
-      params.set('start_date', dateRange.startDate);
-      params.set('end_date', dateRange.endDate);
+      params.set('date', `${dateRange.startDate},${dateRange.endDate}`);
     } else {
       params.set('type', 'all');
     }
     const url = `users-by-role/${selectedRole}?${params.toString()}`;
+    // const url = `users-by-role/${selectedRole}`;
     const response = await api.get(url);
     if (!response.status) {
       throw new Error('Failed to fetch organizers');

@@ -88,8 +88,7 @@ const Users = () => {
     // Date range params
     if (dateRange && dateRange.startDate && dateRange.endDate) {
       params.set("type", "custom");
-      params.set("start_date", dateRange.startDate);
-      params.set("end_date", dateRange.endDate);
+      params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
     } else {
       params.set("type", "all");
     }

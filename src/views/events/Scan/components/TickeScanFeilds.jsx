@@ -7,6 +7,8 @@ import isBetween from "dayjs/plugin/isBetween";
 import customParseFormat from "dayjs/plugin/customParseFormat";
 import CustomFieldsSettings from "./CustomFieldsSettings";
 import DispatchCardSearch from "./DispatchCardSearch";
+import { useMyContext } from "Context/MyContextProvider";
+import { PERMISSIONS } from "constants/PermissionConstant";
 const { Option } = Select;
 dayjs.extend(isBetween);
 dayjs.extend(customParseFormat);
@@ -33,9 +35,13 @@ const TickeScanFeilds = ({
   setAutoPrint,
   setShowAutoPrintSettings,
   onScan,
-  dispatchedTokens = []
+  dispatchedTokens = [],
+  pauseScan
 }) => {
+  const { UserPermissions } = useMyContext();
   const videoElementRef = useRef(null);
+
+  const hasDispatchPermission = userRole === 'Admin' || UserPermissions?.includes(PERMISSIONS.DISPATCH);
 
   // Helper to check if a checkpoint is active based on current time
   const isCheckpointActive = (checkpoint) => {
@@ -68,7 +74,9 @@ const TickeScanFeilds = ({
       const qrScanner = new QrScanner(
         videoElementRef.current,
         (result) => {
-          if (result?.data) setQRData(result.data);
+          if (result?.data && !pauseScan) {
+            setQRData(result.data);
+          }
         },
         {
           returnDetailedScanResult: true,
@@ -76,14 +84,19 @@ const TickeScanFeilds = ({
           highlightCodeOutline: true,
         }
       );
-      qrScanner.start();
+
+      if (!pauseScan) {
+        qrScanner.start();
+      } else {
+        qrScanner.stop();
+      }
 
       return () => {
         qrScanner.stop();
         qrScanner.destroy();
       };
     }
-  }, [scanMode, setQRData]);
+  }, [scanMode, setQRData, pauseScan]);
   return (
     <Card>
       <div className="d-flex flex-column">
@@ -214,7 +227,7 @@ const TickeScanFeilds = ({
                   <Option value="">Select Type</Option>
                   <Option value="verify">Verify Ticket</Option>
                   <Option value="shopkeeper">Shopkeeper Mode</Option>
-                  <Option value="dispatch">Dispatch</Option>
+                  {hasDispatchPermission && <Option value="dispatch">Dispatch</Option>}
                 </Select>
               )}
             </Space>

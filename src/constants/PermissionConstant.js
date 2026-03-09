@@ -97,6 +97,8 @@ export const PERMISSIONS = {
     SCAN_BY_SCANNER: "Scan By Scanner",
     VIEW_SCAN_HISTORY: "View Scan History",
     EXPORT_SCAN_HISTORY: "Export Scan History",
+    DISPATCH: "Dispatch",
+
 
     // Operations & Support
     VIEW_BOX_OFFICE: "View Box Office",

@@ -47,13 +47,13 @@ const isMobileDevice = () => {
 
 // Dimension options (width × height in inches)
 const DIMENSION_OPTIONS = [
-  { label: '2" × 1"', value: '2x1', width: 2, height: 1 },
-  { label: '2" × 2"', value: '2x2', width: 2, height: 2 },
-  { label: '3" × 2"', value: '3x2', width: 3, height: 2 },
-  { label: '4" × 3"', value: '4x3', width: 4, height: 3 },
-  { label: '4" × 6"', value: '4x6', width: 4, height: 6 },
-  { label: '5" × 4"', value: '5x4', width: 5, height: 4 },
-  { label: '6" × 4"', value: '6x4', width: 6, height: 4 },
+  { label: '2 × 1 in', value: '2x1', width: 2, height: 1 },
+  { label: '2 × 2 in', value: '2x2', width: 2, height: 2 },
+  { label: '3 × 2 in', value: '3x2', width: 3, height: 2 },
+  { label: '4 × 3 in', value: '4x3', width: 4, height: 3 },
+  { label: '4 × 6 in', value: '4x6', width: 4, height: 6 },
+  { label: '5 × 4 in', value: '5x4', width: 5, height: 4 },
+  { label: '6 × 4 in', value: '6x4', width: 6, height: 4 },
 ];
 
 // Fields to exclude from dynamic extraction

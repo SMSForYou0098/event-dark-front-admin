@@ -32,7 +32,10 @@ const TicketVerification = ({ scanMode = 'manual' }) => {
         handleWhatsappAlert,
         formatDateRange,
         convertTo12HourFormat,
+        UserPermissions,
     } = useMyContext();
+
+    const hasDispatchPermission = userRole === 'Admin' || UserPermissions?.includes(PERMISSIONS.DISPATCH);
 
     // ─── State ───────────────────────────────
     const [QRdata, setQRData] = useState('');
@@ -63,6 +66,8 @@ const TicketVerification = ({ scanMode = 'manual' }) => {
         fetching: false,
         verifying: false
     });
+
+    const [isPostScanDelay, setIsPostScanDelay] = useState(false);
 
     useEffect(() => {
         localStorage.setItem('autoPrint', autoPrint);
@@ -187,11 +192,19 @@ const TicketVerification = ({ scanMode = 'manual' }) => {
             },
             onOk: () => {
                 setQRData('');
-                setTimeout(() => setIsErrorModalVisible(false), 800);
+                setIsPostScanDelay(true);
+                setTimeout(() => {
+                    setIsPostScanDelay(false);
+                    setIsErrorModalVisible(false);
+                }, 1000);
             },
             afterClose: () => {
                 setQRData('');
-                setIsErrorModalVisible(false);
+                setIsPostScanDelay(true);
+                setTimeout(() => {
+                    setIsPostScanDelay(false);
+                    setIsErrorModalVisible(false);
+                }, 1000);
             },
         });
     };
@@ -489,7 +502,7 @@ const TicketVerification = ({ scanMode = 'manual' }) => {
                 }
             }
 
-            if (userRole === 'Admin') {
+            if (userRole === 'Admin' || (scanType === 'dispatch' && hasDispatchPermission)) {
                 if (scanType === 'verify' || scanType === 'shopkeeper' || scanType === 'dispatch') {
                     handleAdminAction(scanType, QRdata);
                 } else {
@@ -531,6 +544,9 @@ const TicketVerification = ({ scanMode = 'manual' }) => {
                         attendeesPrintRef.current?.handleAutoPrint();
                     }, 500); // Slight delay ensures drawer closes first and print engages smoothly
                 }
+
+                setIsPostScanDelay(true);
+                setTimeout(() => setIsPostScanDelay(false), 2000);
             }
         },
 
@@ -685,7 +701,7 @@ const TicketVerification = ({ scanMode = 'manual' }) => {
                 />
             )}
 
-            {(userRole === 'Admin' && scanType === 'dispatch') && (
+            {(hasDispatchPermission && scanType === 'dispatch') && (
                 <DispatchUserData
                     show={show}
                     setShow={setShow}
@@ -776,7 +792,7 @@ const TicketVerification = ({ scanMode = 'manual' }) => {
                                     setIsCardPrefix={setIsCardPrefix}
                                     onScan={(data) => handleAdminAction(scanType, data)}
                                     dispatchedTokens={dispatchedTokens}
-                                    pauseScan={show || showAdminModal || showReceipt || isErrorModalVisible || isProcessing || loading.fetching || loading.verifying}
+                                    pauseScan={show || showAdminModal || showReceipt || isErrorModalVisible || isProcessing || loading.fetching || loading.verifying || isPostScanDelay}
                                 />
                             </Col>
                             <Col xs={24} sm={24} lg={6}>
