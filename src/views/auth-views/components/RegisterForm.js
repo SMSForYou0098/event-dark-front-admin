@@ -10,6 +10,7 @@ import { API_BASE_URL } from 'configs/AppConfig';
 import api from 'auth/FetchInterceptor';
 import { OtpVerificationModal } from 'views/events/users/Manage/components';
 import { parseRetryAfter, formatCooldownTime } from 'utils/otpUtils';
+import Utils from 'utils';
 
 const rules = {
 	name: [
@@ -182,12 +183,12 @@ export const RegisterForm = (props) => {
 					const seconds = parseRetryAfter(response.retry_after);
 					const cooldownEndTime = Date.now() + (seconds * 1000);
 					dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
-					antMessage.error(response?.message || response?.error || 'Too many OTP requests');
+					antMessage.error(Utils.getErrorMessage(response) || 'Too many OTP requests');
 				} else {
 					// Apply default 10s cooldown on any failed request
 					const cooldownEndTime = Date.now() + (DEFAULT_COOLDOWN_SECONDS * 1000);
 					dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
-					antMessage.error(response?.message || response?.error || 'Failed to send OTP');
+					antMessage.error(Utils.getErrorMessage(response) || 'Failed to send OTP');
 				}
 				return false;
 			}
@@ -199,12 +200,12 @@ export const RegisterForm = (props) => {
 				const seconds = parseRetryAfter(errorData.retry_after);
 				const cooldownEndTime = Date.now() + (seconds * 1000);
 				dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
-				antMessage.error(errorData?.message || errorData?.error || 'Too many OTP requests');
+				antMessage.error(Utils.getErrorMessage(error) || 'Too many OTP requests');
 			} else {
 				// Apply default 10s cooldown on any failed request
 				const cooldownEndTime = Date.now() + (DEFAULT_COOLDOWN_SECONDS * 1000);
 				dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
-				antMessage.error(errorData?.message || errorData?.error || 'Failed to send OTP');
+				antMessage.error(Utils.getErrorMessage(error) || 'Failed to send OTP');
 			}
 			return false;
 		} finally {
@@ -240,11 +241,11 @@ export const RegisterForm = (props) => {
 				// Now proceed with user creation using session_id
 				await handleSignup(pendingFormValues, response?.session_id);
 			} else {
-				antMessage.error(response?.message || 'Invalid OTP');
+				antMessage.error(Utils.getErrorMessage(response) || 'Invalid OTP');
 			}
 		} catch (error) {
 			console.error('Verify OTP error:', error);
-			antMessage.error(error?.response?.data?.message || 'Failed to verify OTP');
+			antMessage.error(Utils.getErrorMessage(error) || 'Failed to verify OTP');
 		} finally {
 			setOtpLoading(false);
 		}
@@ -297,11 +298,7 @@ export const RegisterForm = (props) => {
 			}
 			setFormLoading(false);
 		} catch (err) {
-			setError(
-				err.response?.data?.error ||
-				err.response?.data?.message ||
-				'Something went wrong'
-			);
+			setError(Utils.getErrorMessage(err));
 			setFormLoading(false);
 		}
 	};

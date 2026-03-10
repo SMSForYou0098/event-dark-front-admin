@@ -70,16 +70,16 @@ const OtpVerificationModal = ({
             destroyOnClose
         >
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <Alert
+                {/* <Alert
                     // message="OTP Verification Required"
                     description={description || defaultDescription}
                     type="info"
                     showIcon
                     style={{ marginBottom: 24 }}
-                />
+                /> */}
 
                 <p style={{ marginBottom: 16 }}>
-                    Enter the 6-digit OTP sent to your phone
+                    {description || defaultDescription}
                 </p>
                 <OtpInput
                     value={otpValue}
