@@ -357,36 +357,37 @@ const AgentBookingModal = (props) => {
               </Col>
 
               {/* Address Field */}
-              <Col span={24}>
-                <Form.Item
-                  label={
-                    <Space>
-                      <span>Address</span>
-                      {isExist && (
-                        <Button
-                          type="text"
-                          icon={<EditOutlined />}
-                          size="small"
-                          onClick={() => setIsEditing(!isEditing)}
-                          style={{ color: '#1890ff' }}
-                        >
-                          {isEditing ? null : 'Edit'}
-                        </Button>
-                      )}
-                    </Space>
-                  }
-                  name="address"
-                  rules={[{ required: true, message: 'Please enter address' }]}
-                >
-                  <TextArea
-                    placeholder="Enter Address"
-                    rows={2}
-                    value={userDetails.address}
-                    onChange={(e) => setUserDetails(prev => ({ ...prev, address: e.target.value }))}
-                    disabled={isExist && !isEditing}
-                  />
-                </Form.Item>
-              </Col>
+              {isCardBooking && (
+                <Col span={24}>
+                  <Form.Item
+                    label={
+                      <Space>
+                        <span>Address</span>
+                        {isExist && (
+                          <Button
+                            type="text"
+                            icon={<EditOutlined />}
+                            size="small"
+                            onClick={() => setIsEditing(!isEditing)}
+                            style={{ color: '#1890ff' }}
+                          >
+                            {isEditing ? null : 'Edit'}
+                          </Button>
+                        )}
+                      </Space>
+                    }
+                    name="address"
+                  >
+                    <TextArea
+                      placeholder="Enter Address"
+                      rows={2}
+                      value={userDetails.address}
+                      onChange={(e) => setUserDetails(prev => ({ ...prev, address: e.target.value }))}
+                      disabled={isExist && !isEditing}
+                    />
+                  </Form.Item>
+                </Col>
+              )}
 
               {/* Accreditation specific fields */}
               {isAccreditation && (
@@ -560,18 +561,18 @@ const AgentBookingModal = (props) => {
 
               {/* Card Allocated */}
               {isCardBooking && (
-              <Col span={12}>
-                <Form.Item
-                  label="Card Allocated"
-                  name="card_allocated"
-                  valuePropName="checked"
-                >
-                  <Switch
-                    checked={userDetails.card_allocated || false}
-                    onChange={(checked) => setUserDetails(prev => ({ ...prev, card_allocated: checked }))}
-                  />
-                </Form.Item>
-              </Col>
+                <Col span={12}>
+                  <Form.Item
+                    label="Card Allocated"
+                    name="card_allocated"
+                    valuePropName="checked"
+                  >
+                    <Switch
+                      checked={userDetails.card_allocated || false}
+                      onChange={(checked) => setUserDetails(prev => ({ ...prev, card_allocated: checked }))}
+                    />
+                  </Form.Item>
+                </Col>
               )}
 
               {/* Submit Button */}

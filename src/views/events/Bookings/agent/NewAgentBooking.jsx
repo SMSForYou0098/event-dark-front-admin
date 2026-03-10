@@ -50,7 +50,6 @@ const NewAgentBooking = memo(({ type }) => {
   const [ticketCurrency, setTicketCurrency] = useState('₹');
 
 
-  console.log("event", event.name);
   // Consolidated User Details State
   const [userDetails, setUserDetails] = useState({
     name: '',
@@ -397,7 +396,7 @@ const NewAgentBooking = memo(({ type }) => {
       return;
     }
 
-    if (!userDetails.address) {
+    if (event?.event_controls?.use_preprinted_cards && !userDetails.address) {
       message.error("Address is required. Please edit details and add address.");
       return;
     }

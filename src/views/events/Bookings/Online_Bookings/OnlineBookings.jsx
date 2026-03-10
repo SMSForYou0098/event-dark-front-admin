@@ -55,12 +55,13 @@ const OnlineBookings = memo(() => {
     refetch,
   } = useQuery({
     queryKey: ["onlineBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder],
-    queryFn: async () => {
+    queryFn: async ({ queryKey }) => {
+      const [_key, userId, dateRange, page, perPage, searchText, sortField, sortOrder] = queryKey;
       const params = new URLSearchParams();
 
       // Pagination params
-      params.set("page", currentPage.toString());
-      params.set("per_page", pageSize.toString());
+      params.set("page", page.toString());
+      params.set("per_page", perPage.toString());
 
       // Search param
       if (searchText) {
@@ -78,7 +79,7 @@ const OnlineBookings = memo(() => {
         params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
       }
 
-      const url = `bookings/online/${UserData?.id}?${params.toString()}`;
+      const url = `bookings/online/${userId}?${params.toString()}`;
       const res = await api.get(url);
 
       if (res.status) {
@@ -248,10 +249,11 @@ const OnlineBookings = memo(() => {
 
   // Handle pagination change (for backend pagination)
   const handlePaginationChange = useCallback((page, newPageSize) => {
-    setCurrentPage(page);
-    if (newPageSize !== pageSize) {
+    if (newPageSize && newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setCurrentPage(1); // Reset to first page when page size changes
+    } else {
+      setCurrentPage(page);
     }
   }, [pageSize]);
 
@@ -355,27 +357,25 @@ const OnlineBookings = memo(() => {
       render: (_, record) =>
         record?.bookings?.[0]?.organizer || record?.organizer || "",
     },
-    ...(UserPermissions?.includes("View Username")
+    ...(UserPermissions?.includes("View Username") || userRole === 'Admin'
       ? [
         {
           title: "User Name",
           dataIndex: ["user", "name"],
           key: "userName",
           align: "center",
-          // searchable: true,
           render: (_, record) =>
             record?.bookings?.[0]?.user?.name || record?.user?.name || "",
         },
       ]
       : []),
-    ...(UserPermissions?.includes("View Contact")
+    ...(UserPermissions?.includes("View Contact") || userRole === 'Admin'
       ? [
         {
           title: "Number",
           dataIndex: "number",
           key: "number",
           align: "center",
-          // searchable: true,
           render: (_, record) =>
             record?.bookings?.[0]?.number || record?.number || "",
         },
@@ -386,7 +386,6 @@ const OnlineBookings = memo(() => {
       dataIndex: ["ticket", "name"],
       key: "ticketName",
       align: "center",
-      // searchable: true,
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
     },
@@ -406,8 +405,14 @@ const OnlineBookings = memo(() => {
       dataIndex: "gateway",
       key: "gateway",
       align: "center",
-      render: (_, record) =>
-        record?.gateway || record?.bookings?.[0]?.gateway || "",
+      render: (_, record) => {
+        const gateway = (record?.gateway || record?.bookings?.[0]?.gateway || "").toLowerCase();
+        if (gateway.includes("easebuzz")) return "EB";
+        if (gateway.includes("cashfree")) return "CF";
+        if (gateway.includes("razorpay")) return "RP";
+        if (gateway.includes("phonepay") || gateway.includes("phonepe")) return "PP";
+        return gateway.toUpperCase() || "-";
+      },
     },
     {
       title: "Approval",
@@ -416,7 +421,6 @@ const OnlineBookings = memo(() => {
       render: (_, record) => {
         const approvalStatus = record?.approval_status || record?.bookings?.[0]?.approval_status;
 
-        // Only show buttons if approval_status is "pending"
         if (approvalStatus === "pending") {
           return (
             <PermissionChecker permission={PERMISSIONS.APPROVE_ONLINE_BOOKING}>
@@ -443,7 +447,6 @@ const OnlineBookings = memo(() => {
           );
         }
 
-        // Show status tag for non-pending statuses
         if (approvalStatus === "approved") {
           return <Tag color="success">Approved</Tag>;
         }
@@ -632,7 +635,7 @@ const OnlineBookings = memo(() => {
       )}
 
       <DataTable
-        title={<span style={{ fontSize: 14 }}>Online Bookings</span>}
+        title={<span style={{ fontSize: 14 }}>Online</span>}
         data={bookings}
         columns={columns}
         showDateRange={true}
@@ -642,7 +645,7 @@ const OnlineBookings = memo(() => {
           <Space>
             <PermissionChecker permission={PERMISSIONS.VIEW_GATEWAY}>
               <>
-                <span style={{ fontSize: 14 }}>Gateway Report:</span>
+                {/* <span style={{ fontSize: 14 }}>Report:</span> */}
                 <Switch
                   checked={showGatewayReport}
                   onChange={(checked) => setShowGatewayReport(checked)}
@@ -660,7 +663,7 @@ const OnlineBookings = memo(() => {
         showSearch={true}
         // Backend pagination props
         serverSide={true}
-        pagination={pagination}
+        pagination={pagination ? { ...pagination, current_page: currentPage, per_page: pageSize } : null}
         onPaginationChange={handlePaginationChange}
         onSearch={handleSearchChange}
         onSortChange={handleSortChange}

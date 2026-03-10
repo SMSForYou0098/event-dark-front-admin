@@ -192,13 +192,13 @@ export const useEventFields = (eventId, options = {}) =>
 
 /**
  * Check email + number existing
- * POST: chek-email
+ * POST: check-email
  * payload: { email, number }
  */
 export const useCheckEmail = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
-      const res = await api.post('chek-email', payload);
+      const res = await api.post('check-email', payload);
       // keep raw response for upstream logic
       return res;
     },

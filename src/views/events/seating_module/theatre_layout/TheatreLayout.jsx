@@ -41,7 +41,9 @@ const sanitizeSection = (section) => ({
   y: parseFloat(section.y) || 0,
   width: parseFloat(section.width) || 600,
   height: parseFloat(section.height) || 250,
-  rows: section.rows?.map(sanitizeRow) || []
+  totalTickets: parseInt(section.totalTickets) || 0,
+  ticketCategory: section.ticketCategory || null,
+  rows: section.type === 'Standing' ? [] : (section.rows?.map(sanitizeRow) || [])
 });
 
 const AuditoriumLayoutDesigner = () => {
@@ -332,7 +334,9 @@ const AuditoriumLayoutDesigner = () => {
       width: 600,
       height: 250,
       rows: [],
-      subSections: []
+      subSections: [],
+      totalTickets: 0,
+      ticketCategory: null
     };
 
     setSections([...sections, newSection]);
@@ -356,6 +360,8 @@ const AuditoriumLayoutDesigner = () => {
   const addRowToSection = (sectionId) => {
     setSections(sections.map(section => {
       if (section.id === sectionId) {
+        // Don't add rows to standing sections
+        if (section.type === 'Standing') return section;
         const rowNumber = section.rows.length + 1;
         const newRow = {
           id: generateId('row'),
@@ -569,6 +575,11 @@ const AuditoriumLayoutDesigner = () => {
     setSections(sections.map(section => {
       if (section.id === sectionId) {
         const updatedSection = { ...section, ...updates };
+
+        // If type changed to Standing, clear rows
+        if (updates.type === 'Standing' && section.type !== 'Standing') {
+          updatedSection.rows = [];
+        }
 
         // Regenerate seats if width or height changed significantly
         if ((updates.width && Math.abs(updates.width - section.width) > 10) ||
@@ -824,6 +835,20 @@ const AuditoriumLayoutDesigner = () => {
     const assignments = [];
 
     sections.forEach(section => {
+      // Handle standing sections — tickets only, no seats
+      if (section.type === 'Standing') {
+        if (section.ticketCategory && section.totalTickets) {
+          assignments.push({
+            sectionId: section.id,
+            ticketId: section.ticketCategory,
+            totalTickets: section.totalTickets,
+            type: 'standing',
+            status: 'available'
+          });
+        }
+        return;
+      }
+
       section.rows.forEach(row => {
         row.seats.forEach(seat => {
           if (seat.ticketCategory) {
@@ -880,9 +905,13 @@ const AuditoriumLayoutDesigner = () => {
             updatedAt: new Date().toISOString(),
             totalSections: sections.length,
             totalSeats: sections.reduce((total, section) =>
-              total + section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0)
+              total + (section.type === 'Standing'
+                ? (section.totalTickets || 0)
+                : section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0))
               , 0),
-            totalRows: sections.reduce((total, section) => total + section.rows.length, 0)
+            totalRows: sections.reduce((total, section) => total + (section.type === 'Standing' ? 0 : section.rows.length), 0),
+            totalStandingTickets: sections.reduce((total, section) =>
+              total + (section.type === 'Standing' ? (section.totalTickets || 0) : 0), 0)
           }
         };
 

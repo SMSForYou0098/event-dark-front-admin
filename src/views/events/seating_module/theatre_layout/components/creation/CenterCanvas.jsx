@@ -422,8 +422,44 @@ const CenterCanvas = (props) => {
               }}
             >
 
-              {/* Rows and Seats */}
-              {section.rows.map(row => {
+              {/* Standing Section - No rows/seats, just ticket info */}
+              {section.type === 'Standing' && (
+                <Group>
+                  <Rect
+                    x={20}
+                    y={40}
+                    width={section.width - 40}
+                    height={section.height - 60}
+                    fill="rgba(181, 21, 21, 0.15)"
+                    stroke="#b51515"
+                    strokeWidth={1}
+                    dash={[6, 4]}
+                    cornerRadius={8}
+                  />
+                  <Text
+                    x={20}
+                    y={section.height / 2 - 20}
+                    width={section.width - 40}
+                    text={`🎫 STANDING AREA`}
+                    fontSize={16}
+                    fill="#FFFFFF"
+                    fontStyle="bold"
+                    align="center"
+                  />
+                  <Text
+                    x={20}
+                    y={section.height / 2 + 5}
+                    width={section.width - 40}
+                    text={`Tickets: ${section.totalTickets || 0}`}
+                    fontSize={14}
+                    fill="#CCCCCC"
+                    align="center"
+                  />
+                </Group>
+              )}
+
+              {/* Rows and Seats (non-standing sections) */}
+              {section.type !== 'Standing' && section.rows.map(row => {
                 // Safety check for row seats
                 if (!row.seats || row.seats.length === 0) return null;
 

@@ -92,8 +92,8 @@ const Posts = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={status === 1 ? 'green' : 'orange'}>
-          {status === 1 ? 'Published' : 'Draft'}
+        <Tag color={status === true ? 'green' : 'orange'}>
+          {status === true ? 'Published' : 'Draft'}
         </Tag>
       ),
     },

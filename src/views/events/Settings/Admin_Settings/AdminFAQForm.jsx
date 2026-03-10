@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Card,
   Button,
@@ -18,6 +18,7 @@ import {
   Divider,
   Collapse,
   Tooltip,
+  Badge,
 } from "antd";
 import {
   PlusOutlined,
@@ -48,7 +49,7 @@ const FAQAdmin = ({ options }) => {
   const [editingId, setEditingId] = useState(null);
 
   const formattedOptions = options.map((item) => ({
-    value: item.id,
+    value: String(item.id),
     label: item.title,
   }));
 
@@ -64,6 +65,22 @@ const FAQAdmin = ({ options }) => {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  // Group FAQs by category
+  const groupedFaqs = useMemo(() => {
+    const groups = {};
+    faqs.forEach(faq => {
+      const categoryId = faq.category || 'uncategorized';
+      if (!groups[categoryId]) {
+        groups[categoryId] = {
+          title: faq.category_data?.title || 'General FAQ',
+          items: []
+        };
+      }
+      groups[categoryId].items.push(faq);
+    });
+    return groups;
+  }, [faqs]);
 
   // Create/Update FAQ Mutation
   const saveMutation = useMutation({
@@ -149,37 +166,25 @@ const FAQAdmin = ({ options }) => {
   });
 
   // Fetch FAQ details for editing
-  const handleEdit = async (faq) => {
+  const handleEdit = (faq) => {
+    let parsedLinks = [];
+
     try {
-      const response = await apiClient.get(`faq-show/${faq.id}`);
-
-      if (response?.status || response?.success) {
-        const faqData = response.data;
-        let parsedLinks = [];
-
-        try {
-          parsedLinks = faqData.links ? JSON.parse(faqData.links) : [];
-        } catch (e) {
-          console.error("Error parsing links:", e);
-          parsedLinks = [];
-        }
-
-        form.setFieldsValue({
-          question: faqData.question || "",
-          answer: faqData.answer || "",
-          category: faqData.category || "",
-          links: parsedLinks.length > 0 ? parsedLinks : [{ text: "", url: "" }],
-          isActive: faqData.is_active == 1,
-        });
-        setEditingId(faq.id);
-        setShowForm(true);
-      } else {
-        message.error("Failed to fetch FAQ details");
-      }
-    } catch (error) {
-      console.error("Error fetching FAQ details:", error);
-      message.error(Utils.getErrorMessage(error, "Failed to fetch FAQ details"));
+      parsedLinks = faq.links ? JSON.parse(faq.links) : [];
+    } catch (e) {
+      console.error("Error parsing links:", e);
+      parsedLinks = [];
     }
+
+    form.setFieldsValue({
+      question: faq.question || "",
+      answer: faq.answer || "",
+      category: faq.category ? String(faq.category) : "",
+      links: parsedLinks.length > 0 ? parsedLinks : [{ text: "", url: "" }],
+      isActive: faq.is_active == 1,
+    });
+    setEditingId(faq.id);
+    setShowForm(true);
   };
 
   const handleDelete = (id) => {
@@ -426,113 +431,140 @@ const FAQAdmin = ({ options }) => {
               }
             />
           ) : (
-            <Collapse accordion ghost>
-              {faqs.map((faq) => (
-                <Panel
-                  key={faq.id}
-                  header={
-                    <div className="d-flex align-items-center justify-content-between w-100 p-2">
-                      <Space wrap>
-                        <Tag color={faq.is_active ? "success" : "default"}>
-                          {faq.is_active ? "Active" : "Inactive"}
-                        </Tag>
-                        <Tag color="blue">{getCategoryLabel(faq)}</Tag>
-                        <Text strong>{faq.question}</Text>
-                      </Space>
-                    </div>
-                  }
-                  extra={
-                    <Space
-                      onClick={(e) => e.stopPropagation()}
-                      className="ms-2"
+            <div className="category-grouped-faqs mt-2">
+              <Row gutter={[24, 24]}>
+                {Object.entries(groupedFaqs).map(([categoryId, group]) => (
+                  <Col xs={24} lg={12} key={categoryId}>
+                    <div
+                      className="h-100 shadow-sm border-0 bg-light-gray p-3"
+                      style={{ borderRadius: '12px', background: '#f9f9f97d', border: '1px solid #f0f0f0' }}
                     >
-                      <Tooltip title="Edit FAQ" placement="top">
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<EditOutlined />}
-                          onClick={() => handleEdit(faq)}
-                          disabled={isLoading}
-                        />
-                      </Tooltip>
-                      <Tooltip
-                        title={
-                          faq.is_active
-                            ? "Deactivate FAQ"
-                            : "Activate FAQ"
-                        }
-                        placement="top"
-                      >
-                        <Button
-                          type={faq.is_active ? "default" : "primary"}
-                          size="small"
-                          icon={
-                            faq.is_active ? (
-                              <EyeInvisibleOutlined />
-                            ) : (
-                              <EyeOutlined />
-                            )
-                          }
-                          onClick={() => toggleStatusMutation.mutate(faq)}
-                          disabled={toggleStatusMutation.isPending}
-                        />
-                      </Tooltip>
-                      <Tooltip title="Delete FAQ" placement="top">
-                        <Button
-                          danger
-                          size="small"
-                          icon={<DeleteOutlined />}
-                          onClick={() => handleDelete(faq.id)}
-                          disabled={deleteMutation.isPending}
-                        />
-                      </Tooltip>
-                    </Space>
-                  }
-                >
-                  <Space direction="vertical" className="w-100">
-                    <Text>{faq.answer}</Text>
+                      <div className="d-flex justify-content-between align-items-center mb-2 px-2">
+                        <Space>
+                          <Text strong className="text-primary" style={{ fontSize: '15px' }}>
+                            📁 {group.title}
+                          </Text>
+                          <Badge count={group.items.length} showZero color="blue" size="small" />
+                        </Space>
+                      </div>
+                      <Collapse accordion ghost>
+                        {group.items.map((faq) => (
+                          <Panel
+                            key={faq.id}
+                            header={
+                              <div className="d-flex align-items-center justify-content-between w-100">
+                                <Space wrap>
+                                  <Tag
+                                    color={faq.is_active ? "success" : "default"}
+                                    style={{ borderRadius: '4px' }}
+                                  >
+                                    {faq.is_active ? "Active" : "Inactive"}
+                                  </Tag>
+                                  <Text strong style={{ fontSize: '13px' }}>{faq.question}</Text>
+                                </Space>
+                              </div>
+                            }
+                            extra={
+                              <Space
+                                onClick={(e) => e.stopPropagation()}
+                                className="ms-2"
+                              >
+                                <Tooltip title="Edit FAQ" placement="top">
+                                  <Button
+                                    type="primary"
+                                    size="small"
+                                    icon={<EditOutlined />}
+                                    onClick={() => handleEdit(faq)}
+                                    disabled={isLoading}
+                                    style={{ width: '28px', height: '28px' }}
+                                  />
+                                </Tooltip>
+                                <Tooltip
+                                  title={
+                                    faq.is_active
+                                      ? "Deactivate FAQ"
+                                      : "Activate FAQ"
+                                  }
+                                  placement="top"
+                                >
+                                  <Button
+                                    type={faq.is_active ? "default" : "primary"}
+                                    size="small"
+                                    icon={
+                                      faq.is_active ? (
+                                        <EyeInvisibleOutlined />
+                                      ) : (
+                                        <EyeOutlined />
+                                      )
+                                    }
+                                    onClick={() => toggleStatusMutation.mutate(faq)}
+                                    disabled={toggleStatusMutation.isPending}
+                                    style={{ width: '28px', height: '28px' }}
+                                  />
+                                </Tooltip>
+                                <Tooltip title="Delete FAQ" placement="top">
+                                  <Button
+                                    danger
+                                    size="small"
+                                    icon={<DeleteOutlined />}
+                                    onClick={() => handleDelete(faq.id)}
+                                    disabled={deleteMutation.isPending}
+                                    style={{ width: '28px', height: '28px' }}
+                                  />
+                                </Tooltip>
+                              </Space>
+                            }
+                          >
+                            <Space direction="vertical" className="w-100">
+                              <Text style={{ fontSize: '13px' }}>{faq.answer}</Text>
 
-                    {faq.links &&
-                      (() => {
-                        try {
-                          const parsedLinks = JSON.parse(faq.links);
-                          return parsedLinks.length > 0 ? (
-                            <div className="mt-3">
-                              <Text strong>Related Links:</Text>
-                              <ul className="list-unstyled ps-0 mt-2">
-                                {parsedLinks.map((link, linkIndex) => (
-                                  <li key={linkIndex} className="mb-1">
-                                    <LinkOutlined className="me-2 text-primary" />
-                                    <Link
-                                      href={link.url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      {link.text}
-                                    </Link>
-                                  </li>
-                                ))}
-                              </ul>
-                            </div>
-                          ) : null;
-                        } catch (e) {
-                          return null;
-                        }
-                      })()}
+                              {faq.links &&
+                                (() => {
+                                  try {
+                                    const parsedLinks = JSON.parse(faq.links);
+                                    return parsedLinks.length > 0 ? (
+                                      <div className="mt-3">
+                                        <Text strong style={{ fontSize: '12px' }}>Related Links:</Text>
+                                        <ul className="list-unstyled ps-0 mt-2">
+                                          {parsedLinks.map((link, linkIndex) => (
+                                            <li key={linkIndex} className="mb-1">
+                                              <LinkOutlined className="me-2 text-primary" style={{ fontSize: '11px' }} />
+                                              <Link
+                                                href={link.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{ fontSize: '12px' }}
+                                              >
+                                                {link.text}
+                                              </Link>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    ) : null;
+                                  } catch (e) {
+                                    return null;
+                                  }
+                                })()}
 
-                    <Text type="secondary" className="small mt-2">
-                      Created: {formatDateTime(faq.created_at)}
-                      {faq.updated_at !== faq.created_at && (
-                        <span>
-                          {" "}
-                          | Updated: {formatDateTime(faq.updated_at)}
-                        </span>
-                      )}
-                    </Text>
-                  </Space>
-                </Panel>
-              ))}
-            </Collapse>
+                              <Text type="secondary" style={{ fontSize: '11px' }} className="mt-2">
+                                Created: {formatDateTime(faq.created_at)}
+                                {faq.updated_at !== faq.created_at && (
+                                  <span>
+                                    {" "}
+                                    | Updated: {formatDateTime(faq.updated_at)}
+                                  </span>
+                                )}
+                              </Text>
+                            </Space>
+                          </Panel>
+                        ))}
+                      </Collapse>
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </div>
           )}
         </div>
       </Card>

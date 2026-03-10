@@ -27,7 +27,7 @@ const LeftBar = (props) => {
         <div className="left-panel">
             <div>
 
-                <h5 className="mb-3">Layout Structure</h5>
+                <h5 className="mb-3">Layxxout Structure</h5>
 
                 {/* Stage / Screen */}
                 <div
@@ -90,8 +90,18 @@ const LeftBar = (props) => {
                         }}
                     >
 
-                        {/* Rows */}
-                        {section.rows.map(row => (
+                        {/* Standing Section Info */}
+                        {section.type === 'Standing' && (
+                            <div className="px-2 py-1 mb-1">
+                                <Space>
+                                    <span>🎫</span>
+                                    <span>Tickets: {section.totalTickets || 0}</span>
+                                </Space>
+                            </div>
+                        )}
+
+                        {/* Rows (only for non-standing sections) */}
+                        {section.type !== 'Standing' && section.rows.map(row => (
                             <div
                                 key={row.id}
                                 className={`d-flex justify-content-between align-items-center px-2 py-1 mb-1 rounded 
@@ -132,8 +142,8 @@ const LeftBar = (props) => {
                             </div>
                         ))}
 
-                        {/* Add Row Button */}
-                        {!isAssignMode && (
+                        {/* Add Row Button (only for non-standing sections) */}
+                        {!isAssignMode && section.type !== 'Standing' && (
                             <Button
                                 type="dashed"
                                 size="small"

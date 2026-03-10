@@ -250,7 +250,8 @@ const RightPanel = (props) => {
                   { value: 'Balcony', label: 'Balcony' },
                   { value: 'VIP', label: 'VIP' },
                   { value: 'Lower', label: 'Lower' },
-                  { value: 'Upper', label: 'Upper' }
+                  { value: 'Upper', label: 'Upper' },
+                  { value: 'Standing', label: 'Standing' }
                 ]}
               />
             </Form.Item>
@@ -277,23 +278,75 @@ const RightPanel = (props) => {
               />
             </Form.Item>
 
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              block
-              onClick={() => addRowToSection(selectedElement.id)}
-              className="mb-3"
-            >
-              Add Row
-            </Button>
+            {selectedElement.type === 'Standing' ? (
+              <>
+                <Form.Item label="Total Tickets">
+                  <InputNumber
+                    min={1}
+                    value={selectedElement.totalTickets || 0}
+                    onChange={(value) => {
+                      updateSection(selectedElement.id, { totalTickets: value });
+                      setSelectedElement({ ...selectedElement, totalTickets: value });
+                    }}
+                    className="w-100"
+                    placeholder="Enter total tickets"
+                  />
+                </Form.Item>
 
-            <div className="p-3 bg-light rounded">
-              <div className="mb-1"><Text strong>Rows:</Text> {selectedElement.rows.length}</div>
-              <div className="mb-2"><Text strong>Total Seats:</Text> {selectedElement.rows.reduce((total, row) => total + row.seats.length, 0)}</div>
-              <Text type="secondary" className="d-block">
-                <strong>💡 Tip:</strong> Click and drag to move. Use corner handles to resize.
-              </Text>
-            </div>
+                {isAssignMode && ticketCategories?.length > 0 && (
+                  <Form.Item label="Assign Ticket Category">
+                    <Select
+                      value={selectedElement.ticketCategory}
+                      onChange={(value) => {
+                        updateSection(selectedElement.id, { ticketCategory: value });
+                        setSelectedElement({ ...selectedElement, ticketCategory: value });
+                      }}
+                      placeholder="Select a ticket category"
+                      allowClear
+                      showSearch
+                      optionFilterProp="children"
+                      filterOption={(input, option) =>
+                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      }
+                    >
+                      {ticketCategories?.map(cat => (
+                        <Option key={cat.id} value={cat.id}>
+                          {cat.name} (₹{cat.price})
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                )}
+
+                <div className="p-3 bg-light rounded">
+                  <div className="mb-1"><Text strong>Type:</Text> Standing</div>
+                  <div className="mb-2"><Text strong>Total Tickets:</Text> {selectedElement.totalTickets || 0}</div>
+                  <Text type="secondary" className="d-block">
+                    <strong>💡 Tip:</strong> Standing sections have tickets only — no rows or seats.
+                  </Text>
+                </div>
+              </>
+            ) : (
+              <>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  block
+                  onClick={() => addRowToSection(selectedElement.id)}
+                  className="mb-3"
+                >
+                  Add Row
+                </Button>
+
+                <div className="p-3 bg-light rounded">
+                  <div className="mb-1"><Text strong>Rows:</Text> {selectedElement.rows.length}</div>
+                  <div className="mb-2"><Text strong>Total Seats:</Text> {selectedElement.rows.reduce((total, row) => total + row.seats.length, 0)}</div>
+                  <Text type="secondary" className="d-block">
+                    <strong>💡 Tip:</strong> Click and drag to move. Use corner handles to resize.
+                  </Text>
+                </div>
+              </>
+            )}
           </Form>
         )}
 
