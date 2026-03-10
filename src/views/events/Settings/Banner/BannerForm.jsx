@@ -505,7 +505,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
             ))}
 
             {/* Switch Fields */}
-            {SWITCH_FIELDS.map((field) => (
+            {/* {SWITCH_FIELDS.map((field) => (
               <Col key={field.name} {...field.span}>
                 <Form.Item
                   label={field.label}
@@ -517,7 +517,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
                   <Switch />
                 </Form.Item>
               </Col>
-            ))}
+            ))} */}
 
             {/* Image Fields - Using MediaGalleryPicker */}
             {IMAGE_FIELDS.map((field) => (

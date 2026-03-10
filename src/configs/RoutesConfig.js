@@ -1,4 +1,4 @@
-import React from 'react'
+﻿import React from 'react'
 import { PERMISSIONS } from 'constants/PermissionConstant'
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
@@ -954,14 +954,14 @@ export const protectedRoutes = [
             roles: ['admin'],
         }
     },
-    {
-        key: 'dynamic-label-print',
-        path: `/dynamic-label-print`,
-        component: React.lazy(() => import('views/events/label_printing/DynamicLabelPrint')),
-        meta: {
-            roles: ['admin'],
-        }
-    },
+    // {
+    //     key: 'dynamic-label-print',
+    //     path: `/dynamic-label-print`,
+    //     component: React.lazy(() => import('views/events/label_printing/DynamicLabelPrint')),
+    //     meta: {
+    //         roles: ['admin'],
+    //     }
+    // },
     {
         key: 'label-designer',
         path: `/label-designer`,

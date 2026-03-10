@@ -129,13 +129,13 @@ const BannerList = () => {
         />
       ),
     },
-    {
-      title: 'Title',
-      dataIndex: 'title',
-      key: 'title',
-      searchable: true,
-      sorter: (a, b) => a.title.localeCompare(b.title),
-    },
+    // {
+    //   title: 'Title',
+    //   dataIndex: 'title',
+    //   key: 'title',
+    //   searchable: true,
+    //   sorter: (a, b) => a.title.localeCompare(b.title),
+    // },
     {
       title: 'Type',
       dataIndex: 'type',
@@ -180,23 +180,23 @@ const BannerList = () => {
     //   width: 100,
     //   render: (id) => id || '-',
     // },
-    {
-      title: 'Button Text',
-      dataIndex: 'button_text',
-      key: 'button_text',
-      render: (text) => text ? <Tag color="blue">{text}</Tag> : '-',
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-      ellipsis: true,
-      render: (text) => (
-        <Tooltip title={text}>
-          {text ? text.substring(0, 50) + (text.length > 50 ? '...' : '') : '-'}
-        </Tooltip>
-      ),
-    },
+    // {
+    //   title: 'Button Text',
+    //   dataIndex: 'button_text',
+    //   key: 'button_text',
+    //   render: (text) => text ? <Tag color="blue">{text}</Tag> : '-',
+    // },
+    // {
+    //   title: 'Description',
+    //   dataIndex: 'description',
+    //   key: 'description',
+    //   ellipsis: true,
+    //   render: (text) => (
+    //     <Tooltip title={text}>
+    //       {text ? text.substring(0, 50) + (text.length > 50 ? '...' : '') : '-'}
+    //     </Tooltip>
+    //   ),
+    // },
     {
       title: 'Action',
       key: 'action',

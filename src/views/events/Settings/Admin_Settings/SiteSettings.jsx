@@ -1,11 +1,14 @@
 import { EyeOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Tabs, Input, Switch, Upload, Button, Checkbox, Modal, Form, message } from 'antd';
+import { Card, Col, Row, Tabs, Input, Switch, Upload, Button, Checkbox, Modal, Form, message, Typography } from 'antd';
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import { PictureOutlined } from '@ant-design/icons';
 import DynamicOptions from './DynamicOptions';
 import DeveloperSettings from './DeveloperSettings';
 
 const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
@@ -214,38 +217,63 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
       label: 'Homepage',
       children: (
         <>
-          <h4 style={{ marginBottom: '16px' }}>Homepage Settings</h4>
+          {/* <h4 style={{ marginBottom: '16px' }}>Login Promotion</h4> */}
           <Row gutter={[16, 16]}>
-            <Col xs={24} lg={12}>
-              <Form.Item label="Home Divider Image">
-                <Upload {...getImageUploadProps('homeDivider')}>
-                  {getFileList('homeDivider').length < 1 && (
-                    <div>
-                      <UploadOutlined />
-                      <div style={{ marginTop: 8 }}>Upload</div>
+            <Col xs={12}>
+              <Form.Item
+                label="Login Promotion Image"
+                name="login_promo"
+                extra="Select an image from media gallery to use as login promotion"
+              >
+                <Button
+                  icon={<PictureOutlined />}
+                  onClick={() => setIsMediaPickerOpen(true)}
+                  type={form.getFieldValue('login_promo') ? 'default' : 'primary'}
+                >
+                  {form.getFieldValue('login_promo') ? 'Change Image' : 'Select Image'}
+                </Button>
+              </Form.Item>
+
+              <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.login_promo !== currentValues.login_promo}>
+                {({ getFieldValue }) => {
+                  const loginPromo = getFieldValue('login_promo');
+                  return loginPromo ? (
+                    <div style={{ marginTop: '10px', position: 'relative', display: 'inline-block' }}>
+                      <p style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: '8px' }}>Preview:</p>
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={loginPromo}
+                          alt="Login Promo"
+                          style={{ maxHeight: '200px', borderRadius: '8px', border: '1px solid #303030', display: 'block' }}
+                        />
+                        <Button
+                          type="primary"
+                          danger
+                          shape="circle"
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1 }}
+                          onClick={() => form.setFieldsValue({ login_promo: '' })}
+                        />
+                      </div>
                     </div>
-                  )}
-                </Upload>
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Form.Item label="Home Divider External URL" name="home_divider_url">
-                <Input placeholder="Enter external image URL" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Form.Item name="external_link" valuePropName="checked">
-                <Checkbox>Use External Link</Checkbox>
-              </Form.Item>
-            </Col>
-            <Col xs={24} lg={12}>
-              <Form.Item name="new_tab" valuePropName="checked">
-                <Checkbox>Open in New Tab</Checkbox>
+                  ) : null;
+                }}
               </Form.Item>
             </Col>
           </Row>
+
+          <MediaGalleryPickerModal
+            open={isMediaPickerOpen}
+            onCancel={() => setIsMediaPickerOpen(false)}
+            onSelect={(url) => {
+              form.setFieldsValue({ login_promo: url });
+              setIsMediaPickerOpen(false);
+              message.success('Image selected successfully');
+            }}
+            value={form.getFieldValue('login_promo')}
+            title="Select Login Promotion Image"
+          />
         </>
       )
     },

@@ -107,7 +107,7 @@ export const HeaderNav = props => {
 						}
 					</NavEdge>
 					<NavEdge right>
-						<a href="https://t.getyourticket.in" target='__blank'>
+						<a href={`${process.env.REACT_APP_USERSITE_URL}`} target='__blank'>
 							<Tag color='blue'><GlobalOutlined style={{ fontSize: '14px' }} />Visit Website</Tag>
 						</a>
 						<Impersonate />

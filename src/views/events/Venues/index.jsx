@@ -9,6 +9,7 @@ import { PlusOutlined } from '@ant-design/icons';
 import VenueModal from './VaneModal';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { PERMISSIONS } from 'constants/PermissionConstant';
+import Utils from 'utils';
 
 const Venues = () => {
   const { api: apiUrl, UserPermissions, authToken, UserData, isMobile, userRole } = useMyContext();
@@ -48,7 +49,7 @@ const Venues = () => {
     const url = `/venues?${params.toString()}`;
     const response = await api.get(url);
     if (!response.status) {
-      throw new Error('Failed to fetch venues');
+      throw new Error(response.message || 'Failed to fetch venues');
     }
 
     // Extract pagination data from response
@@ -88,8 +89,8 @@ const Venues = () => {
     cacheTime: 30 * 60 * 1000, // 30 minutes
     queryKey: ['venue', UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
     onError: (err) => {
-      setError(err.response?.data?.error || err.message || "Failed to fetch venues");
-      message.error(err.response?.data?.error || err.message || "Failed to fetch venues");
+      setError(Utils.getErrorMessage(err));
+      message.error(Utils.getErrorMessage(err));
     }
   });
 
@@ -263,9 +264,7 @@ const Venues = () => {
       message.success("Venue Deleted successfully.");
     },
     onError: (err) => {
-      message.error(
-        err.response?.data?.message || err.message || "An error occurred"
-      );
+      message.error(Utils.getErrorMessage(err));
     },
   });
 

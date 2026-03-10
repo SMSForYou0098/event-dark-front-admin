@@ -53,7 +53,7 @@ const Organizers = () => {
     // const url = `users-by-role/${selectedRole}`;
     const response = await api.get(url);
     if (!response.status) {
-      throw new Error('Failed to fetch organizers');
+      throw new Error(response.message || 'Failed to fetch organizers');
     }
     return response.data || [];
   };

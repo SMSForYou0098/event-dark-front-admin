@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useCallback } from 'react';
-import { Card, Button, Space, Tag, message, Modal, Input } from 'antd';
+import { Card, Button, Space, Tag, message, Modal, Input, Upload, Select } from 'antd';
 import {
     PrinterOutlined,
     SaveOutlined,
@@ -23,6 +23,7 @@ import {
 import LabelDesigner from './LabelDesigner';
 import { usePrinter } from 'Context/PrinterContext';
 import './LabelDesigner.css';
+import * as XLSX from 'xlsx';
 
 // Saved layout templates
 const SAVED_LAYOUTS = [
@@ -73,6 +74,11 @@ const LabelDesignerPage = () => {
     const [savedLayouts, setSavedLayouts] = useState(SAVED_LAYOUTS);
     const [saveModalVisible, setSaveModalVisible] = useState(false);
     const [loadModalVisible, setLoadModalVisible] = useState(false);
+    const [availableFields, setAvailableFields] = useState([]);
+    const [dataRows, setDataRows] = useState([]);
+    const [lang, setLang] = useState('zpl');
+    const [singleModalVisible, setSingleModalVisible] = useState(false);
+    const [singleValues, setSingleValues] = useState({});
     
     const { isConnected, deviceName } = usePrinter();
 
@@ -157,6 +163,134 @@ const LabelDesignerPage = () => {
         input.click();
     }, []);
 
+    // Handle Excel/CSV upload and parse fields (first row headers)
+    const handleDataFile = useCallback((file) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = e.target.result;
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const ws = workbook.Sheets[sheetName];
+                const rowsObj = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                if (!rowsObj || rowsObj.length === 0) {
+                    message.error('Uploaded file has no data');
+                    return;
+                }
+                const headers = Object.keys(rowsObj[0]).map(h => String(h || '').trim()).filter(h => h);
+                if (headers.length === 0) {
+                    message.error('No headers detected in the first row');
+                    return;
+                }
+                const fields = headers.map(h => ({ id: h.replace(/\s+/g, '_').toLowerCase(), label: h }));
+                // normalize rows to use ids as keys
+                const normalizedRows = rowsObj.map(r => {
+                    const obj = {};
+                    headers.forEach(h => { obj[h.replace(/\s+/g, '_').toLowerCase()] = r[h]; });
+                    return obj;
+                });
+                setAvailableFields(fields);
+                setDataRows(normalizedRows);
+                message.success(`Loaded ${fields.length} fields and ${normalizedRows.length} rows from ${file.name}`);
+            } catch (err) {
+                console.error(err);
+                message.error('Failed to parse file');
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }, []);
+
+    const beforeUpload = useCallback((file) => {
+        handleDataFile(file);
+        return false; // prevent auto upload
+    }, [handleDataFile]);
+
+    // Convert mm to printer dots (approx) for ZPL (use DPI 203)
+    const mmToDots = (mm, dpi = 203) => Math.round(mm * dpi / 25.4);
+
+    const createAndDownload = (filename, content) => {
+        const blob = new Blob([content], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const generateZPL = (config, row) => {
+        const DPI = 203;
+        const labelWidthMm = config.labelWidth;
+        const labelHeightMm = config.labelHeight;
+        let out = '';
+        config.elements.forEach(el => {
+            const xMm = (el.x / 4); // MM_TO_PX is 4
+            const yMm = (el.y / 4);
+            if (el.isQR) {
+                const x = mmToDots(xMm, DPI);
+                const y = mmToDots(yMm, DPI);
+                // Simple QR with ^BQN
+                out += `^FO${x},${y}^BQN,2,6^FDLA,${row[el.fieldId] || ''}^FS\n`;
+            } else {
+                const x = mmToDots(xMm, DPI);
+                const y = mmToDots(yMm, DPI);
+                const fontDots = Math.max(10, Math.round((el.fontSize || 12) * DPI / 96));
+                out += `^FO${x},${y}^A0N,${fontDots},${fontDots}^FD${row[el.fieldId] || ''}^FS\n`;
+            }
+        });
+        // Wrap in ZPL start/stop
+        return `^XA\n${out}^XZ`;
+    };
+
+    const generateTSPL = (config, row) => {
+        const labelWidth = config.labelWidth;
+        const labelHeight = config.labelHeight;
+        let out = `SIZE ${labelWidth} mm, ${labelHeight} mm\nGAP 2 mm,0\nDIRECTION 1\nCLS\n`;
+        config.elements.forEach(el => {
+            const xMm = (el.x / 4);
+            const yMm = (el.y / 4);
+            if (el.isQR) {
+                out += `QRCODE ${Math.round(xMm)},${Math.round(yMm)},L,5,A,0,M,${row[el.fieldId] || ''}\n`;
+            } else {
+                // TSPL TEXT: TEXT x,y,font,rotation,x_mul,y_mul,content
+                out += `TEXT ${Math.round(xMm)},${Math.round(yMm)},"0",0,1,1,${row[el.fieldId] || ''}\n`;
+            }
+        });
+        out += `PRINT 1,1\n`;
+        return out;
+    };
+
+    const handleGenerateAndDownload = useCallback((mode, language, singleData) => {
+        if (!currentConfig) { message.error('No layout configured'); return; }
+        const configs = [];
+        if (mode === 'single') configs.push(singleData);
+        else configs.push(...dataRows);
+
+        const parts = configs.map(r => {
+            if (language === 'zpl') return generateZPL(currentConfig, r);
+            return generateTSPL(currentConfig, r);
+        });
+        const ext = language === 'zpl' ? 'zpl' : 'txt';
+        createAndDownload(`labels-${language}-${Date.now()}.${ext}`, parts.join('\n'));
+    }, [currentConfig, dataRows]);
+
+    const openSingleModal = useCallback(() => {
+        // initialize with first row or empty
+        const init = {};
+        availableFields.forEach(f => { init[f.id] = (dataRows[0] && dataRows[0][f.id]) || ''; });
+        setSingleValues(init);
+        setSingleModalVisible(true);
+    }, [availableFields, dataRows]);
+
+    const handleSingleOk = useCallback(() => {
+        setSingleModalVisible(false);
+        handleGenerateAndDownload('single', lang, singleValues);
+    }, [handleGenerateAndDownload, lang, singleValues]);
+
+    const handleSingleChange = useCallback((id, val) => {
+        setSingleValues(prev => ({ ...prev, [id]: val }));
+    }, []);
+
     return (
         <div className="label-designer-page p-4">
             {/* Page Header */}
@@ -199,15 +333,46 @@ const LabelDesignerPage = () => {
                         >
                             Export JSON
                         </Button>
+                        <Upload beforeUpload={beforeUpload} accept=".xlsx,.xls,.csv" showUploadList={false}>
+                            <Button icon={<UploadOutlined />}>Upload Data</Button>
+                        </Upload>
+                        <Select value={lang} onChange={setLang} style={{ width: 120 }}>
+                            <Select.Option value="zpl">ZPL</Select.Option>
+                            <Select.Option value="tspl">TSPL</Select.Option>
+                        </Select>
+                        <Button onClick={openSingleModal} disabled={!currentConfig} >Print Single</Button>
+                        <Button onClick={() => handleGenerateAndDownload('bulk', lang)} disabled={!currentConfig || dataRows.length===0}>Print Bulk</Button>
                         <Button 
                             icon={<UploadOutlined />}
                             onClick={handleImportJSON}
                         >
                             Import JSON
                         </Button>
+                        {availableFields.length > 0 && (
+                            <Tag color="processing">{availableFields.length} fields</Tag>
+                        )}
                     </Space>
                 </div>
             </Card>
+
+            <Modal
+                title="Enter label data"
+                open={singleModalVisible}
+                onOk={handleSingleOk}
+                onCancel={() => setSingleModalVisible(false)}
+            >
+                <div className="d-flex flex-column gap-2">
+                    {availableFields.map(f => (
+                        <div key={f.id}>
+                            <label style={{ color: 'rgba(255,255,255,0.85)' }}>{f.label}</label>
+                            <Input value={singleValues[f.id] || ''} onChange={(e) => handleSingleChange(f.id, e.target.value)} />
+                        </div>
+                    ))}
+                    {availableFields.length === 0 && (
+                        <div style={{ color: 'rgba(255,255,255,0.45)' }}>No uploaded fields. Upload a file to enable bulk printing.</div>
+                    )}
+                </div>
+            </Modal>
 
             {/* Designer Component */}
             <Card 
@@ -216,6 +381,7 @@ const LabelDesignerPage = () => {
                 <LabelDesigner 
                     onConfigChange={handleConfigChange}
                     initialConfig={currentConfig}
+                    availableFields={availableFields}
                     key={currentConfig ? JSON.stringify(currentConfig) : 'default'}
                 />
             </Card>

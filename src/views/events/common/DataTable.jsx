@@ -23,6 +23,7 @@ import dayjs from "dayjs";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
 import { debounce } from "utils/debounce";
+import Utils from 'utils';
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
@@ -439,7 +440,7 @@ const DataTable = ({
       <Alert
         type="error"
         showIcon
-        message={<div>Error: {error?.message ?? "Failed to fetch data"}</div>}
+        message={<div>{Utils.getErrorMessage(error)}</div>}
         action={
           <Button
             type="primary"

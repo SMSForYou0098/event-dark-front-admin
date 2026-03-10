@@ -90,7 +90,7 @@ const routeImportMap = {
     // Label Printing & Forge
     'label-printing': () => import('views/events/label_printing/LabelPrinting'),
     'label-forge': () => import('views/events/label_forge/LabelForge'),
-    'dynamic-label-print': () => import('views/events/label_printing/DynamicLabelPrint'),
+    // 'dynamic-label-print': () => import('views/events/label_printing/DynamicLabelPrint'),
     'label-designer': () => import('views/events/label_printing/LabelDesigner'),
     'printer-testing': () => import('views/events/Settings/PrinterTesting/index'),
 };

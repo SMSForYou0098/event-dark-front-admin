@@ -71,7 +71,7 @@ const SecurityCard = ({
                     )}
                     {
                         userRole === 'Admin' && (
-                            <Col xs={24} md={12}>
+                            <Col xs={12} md={6}>
                                 <Form.Item
                                     label="User Status"
                                     name="status"
@@ -82,7 +82,7 @@ const SecurityCard = ({
                             </Col>
                         )
                     }
-                    <Col xs={24} md={12}>
+                    <Col xs={12} md={6}>
                         <Space size="large">
                             <Form.Item
                                 label="Authentication"
@@ -94,7 +94,7 @@ const SecurityCard = ({
                                     unCheckedChildren="OTP"
                                 />
                             </Form.Item>
-                            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) =>
+                            {/* <Form.Item noStyle shouldUpdate={(prevValues, currentValues) =>
                                 prevValues.authentication !== currentValues.authentication
                             }>
                                 {({ getFieldValue }) => {
@@ -111,8 +111,28 @@ const SecurityCard = ({
                                         />
                                     );
                                 }}
-                            </Form.Item>
+                            </Form.Item> */}
                         </Space>
+                    </Col>
+                    <Col xs={24}>
+                        <Form.Item noStyle shouldUpdate={(prevValues, currentValues) =>
+                            prevValues.authentication !== currentValues.authentication
+                        }>
+                            {({ getFieldValue }) => {
+                                const isPasswordAuth = getFieldValue('authentication');
+                                return (
+                                    <Alert
+                                        type="info"
+                                        message={
+                                            isPasswordAuth
+                                                ? "Password login is currently active"
+                                                : "OTP (One-Time Password) login is currently active"
+                                        }
+                                        showIcon
+                                    />
+                                );
+                            }}
+                        </Form.Item>
                     </Col>
                 </Row>
             </Card>

@@ -41,7 +41,7 @@ const AdminSetting = () => {
             if (res.data.status) {
                 return res.data.data;
             }
-            throw new Error('Failed to fetch settings');
+            throw new Error(res.data.message || 'Failed to fetch settings');
         },
         staleTime: 0,
         refetchOnMount: "always",
@@ -112,6 +112,7 @@ const AdminSetting = () => {
                 footer_font_Color: configData?.footer_font_Color || '',
                 home_bg_color: configData?.home_bg_color || '',
                 home_divider_url: parsedDividerUrl.url || '',
+                login_promo: configData?.login_promo || '',
                 external_link: parsedDividerUrl.external_link || false,
                 new_tab: parsedDividerUrl.new_tab || false,
                 ai_keys: (() => {

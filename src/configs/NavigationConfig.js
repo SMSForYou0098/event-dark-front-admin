@@ -598,15 +598,15 @@ const settingsSubmenu = [
         submenu: [],
         roles: ["Admin"]
       },
-      {
-        key: 'dynamic-label-print',
-        path: 'dynamic-label-print',
-        title: 'Dynamic Label Print',
-        icon: SafetyOutlined,
-        breadcrumb: false,
-        submenu: [],
-        roles: ["Admin"]
-      },
+      // {
+      //   key: 'dynamic-label-print',
+      //   path: 'dynamic-label-print',
+      //   title: 'Dynamic Label Print',
+      //   icon: SafetyOutlined,
+      //   breadcrumb: false,
+      //   submenu: [],
+      //   roles: ["Admin"]
+      // },
       {
         key: 'label-designer',
         path: 'label-designer',

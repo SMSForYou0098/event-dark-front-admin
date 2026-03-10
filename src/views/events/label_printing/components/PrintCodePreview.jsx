@@ -222,10 +222,7 @@ const PrintCodePreview = ({
             footer={
                 <Space>
                     <Button onClick={onClose}>Close</Button>
-                    <Button icon={<Copy size={14} />} onClick={handleCopy}>
-                        Copy Code
-                    </Button>
-                    <Button icon={<RefreshCw size={14} />} onClick={handleRegenerate}>
+                    <Button icon={<RefreshCw size={14} />} onClick={handleRegenerate} className="d-inline-flex align-items-center gap-2">
                         Regenerate
                     </Button>
                     <Button
@@ -234,6 +231,7 @@ const PrintCodePreview = ({
                         onClick={handlePrint}
                         disabled={!isConnected || isPrinting}
                         loading={isPrinting}
+                        className="d-inline-flex align-items-center gap-2"
                     >
                         Print This Label
                     </Button>
@@ -244,6 +242,7 @@ const PrintCodePreview = ({
                             onClick={handlePrintAll}
                             disabled={!isConnected || isPrinting}
                             loading={isPrinting}
+                            className="d-inline-flex align-items-center gap-2"
                         >
                             Print All ({selectedRows.length})
                         </Button>
@@ -253,11 +252,11 @@ const PrintCodePreview = ({
         >
             <Space direction="vertical" size="middle" className="w-100">
                 {/* Font Settings */}
-                <div style={{ background: '#f5f5f5', padding: 16, borderRadius: 8 }}>
+                <div style={{ padding: 16, borderRadius: 8 }}>
                     <Text strong style={{ marginBottom: 12, display: 'block' }}>
                         {printerType === "tspl" ? "TSPL Settings" : "ZPL Settings"} (changes regenerate code)
                     </Text>
-                    
+
                     {printerType === "tspl" ? (
                         <Space direction="vertical" size="small" className="w-100">
                             <Row gutter={16}>
@@ -405,17 +404,17 @@ const PrintCodePreview = ({
                 />
 
                 {/* Reference */}
-                <div style={{ background: '#fffbe6', padding: 12, borderRadius: 8, border: '1px solid #ffe58f' }}>
+                <div style={{ padding: 12, borderRadius: 8 }}>
                     <Text strong>Quick Reference:</Text>
                     {printerType === "tspl" ? (
                         <Text style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
-                            TEXT x,y,"font",rotation,x-scale,y-scale,"content"<br/>
-                            Working fonts: 2 (small), 3 (medium), 4 (large), 5 (XL)<br/>
+                            TEXT x,y,"font",rotation,x-scale,y-scale,"content"<br />
+                            Working fonts: 2 (small), 3 (medium), 4 (large), 5 (XL)<br />
                             Example: TEXT 5,10,"4",0,1,1,"Rajesh"
                         </Text>
                     ) : (
                         <Text style={{ display: 'block', fontSize: 12, marginTop: 4 }}>
-                            ^FO x,y = Position | ^A0N,height,width = Font | ^FD content ^FS = Text<br/>
+                            ^FO x,y = Position | ^A0N,height,width = Font | ^FD content ^FS = Text<br />
                             Example: ^FO20,30^A0N,50,50^FDHello^FS
                         </Text>
                     )}
