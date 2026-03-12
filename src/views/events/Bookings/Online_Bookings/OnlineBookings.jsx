@@ -340,7 +340,11 @@ const OnlineBookings = memo(() => {
         const eventName =
           record?.bookings?.[0]?.event_name || record?.event_name || "";
 
-        return <span title={eventName}>{truncateString(eventName)}</span>;
+        return (
+          <Tooltip title={eventName}>
+            <span>{truncateString(eventName, 25)}</span>
+          </Tooltip>
+        );
       },
       sorter: (a, b) => {
         const nameA = a?.bookings?.[0]?.event_name || a?.event_name || "";
@@ -682,7 +686,7 @@ const OnlineBookings = memo(() => {
         ticketType={ticketType}
         ticketData={ticketData}
         formatDateRange={formatDateRange}
-        showTicketDetails={true}
+        showTicketDetails={false}
       />
 
       <RefundModal

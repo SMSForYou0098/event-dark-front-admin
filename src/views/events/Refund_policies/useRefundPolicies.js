@@ -40,7 +40,7 @@ const deleteRefundPolicy = async (id) => {
 
 // Get events for dropdown
 const getEvents = async (id) => {
-    const response = await api.get(`events/list/${id}`);
+    const response = await api.get(`events/list`);
     const list = Array.isArray(response?.data)
         ? response.data
         : Array.isArray(response?.events)

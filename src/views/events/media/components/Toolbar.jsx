@@ -2,6 +2,7 @@ import React from 'react';
 import { Space, Button, Input, Badge } from 'antd';
 import {
     FolderAddOutlined,
+    FolderOutlined,
     UploadOutlined,
     DeleteOutlined,
     SearchOutlined,
@@ -12,11 +13,12 @@ const Toolbar = ({
     onCreateFolder,
     onUpload,
     onDeleteSelected,
+    onMoveSelected,
     selectedCount = 0,
     searchQuery = '',
     onSearchChange,
 }) => {
-    const {isMobile} = useMyContext();
+    const { isMobile } = useMyContext();
     return (
         <div
             style={{
@@ -44,15 +46,25 @@ const Toolbar = ({
                     {!isMobile && 'Upload'}
                 </Button>
                 {selectedCount > 0 && (
-                    <Badge count={selectedCount} size="small">
-                        <Button
-                            danger
-                            icon={<DeleteOutlined />}
-                            onClick={onDeleteSelected}
-                        >
-                            {!isMobile && 'Delete Selected'}
-                        </Button>
-                    </Badge>
+                    <>
+                        <Badge count={selectedCount} size="small">
+                            <Button
+                                icon={<FolderOutlined />}
+                                onClick={onMoveSelected}
+                            >
+                                {!isMobile && 'Move Selected'}
+                            </Button>
+                        </Badge>
+                        <Badge count={selectedCount} size="small">
+                            <Button
+                                danger
+                                icon={<DeleteOutlined />}
+                                onClick={onDeleteSelected}
+                            >
+                                {!isMobile && 'Delete Selected'}
+                            </Button>
+                        </Badge>
+                    </>
                 )}
                 <Input
                     placeholder="Search..."
@@ -68,3 +80,4 @@ const Toolbar = ({
 };
 
 export default Toolbar;
+

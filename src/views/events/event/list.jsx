@@ -68,7 +68,7 @@ const EventList = ({ isJunk = false }) => {
         params.set("end_date", dateRange.endDate);
       }
 
-      const baseUrl = isJunk ? `event/junk/${UserData?.id}` : `events/list/${UserData?.id}`;
+      const baseUrl = isJunk ? `event/junk/${UserData?.id}` : `events/list`;
       const url = `${baseUrl}?${params.toString()}`;
       const response = await api.get(url);
 
@@ -114,9 +114,11 @@ const EventList = ({ isJunk = false }) => {
 
   const getStatusBadge = useCallback((status) => {
     const statusMap = {
+      0: { color: 'default', text: 'TBA' },
       1: { color: 'success', text: 'Ongoing' },
       2: { color: 'blue', text: 'Upcoming' },
       3: { color: 'warning', text: 'Finished' },
+      4: { color: 'cyan', text: 'Draft' },
     };
 
     const { color = 'default', text = 'Unknown' } = statusMap[status] || {};

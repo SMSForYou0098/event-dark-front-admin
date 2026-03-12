@@ -16,7 +16,7 @@ const Loader = ({ imgUrl, width = 100, height = 'auto' }) => {
                 src={imageSrc}
                 alt="Loading..."
                 width={width}
-                height={height}
+                height={height} 
                 preview={false}
                 fallback="/assets/fallback-loader.gif"
             />

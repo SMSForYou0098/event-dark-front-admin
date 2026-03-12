@@ -322,7 +322,7 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
         isAccreditation={ticketData?.type === 'AccreditationBooking'}
         // showTicketDetails={ticketData?.type === 'AccreditationBooking'}
         formatDateRange={formatDateRange}
-        showTicketDetails={true}
+        showTicketDetails={false}
       />
 
       <TransferBookingDrawer

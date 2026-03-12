@@ -400,7 +400,7 @@ export function buildEventFormData(values, isDraft = false) {
 
   // Always append the step identifier
   appendIfDefined('step', values.step || '');
-  if (isDraft) appendIfDefined('status', 0);
+  if (isDraft) appendIfDefined('status', false);
 
   return fd;
 }

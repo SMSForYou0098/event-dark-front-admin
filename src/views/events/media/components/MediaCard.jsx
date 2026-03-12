@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, Checkbox, Typography, Dropdown, Image, Tooltip } from 'antd';
 import {
     PlayCircleFilled,
@@ -6,7 +6,6 @@ import {
     VideoCameraOutlined,
     DeleteOutlined,
     LinkOutlined,
-    MoreOutlined,
 } from '@ant-design/icons';
 import { message } from 'antd';
 
@@ -128,13 +127,34 @@ const MediaCard = ({
         onDragStart?.(media, idsToMove);
     };
 
+    // Context menu state (manually controlled for reliability inside Drawers)
+    const [contextMenuOpen, setContextMenuOpen] = useState(false);
+
+    const handleContextMenu = useCallback((e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenuOpen(true);
+    }, []);
+
+    // Close context menu on scroll or click outside
+    useEffect(() => {
+        if (!contextMenuOpen) return;
+        const handleClose = () => setContextMenuOpen(false);
+        window.addEventListener('scroll', handleClose, true);
+        window.addEventListener('click', handleClose, true);
+        return () => {
+            window.removeEventListener('scroll', handleClose, true);
+            window.removeEventListener('click', handleClose, true);
+        };
+    }, [contextMenuOpen]);
+
     // Get display name - use title or file_name
     const displayName = media.title || media.file_name || media.name || 'Untitled';
 
     // Get mime type display
     const mimeDisplay = media.mime_type || `${media.file_type}/${media.extension}`;
 
-    return (
+    const cardContent = (
         <Card
             hoverable
             className={`media-card ${selected ? 'selected' : ''}`}
@@ -300,36 +320,6 @@ const MediaCard = ({
                             {mimeDisplay}
                         </Text>
                     </div>
-
-                    {/* Actions dropdown - hide in picker mode */}
-                    {!pickerMode && (
-                        <Dropdown
-                            menu={{
-                                items: menuItems,
-                                style: { minWidth: 120 }
-                            }}
-                            trigger={['click']}
-                            placement="bottomRight"
-                            arrow
-                        >
-                            <div
-                                onClick={(e) => e.stopPropagation()}
-                                className="action-button"
-                                style={{
-                                    padding: '4px',
-                                    cursor: 'pointer',
-                                    color: 'rgba(255,255,255,0.45)',
-                                    borderRadius: 4,
-                                    transition: 'all 0.2s',
-                                    marginTop: 2,
-                                }}
-                                onMouseEnter={(e) => e.currentTarget.style.color = '#fff'}
-                                onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.45)'}
-                            >
-                                <MoreOutlined style={{ fontSize: 20 }} />
-                            </div>
-                        </Dropdown>
-                    )}
                 </div>
             </div>
 
@@ -339,6 +329,29 @@ const MediaCard = ({
                 }
             `}</style>
         </Card>
+    );
+
+    // Wrap with context menu dropdown (right-click) - manually controlled for Drawer compatibility
+    if (pickerMode) {
+        return cardContent;
+    }
+
+    return (
+        <Dropdown
+            menu={{
+                items: menuItems,
+                style: { minWidth: 120 },
+                onClick: () => setContextMenuOpen(false),
+            }}
+            open={contextMenuOpen}
+            onOpenChange={setContextMenuOpen}
+            getPopupContainer={() => document.body}
+            overlayStyle={{ zIndex: 2000 }}
+        >
+            <div onContextMenu={handleContextMenu}>
+                {cardContent}
+            </div>
+        </Dropdown>
     );
 };
 

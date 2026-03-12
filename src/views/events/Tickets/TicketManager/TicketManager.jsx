@@ -641,12 +641,16 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
                                                             if (!value) return Promise.resolve();
 
-                                                            if (selectionLimit && value < selectionLimit) {
-                                                                return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to booking limit per user (${selectionLimit})`));
+                                                            const numValue = Number(value);
+                                                            const numSelection = Number(selectionLimit);
+                                                            const numBooking = Number(bookingPerCustomer);
+
+                                                            if (selectionLimit && numValue < numSelection) {
+                                                                return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to ticket selection limit (${selectionLimit})`));
                                                             }
 
-                                                            if (bookingPerCustomer && value < bookingPerCustomer) {
-                                                                return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to ticket selection limit (${bookingPerCustomer})`));
+                                                            if (bookingPerCustomer && numValue < numBooking) {
+                                                                return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to booking limit per user (${bookingPerCustomer})`));
                                                             }
 
                                                             return Promise.resolve();
@@ -669,7 +673,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
                                                             if (!value) return Promise.resolve();
 
-                                                            if (bookingPerCustomer && value > bookingPerCustomer) {
+                                                            if (bookingPerCustomer && Number(value) > Number(bookingPerCustomer)) {
                                                                 return Promise.reject(new Error(`Ticket selection limit (${value}) must be less than or equal to booking limit per user (${bookingPerCustomer})`));
                                                             }
 
@@ -695,11 +699,15 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
                                                             if (!value) return Promise.resolve();
 
-                                                            if (quantity && value > quantity) {
+                                                            const numValue = Number(value);
+                                                            const numQuantity = Number(quantity);
+                                                            const numSelection = Number(selectionLimit);
+
+                                                            if (quantity && numValue > numQuantity) {
                                                                 return Promise.reject(new Error(`Booking limit per user (${value}) must be less than or equal to total quantity (${quantity})`));
                                                             }
 
-                                                            if (selectionLimit && selectionLimit > value) {
+                                                            if (selectionLimit && numSelection > numValue) {
                                                                 return Promise.reject(new Error(`Booking limit per user (${value}) must be greater than or equal to ticket selection limit (${selectionLimit})`));
                                                             }
 
@@ -728,11 +736,15 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
 
                                                         if (!value) return Promise.resolve();
 
-                                                        if (quantity && value > quantity) {
+                                                        const numValue = Number(value);
+                                                        const numQuantity = Number(quantity);
+                                                        const numSelection = Number(selectionLimit);
+
+                                                        if (quantity && numValue > numQuantity) {
                                                             return Promise.reject(new Error(`Booking limit per user (${value}) must be less than or equal to total quantity (${quantity})`));
                                                         }
 
-                                                        if (selectionLimit && selectionLimit > value) {
+                                                        if (selectionLimit && numSelection > numValue) {
                                                             return Promise.reject(new Error(`Booking limit per user (${value}) must be greater than or equal to ticket selection limit (${selectionLimit})`));
                                                         }
 

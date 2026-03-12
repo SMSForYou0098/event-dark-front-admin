@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Modal, Form, Input } from 'antd';
+import { Modal, Form, Input, Alert } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
 
 const FolderModal = ({
@@ -9,6 +9,9 @@ const FolderModal = ({
     folder = null, // null for create, object for edit
     loading = false,
     parentId = null,
+    zIndex,
+    error = null, // Error message to display inside the modal
+    onErrorClear, // Callback to clear the error
 }) => {
     const [form] = Form.useForm();
     const isEdit = !!folder;
@@ -42,6 +45,7 @@ const FolderModal = ({
 
     const handleCancel = () => {
         form.resetFields();
+        onErrorClear?.();
         onCancel?.();
     };
 
@@ -60,7 +64,18 @@ const FolderModal = ({
             okText={isEdit ? 'Rename' : 'Create'}
             destroyOnClose
             width={400}
+            zIndex={zIndex}
         >
+            {error && (
+                <Alert
+                    message={error}
+                    type="error"
+                    showIcon
+                    closable
+                    onClose={() => onErrorClear?.()}
+                    style={{ marginBottom: 12 }}
+                />
+            )}
             <Form
                 form={form}
                 layout="vertical"

@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Card, Typography, Dropdown, Badge } from 'antd';
 import {
     FolderFilled,
     FolderOpenFilled,
     EditOutlined,
     DeleteOutlined,
-    MoreOutlined,
 } from '@ant-design/icons';
 
 const { Text } = Typography;
@@ -21,6 +20,26 @@ const FolderCard = ({
     pickerMode = false, // When true: simplified UI for picker (no edit/delete actions, no drag-drop)
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
+    const [contextMenuOpen, setContextMenuOpen] = useState(false);
+
+    const handleContextMenu = useCallback((e) => {
+        if (pickerMode) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenuOpen(true);
+    }, [pickerMode]);
+
+    // Close context menu on scroll or click outside
+    useEffect(() => {
+        if (!contextMenuOpen) return;
+        const handleClose = () => setContextMenuOpen(false);
+        window.addEventListener('scroll', handleClose, true);
+        window.addEventListener('click', handleClose, true);
+        return () => {
+            window.removeEventListener('scroll', handleClose, true);
+            window.removeEventListener('click', handleClose, true);
+        };
+    }, [contextMenuOpen]);
 
     const menuItems = [
         {
@@ -106,12 +125,13 @@ const FolderCard = ({
         }
     };
 
-    return (
+    const cardContent = (
         <Card
             hoverable
             className={`folder-card ${isDragOver ? 'drag-over' : ''}`}
             onClick={handleClick}
             onDoubleClick={handleDoubleClick}
+            onContextMenu={handleContextMenu}
             draggable={draggable && !pickerMode}
             onDragStart={pickerMode ? undefined : handleDragStart}
             onDragOver={pickerMode ? undefined : handleDragOver}
@@ -163,28 +183,6 @@ const FolderCard = ({
                         {folder.name}
                     </Text>
                 </div>
-
-                {/* Right side: Actions - hide in picker mode */}
-                {!pickerMode && (
-                    <Dropdown
-                        menu={{ items: menuItems }}
-                        trigger={['click']}
-                        placement="bottomRight"
-                    >
-                        <div
-                            onClick={(e) => e.stopPropagation()}
-                            style={{
-                                padding: 4,
-                                cursor: 'pointer',
-                                opacity: 0.7,
-                                display: 'flex',
-                                alignItems: 'center'
-                            }}
-                        >
-                            <MoreOutlined style={{ fontSize: 16 }} />
-                        </div>
-                    </Dropdown>
-                )}
             </div>
 
             {/* Drop hint */}
@@ -202,6 +200,28 @@ const FolderCard = ({
                 </Text>
             )}
         </Card>
+    );
+
+    if (pickerMode) {
+        return cardContent;
+    }
+
+    return (
+        <Dropdown
+            menu={{
+                items: menuItems,
+                style: { minWidth: 120 },
+                onClick: () => setContextMenuOpen(false),
+            }}
+            open={contextMenuOpen}
+            onOpenChange={setContextMenuOpen}
+            getPopupContainer={() => document.body}
+            overlayStyle={{ zIndex: 2000 }}
+        >
+            <div>
+                {cardContent}
+            </div>
+        </Dropdown>
     );
 };
 

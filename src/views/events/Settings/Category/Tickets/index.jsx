@@ -25,6 +25,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import { useEventCategories } from 'views/events/event/hooks/useEventOptions';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import Utils from 'utils';
 
 const { Title, Text } = Typography;
 
@@ -34,6 +35,9 @@ const CategoryTickets = () => {
     const [fileList, setFileList] = useState([]);
     const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
     const [selectedMediaUrl, setSelectedMediaUrl] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [deletingId, setDeletingId] = useState(null);
+    const [settingDefaultId, setSettingDefaultId] = useState(null);
 
     // Fetch categories using the hook
     const {
@@ -73,6 +77,7 @@ const CategoryTickets = () => {
 
     // Handle delete
     const handleDelete = async (id) => {
+        setDeletingId(id);
         const previousImages = categoryImages;
         updateImagesCache((old) => old?.filter((img) => img.id !== id) || []);
 
@@ -82,17 +87,20 @@ const CategoryTickets = () => {
                 message.success('Ticket deleted successfully!');
             } else {
                 updateImagesCache(() => previousImages);
-                message.error(res?.message || 'Failed to delete');
+                message.error(Utils.getErrorMessage(res));
             }
         } catch (err) {
             updateImagesCache(() => previousImages);
             console.error('Delete failed:', err);
-            message.error('Failed to delete ticket');
+            message.error(Utils.getErrorMessage(err));
+        } finally {
+            setDeletingId(null);
         }
     };
 
     // Handle mark as default
     const handleMarkDefault = async (id) => {
+        setSettingDefaultId(id);
         const previousImages = categoryImages;
         updateImagesCache((old) =>
             old?.map((img) => ({
@@ -107,12 +115,14 @@ const CategoryTickets = () => {
                 message.success('Default ticket updated successfully!');
             } else {
                 updateImagesCache(() => previousImages);
-                message.error(res?.message || 'Failed to update default');
+                message.error(Utils.getErrorMessage(res));
             }
         } catch (err) {
             updateImagesCache(() => previousImages);
             console.error('Mark default failed:', err);
-            message.error('Failed to set as default');
+            message.error(Utils.getErrorMessage(err));
+        } finally {
+            setSettingDefaultId(null);
         }
     };
 
@@ -134,6 +144,7 @@ const CategoryTickets = () => {
             return;
         }
 
+        setIsUploading(true);
         const formData = new FormData();
         formData.append('category_id', activeCategory);
         formData.append('image', selectedMediaUrl);
@@ -147,11 +158,13 @@ const CategoryTickets = () => {
                     updateImagesCache((old) => [...(old || []), res.data]);
                 }
             } else {
-                message.error(res?.message || 'Save failed');
+                message.error(Utils.getErrorMessage(res));
             }
         } catch (err) {
             console.error('Save failed:', err);
-            message.error('Failed to save ticket');
+            message.error(Utils.getErrorMessage(err));
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -231,6 +244,7 @@ const CategoryTickets = () => {
                             icon={<SaveOutlined />}
                             onClick={handleUpload}
                             disabled={!selectedMediaUrl}
+                            loading={isUploading}
                             block
                             size="large"
                             className="mt-3"
@@ -290,8 +304,17 @@ const CategoryTickets = () => {
                                                         <Radio
                                                             value={img.id}
                                                             onChange={(e) => handleMarkDefault(e.target.value)}
+                                                            disabled={settingDefaultId && settingDefaultId !== img.id}
                                                         >
-                                                            {img.default ? <Text style={{ fontSize: '12px' }} strong type="success">Default</Text> : <Text style={{ fontSize: '12px' }} strong type="success">Set Default</Text>}
+                                                            {settingDefaultId === img.id ? (
+                                                                <Text style={{ fontSize: '12px' }} strong type="secondary">
+                                                                    <Spin size="small" className="me-2" /> Setting...
+                                                                </Text>
+                                                            ) : img.default ? (
+                                                                <Text style={{ fontSize: '12px' }} strong type="success">Default</Text>
+                                                            ) : (
+                                                                <Text style={{ fontSize: '12px' }} strong type="success">Set Default</Text>
+                                                            )}
                                                         </Radio>
                                                         <Popconfirm
                                                             title="Delete ticket?"
@@ -299,13 +322,14 @@ const CategoryTickets = () => {
                                                             onConfirm={() => handleDelete(img.id)}
                                                             okText="Delete"
                                                             cancelText="Cancel"
-                                                            okButtonProps={{ danger: true }}
+                                                            okButtonProps={{ danger: true, loading: deletingId === img.id }}
                                                         >
                                                             <Button
                                                                 type="primary"
                                                                 danger
                                                                 size="small"
                                                                 icon={<DeleteOutlined />}
+                                                                loading={deletingId === img.id}
                                                             />
                                                         </Popconfirm>
                                                     </div>

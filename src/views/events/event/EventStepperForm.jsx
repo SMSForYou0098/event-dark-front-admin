@@ -117,8 +117,15 @@ const EventStepperForm = () => {
 
         patch.org_id = String(detail.venue_id);
 
-        setLayouts(detail?.venue?.layouts ?? []);
-        setEventLayoutId(detail?.event_has_layout?.layout_id ?? null);
+        if (detail?.venue !== undefined && detail?.venue?.layouts) {
+            setLayouts(detail.venue.layouts);
+        } else if (detail?.layout !== undefined) {
+            setLayouts(detail.layout);
+        }
+
+        if (detail?.event_has_layout !== undefined) {
+            setEventLayoutId(detail.event_has_layout?.layout_id ?? null);
+        }
 
         // Step 0: Basic Details
         if (current === 0) {
@@ -330,10 +337,10 @@ const EventStepperForm = () => {
     });
 
     const { mutateAsync: updateEvent, isPending: updating } = useUpdateEvent({
-        onSuccess: (res) => {
+        onSuccess: (res, variables) => {
             if (res?.status) {
                 message.success(res?.message || 'Event updated successfully!');
-                refetchDetail();
+                return refetchDetail();
             } else {
                 message.error(Utils.getErrorMessage(res, 'Failed to update event'));
             }
@@ -377,7 +384,7 @@ const EventStepperForm = () => {
 
     // Save controls step — used by EventControlsStep before navigating to layout
     const saveControlsStep = useCallback(async () => {
-        if (!id) return;
+        if (!id) return null;
         await form.validateFields();
         const formValues = getFormData();
         const body = buildEventFormData({
@@ -387,7 +394,9 @@ const EventStepperForm = () => {
             userId: UserData?.id,
         });
         await updateEvent({ id, body });
-    }, [id, form, getFormData, userRole, UserData?.id, updateEvent]);
+        const refetchResult = await refetchDetail();
+        return refetchResult?.data;
+    }, [id, form, getFormData, userRole, UserData?.id, updateEvent, refetchDetail]);
     // Get orgId from detail or form (form is more reliable as it's set in all steps)
     const orgId = detail?.user_id || form.getFieldValue('org_id');
     // Steps configuration
@@ -405,25 +414,6 @@ const EventStepperForm = () => {
                 />, icon: <ControlOutlined />
             },
             { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
-            // {
-            //     title: 'Tickets',
-            //     content: (
-            //         <TicketsStep
-            //             tickets={tickets}
-            //             layouts={layouts}
-            //             eventLayoutId={eventLayoutId}
-            //             form={form}
-            //             orgId={orgId}
-            //             embedCode={embedCode}
-            //             onEmbedChange={handleEmbedChange}
-            //             onAddTicket={handleAddTicket}
-            //             onDeleteTicket={handleDeleteTicket}
-            //             eventId={detail?.event_key}
-            //             eventName={detail?.name}
-            //         />
-            //     ),
-            //     icon: <TagsOutlined />,
-            // },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
             { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} isEdit={isEdit} eventId={detail?.event_key} id={detail?.id} />, icon: <EnvironmentOutlined /> },
             { title: 'SEO', content: <SEOStep form={form} eventKey={id} eventData={detail} componentLoader={componentLoader} setComponentLoader={setComponentLoader} />, icon: <GlobalOutlined /> },

@@ -21,7 +21,6 @@ const BatchDataModel = ({ show, onHide, batchData = [], batchId }) => {
   const [processingType, setProcessingType] = useState(null);
 
   // Fetch specific booking data
-  console.log(batchData)
   const fetchData = (id) => {
     return batchData?.find((elm) => elm?.id === id);
   };

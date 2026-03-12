@@ -27,9 +27,11 @@ import MediaCard from './components/MediaCard';
 import FolderModal from './components/FolderModal';
 import MediaUploadModal from './components/MediaUploadModal';
 import MediaPreviewModal from './components/MediaPreviewModal';
+import MoveToFolderModal from './components/MoveToFolderModal';
 import Breadcrumb from './components/Breadcrumb';
 import Toolbar from './components/Toolbar';
 import StorageStats from './components/StorageStats';
+import Loader from 'utils/Loader';
 
 // Hooks
 import {
@@ -66,6 +68,7 @@ const MediaGallery = () => {
     const [uploadModalOpen, setUploadModalOpen] = useState(false);
     const [previewModalOpen, setPreviewModalOpen] = useState(false);
     const [previewMedia, setPreviewMedia] = useState(null);
+    const [moveModalOpen, setMoveModalOpen] = useState(false);
 
     // Queries - combined response with categories and media
     // Root level data (when currentFolder is null)
@@ -105,6 +108,9 @@ const MediaGallery = () => {
     const moveMediaMutation = useMoveMedia();
 
     const isLoading = rootLoading || childLoading;
+
+    // Operation loading state (for overlay loader during move/delete)
+    const isOperationLoading = moveMediaMutation.isPending || bulkDeleteMutation.isPending || deleteCategoryMutation.isPending || deleteMediaMutation.isPending || moveCategoryMutation.isPending;
 
     // Get current folders and media based on navigation state
     const currentFolders = useMemo(() => {
@@ -289,6 +295,26 @@ const MediaGallery = () => {
         }
     };
 
+    // Bulk move handlers
+    const handleMoveSelected = () => {
+        if (selectedMedia.length === 0) return;
+        setMoveModalOpen(true);
+    };
+
+    const handleMoveConfirm = async (targetFolderId) => {
+        try {
+            await moveMediaMutation.mutateAsync({
+                mediaIds: selectedMedia,
+                categoryId: targetFolderId,
+            });
+            setSelectedMedia([]);
+            setMoveModalOpen(false);
+            handleRefresh();
+        } catch (error) {
+            message.error(Utils.getErrorMessage(error));
+        }
+    };
+
     // Drag & Drop handlers
     const handleDropOnFolder = async (dragData, targetFolder) => {
         if (!dragData || !targetFolder) return;
@@ -370,6 +396,7 @@ const MediaGallery = () => {
                             onCreateFolder={handleCreateFolder}
                             onUpload={handleUpload}
                             onDeleteSelected={handleDeleteSelected}
+                            onMoveSelected={handleMoveSelected}
                             onRefresh={handleRefresh}
                             selectedCount={selectedMedia.length}
                             viewMode={viewMode}
@@ -395,78 +422,99 @@ const MediaGallery = () => {
                 />
 
                 {/* Content */}
-                <Spin spinning={isLoading}>
-                    {!hasContent && !isLoading ? (
-                        <Empty
-                            image={Empty.PRESENTED_IMAGE_SIMPLE}
-                            description={
-                                searchQuery
-                                    ? 'No results found'
-                                    : 'No folders or files yet'
-                            }
-                            style={{ padding: '60px 0' }}
-                        />
-                    ) : (
-                        <>
-                            {/* Folders Row */}
-                            {filteredFolders && filteredFolders.length > 0 && (
-                                <>
-                                    {/* add name with divider  , use antd divider*/}
-
-                                    <Divider> <Text className='fw-bold'>Folders</Text> </Divider>
-                                    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                                        {filteredFolders.map((folder) => (
-                                            <Col key={folder.id} {...getColSpan()}>
-                                                <FolderCard
-                                                    folder={folder}
-                                                    onOpen={handleOpenFolder}
-                                                    onEdit={handleEditFolder}
-                                                    onDelete={handleDeleteFolder}
-                                                    onDrop={handleDropOnFolder}
-                                                />
-                                            </Col>
-                                        ))}
-                                    </Row>
-                                </>
-                            )}
-
-                            {/* Media Files Row */}
-                            {filteredMedia && filteredMedia.length > 0 && (
-                                <>
-                                    <Divider> <Text className='fw-bold'>Media Files</Text> </Divider>
-                                    <Row gutter={[16, 16]}>
-                                        {filteredMedia.map((media) => (
-                                            <Col key={media.id} {...getColSpan()}>
-                                                <MediaCard
-                                                    media={media}
-                                                    selected={selectedMedia.includes(media.id)}
-                                                    onSelect={handleMediaSelect}
-                                                    onPreview={handleMediaPreview}
-                                                    onDelete={handleDeleteMedia}
-                                                    selectionMode={selectedMedia.length > 0}
-                                                    selectedMediaIds={selectedMedia}
-                                                />
-                                            </Col>
-                                        ))}
-                                    </Row>
-                                </>
-                            )}
-
-                            {/* Loading skeleton */}
-                            {isLoading && (
-                                <Row gutter={[16, 16]}>
-                                    {[1, 2, 3, 4].map((i) => (
-                                        <Col key={`skeleton-${i}`} {...getColSpan()}>
-                                            <Card style={{ background: '#1f1f1f' }}>
-                                                <Skeleton active paragraph={{ rows: 2 }} />
-                                            </Card>
-                                        </Col>
-                                    ))}
-                                </Row>
-                            )}
-                        </>
+                <div style={{ position: 'relative' }}>
+                    {/* Loading overlay for move/delete operations */}
+                    {isOperationLoading && (
+                        <div style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0,0,0,0.55)',
+                            zIndex: 20,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 8,
+                            backdropFilter: 'blur(2px)',
+                        }}>
+                            <Loader width={60} />
+                        </div>
                     )}
-                </Spin>
+                    <Spin spinning={isLoading}>
+                        {!hasContent && !isLoading ? (
+                            <Empty
+                                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                                description={
+                                    searchQuery
+                                        ? 'No results found'
+                                        : 'No folders or files yet'
+                                }
+                                style={{ padding: '60px 0' }}
+                            />
+                        ) : (
+                            <>
+                                {/* Folders Row */}
+                                {filteredFolders && filteredFolders.length > 0 && (
+                                    <>
+                                        {/* add name with divider  , use antd divider*/}
+
+                                        <Divider> <Text className='fw-bold'>Folders</Text> </Divider>
+                                        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                                            {filteredFolders.map((folder) => (
+                                                <Col key={folder.id} {...getColSpan()}>
+                                                    <FolderCard
+                                                        folder={folder}
+                                                        onOpen={handleOpenFolder}
+                                                        onEdit={handleEditFolder}
+                                                        onDelete={handleDeleteFolder}
+                                                        onDrop={handleDropOnFolder}
+                                                    />
+                                                </Col>
+                                            ))}
+                                        </Row>
+                                    </>
+                                )}
+
+                                {/* Media Files Row */}
+                                {filteredMedia && filteredMedia.length > 0 && (
+                                    <>
+                                        <Divider> <Text className='fw-bold'>Media Files</Text> </Divider>
+                                        <Row gutter={[16, 16]}>
+                                            {filteredMedia.map((media) => (
+                                                <Col key={media.id} {...getColSpan()}>
+                                                    <MediaCard
+                                                        media={media}
+                                                        selected={selectedMedia.includes(media.id)}
+                                                        onSelect={handleMediaSelect}
+                                                        onPreview={handleMediaPreview}
+                                                        onDelete={handleDeleteMedia}
+                                                        selectionMode={selectedMedia.length > 0}
+                                                        selectedMediaIds={selectedMedia}
+                                                    />
+                                                </Col>
+                                            ))}
+                                        </Row>
+                                    </>
+                                )}
+
+                                {/* Loading skeleton */}
+                                {isLoading && (
+                                    <Row gutter={[16, 16]}>
+                                        {[1, 2, 3, 4].map((i) => (
+                                            <Col key={`skeleton-${i}`} {...getColSpan()}>
+                                                <Card style={{ background: '#1f1f1f' }}>
+                                                    <Skeleton active paragraph={{ rows: 2 }} />
+                                                </Card>
+                                            </Col>
+                                        ))}
+                                    </Row>
+                                )}
+                            </>
+                        )}
+                    </Spin>
+                </div>
 
                 {/* Modals */}
                 <FolderModal
@@ -498,6 +546,15 @@ const MediaGallery = () => {
                     media={previewMedia}
                     mediaList={filteredMedia}
                     onDelete={handleDeleteMedia}
+                />
+
+                <MoveToFolderModal
+                    open={moveModalOpen}
+                    onCancel={() => setMoveModalOpen(false)}
+                    onConfirm={handleMoveConfirm}
+                    selectedCount={selectedMedia.length}
+                    loading={moveMediaMutation.isPending}
+                    currentFolderId={currentFolder}
                 />
             </Card>
         </PermissionChecker>

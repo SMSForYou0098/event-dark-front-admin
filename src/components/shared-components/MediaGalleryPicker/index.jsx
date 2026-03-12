@@ -3,36 +3,43 @@ import {
     Row,
     Col,
     Typography,
-    Spin,
     Empty,
     Input,
     Button,
     Breadcrumb,
     Tabs,
     Modal,
-    message,
     Alert,
+    Drawer,
 } from 'antd';
 import {
     SearchOutlined,
     ReloadOutlined,
     HomeOutlined,
     FolderOutlined,
+    FolderAddOutlined,
     PictureOutlined,
     CloudUploadOutlined,
+    ExclamationCircleOutlined,
 } from '@ant-design/icons';
 
 // Sub-components - reuse from media module
 import MediaCard from 'views/events/media/components/MediaCard';
 import FolderCard from 'views/events/media/components/FolderCard';
+import FolderModal from 'views/events/media/components/FolderModal';
 import UploadSection from './UploadSection';
+import Loader from 'utils/Loader';
 
 // Hooks from media module
 import {
     useMediaCategories,
     useChildCategories,
+    useCreateCategory,
+    useDeleteCategory,
 } from 'views/events/media/hooks/useMediaCategories';
-import { useBulkUploadMedia } from 'views/events/media/hooks/useMedia';
+import { useBulkUploadMedia, useMoveMedia, useDeleteMedia } from 'views/events/media/hooks/useMedia';
+
+const { confirm } = Modal;
 
 const { Text } = Typography;
 
@@ -74,8 +81,19 @@ const MediaGalleryPicker = ({
         refetch: refetchChild
     } = useChildCategories(currentFolder);
 
+    // Modal states
+    const [folderModalOpen, setFolderModalOpen] = useState(false);
+    const [folderError, setFolderError] = useState(null); // Error inside folder modal
+
     // Mutations
     const bulkUploadMutation = useBulkUploadMedia();
+    const createCategoryMutation = useCreateCategory();
+    const deleteCategoryMutation = useDeleteCategory();
+    const moveMediaMutation = useMoveMedia();
+    const deleteMediaMutation = useDeleteMedia();
+
+    // Operation loading state (for overlay loader during move/delete)
+    const isOperationLoading = moveMediaMutation.isPending || deleteCategoryMutation.isPending || deleteMediaMutation.isPending;
 
     const isLoading = rootLoading || childLoading;
 
@@ -241,7 +259,8 @@ const MediaGalleryPicker = ({
             setActiveTab('browse');
             setAlertMessage({ type: 'success', text: 'Files uploaded and selected!' });
         } catch (error) {
-            console.error('Upload failed:', error);
+            const msg = error?.response?.data?.message || error?.message || 'Upload failed';
+            setAlertMessage({ type: 'error', text: msg });
         }
     }, [currentFolder, bulkUploadMutation, refetchChild, refetchRoot]);
 
@@ -251,6 +270,101 @@ const MediaGalleryPicker = ({
             refetchChild();
         }
     }, [currentFolder, refetchRoot, refetchChild]);
+
+    // --- Folder management handlers ---
+    const handleCreateFolder = useCallback(() => {
+        setFolderError(null);
+        setFolderModalOpen(true);
+    }, []);
+
+    const handleFolderSubmit = useCallback(async (data) => {
+        try {
+            setFolderError(null);
+            const payload = { ...data };
+            if (currentFolder) {
+                payload.parent_id = currentFolder;
+            }
+            await createCategoryMutation.mutateAsync(payload);
+            setFolderModalOpen(false);
+            handleRefresh();
+            setAlertMessage({ type: 'success', text: 'Folder created successfully!' });
+        } catch (error) {
+            const msg = error?.response?.data?.message || error?.message || 'Failed to create folder';
+            setFolderError(msg);
+        }
+    }, [currentFolder, createCategoryMutation, handleRefresh]);
+
+    const handleDeleteFolder = useCallback((folder) => {
+        confirm({
+            title: 'Delete Folder',
+            icon: <ExclamationCircleOutlined />,
+            content: `Are you sure you want to delete "${folder.name}"? This will also delete all media inside.`,
+            okText: 'Delete',
+            okType: 'danger',
+            zIndex: 1200,
+            onOk: async () => {
+                try {
+                    await deleteCategoryMutation.mutateAsync(folder.id);
+                    handleRefresh();
+                    setAlertMessage({ type: 'success', text: `Folder "${folder.name}" deleted.` });
+                } catch (error) {
+                    const msg = error?.response?.data?.message || error?.message || 'Failed to delete folder';
+                    setAlertMessage({ type: 'error', text: msg });
+                }
+            },
+        });
+    }, [deleteCategoryMutation, handleRefresh]);
+
+    // --- Delete media handler ---
+    const handleDeleteMedia = useCallback((media) => {
+        confirm({
+            title: 'Delete File',
+            icon: <ExclamationCircleOutlined />,
+            content: `Are you sure you want to delete "${media.title || media.file_name || 'this file'}"?`,
+            okText: 'Delete',
+            okType: 'danger',
+            zIndex: 1200,
+            onOk: async () => {
+                try {
+                    await deleteMediaMutation.mutateAsync(media.id);
+                    // Remove from selection if it was selected
+                    const mediaUrl = media.file_path || media.url;
+                    setSelectedMedia(prev => {
+                        const filtered = prev.filter(m => (m.file_path || m.url) !== mediaUrl);
+                        if (filtered.length !== prev.length) {
+                            const urls = filtered.map(m => m.file_path || m.url);
+                            setTimeout(() => onChange?.(multiple ? urls : urls[0] || null), 0);
+                        }
+                        return filtered;
+                    });
+                    handleRefresh();
+                    setAlertMessage({ type: 'success', text: `File deleted successfully.` });
+                } catch (error) {
+                    const msg = error?.response?.data?.message || error?.message || 'Failed to delete file';
+                    setAlertMessage({ type: 'error', text: msg });
+                }
+            },
+        });
+    }, [deleteMediaMutation, handleRefresh, multiple, onChange]);
+
+    // --- Move media to folder handlers ---
+    const handleDropOnFolder = useCallback(async (dragData, targetFolder) => {
+        if (!dragData || !targetFolder) return;
+        try {
+            if (dragData.type === 'media') {
+                const idsToMove = dragData.ids || [dragData.id];
+                await moveMediaMutation.mutateAsync({
+                    mediaIds: idsToMove,
+                    categoryId: targetFolder.id,
+                });
+                handleRefresh();
+                setAlertMessage({ type: 'success', text: `Moved to "${targetFolder.name}"` });
+            }
+        } catch (error) {
+            const msg = error?.response?.data?.message || error?.message || 'Failed to move file(s)';
+            setAlertMessage({ type: 'error', text: msg });
+        }
+    }, [moveMediaMutation, handleRefresh]);
 
     // Create a Set of selected URLs for O(1) lookup - much faster than array.some()
     const selectedUrlsSet = useMemo(() => {
@@ -332,7 +446,7 @@ const MediaGalleryPicker = ({
             ) : (
                 <>
                     {/* Toolbar */}
-                    <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center' }}>
+                    <div style={{ marginBottom: 12, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                         <Input
                             placeholder="Search..."
                             prefix={<SearchOutlined style={{ color: '#666' }} />}
@@ -342,6 +456,13 @@ const MediaGalleryPicker = ({
                             size="small"
                             style={{ flex: 1, maxWidth: 200 }}
                         />
+                        <Button
+                            icon={<FolderAddOutlined />}
+                            size="small"
+                            onClick={handleCreateFolder}
+                        >
+                            New Folder
+                        </Button>
                         <Button
                             icon={<ReloadOutlined />}
                             size="small"
@@ -373,7 +494,25 @@ const MediaGalleryPicker = ({
                     />
 
                     {/* Content */}
-                    <Spin spinning={isLoading}>
+                    <div style={{ position: 'relative' }}>
+                        {/* Loading overlay */}
+                        {(isLoading || isOperationLoading) && (
+                            <div style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                background: 'rgba(0,0,0,0.45)',
+                                zIndex: 20,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                borderRadius: 8,
+                            }}>
+                                <Loader width={60} />
+                            </div>
+                        )}
                         <div style={{
                             maxHeight: 350,
                             overflowY: 'auto',
@@ -404,7 +543,10 @@ const MediaGalleryPicker = ({
                                                         <FolderCard
                                                             folder={folder}
                                                             onOpen={handleOpenFolder}
-                                                            pickerMode={true}
+                                                            onDelete={handleDeleteFolder}
+                                                            onDrop={handleDropOnFolder}
+                                                            pickerMode={false}
+                                                            draggable={false}
                                                         />
                                                     </Col>
                                                 ))}
@@ -425,9 +567,10 @@ const MediaGalleryPicker = ({
                                                             media={media}
                                                             selected={selectedUrlsSet.has(media.file_path || media.url)}
                                                             onSelect={handleMediaSelect}
+                                                            onDelete={handleDeleteMedia}
                                                             selectionMode={true}
-                                                            pickerMode={true}
-                                                            draggable={false}
+                                                            pickerMode={false}
+                                                            draggable={true}
                                                         />
                                                     </Col>
                                                 ))}
@@ -437,16 +580,30 @@ const MediaGalleryPicker = ({
                                 </>
                             )}
                         </div>
-                    </Spin>
+                    </div>
                 </>
             )}
+
+            {/* Create Folder Modal */}
+            <FolderModal
+                open={folderModalOpen}
+                onCancel={() => { setFolderModalOpen(false); setFolderError(null); }}
+                onSubmit={handleFolderSubmit}
+                loading={createCategoryMutation.isPending}
+                parentId={currentFolder}
+                zIndex={1200}
+                error={folderError}
+                onErrorClear={() => setFolderError(null)}
+            />
+
         </div>
     );
 };
 
 // Memoized MediaCard wrapper - only re-renders when props actually change
-const MemoizedMediaCard = memo(MediaCard, (prevProps, nextProps) => {
-    // Custom comparison - only re-render if these specific props change
+const MemoizedMediaCard = memo(({ ...props }) => {
+    return <MediaCard {...props} />;
+}, (prevProps, nextProps) => {
     return (
         prevProps.media.id === nextProps.media.id &&
         prevProps.selected === nextProps.selected &&
@@ -457,15 +614,15 @@ const MemoizedMediaCard = memo(MediaCard, (prevProps, nextProps) => {
 });
 
 /**
- * MediaGalleryPickerModal - Modal wrapper for MediaGalleryPicker
- * Use this when you want the picker to open in a modal dialog
+ * MediaGalleryPickerModal - Drawer wrapper for MediaGalleryPicker
+ * Use this when you want the picker to open in a side drawer
  * 
- * @param {boolean} open - Modal visibility
- * @param {function} onCancel - Called when modal is closed
+ * @param {boolean} open - Drawer visibility
+ * @param {function} onCancel - Called when drawer is closed
  * @param {function} onSelect - Called with selected URL(s) when confirmed
  * @param {boolean} multiple - Allow multiple selection
  * @param {number} maxCount - Maximum selection count
- * @param {string} title - Modal title
+ * @param {string} title - Drawer title
  * @param {object} dimensionValidation - Optional validation { width, height, strict } - strict=true means exact match
  */
 export const MediaGalleryPickerModal = ({
@@ -553,33 +710,26 @@ export const MediaGalleryPickerModal = ({
         : !!tempSelection;
 
     return (
-        <Modal
+        <Drawer
             title={title}
             open={open}
-            onCancel={onCancel}
-            onOk={handleConfirm}
-            okText="Select"
-            cancelText="Cancel"
-            okButtonProps={{ disabled: !hasSelection, loading: validating }}
-            width={800}
-            centered
+            onClose={onCancel}
+            width={720}
             zIndex={1100}
-            styles={{
-                body: {
-                    maxHeight: 'calc(80vh - 120px)', // Leave space for header and footer
-                    overflow: 'hidden', // Prevent double scrollbar
-                    paddingBottom: 12,
-                },
-                footer: {
-                    position: 'sticky',
-                    bottom: 0,
-                    background: 'var(--card-bg, #1f1f1f)',
-                    borderTop: '1px solid #303030',
-                    marginTop: 0,
-                    paddingTop: 12,
-                    zIndex: 10,
-                },
-            }}
+            destroyOnClose
+            footer={
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                    <Button onClick={onCancel}>Cancel</Button>
+                    <Button
+                        type="primary"
+                        onClick={handleConfirm}
+                        disabled={!hasSelection}
+                        loading={validating}
+                    >
+                        Select
+                    </Button>
+                </div>
+            }
         >
             {dimensionValidation && (
                 <div style={{
@@ -613,7 +763,7 @@ export const MediaGalleryPickerModal = ({
                 value={tempSelection}
                 onChange={handleSelectionChange}
             />
-        </Modal>
+        </Drawer>
     );
 };
 

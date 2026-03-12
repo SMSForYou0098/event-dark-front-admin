@@ -25,7 +25,7 @@ import QRCode from 'qrcode';
  */
 const TicketCanvasView = forwardRef((props, ref) => {
   const {
-    showDetails: showDetailsProp,
+    showDetails,
     ticketNumber,
     ticketLabel,
     preloadedImage,
@@ -35,7 +35,6 @@ const TicketCanvasView = forwardRef((props, ref) => {
   } = props;
 
   // Default to true so event name, date, time, venue etc. render when not explicitly disabled
-  const showDetails = showDetailsProp !== false;
 
   const { convertTo12HourFormat, formatDateRange } = useMyContext();
   const canvasRef = useRef(null);

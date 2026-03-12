@@ -869,10 +869,10 @@ const onboardNav = {
 // Final Navigation Config
 const navigationConfig = [
   dashboardNav,
+  userManagementNav,
   eventManagementNav,
   bookingsNav,
   scanNav,
-  userManagementNav,
   reportingNav,
   {
     key: 'live-users',

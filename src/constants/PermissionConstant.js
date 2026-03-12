@@ -128,4 +128,12 @@ export const PERMISSIONS = {
     VIEW_MAIL_CONFIG_SETTING: "View Mail Config Setting",
     VIEW_WHATSAPP_CONFIG_SETTING: "View WhatsApp Config Setting",
     VIEW_SMS_CONFIG_SETTING: "View SMS Config Setting",
+
+    // Additional Permissions
+    RESEND_TICKETS: "Resend Tickets",
+    EXPORT_ONLINE_BOOKINGS: "Export Online Bookings",
+    MY_BOOKINGS: "My Bookings",
+    ASSIGN_CREDITS: "Assign Credits",
+    TRANSACTIONS_HISTORY: "Transactions History",
+    ASSIGN_ROLE: "Assign Role",
 };

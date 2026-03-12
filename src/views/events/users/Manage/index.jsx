@@ -6,6 +6,7 @@ import { useMyContext } from "Context/MyContextProvider";
 import PageHeaderAlt from "components/layout-components/PageHeaderAlt";
 import Flex from "components/shared-components/Flex";
 import Utils from "utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
 
 // Tabs
 import ProfileTab from "./ProfileTab";
@@ -62,7 +63,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <ProfileTab setSelectedRole={setSelectedRole} setUserNumber={setUserNumber} mode={mode} id={id} />,
-      permission: "Update User",
+      permission: PERMISSIONS.UPDATE_USER,
     },
     {
       key: "2",
@@ -72,7 +73,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <UserBookings id={id} activeTab={activeTab} />,
-      permission: "My Bookings",
+      permission: PERMISSIONS.MY_BOOKINGS,
     },
     {
       key: "3",
@@ -83,6 +84,7 @@ const ManageUser = ({ mode = "edit" }) => {
       ),
       children: <AssignCredit id={id} />,
       condition: selectedRole === "Wallet Agent" || selectedRole === "Agent",
+      permission: PERMISSIONS.ASSIGN_CREDITS
     },
     {
       key: "4",
@@ -92,7 +94,8 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <Transactions userId={id} />,
-      condition: selectedRole === "Wallet Agent" || selectedRole === "Agent"
+      condition: selectedRole === "Wallet Agent" || selectedRole === "Agent",
+      permission: PERMISSIONS.TRANSACTIONS_HISTORY
     },
     {
       key: "5",
@@ -102,7 +105,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <PermissionsTab userId={id} />,
-      permission: "Assign Role",
+      permission: PERMISSIONS.ASSIGN_ROLE,
       condition: mode !== "create" && UserData?.id !== parseInt(id)
     },
   ];

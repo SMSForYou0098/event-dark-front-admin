@@ -23,6 +23,12 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
 
   const { userRole } = useMyContext();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
+  const [modalLayouts, setModalLayouts] = useState(null);
+  const [modalEventLayoutId, setModalEventLayoutId] = useState(null);
+
+  const displayLayouts = modalLayouts || layouts;
+  const displayEventLayoutId = modalEventLayoutId !== null ? modalEventLayoutId : eventLayoutId;
+
   const [selectFieldsModalOpen, setSelectFieldsModalOpen] = useState(false);
   const [selectedFieldIds, setSelectedFieldIds] = useState([]);
   const [selectedFieldsData, setSelectedFieldsData] = useState([]);
@@ -55,7 +61,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
 
   // Initialize selected fields from eventHasAttendee when editing
   useEffect(() => {
-    if (eventHasAttendee && eventHasAttendee.length > 0 && categoryDetails?.fields && !isInitialized) {
+    if (eventHasAttendee && eventHasAttendee.length > 0 && categoryDetails?.fields) {
       // Extract field IDs from event_has_attendee
       const existingFieldIds = eventHasAttendee.map(item => item.field_id);
 
@@ -66,20 +72,38 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
 
       setSelectedFieldIds(existingFieldIds);
       setSelectedFieldsData(existingFieldsData);
+
+      // Re-populate field notes
+      const newFieldNotes = {};
+      eventHasAttendee.forEach(item => {
+        if (item.note) newFieldNotes[item.field_id] = item.note;
+      });
+      setFieldNotes(newFieldNotes);
       setIsInitialized(true);
 
       // Build fields payload for form
-      const fieldsPayload = existingFieldIds.map(id => ({
-        field_id: id,
-        note: ''
+      const fieldsPayload = eventHasAttendee.map(item => ({
+        field_id: item.field_id,
+        note: item.note || ''
       }));
 
       form.setFieldsValue({
         selected_field_ids: existingFieldIds,
+        field_notes: newFieldNotes,
         attendee_fields: fieldsPayload
       });
+    } else if (eventHasAttendee && eventHasAttendee.length === 0 && isInitialized) {
+      // Clear if backend returns empty
+      setSelectedFieldIds([]);
+      setSelectedFieldsData([]);
+      setFieldNotes({});
+      form.setFieldsValue({
+        selected_field_ids: [],
+        field_notes: {},
+        attendee_fields: []
+      });
     }
-  }, [eventHasAttendee, categoryDetails, isInitialized, form]);
+  }, [eventHasAttendee, categoryDetails, form]);
 
   // Check category conditions from API response:
   // - If title is "Registration" → DON'T show SelectFields
@@ -157,11 +181,25 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
   const [savingControls, setSavingControls] = useState(false);
 
   const handleManageLayoutClick = async () => {
+    let currentLayouts = layouts || [];
+    let currentEventLayoutId = eventLayoutId || null;
+
     // Save controls step before navigating to layout
     if (onSaveControls) {
       try {
         setSavingControls(true);
-        await onSaveControls();
+        const updatedDetail = await onSaveControls();
+        const refetchLayouts = updatedDetail?.venue?.layouts || updatedDetail?.layout;
+        const refetchEventLayoutId = updatedDetail?.event_has_layout?.layout_id;
+
+        if (refetchLayouts !== undefined) {
+          currentLayouts = refetchLayouts;
+          setModalLayouts(refetchLayouts);
+        }
+        if (refetchEventLayoutId !== undefined) {
+          currentEventLayoutId = refetchEventLayoutId;
+          setModalEventLayoutId(refetchEventLayoutId);
+        }
       } catch (error) {
         return;
       } finally {
@@ -169,7 +207,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       }
     }
 
-    if (!layouts || layouts.length === 0) {
+    if (!currentLayouts || currentLayouts.length === 0) {
       Modal.confirm({
         title: 'No Layout Found',
         content: 'There is no layout available for this venue. Would you like to create a new layout?',
@@ -177,8 +215,8 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
         cancelText: 'Cancel',
         centered: true,
         onOk: () => {
-          if (eventLayoutId) {
-            navigate(`/theatre/new?venueId=${eventLayoutId}`);
+          if (currentEventLayoutId) {
+            navigate(`/theatre/new?venueId=${currentEventLayoutId}`);
           } else {
             navigate(`/theatre/new?venueId=${venue_id}`);
           }
@@ -187,9 +225,11 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       return;
     }
 
-    if (layouts.length === 1) {
-      navigate(`/theatre/event/${eventId}/layout/${layouts[0].id}`);
+    if (currentLayouts.length === 1) {
+      navigate(`/theatre/event/${eventId}/layout/${currentLayouts[0].id}`);
     } else {
+      // NOTE: This will still use the old layouts array if Modal is shown
+      // But we can navigate directly here if needed or let the modal handle it
       setIsLayoutModalVisible(true);
     }
   };
@@ -588,7 +628,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                   const bookingBySeatValue = form.getFieldValue("bookingBySeat");
                   return toBoolean(bookingBySeatValue) ? (
                     <Button type="primary" onClick={handleManageLayoutClick} size="small" loading={savingControls}>
-                      Manage Ticket in Layout
+                      Ticket Layout
                     </Button>
                   ) : null;
                 }}
@@ -840,9 +880,9 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
         footer={null}
       >
         <List
-          dataSource={layouts}
+          dataSource={displayLayouts}
           renderItem={(item) => {
-            const isAssigned = Number(item.id) === Number(eventLayoutId);
+            const isAssigned = Number(item.id) === Number(displayEventLayoutId);
             return (<List.Item
               className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}
               onClick={() => {

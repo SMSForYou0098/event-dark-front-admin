@@ -667,7 +667,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                 handleCloseModal={handleCloseModal}
                 ticketType={ticketType}
                 ticketData={ticketData}
-                showTicketDetails={true}
+                showTicketDetails={false}
                 formatDateRange={dateRange}
             />
             <ExpandDataTable
