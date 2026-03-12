@@ -61,10 +61,10 @@ const TicketCanvasView = forwardRef((props, ref) => {
   const user = userObj
     ? userObj
     : {
-        name: firstBooking?.name || ticketData?.name,
-        number: firstBooking?.number || ticketData?.number,
-        email: firstBooking?.email || ticketData?.email,
-      };
+      name: firstBooking?.name || ticketData?.name,
+      number: firstBooking?.number || ticketData?.number,
+      email: firstBooking?.email || ticketData?.email,
+    };
 
   const ticketName = ticket?.name || 'Ticket Name';
   const userName = user?.name || user?.Name || 'User Name';
@@ -72,9 +72,9 @@ const TicketCanvasView = forwardRef((props, ref) => {
   const seatNames =
     ticketData?.bookings?.length > 1
       ? ticketData.bookings
-          .map((b) => b.seat_name || b.event_seat_status?.seat_name)
-          .filter(Boolean)
-          .join(', ')
+        .map((b) => b.seat_name || b.event_seat_status?.seat_name)
+        .filter(Boolean)
+        .join(', ')
       : null;
   const number =
     seatNames ||
@@ -84,23 +84,78 @@ const TicketCanvasView = forwardRef((props, ref) => {
 
   const address = venue?.address || event?.address || 'Address Not Specified';
   // Format date range: comma-separated "2026-02-03,2026-02-05" → "3 Feb 2026 to 5 Feb 2026"
-  const dateRangeSource = ticketData?.booking_date || event?.date_range;
+  const formattedDate = ticketData?.booking_date || event?.date_range;
+  // const date = (() => {
+  //   if (!dateRangeSource) return 'Date Not Available';
+  //   const parts = String(dateRangeSource).split(',').map((s) => s.trim()).filter(Boolean);
+  //   const formatOne = (isoStr) => {
+  //     if (!isoStr) return '';
+  //     const d = new Date(isoStr);
+  //     if (Number.isNaN(d.getTime())) return isoStr;
+  //     const day = d.getDate();
+  //     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  //     const month = months[d.getMonth()];
+  //     const year = d.getFullYear();
+  //     return `${day} ${month} ${year}`;
+  //   };
+  //   if (parts.length === 0) return formatDateRange?.(dateRangeSource) || 'Date Not Available';
+  //   if (parts.length === 1) return formatOne(parts[0]) || formatDateRange?.(dateRangeSource) || 'Date Not Available';
+  //   return `${formatOne(parts[0])} to ${formatOne(parts[1])}`;
+  // })();
+
   const date = (() => {
-    if (!dateRangeSource) return 'Date Not Available';
-    const parts = String(dateRangeSource).split(',').map((s) => s.trim()).filter(Boolean);
-    const formatOne = (isoStr) => {
-      if (!isoStr) return '';
+    if (!formattedDate) return 'Date Not Available';
+
+    const parts = String(formattedDate)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const parseDate = (isoStr) => {
       const d = new Date(isoStr);
-      if (Number.isNaN(d.getTime())) return isoStr;
-      const day = d.getDate();
-      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-      const month = months[d.getMonth()];
-      const year = d.getFullYear();
-      return `${day} ${month} ${year}`;
+      if (Number.isNaN(d.getTime())) return null;
+
+      return {
+        day: d.getDate(),
+        month: months[d.getMonth()],
+        monthIndex: d.getMonth(),
+        year: d.getFullYear()
+      };
     };
-    if (parts.length === 0) return formatDateRange?.(dateRangeSource) || 'Date Not Available';
-    if (parts.length === 1) return formatOne(parts[0]) || formatDateRange?.(dateRangeSource) || 'Date Not Available';
-    return `${formatOne(parts[0])} to ${formatOne(parts[1])}`;
+
+    if (parts.length === 1) {
+      const d = parseDate(parts[0]);
+      return d ? `${d.day} ${d.month} ${d.year}` : parts[0];
+    }
+
+    const start = parseDate(parts[0]);
+    const end = parseDate(parts[1]);
+
+    if (!start || !end) return formattedDate;
+
+    // ✅ same date
+    if (
+      start.day === end.day &&
+      start.monthIndex === end.monthIndex &&
+      start.year === end.year
+    ) {
+      return `${start.day} ${start.month} ${start.year}`;
+    }
+
+    // same month & year
+    if (start.year === end.year && start.monthIndex === end.monthIndex) {
+      return `${start.day} to ${end.day} ${start.month} ${start.year}`;
+    }
+
+    // same year
+    if (start.year === end.year) {
+      return `${start.day} ${start.month} to ${end.day} ${end.month} ${start.year}`;
+    }
+
+    // different year
+    return `${start.day} ${start.month} ${start.year} to ${end.day} ${end.month} ${end.year}`;
   })();
   const time =
     convertTo12HourFormat?.(event?.start_time) || 'Time Not Set';
@@ -109,6 +164,8 @@ const TicketCanvasView = forwardRef((props, ref) => {
   const eventType = event?.event_type || '';
   const bookingType =
     ticketData?.booking_type || firstBooking?.booking_type || 'Online';
+  const gate = ticketData?.booking_gate || event?.gate || ticketData?.gate || '';
+
 
   // ─── State ────────────────────────────────────────────────────────────────
   const [qrDataUrl, setQrDataUrl] = useState(null);
@@ -206,104 +263,135 @@ const TicketCanvasView = forwardRef((props, ref) => {
 
     const draw = async () => {
       try {
+        // Set fixed canvas dimensions
         canvas.setDimensions({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
 
         if (imageUrl) {
           const img = await loadFabricImage(imageUrl);
           canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
             scaleX: CANVAS_WIDTH / img.width,
-            scaleY: CANVAS_HEIGHT / img.height,
+            scaleY: CANVAS_HEIGHT / img.height
           });
         } else {
+          // White fallback background when no image
           canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
         }
 
+        // Event name at top (above QR code)
         if (showDetails) {
           centerText(title, 16, 'Arial', canvas, 50, { fontWeight: 'bold' });
           if (eventType) {
-            centerText(
-              eventType.charAt(0).toUpperCase() + eventType.slice(1),
-              11,
-              'Arial',
-              canvas,
-              70,
-              { fill: '#666' }
-            );
+            centerText(eventType.charAt(0).toUpperCase() + eventType.slice(1), 11, 'Arial', canvas, 70, { fill: '#000' });
           }
           centerText(ticketName, 18, 'Arial', canvas, 185, { fontWeight: 'bold' });
         }
 
-        // QR code
-        const qrImg = await loadFabricImage(qrDataUrl);
-        const qrCodeSize = 85;
-        const padding = 4;
-        const qrPositionX = CANVAS_WIDTH / 2 - qrCodeSize / 2;
-        const qrPositionY = 220;
+        // Add QR code
+        if (qrDataUrl) {
+          const qrImg = await loadFabricImage(qrDataUrl);
+          const qrCodeSize = 85;
+          const padding = 4;
+          const qrPositionX = (CANVAS_WIDTH / 2) - (qrCodeSize / 2);
+          const qrPositionY = 220;
 
-        const qrBackground = new fabric.Rect({
-          left: qrPositionX - padding,
-          top: qrPositionY - padding,
-          width: qrCodeSize + padding * 2,
-          height: qrCodeSize + padding * 2,
-          fill: 'white',
-          selectable: false,
-          evented: false,
-          rx: 4,
-          ry: 4,
-        });
+          const qrBackground = new fabric.Rect({
+            left: qrPositionX - padding,
+            top: qrPositionY - padding,
+            width: qrCodeSize + padding * 2,
+            height: qrCodeSize + padding * 2,
+            fill: 'white',
+            selectable: false,
+            evented: false,
+            rx: 4,
+            ry: 4
+          });
 
-        qrImg.set({
-          left: qrPositionX,
-          top: qrPositionY,
-          selectable: false,
-          evented: false,
-          scaleX: qrCodeSize / qrImg.width,
-          scaleY: qrCodeSize / qrImg.height,
-        });
+          qrImg.set({
+            left: qrPositionX,
+            top: qrPositionY,
+            selectable: false,
+            evented: false,
+            scaleX: qrCodeSize / qrImg.width,
+            scaleY: qrCodeSize / qrImg.height,
+          });
 
-        canvas.add(qrBackground);
-        canvas.add(qrImg);
+          canvas.add(qrBackground);
+          canvas.add(qrImg);
+        }
 
+        // Add details
         if (showDetails) {
           let currentY = 310;
 
-          if (ticketLabel) {
-            centerText(
-              ticketLabel + (ticketNumber ? ' ' + ticketNumber : ''),
-              12,
-              'Arial',
-              canvas,
-              currentY,
-              { fontWeight: 'bold', fill: '#666' }
-            );
+          // Ticket name (larger and bold) - REMOVE THIS
+          // centerText(ticketName, 18, 'Arial', canvas, currentY, { fontWeight: 'bold' });
+          // currentY += 30;
+
+          // Label (I) or (G)
+          if (props.ticketLabel) {
+            centerText(props.ticketLabel + (ticketNumber ? ' ' + ticketNumber : ''), 12, 'Arial', canvas, currentY, { fontWeight: 'bold', fill: '#000' });
             currentY += 30;
           } else {
             currentY += 10;
           }
 
+          // Booking Type
           centerText(` ${bookingType}`, 10, 'Arial', canvas, currentY);
           currentY += 30;
 
+          // User number/seat
           if (number !== 'N/A') {
             centerText(`Seat: ${number}`, 15, 'Arial', canvas, currentY);
             currentY += 30;
           }
 
-          // Time column
-          canvas.add(
-            new fabric.Text('Time', {
-              left: 40,
-              top: currentY,
-              fontSize: 14,
-              fontFamily: 'Arial',
-              fill: textColor,
-              selectable: false,
-              evented: false,
-              fontWeight: 'normal',
-            })
-          );
-          const timeValue = new fabric.Text(time, {
-            left: 40,
+          // Date Column (FIRST)
+          const dateStartX = 40;
+
+          // const dateLabel = new fabric.Text('📅 Date', {
+          //   left: dateStartX,
+          //   top: currentY,
+          //   fontSize: 14,
+          //   fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+          //   fill: textColor,
+          //   selectable: false,
+          //   evented: false,
+          //   fontWeight: 'normal',
+          // });
+          // canvas.add(dateLabel);
+
+          const dateValue = new fabric.Textbox(`📅 ${date}`, {
+            left: dateStartX,
+            top: currentY + 20,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            fill: textColor,
+            selectable: false,
+            evented: false,
+            fontWeight: 'bold',
+            width: 120,
+            lineHeight: 1.4,
+          });
+          canvas.add(dateValue);
+
+
+          // Time Column (SECOND)
+          const timeStartX = 180;
+
+          // const timeLabel = new fabric.Text('⏰ Time', {
+          //   left: timeStartX,
+          //   top: currentY,
+          //   fontSize: 14,
+          //   fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+          //   fill: textColor,
+          //   selectable: false,
+          //   evented: false,
+          //   fontWeight: 'normal',
+          // });
+          // canvas.add(timeLabel);
+
+          const timeValue = new fabric.Text(`⏰ ${time}`, {
+            left: timeStartX,
             top: currentY + 20,
             fontSize: 14,
             fontFamily: 'Arial',
@@ -314,76 +402,85 @@ const TicketCanvasView = forwardRef((props, ref) => {
           });
           canvas.add(timeValue);
 
-          // Date column
-          const dateStartX = 180;
-          canvas.add(
-            new fabric.Text('Date', {
-              left: dateStartX,
-              top: currentY,
+          // here
+
+          // Calculate height based on the taller element
+          const timeHeight = 20 + (timeValue.height || 20);
+          const dateHeight = 20 + (dateValue.height || 20);
+          const maxHeight = Math.max(timeHeight, dateHeight);
+          currentY += maxHeight + 10;
+
+          // Gate Section (Centered)
+          if (gate) {
+            // const gateLabel = new fabric.Text('🏟 Gate', {
+            //     left: CANVAS_WIDTH / 2,
+            //     top: currentY,
+            //     fontSize: 14,
+            //     fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+            //     fill: textColor,
+            //     selectable: false,
+            //     evented: false,
+            //     fontWeight: 'normal',
+            //     originX: 'center'
+            // });
+            // canvas.add(gateLabel);
+
+            const gateValue = new fabric.Text(`🏟 ${gate.toString()}`, {
+              left: CANVAS_WIDTH / 2,
+              top: currentY + 20,
               fontSize: 14,
-              fontFamily: 'Arial',
+              fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
               fill: textColor,
               selectable: false,
               evented: false,
-              fontWeight: 'normal',
-            })
-          );
-          const dateValue = new fabric.Textbox(date, {
-            left: dateStartX,
-            top: currentY + 20,
+              fontWeight: 'bold',
+              originX: 'center'
+            });
+            canvas.add(gateValue);
+            currentY += 90;
+          } else {
+            currentY += 120;
+          }
+
+          // Venue/Address - wrapped to multiple lines for readability
+          const venueLabel = new fabric.Text('📍 Address', {
+            left: canvas.getWidth() / 2,
+            top: currentY,
+            fontSize: 18,
+            fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+            fill: textColor,
+            fontWeight: 'bold',
+            originX: 'center',   // centers horizontally
+            textAlign: 'center',
+            selectable: false,
+            evented: false,
+          });
+
+          canvas.add(venueLabel);
+          currentY += 30;
+
+          const eventVenueText = new fabric.Textbox(address, {
+            left: 15,
+            top: currentY,
             fontSize: 14,
             fontFamily: 'Arial',
+            fontWeight: 'bold',
             fill: textColor,
             selectable: false,
             evented: false,
-            fontWeight: 'bold',
-            width: CANVAS_WIDTH - dateStartX - 15,
-            lineHeight: 1.4,
+            width: CANVAS_WIDTH - 30,
+            lineHeight: 1.5,
+            textAlign: 'center',
           });
-          canvas.add(dateValue);
+          canvas.add(eventVenueText);
 
-          const maxHeight =
-            Math.max(
-              20 + (timeValue.height || 20),
-              20 + (dateValue.height || 20)
-            );
-          currentY += maxHeight + 10;
-
-          // Location label
-          canvas.add(
-            new fabric.Text('Location', {
-              left: 15,
-              top: currentY,
-              fontSize: 18,
-              fontFamily: 'Arial',
-              fill: textColor,
-              fontWeight: 'bold',
-              selectable: false,
-              evented: false,
-            })
-          );
-          currentY += 30;
-
-          canvas.add(
-            new fabric.Textbox(address, {
-              left: 15,
-              top: currentY,
-              fontSize: 14,
-              fontFamily: 'Arial',
-              fontWeight: 'bold',
-              fill: textColor,
-              selectable: false,
-              evented: false,
-              width: CANVAS_WIDTH - 30,
-              lineHeight: 1.5,
-              textAlign: 'center',
-            })
-          );
+          // Order ID at bottom
         }
 
         canvas.renderAll();
         setIsCanvasReady(true);
         onReady?.();
+
       } catch (error) {
         console.error('Error drawing canvas:', error);
         onError?.('Failed to render ticket');

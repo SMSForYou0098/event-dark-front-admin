@@ -121,7 +121,7 @@ const ContentFormModal = ({
                 user_id: userId,
                 title: values.title,
                 type: values.type,
-                contentData: content,
+                content,
                 status: 1,
             };
 

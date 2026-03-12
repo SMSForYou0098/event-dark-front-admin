@@ -638,17 +638,26 @@ const EventStepperForm = () => {
                                 </Button>
                             )}
 
-                            <Tooltip title={(!isEdit && !canCreate) ? "No permission to create" : (isEdit && !canEdit) ? "No permission to edit" : ""}>
+                            {current !== steps.length - 1 ? (
+                                <Tooltip title={(!isEdit && !canCreate) ? "No permission to create" : (isEdit && !canEdit) ? "No permission to edit" : ""}>
+                                    <Button
+                                        type="primary"
+                                        onClick={next}
+                                        size="large"
+                                        loading={isLoading}
+                                        disabled={isLoading || componentLoader || (isEdit ? !canEdit : !canCreate)}
+                                    >
+                                        {current === 0 && !isEdit ? 'Create & Continue' : 'Save & Continue'}
+                                    </Button>
+                                </Tooltip>
+                            ) : (
                                 <Button
-                                    type="primary"
-                                    onClick={next}
+                                    onClick={() => navigate(-1)}
                                     size="large"
-                                    loading={isLoading}
-                                    disabled={isLoading || componentLoader || (isEdit ? !canEdit : !canCreate)}
                                 >
-                                    {current === 0 && !isEdit ? 'Create & Continue' : 'Save & Continue'}
+                                    Back
                                 </Button>
-                            </Tooltip>
+                            )}
 
                             {/* {current === steps.length - 2 && (
                                 <Tooltip title={!canEdit ? "No permission to edit/publish" : ""}>

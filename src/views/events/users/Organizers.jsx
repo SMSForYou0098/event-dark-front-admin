@@ -30,6 +30,7 @@ const Organizers = () => {
   const [error, setError] = useState(null);
   const [selectedRole, setSelectedRole] = useState('Organizer');
   const [mutationLoading, setMutationLoading] = useState(false);
+  const [searchText, setSearchText] = useState("");
   // Fetch roles
   const { data: roles = [] } = useQuery({
     queryKey: ["roles"],
@@ -45,9 +46,13 @@ const Organizers = () => {
     const params = new URLSearchParams();
 
     if (dateRange && dateRange.startDate && dateRange.endDate) {
+      params.set("type", "custom");
       params.set('date', `${dateRange.startDate},${dateRange.endDate}`);
     } else {
       params.set('type', 'all');
+    }
+    if (searchText) {
+      params.set("search", searchText);
     }
     const url = `users-by-role/${selectedRole}?${params.toString()}`;
     // const url = `users-by-role/${selectedRole}`;
@@ -64,7 +69,7 @@ const Organizers = () => {
     error: organizersError,
     refetch: refetchOrganizers
   } = useQuery({
-    queryKey: ['organizers', { dateRange, selectedRole }],
+    queryKey: ['organizers', { dateRange, selectedRole, searchText }],
     queryFn: fetchOrganizers,
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -139,6 +144,10 @@ const Organizers = () => {
     refetchOrganizers();
   };
 
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+  }, []);
+
   const formatOrganizerData = (organizers) => {
     return organizers.map(organizer => ({
       ...organizer,
@@ -150,7 +159,6 @@ const Organizers = () => {
   const deleteUserMutation = useMutation({
     mutationFn: async (userId) => {
       const res = await api.delete(`user-delete/${userId}`);
-      console.log("Delete response:", res);
       return res.data;
     },
     onSuccess: () => {
@@ -349,12 +357,15 @@ const Organizers = () => {
           </div>
         }
         enableExport={true}
+        serverSide={true}
         exportRoute={'export-organizers'}
         ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Organizers")}
         authToken={authToken}
         loading={organizersLoading || mutationLoading}
         error={organizersError || error}
         onRefresh={handleRefresh}
+        onSearch={handleSearchChange}
+        searchValue={searchText}
         tableProps={{
           scroll: { x: 1200 },
           size: "middle",

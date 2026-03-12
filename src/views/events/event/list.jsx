@@ -389,7 +389,6 @@ const EventList = ({ isJunk = false }) => {
         title: 'Action',
         key: 'action',
         align: 'center',
-        ...(isMobile && { width: isJunk ? 60 : 60 }),
         fixed: 'right',
         render: (_, row) => {
           if (isJunk) {
@@ -607,15 +606,9 @@ const EventList = ({ isJunk = false }) => {
     ]
   );
 
-  if (isLoading) {
-    return (
-      <div className="text-center py-5">
-        <Spin size="large" />
-      </div>
-    );
-  }
+  const hasFilters = !!(searchText || (dateRange && dateRange.startDate && dateRange.endDate));
 
-  if (!events || events.length === 0) {
+  if (!isLoading && (!events || events.length === 0) && !hasFilters) {
     return <EmptyEventsState isJunk={isJunk} />
   }
 

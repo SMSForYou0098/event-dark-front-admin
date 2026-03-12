@@ -373,10 +373,10 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
         </Form.Item>
 
       </Col>
-      <Col xs={24} md={12}>
+      {/* <Col xs={24} md={12}> */}
 
-        <VanueList form={form} />
-      </Col>
+      <VanueList form={form} />
+      {/* </Col> */}
 
       {/* Description */}
       {/* <Col xs={24}>
