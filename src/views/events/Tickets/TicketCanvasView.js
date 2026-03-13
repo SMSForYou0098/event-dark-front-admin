@@ -319,20 +319,20 @@ const TicketCanvasView = forwardRef((props, ref) => {
         }
 
         // Add details
+        let currentY = 310;
+
+        // Ticket name (larger and bold) - REMOVE THIS
+        // centerText(ticketName, 18, 'Arial', canvas, currentY, { fontWeight: 'bold' });
+        // currentY += 30;
+
+        // Label (I) or (G)
+        if (props.ticketLabel) {
+          centerText(props.ticketLabel + (ticketNumber ? ' ' + ticketNumber : ''), 12, 'Arial', canvas, currentY, { fontWeight: 'bold', fill: '#000' });
+          currentY += 30;
+        } else {
+          currentY += 10;
+        }
         if (showDetails) {
-          let currentY = 310;
-
-          // Ticket name (larger and bold) - REMOVE THIS
-          // centerText(ticketName, 18, 'Arial', canvas, currentY, { fontWeight: 'bold' });
-          // currentY += 30;
-
-          // Label (I) or (G)
-          if (props.ticketLabel) {
-            centerText(props.ticketLabel + (ticketNumber ? ' ' + ticketNumber : ''), 12, 'Arial', canvas, currentY, { fontWeight: 'bold', fill: '#000' });
-            currentY += 30;
-          } else {
-            currentY += 10;
-          }
 
           // Booking Type
           centerText(` ${bookingType}`, 10, 'Arial', canvas, currentY);

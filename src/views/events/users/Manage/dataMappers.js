@@ -11,8 +11,19 @@ export const mapApiToForm = (apiData) => {
     // Extract event IDs
     const eventIds = user.events?.map(e => e.id) || [];
 
-    // Extract ticket IDs - FIXED: Use agentTickets instead of events.tickets
-    const ticketIds = user.agentTickets?.map(ticket => String(ticket.id)) || [];
+    // Extract ticket IDs - support multiple API response formats
+    let ticketIds = [];
+    if (user.agentTickets?.length) {
+        ticketIds = user.agentTickets.map(ticket => String(ticket.id));
+    } else if (user.user_tickets?.length) {
+        ticketIds = user.user_tickets
+            .filter(ut => ut.ticket_id)
+            .map(ut => String(ut.ticket_id));
+    } else if (user.events?.length) {
+        // Fallback: extract tickets from events[].tickets[]
+        ticketIds = user.events
+            .flatMap(e => (e.tickets || []).map(t => String(t.id)));
+    }
 
     return {
         // Basic Info
@@ -43,6 +54,7 @@ export const mapApiToForm = (apiData) => {
         bankBranch: user.bank_branch || '',
         bankNumber: user.bank_number || '',
         orgGstNumber: user.org_gst_no || '',
+        orgPanNumber: user.org_pan_no || '',
 
         // Status & Security
         status: Boolean(user.status),
@@ -115,6 +127,7 @@ export const mapFormToApi = (formData) => {
 
         // Organization
         org_gst_no: formData.orgGstNumber,
+        org_pan_no: formData.orgPanNumber,
 
         // Settings
         qr_length: formData.qrLength,
@@ -123,10 +136,8 @@ export const mapFormToApi = (formData) => {
         agreement_status: formData.agreementStatus,
         payment_method: formData.paymentMethod,
 
-        // Events & Tickets - send as arrays of IDs
-        event_ids: Array.isArray(formData.events) ? formData.events : formData.events ? [formData.events] : [],
-        ticket_ids: (formData.tickets || []).map(t => Number(t)),
-        gate_ids: formData.gates || [],
+        // Events & Tickets - send as user_tickets array
+        user_tickets: formData.userTickets || [],
 
         // Password (only include if provided)
         ...(formData.password && { password: formData.password }),

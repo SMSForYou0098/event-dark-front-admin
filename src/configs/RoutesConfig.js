@@ -332,7 +332,7 @@ export const protectedRoutes = [
         path: `/organizers`,
         component: React.lazy(() => import('views/events/users/Organizers')),
         meta: {
-            roles: ['admin'],
+            // roles: ['admin'],
         }
     },
     {

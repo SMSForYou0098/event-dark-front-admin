@@ -40,7 +40,7 @@ const BookingList = memo(({ type = 'agent' }) => {
         const token = (data) => data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id;
 
         return {
-            title: `${typeCapitalized} Bookings`,
+            title: `${typeCapitalized}`,
             apiUrl: `bookings/${type}/${UserData?.id}`,
             exportRoute: `bookings/export`,
             exportPermission: `Export ${typeCapitalized} Bookings`,
@@ -270,12 +270,11 @@ const BookingList = memo(({ type = 'agent' }) => {
                 key: 'event_name',
                 align: 'center',
                 width: 180,
-                searchable: true,
+                // searchable: true,
                 render: (_, record) => {
-                    const eventName = record?.bookings?.[0]?.ticket?.event?.name || record?.ticket?.event?.name || "";
                     return (
-                        <Tooltip title={eventName}>
-                            <span>{truncateString(eventName)}</span>
+                        <Tooltip title={record?.event_name}>
+                            <span>{truncateString(record?.event_name)}</span>
                         </Tooltip>
                     );
                 },
@@ -303,7 +302,7 @@ const BookingList = memo(({ type = 'agent' }) => {
         }
 
         // Organizer column
-        if (showOrganizer) {
+        if (showOrganizer && userRole === 'Admin') {
             columns.push({
                 title: 'Organization',
                 dataIndex: 'organizer',
@@ -317,7 +316,7 @@ const BookingList = memo(({ type = 'agent' }) => {
         // Agent column
         if (showAgent) {
             columns.push({
-                title: 'Booked By',
+                title: 'Agent',
                 dataIndex: 'agent_name',
                 key: 'agent_name',
                 align: 'center',
@@ -367,7 +366,7 @@ const BookingList = memo(({ type = 'agent' }) => {
 
         // Quantity column (common for both)
         columns.push({
-            title: isNested ? "Quantity" : "Qty",
+            title: "Qty",
             dataIndex: "quantity",
             key: "quantity",
             align: "center",
@@ -491,7 +490,6 @@ const BookingList = memo(({ type = 'agent' }) => {
             width: isMobile ? 70 : 120,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === true;
-
                 const actions = [
                     {
                         key: 'generate',
@@ -646,7 +644,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                                     onClick={() => handleTicketOption('individual')}
                                     size="large"
                                 >
-                                    Individual
+                                    Single
                                 </Button>
                                 <Button
                                     block

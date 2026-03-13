@@ -47,13 +47,13 @@ const userManagementSubmenu = [
     permissions: [PERMISSIONS.VIEW_USER]
   },
   {
-    key: 'organizers',
+    key: 'system-users',
     path: 'organizers',
-    title: 'Organizers',
+    title: 'System Users',
     icon: TeamOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ['Admin'],
+    // roles: ['Admin'],
     permissions: [PERMISSIONS.VIEW_ORGANIZERS]
   },
 

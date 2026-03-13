@@ -16,9 +16,8 @@ import { ORGANIZER_ALLOWED_ROLES } from '../constants';
 import { RoleSelect } from 'utils/CommonInputs';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
 import { useGetAllOrganizerAgreements } from '../../Agreement/Organizer/useOrganizerAgreement';
-import { useApproveOrganizerOnboarding } from '../../Onboarding/Organizer/useOrganizerOnboarding';
-import DOMPurify from 'dompurify';
 import OtpVerificationModal from 'components/shared-components/OtpVerificationModal';
+import { VALIDATION_RULES, VALIDATION_FUNCTIONS } from 'constants/ValidationConstants';
 
 // Child Components
 import {
@@ -30,6 +29,7 @@ import {
     PaymentMethodCard,
 } from './components';
 import { createValidationRules } from './hooks/useProfileFormData';
+import { useApproveOrganizerOnboarding } from 'views/events/Onboarding/Organizer/useOrganizerOnboarding';
 
 const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNumber }) => {
     const navigate = useNavigate();
@@ -79,6 +79,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         bankBranch: '',
         bankNumber: '',
         orgGstNumber: '',
+        orgPanNumber: '',
 
         // Security
         password: '',
@@ -396,6 +397,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         }
 
         const selectedEventObjects = allEvents.filter(e => formState.events.includes(e.value));
+        console.log(selectedEventObjects, "selectedEventObjects");
         return selectedEventObjects.map(event => ({
             label: event.label,
             options: (event.tickets || []).map(ticket => ({
@@ -537,15 +539,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     }, [allEvents, formState.tickets, eventsLoading, eventsFetching, updateMultipleFields]);
 
     // Custom validation rules
-    const requiredIf = (condition, message) => ({
-        validator(_, value) {
-            if (!condition) return Promise.resolve();
-            const hasValue = Array.isArray(value)
-                ? value.length > 0
-                : value !== undefined && value !== null && value !== '';
-            return hasValue ? Promise.resolve() : Promise.reject(new Error(message));
-        }
-    });
+    const { requiredIf } = VALIDATION_FUNCTIONS;
 
     // Check if user is editing their own profile (compare as strings to handle type mismatch)
     const isEditingOwnProfile = mode === 'edit' && String(id) === String(UserData?.id);
@@ -671,6 +665,25 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
 
     // Save user profile (actual API call)
     const saveUserProfile = async (values, isVerifiedOrganizer = false, sessionId = null) => {
+        // Build user_tickets: [{event_id, ticket_id?}, ...]
+        const selectedEvents = Array.isArray(values.events) ? values.events : values.events ? [values.events] : [];
+        const selectedTickets = (values.tickets || []).map(t => String(t));
+        const userTickets = [];
+
+        selectedEvents.forEach(eventId => {
+            const eventData = allEvents.find(e => e.value === eventId);
+            const eventTicketIds = (eventData?.tickets || []).map(t => String(t.id || t.value));
+            const ticketsForEvent = selectedTickets.filter(tId => eventTicketIds.includes(tId));
+
+            if (ticketsForEvent.length > 0) {
+                ticketsForEvent.forEach(ticketId => {
+                    userTickets.push({ event_id: eventId, ticket_id: Number(ticketId) });
+                });
+            } else {
+                userTickets.push({ event_id: eventId });
+            }
+        });
+
         const mergedValues = {
             ...values,
             roleId: values.roleId ?? formState.roleId,
@@ -678,6 +691,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             convenienceFeeType: values.convenienceFeeType ?? formState.convenienceFeeType,
             convenienceFee: values.convenienceFee ?? formState.convenienceFee,
             reportingUser: reportingUserId,
+            userTickets,
         };
 
         // Get signature data
@@ -696,7 +710,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 const value = apiData[key];
                 if (value !== null && value !== undefined) {
                     if (Array.isArray(value)) {
-                        // Handle arrays (event_ids, ticket_ids, gate_ids)
+                        // Handle arrays (user_tickets, etc.)
                         formData.append(key, JSON.stringify(value));
                     } else if (typeof value === 'object') {
                         formData.append(key, JSON.stringify(value));
@@ -1031,7 +1045,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                 <Form.Item
                                     label="Name"
                                     name="name"
-                                    rules={[{ required: true, message: 'Please enter name' }]}
+                                    rules={VALIDATION_RULES.NAME}
                                 >
                                     <Input placeholder="Enter name" />
                                 </Form.Item>
@@ -1041,10 +1055,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                 <Form.Item
                                     label="Mobile Number"
                                     name="number"
-                                    rules={[
-                                        { required: true, message: 'Please enter mobile number' },
-                                        { pattern: /^\d{10,12}$/, message: 'Must be 10-12 digits' }
-                                    ]}
+                                    rules={VALIDATION_RULES.MOBILE}
                                 >
                                     <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} />
                                 </Form.Item>
@@ -1054,10 +1065,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                 <Form.Item
                                     label="Email"
                                     name="email"
-                                    rules={[
-                                        { required: true, message: 'Please enter email' },
-                                        { type: 'email', message: 'Please enter valid email' }
-                                    ]}
+                                    rules={VALIDATION_RULES.EMAIL}
                                 >
                                     <Input placeholder="Enter email" />
                                 </Form.Item>
@@ -1105,14 +1113,18 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                         <Form.Item
                                             label="GST Number"
                                             name="orgGstNumber"
-                                            rules={[
-                                                {
-                                                    pattern: /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/,
-                                                    message: 'Please enter a valid GST number (e.g., 22AAAAA0000A1Z5)'
-                                                }
-                                            ]}
+                                            rules={VALIDATION_RULES.GST}
                                         >
                                             <Input placeholder="GST Number" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={8}>
+                                        <Form.Item
+                                            label="PAN Number"
+                                            name="orgPanNumber"
+                                            rules={VALIDATION_RULES.PAN}
+                                        >
+                                            <Input placeholder="PAN Number" />
                                         </Form.Item>
                                     </Col>
                                     {

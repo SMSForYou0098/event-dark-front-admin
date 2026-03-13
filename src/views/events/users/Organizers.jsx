@@ -28,7 +28,7 @@ const Organizers = () => {
 
   const [dateRange, setDateRange] = useState(null);
   const [error, setError] = useState(null);
-  const [selectedRole, setSelectedRole] = useState('Organizer');
+  const [selectedRole, setSelectedRole] = useState(userRole === 'Admin' ? 'Organizer' : 'POS');
   const [mutationLoading, setMutationLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
   // Fetch roles
@@ -261,6 +261,22 @@ const Organizers = () => {
       searchable: true,
       render: (number) => number || 'N/A'
     },
+    {
+      title: 'Organization',
+      dataIndex: 'reportingUser',
+      key: 'reportingUser',
+      render: (reportingUser) => reportingUser?.organisation || 'N/A'
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => date ? new Date(date).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }) : 'N/A'
+    },
   ];
 
   const actionColumns = [];
@@ -339,11 +355,16 @@ const Organizers = () => {
               onChange={(value) => setSelectedRole(value)}
               style={{ minWidth: 150 }}
             >
-              {roles.filter(role => role.name !== 'User').map((role) => (
-                <Select.Option key={role.id} value={role.name}>
-                  {role.name}
-                </Select.Option>
-              ))}
+              {roles
+                .filter(role =>
+                  role.name !== 'User' &&
+                  (userRole === 'Admin' || (role.name !== 'Organizer' && role.name !== 'Sub Admin' && role.name !== 'Admin'))
+                )
+                .map((role) => (
+                  <Select.Option key={role.id} value={role.name}>
+                    {role.name}
+                  </Select.Option>
+                ))}
             </Select>
             <PermissionChecker permission="Add User">
               <Tooltip title={`Add ${selectedRole}`}>
@@ -379,5 +400,5 @@ const Organizers = () => {
 
 // using HOC to prevent other users to access this component
 export default withAccess({
-  allowedRoles: ["Admin"],
+  allowedRoles: ["Admin", "Organizer"],
 })(Organizers);

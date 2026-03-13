@@ -5,6 +5,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 import { useMemo, useCallback } from 'react';
 import { useGetAllOrganizerAgreements } from 'views/events/Agreement/Organizer/useOrganizerAgreement';
 import { useApproveOrganizerOnboarding } from 'views/events/Onboarding/Organizer/useOrganizerOnboarding';
+import { VALIDATION_FUNCTIONS } from 'constants/ValidationConstants';
 
 /**
  * Custom hook for managing user profile form data and mutations
@@ -165,62 +166,7 @@ export const useProfileFormData = ({
  * Custom validation rules helper
  */
 export const createValidationRules = () => {
-    // Conditional required validation
-    const requiredIf = (condition, message) => ({
-        required: condition,
-        validator(_, value) {
-            if (!condition) return Promise.resolve();
-            if (value === undefined || value === null || value === '' ||
-                (Array.isArray(value) && value.length === 0)) {
-                return Promise.reject(new Error(message));
-            }
-            return Promise.resolve();
-        }
-    });
-
-    // Number validation with range
-    const numberRange = (min, max, errorMessage) => ({
-        validator(_, value) {
-            if (value === undefined || value === null || value === '') {
-                return Promise.resolve();
-            }
-            const n = Number(value);
-            if (!Number.isInteger(n)) {
-                return Promise.reject(new Error('Must be an integer'));
-            }
-            if (n < min || n > max) {
-                return Promise.reject(new Error(errorMessage || `Must be between ${min} and ${max}`));
-            }
-            return Promise.resolve();
-        }
-    });
-
-    // Percentage validation
-    const percentageValidator = (getFieldValue, convenienceFeeType) => ({
-        validator(_, value) {
-            if (value === undefined || value === null || value === '') {
-                return Promise.resolve();
-            }
-            const num = Number(value);
-            if (Number.isNaN(num)) {
-                return Promise.reject(new Error('Enter a valid number'));
-            }
-            if (num < 0) {
-                return Promise.reject(new Error('Value cannot be negative'));
-            }
-            const type = getFieldValue('convenienceFeeType') || convenienceFeeType;
-            if (type === 'percentage' && num > 100) {
-                return Promise.reject(new Error('Percentage cannot exceed 100'));
-            }
-            return Promise.resolve();
-        }
-    });
-
-    return {
-        requiredIf,
-        numberRange,
-        percentageValidator,
-    };
+    return VALIDATION_FUNCTIONS;
 };
 
 export default useProfileFormData;

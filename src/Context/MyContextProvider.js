@@ -580,7 +580,7 @@ export const MyContextProvider = ({ children }) => {
     return `${hours12}:${minutesFormatted} ${period}`;
   };
 
-  function truncateString(str, num) {
+  function truncateString(str, num = 16) {
     if (str?.length > num) {
       return str?.slice(0, num) + '...';
     }

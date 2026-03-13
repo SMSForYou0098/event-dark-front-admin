@@ -387,8 +387,8 @@ export const ExpandDataTable = ({
         <Switch
           checked={showGatewayReport}
           onChange={(checked) => setShowGatewayReport(checked)}
-          checkedChildren="Hide"
-          unCheckedChildren="Show Report"
+          checkedChildren=""
+          unCheckedChildren=""
         />
       )}
     </Space>
@@ -432,7 +432,7 @@ export const ExpandDataTable = ({
   return (
     <>
       {showGatewayReport && (
-        StatsComponent 
+        StatsComponent
           ? <StatsComponent dateRange={dateRange} />
           : <BookingCount date={dateRange} showGatewayAmount={showGatewayReport} type={type} />
       )}

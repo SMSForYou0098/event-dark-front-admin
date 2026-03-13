@@ -137,3 +137,5 @@ export const PERMISSIONS = {
     TRANSACTIONS_HISTORY: "Transactions History",
     ASSIGN_ROLE: "Assign Role",
 };
+
+export const PERMISSION_COUNT = Object.keys(PERMISSIONS).length;
