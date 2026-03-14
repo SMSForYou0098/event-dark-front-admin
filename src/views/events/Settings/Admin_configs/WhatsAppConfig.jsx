@@ -56,6 +56,7 @@ const WhatsAppConfig = () => {
   const [dynamicFields, setDynamicFields] = useState({});
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
   const [searchText, setSearchText] = useState('');
+  const [isVariablesVisible, setIsVariablesVisible] = useState(false);
 
   // Tanstack Query Hooks
   const { data: configData, isLoading: isLoadingConfig } = useWhatsAppConfig(UserData?.id);
@@ -656,10 +657,7 @@ const WhatsAppConfig = () => {
                 </Card>
               </Col>
 
-              {/* System Variables */}
-              <Col xs={24}>
-                <SytemVariables />
-              </Col>
+
             </Row>
           </Col>
 
@@ -678,6 +676,9 @@ const WhatsAppConfig = () => {
                     style={{ width: 150 }}
                     size="small"
                   />
+                  <Button type="default" onClick={() => setIsVariablesVisible(true)} size="small">
+                    System Variables
+                  </Button>
                   <Button type="primary" icon={<PlusOutlined />} onClick={() => setShow(true)} size="small">
                     New Config
                   </Button>
@@ -706,6 +707,11 @@ const WhatsAppConfig = () => {
           </Col>
         </Row>
       </DndProvider>
+      <SytemVariables
+        isDrawer={true}
+        open={isVariablesVisible}
+        onClose={() => setIsVariablesVisible(false)}
+      />
     </PermissionChecker>
   );
 };

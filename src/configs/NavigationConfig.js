@@ -700,6 +700,15 @@ const settingsSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles: ["Admin"]
+  },
+  {
+    key: 'settings-server-logs',
+    path: 'settings/server-logs',
+    title: 'Server Logs',
+    icon: SafetyOutlined, // Using SafetyOutlined as a placeholder, can change if needed
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin"]
   }
 ];
 

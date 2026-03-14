@@ -44,6 +44,7 @@ const SmsSetting = () => {
     const [status, setStatus] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
     const [searchText, setSearchText] = useState('');
+    const [isVariablesVisible, setIsVariablesVisible] = useState(false);
 
     // Tanstack Query Hooks
     const { data: smsData, isLoading: isLoadingSMS, refetch } = useSMSConfig(UserData?.id);
@@ -488,14 +489,19 @@ const SmsSetting = () => {
                                 title="SMS Templates"
                                 size="small"
                                 extra={
-                                    <Input
-                                        placeholder="Search..."
-                                        prefix={<SearchOutlined />}
-                                        allowClear
-                                        onChange={(e) => setSearchText(e.target.value)}
-                                        style={{ width: 150 }}
-                                        size="small"
-                                    />
+                                    <Space>
+                                        <Input
+                                            placeholder="Search..."
+                                            prefix={<SearchOutlined />}
+                                            allowClear
+                                            onChange={(e) => setSearchText(e.target.value)}
+                                            style={{ width: 150 }}
+                                            size="small"
+                                        />
+                                        <Button type="default" onClick={() => setIsVariablesVisible(true)} size="small">
+                                            System Variables
+                                        </Button>
+                                    </Space>
                                 }
                             >
                                 <Table
@@ -519,13 +525,15 @@ const SmsSetting = () => {
                             </Card>
                         </Col>
 
-                        {/* System Variables */}
-                        <Col xs={24}>
-                            <SytemVariables />
-                        </Col>
+
                     </Row>
                 </Col>
             </Row>
+            <SytemVariables
+                isDrawer={true}
+                open={isVariablesVisible}
+                onClose={() => setIsVariablesVisible(false)}
+            />
         </PermissionChecker>
     );
 };

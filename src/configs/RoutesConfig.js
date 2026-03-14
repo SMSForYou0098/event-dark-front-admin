@@ -770,6 +770,15 @@ export const protectedRoutes = [
             permissions: [PERMISSIONS.VIEW_SMS_CONFIG_SETTING],
         }
     },
+    // Server Logs
+    {
+        key: 'server-logs',
+        path: `/settings/server-logs`,
+        component: React.lazy(() => import('views/events/Settings/Admin_configs/ServerLogs')),
+        meta: {
+            roles: ['admin'],
+        }
+    },
     // Banners
     {
         key: 'media-banners',

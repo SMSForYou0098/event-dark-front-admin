@@ -1,12 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Card, Button, Modal, Form, Input, Table, Space, message, Tooltip } from 'antd';
+import { Card, Button, Modal, Form, Input, Table, Space, message, Tooltip, Drawer } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, CopyOutlined, CheckOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 import Utils from 'utils';
 
-const SytemVariables = () => {
+const SytemVariables = ({ isDrawer = false, open, onClose }) => {
   const { authToken, api } = useMyContext();
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
@@ -165,8 +165,8 @@ const SytemVariables = () => {
     {
       title: '#',
       key: 'index',
-      width: 60,
       render: (_, __, index) => index + 1,
+      width: 60,
     },
     {
       title: 'Key',
@@ -184,7 +184,7 @@ const SytemVariables = () => {
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 120,
+      // width: 120,
       align: 'left',
       render: (_, record) => (
         <Space size="small">
@@ -219,7 +219,7 @@ const SytemVariables = () => {
     },
   ];
 
-  return (
+  const tableContent = (
     <>
       {/* Delete Confirmation Modal */}
       <Modal
@@ -274,42 +274,57 @@ const SytemVariables = () => {
         </Form>
       </Modal>
 
-      <Card
-        title="System Variables"
-        extra={
-          <Space size="small" style={{ width: '100%' }}>
-            <Input
-              placeholder="Search..."
-              prefix={<SearchOutlined />}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              style={{
-                width: '140px',
-              }}
-              allowClear
-            />
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={() => setShowModal(true)}
-            />
-          </Space>
-        }
-      >
-        <Table
-          columns={columns}
-          dataSource={filteredData}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{
-            pageSize: 5,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} variables`,
-          }}
-          scroll={{ x: 600 }}
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between' }}>
+        <Input
+          placeholder="Search..."
+          prefix={<SearchOutlined />}
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ width: '200px' }}
+          allowClear
         />
-      </Card>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={() => setShowModal(true)}
+        >
+          Add Variable
+        </Button>
+      </div>
+
+      <Table
+        columns={columns}
+        dataSource={filteredData}
+        rowKey="id"
+        loading={isLoading}
+        pagination={{
+          pageSize: 8,
+          showSizeChanger: true,
+          showTotal: (total) => `Total ${total} variables`,
+        }}
+        scroll={{ x: 600 }}
+      />
     </>
+  );
+
+  if (isDrawer) {
+    return (
+      <Drawer
+        title="System Variables"
+        width={650}
+        onClose={onClose}
+        open={open}
+        bodyStyle={{ paddingBottom: 80 }}
+      >
+        {tableContent}
+      </Drawer>
+    );
+  }
+
+  return (
+    <Card title="System Variables">
+      {tableContent}
+    </Card>
   );
 };
 

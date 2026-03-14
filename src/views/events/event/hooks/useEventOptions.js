@@ -242,12 +242,18 @@ export function buildEventFormData(values, isDraft = false) {
     }
 
     // storing instagram post id from url
+    // const extractInstagramId = (url) => {
+    //   if (!url) return undefined;
+    //   const match = url.match(/instagram\.com\/p\/([^/?]+)/i);
+    //   return match ? match[1] : url.trim(); // fallback if only ID is entered directly
+    // };
+
     const extractInstagramId = (url) => {
       if (!url) return undefined;
-      const match = url.match(/instagram\.com\/p\/([^/?]+)/i);
-      return match ? match[1] : url.trim(); // fallback if only ID is entered directly
-    };
 
+      const match = url.match(/\.com\/(.+)/i);
+      return match ? match[1] : url.trim();
+    };
     // Example usage:
     appendIfDefined('insta_whts_url', extractInstagramId(values.insta_whts_url));
 

@@ -12,6 +12,7 @@ import GatewayWiseSales from './GatewayWiseSales';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import usePermission from 'utils/hooks/usePermission';
 import Utils from 'utils';
+import AgentDetailedReport from 'views/events/Reports/AgentDetailedReport';
 
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
     const { isMobile } = useMyContext();
@@ -243,6 +244,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 </Col>
 
             </Row>
+            {/* <AgentDetailedReport /> */}
         </div>
     );
 };

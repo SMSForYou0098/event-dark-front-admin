@@ -30,6 +30,7 @@ import {
 import { joditConfig } from 'utils/consts';
 import Utils from 'utils';
 import PermissionChecker from 'layouts/PermissionChecker';
+import SytemVariables from './SytemVariables';
 
 const MailSettings = memo(() => {
   const { UserData } = useMyContext();
@@ -45,6 +46,7 @@ const MailSettings = memo(() => {
   const [templateId, setTemplateId] = useState('');
   const [templatePreview, setTemplatePreview] = useState('');
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
+  const [isVariablesVisible, setIsVariablesVisible] = useState(false);
 
   // Tanstack Query Hooks
   const { data: emailConfig, isLoading: isLoadingConfig } = useEmailConfig();
@@ -479,9 +481,14 @@ const MailSettings = memo(() => {
           <DataTable
             title="Mail Templates"
             extraHeaderContent={
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleTemplateModalShow}>
-                New Template
-              </Button>
+              <Space>
+                <Button type="default" onClick={() => setIsVariablesVisible(true)}>
+                  System Variables
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleTemplateModalShow}>
+                  New Template
+                </Button>
+              </Space>
             }
             data={templates}
             columns={columns}
@@ -497,6 +504,11 @@ const MailSettings = memo(() => {
 
 
       </Row>
+      <SytemVariables
+        isDrawer={true}
+        open={isVariablesVisible}
+        onClose={() => setIsVariablesVisible(false)}
+      />
     </PermissionChecker>
   );
 }

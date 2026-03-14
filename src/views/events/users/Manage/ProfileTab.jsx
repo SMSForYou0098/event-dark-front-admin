@@ -1045,9 +1045,23 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                 <Form.Item
                                     label="Name"
                                     name="name"
-                                    rules={VALIDATION_RULES.NAME}
+                                    rules={[
+                                        ...VALIDATION_RULES.NAME,
+                                        {
+                                            validator: (_, value) => {
+                                                if (value && value.endsWith(' ')) {
+                                                    return Promise.reject('No space allowed at the end of the name');
+                                                }
+                                                return Promise.resolve();
+                                            }
+                                        }
+                                    ]}
+                                    getValueFromEvent={(e) => e.target.value.trimStart().replace(/\s\s+/g, ' ')}
                                 >
-                                    <Input placeholder="Enter name" />
+                                    <Input
+                                        placeholder="Enter name"
+                                        onBlur={(e) => form.setFieldsValue({ name: e.target.value.trim() })}
+                                    />
                                 </Form.Item>
                             </Col>
 
@@ -1066,6 +1080,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                     label="Email"
                                     name="email"
                                     rules={VALIDATION_RULES.EMAIL}
+                                    getValueFromEvent={(e) => e.target.value.trim()}
                                 >
                                     <Input placeholder="Enter email" />
                                 </Form.Item>
@@ -1221,7 +1236,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                             name="events"
                                         >
                                             <Select
-                                                mode={formState.roleName !== 'Scanner' && "multiple"}
+                                                mode="multiple"
                                                 placeholder="Select events"
                                                 options={fetchedEvents}
                                                 onChange={handleEventChange}
@@ -1235,10 +1250,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                             'No events found'
                                                 }
                                                 dropdownRender={(menu) => {
-                                                    // Only show Select All for multiple mode (not for Scanner)
-                                                    if (formState.roleName === 'Scanner') {
-                                                        return menu;
-                                                    }
 
                                                     const allEventValues = fetchedEvents.map(e => e.value);
                                                     const allSelected = allEventValues.length > 0 &&
