@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { message } from 'antd';
 import {
   calculateTotalAmount,
@@ -27,18 +27,22 @@ const useBooking = (options = {}) => {
   const [sections, setSections] = useState([]);
   const [timeRemaining, setTimeRemaining] = useState(holdDuration);
   const [isTimerActive, setIsTimerActive] = useState(false);
+  const handleClearSelectionRef = useRef(null);
 
-  // Timer effect for seat hold
+  // Total selected seat count (tickets can have quantity > 1)
+  const totalSelectedSeats = selectedSeats.reduce((sum, t) => sum + (t.quantity || 0), 0);
+
+  // Timer effect for seat hold (uses ref to avoid stale handleClearSelection)
   useEffect(() => {
     if (!autoHoldTimeout) return;
 
     let interval;
 
-    if (selectedSeats.length > 0 && isTimerActive) {
+    if (totalSelectedSeats > 0 && isTimerActive) {
       interval = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
-            handleClearSelection();
+            handleClearSelectionRef.current?.();
             message.warning('Time expired! Please select seats again.');
             setIsTimerActive(false);
             return holdDuration;
@@ -46,7 +50,7 @@ const useBooking = (options = {}) => {
           return prev - 1;
         });
       }, 1000);
-    } else if (selectedSeats.length === 0) {
+    } else if (totalSelectedSeats === 0) {
       setTimeRemaining(holdDuration);
       setIsTimerActive(false);
     }
@@ -54,18 +58,39 @@ const useBooking = (options = {}) => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [selectedSeats.length, isTimerActive, autoHoldTimeout, holdDuration]);
+  }, [totalSelectedSeats, isTimerActive, autoHoldTimeout, holdDuration]);
 
   // Start timer when first seat is selected
   useEffect(() => {
-    if (selectedSeats.length === 1 && !isTimerActive && autoHoldTimeout) {
+    if (totalSelectedSeats === 1 && !isTimerActive && autoHoldTimeout) {
       setIsTimerActive(true);
     }
-  }, [selectedSeats.length, isTimerActive, autoHoldTimeout]);
+  }, [totalSelectedSeats, isTimerActive, autoHoldTimeout]);
 
   /**
-   * Handle seat selection/deselection
+   * Update seat status in sections (defined early for handleSeatClick)
    */
+  const updateSeatStatus = useCallback((sectionId, rowId, seatId, status) => {
+    setSections(prevSections =>
+      prevSections.map(section =>
+        section.id === sectionId
+          ? {
+              ...section,
+              rows: section.rows.map(row =>
+                row.id === rowId
+                  ? {
+                      ...row,
+                      seats: row.seats.map(seat =>
+                        seat.id === seatId ? { ...seat, status } : seat
+                      )
+                    }
+                  : row
+              )
+            }
+          : section
+      )
+    );
+  }, []);
 
   // Create a message key for seat selection updates
   const SEAT_MESSAGE_KEY = 'seat-selection-message';
@@ -242,7 +267,7 @@ const useBooking = (options = {}) => {
         return newSelectedSeats;
       }
     });
-  }, [sections, maxSeats, event]);
+  }, [sections, maxSeats, event, updateSeatStatus]);
 
   /**
    * Shows a single updating message for seat selection
@@ -264,220 +289,45 @@ const useBooking = (options = {}) => {
     });
   };
 
-
-
-  // const handleSeatClick = useCallback((seat, sectionId, rowId) => {
-  //   // Check if seat can be selected
-  //   const validation = canSelectSeat(seat);
-  //   if (!validation.valid) {
-  //     message.warning(validation.reason);
-  //     return;
-  //   }
-
-  //   setSelectedSeats(prevSelectedSeats => {
-  //     const ticketId = seat.ticket?.id;
-
-  //     // Find if this ticket already exists in selection
-  //     const existingTicketIndex = prevSelectedSeats.findIndex(t => t.id === ticketId);
-
-  //     // Check if this specific seat is already selected
-  //     const isSeatAlreadySelected = prevSelectedSeats.some(ticket => 
-  //       ticket.seats?.some(s => s.seat_id === seat.id)
-  //     );
-
-  //     if (isSeatAlreadySelected) {
-  //       // Deselect seat - find the ticket and remove this seat from its seats array
-  //       const newSelectedSeats = prevSelectedSeats.map(ticket => {
-  //         if (ticket.seats?.some(s => s.seat_id === seat.id)) {
-  //           // Remove this seat from the seats array
-  //           const updatedSeats = ticket.seats.filter(s => s.seat_id !== seat.id);
-
-  //           // If no more seats, return null to filter out later
-  //           if (updatedSeats.length === 0) {
-  //             updateSeatStatus(sectionId, rowId, seat.id, 'available');
-  //             return null;
-  //           }
-
-  //           // Recalculate totals based on new quantity
-  //           const newQuantity = updatedSeats.length;
-  //           updateSeatStatus(sectionId, rowId, seat.id, 'available');
-
-  //           return {
-  //             ...ticket,
-  //             quantity: newQuantity,
-  //             seats: updatedSeats,
-  //             totalBaseAmount: +(ticket.baseAmount * newQuantity).toFixed(2),
-  //             totalCentralGST: +(ticket.centralGST * newQuantity).toFixed(2),
-  //             totalStateGST: +(ticket.stateGST * newQuantity).toFixed(2),
-  //             totalTaxTotal: +(ticket.totalTax * newQuantity).toFixed(2),
-  //             totalConvenienceFee: +(ticket.convenienceFee * newQuantity).toFixed(2),
-  //             totalFinalAmount: +(ticket.finalAmount * newQuantity).toFixed(2),
-  //           };
-  //         }
-  //         return ticket;
-  //       }).filter(Boolean); // Remove null entries
-
-  //       message.success('Seat removed from selection');
-  //       return newSelectedSeats;
-  //     } else {
-  //       // Check max seats limit
-  //       const totalSeatsSelected = prevSelectedSeats.reduce((sum, t) => sum + (t.quantity || 0), 0);
-  //       if (isMaxSeatsReached(totalSeatsSelected, maxSeats)) {
-  //         message.warning(`You can select maximum ${maxSeats} seats`);
-  //         return prevSelectedSeats;
-  //       }
-
-  //       // Get section and row info
-  //       const section = sections.find(s => s.id === sectionId);
-  //       const row = section?.rows.find(r => r.id === rowId);
-
-  //       if (!section || !row) {
-  //         message.error('Invalid section or row');
-  //         return prevSelectedSeats;
-  //       }
-
-  //       // Get ticket price and calculate taxes
-  //       const basePrice = parseFloat(seat.ticket?.price || 0);
-  //       const unitBaseAmount = +(basePrice).toFixed(2);
-
-  //       // Get tax data from event
-  //       const taxData = event?.tax_data;
-  //       const convenienceFeeValue = Number(taxData?.convenience_fee || 0);
-  //       const convenienceFeeType = taxData?.type || "flat";
-
-  //       // Calculate convenience fee per seat
-  //       let unitConvenienceFee = 0;
-  //       if (convenienceFeeType === "percentage") {
-  //         unitConvenienceFee = +(unitBaseAmount * (convenienceFeeValue / 100)).toFixed(2);
-  //       } else {
-  //         unitConvenienceFee = +convenienceFeeValue.toFixed(2);
-  //       }
-
-  //       // Calculate GST on convenience fee (9% Central + 9% State = 18% total)
-  //       const unitCentralGST = +(unitConvenienceFee * 0.09).toFixed(2);
-  //       const unitStateGST = +(unitConvenienceFee * 0.09).toFixed(2);
-  //       const unitTotalTax = +(unitCentralGST + unitStateGST).toFixed(2);
-  //       const unitFinalAmount = +(unitBaseAmount + unitConvenienceFee + unitTotalTax).toFixed(2);
-
-  //       // Create seat info for the seats array
-  //       const seatInfo = {
-  //         seat_id: seat.id,
-  //         seat_name: `${row.title}${seat.number}`,  // e.g., "A1", "B2"
-  //         ticket_id: ticketId,
-  //         section_id: sectionId,
-  //         row_id: rowId,
-  //         sectionName: section.name,
-  //         rowTitle: row.title,
-  //         number: seat.number
-  //       };
-
-  //       if (existingTicketIndex !== -1) {
-  //         // Ticket already exists - add seat to its seats array and increase quantity
-  //         const existingTicket = prevSelectedSeats[existingTicketIndex];
-  //         const newQuantity = existingTicket.quantity + 1;
-  //         const updatedSeats = [...existingTicket.seats, seatInfo];
-
-  //         const updatedTicket = {
-  //           ...existingTicket,
-  //           quantity: newQuantity,
-  //           seats: updatedSeats,
-  //           totalBaseAmount: +(existingTicket.baseAmount * newQuantity).toFixed(2),
-  //           totalCentralGST: +(existingTicket.centralGST * newQuantity).toFixed(2),
-  //           totalStateGST: +(existingTicket.stateGST * newQuantity).toFixed(2),
-  //           totalTaxTotal: +(existingTicket.totalTax * newQuantity).toFixed(2),
-  //           totalConvenienceFee: +(existingTicket.convenienceFee * newQuantity).toFixed(2),
-  //           totalFinalAmount: +(existingTicket.finalAmount * newQuantity).toFixed(2),
-  //         };
-
-  //         const newSelectedSeats = [...prevSelectedSeats];
-  //         newSelectedSeats[existingTicketIndex] = updatedTicket;
-
-  //         updateSeatStatus(sectionId, rowId, seat.id, 'selected');
-  //         message.success(`Seat ${seat.number} selected`);
-  //         return newSelectedSeats;
-  //       } else {
-  //         // New ticket - create new object with seats array
-  //         const newTicket = {
-  //           // ID fields
-  //           id: ticketId,      // Ticket ID (for normal booking compatibility)
-  //           category: seat.ticket?.name || 'General',
-  //           ticket_id: ticketId,
-  //           ticket: seat.ticket,
-
-  //           // Quantity and seats array
-  //           quantity: 1,
-  //           seats: [seatInfo],
-
-  //           // Per-unit pricing
-  //           price: unitBaseAmount,
-  //           baseAmount: unitBaseAmount,
-  //           centralGST: unitCentralGST,
-  //           stateGST: unitStateGST,
-  //           totalTax: unitTotalTax,
-  //           convenienceFee: unitConvenienceFee,
-  //           finalAmount: unitFinalAmount,
-
-  //           // Total pricing (initially same as per-unit for quantity=1)
-  //           totalBaseAmount: unitBaseAmount,
-  //           totalCentralGST: unitCentralGST,
-  //           totalStateGST: unitStateGST,
-  //           totalTaxTotal: unitTotalTax,
-  //           totalConvenienceFee: unitConvenienceFee,
-  //           totalFinalAmount: unitFinalAmount,
-  //         };
-
-  //         updateSeatStatus(sectionId, rowId, seat.id, 'selected');
-  //         message.success(`Seat ${seat.number} selected`);
-  //         return [...prevSelectedSeats, newTicket];
-  //       }
-  //     }
-  //   });
-  // }, [sections, maxSeats, event]);
-
-  /**
-   * Update seat status in sections
-   */
-  const updateSeatStatus = useCallback((sectionId, rowId, seatId, status) => {
-    setSections(prevSections =>
-      prevSections.map(section =>
-        section.id === sectionId
-          ? {
-            ...section,
-            rows: section.rows.map(row =>
-              row.id === rowId
-                ? {
-                  ...row,
-                  seats: row.seats.map(seat =>
-                    seat.id === seatId ? { ...seat, status } : seat
-                  )
-                }
-                : row
-            )
-          }
-          : section
-      )
-    );
-  }, []);
-
   /**
    * Remove specific seat from selection
    */
   const handleRemoveSeat = useCallback((seatId, sectionId, rowId) => {
-    const newSelectedSeats = selectedSeats.filter(
-      s => !(s.id === seatId && s.sectionId === sectionId && s.rowId === rowId)
-    );
-    setSelectedSeats(newSelectedSeats);
+    setSelectedSeats(prev => {
+      const updated = prev.map(ticket => {
+        const updatedSeats = ticket.seats?.filter(
+          s => !(s.seat_id === seatId && s.section_id === sectionId && s.row_id === rowId)
+        ) ?? [];
+        if (updatedSeats.length === 0) return null;
+        if (updatedSeats.length === ticket.seats?.length) return ticket;
+        const newQuantity = updatedSeats.length;
+        return {
+          ...ticket,
+          quantity: newQuantity,
+          seats: updatedSeats,
+          totalBaseAmount: +Math.max(0, ticket.baseAmount * newQuantity).toFixed(2),
+          totalCentralGST: +Math.max(0, ticket.centralGST * newQuantity).toFixed(2),
+          totalStateGST: +Math.max(0, ticket.stateGST * newQuantity).toFixed(2),
+          totalTaxTotal: +Math.max(0, ticket.totalTax * newQuantity).toFixed(2),
+          totalConvenienceFee: +Math.max(0, ticket.convenienceFee * newQuantity).toFixed(2),
+          totalFinalAmount: +Math.max(0, ticket.finalAmount * newQuantity).toFixed(2),
+        };
+      }).filter(Boolean);
+      return updated;
+    });
     updateSeatStatus(sectionId, rowId, seatId, 'available');
 
     message.success('Seat removed');
-  }, [selectedSeats, updateSeatStatus]);
+  }, [updateSeatStatus]);
 
   /**
    * Clear all selected seats
    */
   const handleClearSelection = useCallback(() => {
-    selectedSeats.forEach(seat => {
-      updateSeatStatus(seat.sectionId, seat.rowId, seat.id, 'available');
+    selectedSeats.forEach(ticket => {
+      ticket.seats?.forEach(seat => {
+        updateSeatStatus(seat.section_id, seat.row_id, seat.seat_id, 'available');
+      });
     });
     setSelectedSeats([]);
     setTimeRemaining(holdDuration);
@@ -485,6 +335,8 @@ const useBooking = (options = {}) => {
 
     message.info('Selection cleared');
   }, [selectedSeats, updateSeatStatus, holdDuration]);
+
+  handleClearSelectionRef.current = handleClearSelection;
 
   /**
    * Get total amount
@@ -517,8 +369,10 @@ const useBooking = (options = {}) => {
    * Mark selected seats as booked (after successful booking)
    */
   const markSeatsAsBooked = useCallback(() => {
-    selectedSeats.forEach(seat => {
-      updateSeatStatus(seat.sectionId, seat.rowId, seat.id, 'booked');
+    selectedSeats.forEach(ticket => {
+      ticket.seats?.forEach(seat => {
+        updateSeatStatus(seat.section_id, seat.row_id, seat.seat_id, 'booked');
+      });
     });
     setSelectedSeats([]);
     setTimeRemaining(holdDuration);
@@ -547,22 +401,25 @@ const useBooking = (options = {}) => {
    * Check if a specific seat is selected
    */
   const isSeatSelected = useCallback((seatId) => {
-    return selectedSeats.some(seat => seat.id === seatId);
+    return selectedSeats.some(ticket =>
+      ticket.seats?.some(s => s.seat_id === seatId)
+    );
   }, [selectedSeats]);
 
   /**
-   * Get selected seats count
+   * Get selected seats count (total number of seats, not tickets)
    */
   const getSelectedSeatsCount = useCallback(() => {
-    return selectedSeats.length;
-  }, [selectedSeats.length]);
+    return selectedSeats.reduce((sum, t) => sum + (t.quantity || 0), 0);
+  }, [selectedSeats]);
 
   /**
    * Check if max seats reached
    */
   const isMaxLimitReached = useCallback(() => {
-    return isMaxSeatsReached(selectedSeats.length, maxSeats);
-  }, [selectedSeats.length, maxSeats]);
+    const totalSeats = selectedSeats.reduce((sum, t) => sum + (t.quantity || 0), 0);
+    return isMaxSeatsReached(totalSeats, maxSeats);
+  }, [selectedSeats, maxSeats]);
 
   /**
    * Update seat status by seat IDs - marks specific seats as booked/unavailable
@@ -576,30 +433,26 @@ const useBooking = (options = {}) => {
     // Ensure all seatIds are strings for comparison
     const seatIdsStr = seatIds.map(id => String(id).trim());
     
-    setSections(prevSections => {
-      let updatedCount = 0;
-      const updatedSections = prevSections.map(section => ({
+    setSections(prevSections =>
+      prevSections.map(section => ({
         ...section,
         rows: section.rows.map(row => ({
           ...row,
           seats: row.seats.map(seat => {
-            // Compare as strings (seat.id format: "seat_1458")
             const seatIdStr = String(seat.id).trim();
             if (seatIdsStr.includes(seatIdStr)) {
-              updatedCount++;
               return { ...seat, status };
             }
             return seat;
           })
         }))
-      }));
-      return updatedSections;
-    });
+      }))
+    );
 
     // Also remove these seats from selected seats if they were selected
     setSelectedSeats(prevSelectedSeats => {
       return prevSelectedSeats.map(ticket => {
-        const updatedSeats = ticket.seats?.filter(s => !seatIds.includes(s.seat_id)) || [];
+        const updatedSeats = ticket.seats?.filter(s => !seatIdsStr.includes(String(s.seat_id).trim())) || [];
         
         if (updatedSeats.length === 0) {
           return null;
