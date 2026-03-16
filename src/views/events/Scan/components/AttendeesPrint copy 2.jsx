@@ -12,7 +12,7 @@ const AttendeesPrint = forwardRef(({
   eventData,
   ticket,
   bookings,
-  primaryColor = '#B51515' 
+  primaryColor = '#B51515'
 }, ref) => {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -64,7 +64,7 @@ const AttendeesPrint = forwardRef(({
         
         .pos-print-body .ant-table-cell {
           padding: 6px 4px !important;
-          font-size: 14px !important;
+          font-size: 12px !important;
         }
         
         .pos-print-body .summary-row {
@@ -179,21 +179,21 @@ const AttendeesPrint = forwardRef(({
       <div className="card-body">
         <Space size="middle" align="start">
           {attendee?.Photo ? (
-            <Avatar 
+            <Avatar
               src={attendee.Photo}
               size={64}
               shape="square"
-              style={{ 
+              style={{
                 border: `2px solid ${primaryColor}`,
                 flexShrink: 0
               }}
             />
           ) : (
-            <Avatar 
+            <Avatar
               icon={<UserOutlined />}
               size={64}
               shape="square"
-              style={{ 
+              style={{
                 border: `2px solid ${primaryColor}`,
                 backgroundColor: '#f0f0f0',
                 color: primaryColor,
@@ -201,7 +201,7 @@ const AttendeesPrint = forwardRef(({
               }}
             />
           )}
-          
+
           <div className="flex-grow-1">
             <h6 className="mb-2 fw-bold text-black">{attendee?.Name || 'N/A'}</h6>
             {attendee?.Mo && (
@@ -224,17 +224,17 @@ const AttendeesPrint = forwardRef(({
         onCancel={handleCancel}
         width={800}
         bodyStyle={{
-          background : 'fff'
+          background: 'fff'
         }}
         footer={[
           <Button key="close" onClick={handleCancel} icon={<CloseOutlined />}>
             Close
           </Button>,
-          <Button 
-            key="print" 
-            className='border-0' 
-            type="primary" 
-            onClick={handlePrintClick} 
+          <Button
+            key="print"
+            className='border-0'
+            type="primary"
+            onClick={handlePrintClick}
             icon={<PrinterOutlined />}
           >
             Print Attendees List
@@ -272,18 +272,18 @@ const AttendeesPrint = forwardRef(({
             </Title>
           )}
 
-          <Text strong style={{ 
-            fontSize: '14px', 
-            display: 'block', 
-            marginBottom: '5px' 
+          <Text strong style={{
+            fontSize: '14px',
+            display: 'block',
+            marginBottom: '5px'
           }}>
             Attendees List
           </Text>
 
           {ticket?.name && (
-            <Text style={{ 
-              fontSize: '14px', 
-              display: 'block', 
+            <Text style={{
+              fontSize: '14px',
+              display: 'block',
               marginBottom: '10px',
               color: '#666'
             }}>
@@ -310,15 +310,15 @@ const AttendeesPrint = forwardRef(({
             style={{ marginBottom: '10px' }}
           />
 
-          <Text className="footer-text" style={{ 
-            display: 'block', 
-            fontSize: '14px', 
-            margin: '8px 0 4px 0' 
+          <Text className="footer-text" style={{
+            display: 'block',
+            fontSize: '14px',
+            margin: '8px 0 4px 0'
           }}>
             Thank You
           </Text>
 
-          <Text type="secondary" className="website-text" style={{ 
+          <Text type="secondary" className="website-text" style={{
             fontSize: '12px',
             display: 'block',
             margin: 0

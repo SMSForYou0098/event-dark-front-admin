@@ -1,15 +1,16 @@
 import React, { useState } from "react";
-import { Select, Space } from "antd";
+import { Select, Space, message } from "antd";
 import axios from "axios";
 import { useQuery } from "@tanstack/react-query";
 import { useMyContext } from "Context/MyContextProvider";
 import DataTable from "../common/DataTable";
 import api from "auth/FetchInterceptor";
+import Utils from "utils";
 
 const { Option } = Select;
 
 const LoginHistory = () => {
-  const {  formatDateTime, UserData } =
+  const { formatDateTime, UserData } =
     useMyContext();
   const [dateRange, setDateRange] = useState(null);
   const [logType, setLogType] = useState("self"); // 'self' or 'all'
@@ -37,7 +38,7 @@ const LoginHistory = () => {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["loginHistory",  dateRange],
+    queryKey: ["loginHistory", dateRange],
     queryFn: fetchLoginHistory,
     // enabled: !!authToken,
     staleTime: 0, // always stale → always background re-fetch
@@ -49,6 +50,7 @@ const LoginHistory = () => {
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {
       console.error("Error fetching login history:", error);
+      message.error(Utils.getErrorMessage(error));
     },
   });
 
@@ -163,14 +165,14 @@ const LoginHistory = () => {
   // Extra header content for log type selector (Admin only)
   const extraHeaderContent =
     UserData?.role === "Admin" ? (
-        <Select
-          value={logType}
-          onChange={handleLogTypeChange}
-          style={{ width: 200 }}
-        >
-          <Option value="self">My Login History</Option>
-          <Option value="all">All Users Login History</Option>
-        </Select>
+      <Select
+        value={logType}
+        onChange={handleLogTypeChange}
+        style={{ width: 200 }}
+      >
+        <Option value="self">My Login History</Option>
+        <Option value="all">All Users Login History</Option>
+      </Select>
     ) : null;
 
   return (

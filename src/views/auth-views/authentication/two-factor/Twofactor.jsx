@@ -2,10 +2,10 @@ import React, { memo, Fragment, useState, useEffect, useCallback, useRef } from 
 import { Form, Button, Alert, Typography, message, Row, Col } from 'antd';
 import { InputOTP } from 'antd-input-otp';
 import { ArrowLeftOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { logout, signIn } from '../../../../store/slices/authSlice';
-import axios from 'axios';
+import api from '../../../../auth/FetchInterceptor';
 import { API_BASE_URL } from 'constants/ApiConstant';
 import { persistor } from 'store';
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig';
@@ -16,9 +16,12 @@ const Twofactor = memo(() => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   const number = location?.state?.data;
-  const path = location?.state?.path;
+
+  // Extract redirect from URL query parameters
+  const redirect = searchParams.get('redirect');
 
   // 🔧 OTP is an array of strings (matches antd-input-otp)
   const [otp, setOTP] = useState([]);
@@ -112,7 +115,7 @@ const Twofactor = memo(() => {
 
       if (action?.type === 'login/fulfilled') {
         message.success('Login successful');
-        navigate(path ?? '/dashboard');
+        navigate(redirect ?? '/dashboard');
       } else {
         setError(action?.payload || 'Invalid OTP');
       }
@@ -123,7 +126,7 @@ const Twofactor = memo(() => {
       setLoading(false);
       isVerifyingRef.current = false;
     }
-  }, [code, isCodeComplete, number, dispatch, navigate, path]);
+  }, [code, isCodeComplete, number, dispatch, navigate, redirect]);
 
   // 🔁 Auto-submit when code complete
   useEffect(() => {
@@ -140,7 +143,8 @@ const Twofactor = memo(() => {
       setOTP([]); // ✅ clear input boxes
       setError('');
 
-      await axios.post(`${API_BASE_URL}verify-user`, { data: number });
+      // Use api instance from FetchInterceptor (custom header automatically added)
+      await api.post(`${API_BASE_URL}verify-user`, { data: number });
 
       setCountdown(30);
       setTimerVisible(true);

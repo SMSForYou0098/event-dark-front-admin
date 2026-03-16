@@ -1,15 +1,39 @@
-import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined,BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, MailOutlined, MessageOutlined, UserOutlined, TeamOutlined, SafetyOutlined, SettingOutlined, EnvironmentOutlined, CustomerServiceOutlined, PlusSquareOutlined, WalletOutlined, ShopOutlined, CalendarOutlined, DollarOutlined, PercentageOutlined, IdcardOutlined, ShoppingOutlined, CrownOutlined, TrophyOutlined, UsergroupAddOutlined, ScanOutlined, BookOutlined, CameraOutlined, BarcodeOutlined, DashboardOutlined, WhatsAppOutlined, BarChartOutlined, FileSearchOutlined, DesktopOutlined, ScheduleOutlined, CommentOutlined, PlayCircleFilled, PlayCircleOutlined, GiftOutlined, ClockCircleOutlined, LayoutOutlined, FileImageOutlined, CheckOutlined } from '@ant-design/icons';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 
 // Dashboard
+
+const dashboarSubmenuNav = [
+  {
+    key: 'dashboard',
+    path: 'dashboard',
+    title: 'Dashboard',
+    icon: DashboardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_DASHBOARD]
+  }, {
+    key: 'gateway',
+    path: '/dashboard/gateway',
+    title: 'Gateway',
+    icon: DashboardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_GATEWAY]
+  }];
+
+
 const dashboardNav = {
   key: 'dashboard',
   path: 'dashboard',
   title: 'Dashboard',
   icon: DashboardOutlined,
   breadcrumb: false,
-  submenu: [],
-  permissions: ["View Dashboard"]
+  submenu: dashboarSubmenuNav,
+  permissions: [PERMISSIONS.VIEW_DASHBOARD]
 };
+
+
 
 // User Management Submenu
 const userManagementSubmenu = [
@@ -20,17 +44,17 @@ const userManagementSubmenu = [
     icon: UserOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View User"]
+    permissions: [PERMISSIONS.VIEW_USER]
   },
   {
-    key: 'organizers',
+    key: 'system-users',
     path: 'organizers',
-    title: 'Organizers',
+    title: 'System Users',
     icon: TeamOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin'],
-    permissions: ["View Organizers"]
+    // roles: ['Admin'],
+    permissions: [PERMISSIONS.VIEW_ORGANIZERS]
   },
 
   {
@@ -40,7 +64,7 @@ const userManagementSubmenu = [
     icon: UsergroupAddOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Attendees"]
+    permissions: [PERMISSIONS.VIEW_ATTENDEES]
   },
   {
     key: 'login-history',
@@ -49,7 +73,7 @@ const userManagementSubmenu = [
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Login History"]
+    permissions: [PERMISSIONS.VIEW_LOGIN_HISTORY]
   }
 ];
 
@@ -61,14 +85,14 @@ const partnersClientsSubmenu = [
     title: 'Corporate',
     icon: CrownOutlined,
     breadcrumb: false,
-    permissions: ["View Corporate Bookings"],
+    permissions: [PERMISSIONS.VIEW_CORPORATE_BOOKINGS],
     submenu: [
       {
         key: 'corporate-manage',
         path: 'bookings/corporate',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View Corporate Bookings"]
+        permissions: [PERMISSIONS.VIEW_CORPORATE_BOOKINGS]
       }
     ]
   },
@@ -78,21 +102,21 @@ const partnersClientsSubmenu = [
     title: 'Sponsor',
     icon: TrophyOutlined,
     breadcrumb: false,
-    permissions: ["View Sponsor Bookings"],
+    permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
     submenu: [
       {
         key: 'sponsor-manage',
         path: 'bookings/sponsor',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View Sponsor Bookings"]
+        permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS]
       },
       {
         key: 'sponsor-new',
         path: 'bookings/sponsor/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Add Sponsor Booking"]
+        permissions: [PERMISSIONS.ADD_SPONSOR_BOOKING]
       }
     ]
   },
@@ -102,21 +126,21 @@ const partnersClientsSubmenu = [
     title: 'Complimentary',
     icon: TrophyOutlined,
     breadcrumb: false,
-    permissions: ["View Complimentary Bookings"],
+    permissions: [PERMISSIONS.VIEW_COMPLIMENTARY_BOOKINGS],
     submenu: [
       {
         key: 'complimentary-manage',
         path: 'bookings/complimentary',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View Complimentary Bookings"]
+        permissions: [PERMISSIONS.VIEW_COMPLIMENTARY_BOOKINGS]
       },
       {
         key: 'complimentary-new',
         path: 'bookings/complimentary/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Add Complimentary Booking"]
+        permissions: [PERMISSIONS.ADD_COMPLIMENTARY_BOOKING]
       }
     ]
   },
@@ -125,17 +149,17 @@ const partnersClientsSubmenu = [
 const partnersClientsNav = {
   key: 'partners-clients',
   path: 'partners-clients',
-  title: 'Partner Bookings',
+  title: 'Partner',
   icon: CrownOutlined,
   breadcrumb: false,
   submenu: partnersClientsSubmenu,
-  permissions:["View Corporate Bookings","View Sponsor Bookings","View Complimentary Bookings"]
+  permissions: [PERMISSIONS.VIEW_CORPORATE_BOOKINGS, PERMISSIONS.VIEW_SPONSOR_BOOKINGS, PERMISSIONS.VIEW_COMPLIMENTARY_BOOKINGS]
 };
 
 const userManagementNav = {
   key: 'user-management',
   path: 'user-management',
-  title: 'User Management',
+  title: 'User MGT',
   icon: TeamOutlined,
   breadcrumb: false,
   submenu: userManagementSubmenu,
@@ -148,10 +172,10 @@ const userManagementNav = {
 const bookingsSubmenu = [
   {
     key: 'online-manage',
-    title: 'Online Bookings',
+    title: 'Online',
     breadcrumb: false,
     icon: ShoppingOutlined,
-    permissions: ["View Online Bookings"],
+    permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
     submenu: [
       {
         key: 'online-new',
@@ -159,7 +183,7 @@ const bookingsSubmenu = [
         title: 'Confirmed',
         breadcrumb: false,
         icon: ShoppingOutlined,
-        permissions: ["View Online Bookings"],
+        permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
       },
       {
         key: 'pending-booking',
@@ -170,6 +194,22 @@ const bookingsSubmenu = [
         submenu: [],
         roles: ["Admin"]
       },
+      {
+        key: 'refund-booking',
+        title: 'Refund',
+        icon: DollarOutlined,
+        breadcrumb: false,
+        permissions: [PERMISSIONS.VIEW_REFUND_REQUESTS],
+        submenu: [
+          {
+            key: 'refund-requests',
+            path: 'bookings/refund',
+            title: 'Refund Requests',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_REFUND_REQUESTS]
+          }
+        ]
+      },
     ]
   },
   {
@@ -178,21 +218,21 @@ const bookingsSubmenu = [
     title: 'Agent',
     icon: IdcardOutlined,
     breadcrumb: false,
-    permissions: ["View Agent Bookings"],
+    permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
     submenu: [
       {
         key: 'agent-manage',
         path: 'bookings/agent',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View Agent Bookings"]
+        permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS]
       },
       {
         key: 'agent-new',
         path: 'bookings/agent/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Add Agent Booking"]
+        permissions: [PERMISSIONS.ADD_AGENT_BOOKING]
       }
     ]
   },
@@ -202,21 +242,21 @@ const bookingsSubmenu = [
     title: 'POS',
     icon: ShoppingOutlined,
     breadcrumb: false,
-    permissions: ["View POS Bookings"],
+    permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
     submenu: [
       {
         key: 'pos-manage',
         path: 'bookings/pos',
         title: 'Manage',
         breadcrumb: false,
-        permissions: ["View POS Bookings"]
+        permissions: [PERMISSIONS.VIEW_POS_BOOKINGS]
       },
       {
         key: 'pos-new',
         path: 'bookings/pos/new',
         title: 'New',
         breadcrumb: false,
-        permissions: ["Create POS Bookings"]
+        permissions: [PERMISSIONS.ADD_POS_BOOKING]
       }
     ]
   },
@@ -244,7 +284,7 @@ const eventManagementSubmenu = [
     icon: CalendarOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Event"]
+    permissions: [PERMISSIONS.VIEW_EVENT]
   },
   {
     key: 'categories',
@@ -262,8 +302,8 @@ const eventManagementSubmenu = [
     icon: EnvironmentOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin", "Organizers"],
-    permissions: ["View Venues"]
+    roles: ["Admin", "Organizer"],
+    permissions: [PERMISSIONS.VIEW_VENUES]
   },
   // add one more for layouts use proper icon layout
   {
@@ -274,7 +314,7 @@ const eventManagementSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles: ["Admin", "Organizers"],
-    permissions: ["View Layouts"]
+    permissions: [PERMISSIONS.VIEW_LAYOUTS]
   },
   {
     key: 'artists',
@@ -284,7 +324,26 @@ const eventManagementSubmenu = [
     breadcrumb: false,
     submenu: [],
     // roles: ["Admin", "Organizers"],
-    permissions: ["View Artists"]
+    permissions: [PERMISSIONS.VIEW_ARTISTS]
+  },
+  {
+    key: 'refund-policies',
+    path: 'refund-policies',
+    title: 'Refund Policies',
+    icon: PercentageOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin"]
+  },
+  {
+    key: 'content-master',
+    path: 'event-content',
+    title: 'Content Master',
+    icon: BookOutlined,
+    breadcrumb: false,
+    submenu: [],
+    // roles: ["Admin"]
+    permissions: [PERMISSIONS.VIEW_CONTENT_MASTER],
   },
   {
     key: 'fields',
@@ -294,13 +353,22 @@ const eventManagementSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles: ["Admin"]
+  },
+  {
+    key: 'card-inventory',
+    path: 'card-inventory',
+    title: 'Card Inventory',
+    icon: IdcardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_CARD_INVENTORY]
   }
 ];
 
 const eventManagementNav = {
   key: 'event-management',
   path: 'event-management',
-  title: 'Event Management',
+  title: 'Event MGT',
   icon: CalendarOutlined,
   breadcrumb: false,
   submenu: eventManagementSubmenu,
@@ -316,7 +384,7 @@ const scanSubmenu = [
     icon: CameraOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["Scan By Camera"]
+    permissions: [PERMISSIONS.SCAN_BY_CAMERA]
   },
   {
     key: 'scan-scanner',
@@ -325,7 +393,7 @@ const scanSubmenu = [
     icon: BarcodeOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["Scan By Scanner"]
+    permissions: [PERMISSIONS.SCAN_BY_SCANNER]
   },
   {
     key: 'scan-history',
@@ -334,7 +402,7 @@ const scanSubmenu = [
     icon: BarcodeOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Scan History"]
+    permissions: [PERMISSIONS.VIEW_SCAN_HISTORY]
   }
 ];
 const scanNav = {
@@ -344,7 +412,7 @@ const scanNav = {
   icon: ScanOutlined,
   breadcrumb: false,
   submenu: scanSubmenu,
-  roles: ["Admin", "Organizers","Scanner"]
+  roles: ["Admin", "Organizers", "Scanner"]
 
 }
 // Sales & Operations Submenu
@@ -356,7 +424,7 @@ const salesOperationsSubmenu = [
     icon: ShopOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Box Office"]
+    permissions: [PERMISSIONS.VIEW_BOX_OFFICE]
   },
   {
     key: 'customer-inquiries',
@@ -366,8 +434,8 @@ const salesOperationsSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles: ["Admin"],
-    permissions: ["View User Inquiries"]
-  }
+    permissions: [PERMISSIONS.VIEW_USER_INQUIRIES]
+  },
 ];
 
 const salesOperationsNav = {
@@ -389,7 +457,7 @@ const reportingSubmenu = [
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Event Reports"],
+    permissions: [PERMISSIONS.VIEW_EVENT_REPORTS],
   },
   {
     key: 'pos-report',
@@ -398,7 +466,7 @@ const reportingSubmenu = [
     icon: DesktopOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View POS Reports"],
+    permissions: [PERMISSIONS.VIEW_POS_REPORTS],
   },
   {
     key: 'agent-report',
@@ -407,9 +475,37 @@ const reportingSubmenu = [
     icon: UserOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"],
-    permissions: ["View Agent Reports"],
-  }
+    // roles: ["Admin"],
+    permissions: [PERMISSIONS.VIEW_AGENT_REPORTS],
+  },
+  {
+    key: 'organizer-report',
+    path: 'reports/organizer',
+    title: 'Organizer Report',
+    icon: UserOutlined,
+    breadcrumb: false,
+    submenu: [],
+    // roles: ["Admin"],
+    permissions: [PERMISSIONS.VIEW_ORGANIZER_REPORTS],
+  },
+  {
+    key: 'scanner-report',
+    path: 'reports/scanner',
+    title: 'Scanner Report',
+    icon: FileSearchOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_SCANNER_REPORTS],
+  },
+  {
+    key: 'card-report',
+    path: 'reports/card',
+    title: 'Card Report',
+    icon: IdcardOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_CARD_REPORTS],
+  },
 ];
 
 const reportingNav = {
@@ -419,7 +515,7 @@ const reportingNav = {
   icon: BarChartOutlined,
   breadcrumb: false,
   submenu: reportingSubmenu,
-  permissions: ["View Event Reports","View POS Reports","View Agent Reports"],
+  permissions: [PERMISSIONS.VIEW_EVENT_REPORTS, PERMISSIONS.VIEW_POS_REPORTS, PERMISSIONS.VIEW_AGENT_REPORTS],
 };
 
 // Financial Management Submenu
@@ -431,8 +527,8 @@ const financialManagementSubmenu = [
     icon: WalletOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin","Wallet Agent"],
-    permissions: ["View Wallet Agent"]
+    roles: ["Admin", "Wallet Agent"],
+    permissions: [PERMISSIONS.VIEW_WALLET_AGENT]
   },
   {
     key: 'payment-logs',
@@ -450,8 +546,8 @@ const financialManagementSubmenu = [
     icon: ShoppingOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin","Organizers"],
-    permissions: ["View Promocodes"]
+    roles: ["Admin", "Organizers"],
+    permissions: [PERMISSIONS.VIEW_PROMOCODES]
   },
   {
     key: 'tax-commission',
@@ -467,7 +563,7 @@ const financialManagementSubmenu = [
 const financialManagementNav = {
   key: 'financial-management',
   path: 'financial-management',
-  title: 'Finance Management',
+  title: 'Finance MGT',
   icon: DollarOutlined,
   breadcrumb: false,
   submenu: financialManagementSubmenu,
@@ -478,6 +574,60 @@ const financialManagementNav = {
 
 // Settings Submenu
 const settingsSubmenu = [
+  {
+    key: 'label-management',
+    title: 'Label MGT',
+    icon: SafetyOutlined,
+    breadcrumb: false,
+    submenu: [
+      {
+        key: 'label-printing',
+        path: 'label-printing',
+        title: 'Label Printing',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'label-forge',
+        path: 'label-forge',
+        title: 'Label Forge',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      // {
+      //   key: 'dynamic-label-print',
+      //   path: 'dynamic-label-print',
+      //   title: 'Dynamic Label Print',
+      //   icon: SafetyOutlined,
+      //   breadcrumb: false,
+      //   submenu: [],
+      //   roles: ["Admin"]
+      // },
+      {
+        key: 'label-designer',
+        path: 'label-designer',
+        title: 'Label Designer',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+      {
+        key: 'printer-testing',
+        path: 'printer-testing',
+        title: 'Printer Testing',
+        icon: SafetyOutlined,
+        breadcrumb: false,
+        submenu: [],
+        roles: ["Admin"]
+      },
+    ],
+    roles: ["Admin"]
+  },
   {
     key: 'roles',
     path: 'role',
@@ -523,7 +673,7 @@ const settingsSubmenu = [
     ],
     roles: ["Admin"]
   },
-  
+
   {
     key: 'settings-admin',
     path: 'settings/admin-settings',
@@ -550,6 +700,15 @@ const settingsSubmenu = [
     breadcrumb: false,
     submenu: [],
     roles: ["Admin"]
+  },
+  {
+    key: 'settings-server-logs',
+    path: 'settings/server-logs',
+    title: 'Server Logs',
+    icon: SafetyOutlined, // Using SafetyOutlined as a placeholder, can change if needed
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin"]
   }
 ];
 
@@ -569,10 +728,10 @@ const mediaSubmenu = [
     key: 'media-banners',
     path: 'media/banners',
     title: 'Banners',
-    icon: PlayCircleFilled,
+    icon: BookOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: ["View Banners"]
+    permissions: [PERMISSIONS.VIEW_BANNERS]
   },
   {
     key: 'media-blogs',
@@ -581,7 +740,25 @@ const mediaSubmenu = [
     icon: BookOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
+  },
+  {
+    key: 'media-gallery',
+    path: 'media/gallery',
+    title: 'Gallery',
+    icon: PlayCircleFilled,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'tickets',
+    path: 'media/tickets',
+    title: 'Tickets',
+    icon: FileImageOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
   }
 ];
 
@@ -598,13 +775,13 @@ const mediaNav = {
 
 const agreementsSubmenu = [
   {
-    key: 'user-agreements',
-    path: 'agreements/user',
-    title: 'User Agreements',
+    key: 'organizer-agreements',
+    path: 'agreements/organizer',
+    title: 'Organizer Agreements',
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
   },
   {
     key: 'partner-agreements',
@@ -613,7 +790,7 @@ const agreementsSubmenu = [
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
   }
 ];
 const agreementsNav = {
@@ -623,7 +800,7 @@ const agreementsNav = {
   icon: FileSearchOutlined,
   breadcrumb: false,
   submenu: agreementsSubmenu,
-  roles:['Admin']
+  roles: ['Admin']
 };
 
 const promotionSubMenu = [
@@ -634,7 +811,16 @@ const promotionSubMenu = [
     icon: TeamOutlined,
     breadcrumb: false,
     submenu: [],
-    roles:['Admin']
+    roles: ['Admin']
+  },
+  {
+    key: 'events-intimations',
+    path: '/intimation',
+    title: 'Events Intimations',
+    icon: TeamOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
   },
 ];
 
@@ -645,19 +831,59 @@ const promotionNav = {
   icon: GiftOutlined,
   breadcrumb: false,
   submenu: promotionSubMenu,
-  roles:['Admin']
+  roles: ['Admin']
+};
+
+const onboardSubmenu = [
+  {
+    key: 'onboard-organizer',
+    path: 'onboard/organizer',
+    title: 'Organizer',
+    icon: TeamOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'approve-organizers',
+    path: 'approve-organizers',
+    title: 'Approve Organizers',
+    icon: CheckOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  },
+  {
+    key: 'onboard-partner',
+    path: 'onboard/partner',
+    title: 'Partner',
+    icon: UsergroupAddOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ['Admin']
+  }
+];
+
+const onboardNav = {
+  key: 'onboard',
+  path: 'onboard',
+  title: 'Onboard',
+  icon: IdcardOutlined,
+  breadcrumb: false,
+  submenu: onboardSubmenu,
+  roles: ['Admin']
 };
 
 
 // Final Navigation Config
 const navigationConfig = [
   dashboardNav,
+  userManagementNav,
   eventManagementNav,
   bookingsNav,
   scanNav,
-  userManagementNav,
   reportingNav,
-    {
+  {
     key: 'live-users',
     path: 'live-users',
     title: 'Live Users',
@@ -667,6 +893,7 @@ const navigationConfig = [
     roles: ["Admin"]
   },
   promotionNav,
+  onboardNav,
   agreementsNav,
   salesOperationsNav,
   financialManagementNav,

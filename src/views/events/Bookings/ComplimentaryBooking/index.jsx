@@ -14,6 +14,10 @@ import { useMyContext } from "Context/MyContextProvider";
 import generateQRCodeZip from "../../Tickets/generateQRCodeZip";
 import QRGenerator from "../../Tickets/QRGenerator";
 import BatchDataModel from "./BatchDataModel";
+import Utils from "utils";
+import PermissionChecker from "layouts/PermissionChecker";
+import usePermission from "utils/hooks/usePermission";
+import { PERMISSIONS } from "constants/PermissionConstant";
 
 const { confirm } = Modal;
 
@@ -22,6 +26,10 @@ const CbList = memo(() => {
   const queryClient = useQueryClient();
   const [batchData, setBatchData] = useState([]);
   const [show, setShow] = useState(false);
+  const [selectedBatchId, setSelectedBatchId] = useState(null);
+
+  const canView = usePermission(PERMISSIONS.VIEW_COMPLIMENTARY_BOOKINGS);
+  const canExport = usePermission(PERMISSIONS.EXPORT_ONLINE_BOOKINGS); // Using Online for now as placeholder
 
   // Fetch complimentary bookings using TanStack Query
   const {
@@ -38,7 +46,7 @@ const CbList = memo(() => {
       return response?.data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: !!UserData?.id,
+    enabled: !!UserData?.id && canView,
   });
 
   // Fetch batch bookings
@@ -60,9 +68,9 @@ const CbList = memo(() => {
           }));
           return { bk, qrCodeIds };
         }
-        throw new Error("Failed to fetch batch data");
+        throw new Error(Utils.getErrorMessage(response, "Failed to fetch batch data"));
       } catch (error) {
-        message.error("Failed to fetch bookings");
+        message.error(Utils.getErrorMessage(error, "Failed to fetch bookings"));
         throw error;
       }
     },
@@ -87,11 +95,11 @@ const CbList = memo(() => {
       queryClient.invalidateQueries({
         queryKey: ["complimentaryBookings", UserData?.id],
       });
-       message.success(`Ticket ${variables.isDeleted ? "enabled" : "disabled"} successfully.`);
+      message.success(`Ticket ${variables.isDeleted ? "enabled" : "disabled"} successfully.`);
     },
     onError: (error) => {
       console.error("Error:", error);
-      message.error("Failed to process your request");
+      message.error(Utils.getErrorMessage(error, "Failed to process your request"));
     },
   });
 
@@ -104,9 +112,8 @@ const CbList = memo(() => {
       confirm({
         title: "Are you sure?",
         icon: <ExclamationCircleOutlined />,
-        content: `Do you want to ${
-          data?.is_deleted ? "enable" : "disable"
-        } this ticket?`,
+        content: `Do you want to ${data?.is_deleted ? "enable" : "disable"
+          } this ticket?`,
         okText: data?.is_deleted ? "Yes, enable it!" : "Yes, disable it!",
         cancelText: "Cancel",
         onOk() {
@@ -128,10 +135,12 @@ const CbList = memo(() => {
         const data = await fetchBatchBookings(batchId);
         if (data?.bk) {
           setBatchData(data.bk);
+          setSelectedBatchId(batchId);
           setShow(true);
         }
       } catch (error) {
         console.error("Error in HandleResend:", error);
+        message.error(Utils.getErrorMessage(error, "Failed to load resend options"));
       }
     },
     [fetchBatchBookings]
@@ -166,6 +175,7 @@ const CbList = memo(() => {
             }
           } catch (error) {
             console.error("Error generating ZIP:", error);
+            message.error(Utils.getErrorMessage(error, "Failed to generate ZIP"));
           }
         },
       });
@@ -177,130 +187,141 @@ const CbList = memo(() => {
   const onHide = useCallback(() => {
     setShow(false);
     setBatchData([]);
+    setSelectedBatchId(null);
   }, []);
 
   // Define columns
-const columns = useMemo(
-  () => [
-    {
-      title: "#",
-      key: "index",
-      align: "center",
-      width: 60,
-      render: (_, __, index) => index + 1,
-    },
-    {
-      title: "Name",
-      dataIndex: "name",
-      key: "name",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Number",
-      dataIndex: "number",
-      key: "number",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Event Name",
-      dataIndex: "event_name",
-      key: "event_name",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Ticket Type",
-      dataIndex: "ticket_name",
-      key: "ticket_name",
-      align: "center",
-      searchable: true,
-    },
-    {
-      title: "Total Bookings",
-      dataIndex: "booking_count",
-      key: "booking_count",
-      align: "center",
-      sorter: (a, b) => a.booking_count - b.booking_count,
-      render: (count) => (
-        <Tag color="blue" style={{ fontSize: 14 }}>
-          {count}
-        </Tag>
-      ),
-    },
-    {
-      title: "Generate Date",
-      dataIndex: "booking_date",
-      key: "booking_date",
-      align: "center",
-      sorter: (a, b) =>
-        new Date(a.booking_date) - new Date(b.booking_date),
-      render: (date) => formatDateTime(date),
-    },
-    {
-      title: "Status",
-      dataIndex: "is_deleted",
-      key: "status",
-      align: "center",
-      width: 120,
-      filters: [
-        { text: "Active", value: 0 },
-        { text: "Disabled", value: 1 },
-      ],
-      onFilter: (value, record) => record.is_deleted === value,
-      render: (isDeleted, record) => (
-        <Switch
-          checked={!isDeleted}
-          onChange={() => DeleteBooking(record.batch_id)}
-          checkedChildren="Active"
-          unCheckedChildren="Disabled"
-          loading={toggleBookingMutation.isPending}
-        />
-      ),
-    },
-    {
-      title: "Action",
-      key: "action",
-      align: "center",
-      width: 120,
-      render: (_, record) => (
-        <Space size="small">
-          {record.type === 1 && (
-            <Button
-              type="primary"
-              icon={<SendOutlined />}
-              onClick={() => HandleResend(record.batch_id)}
-              disabled={record?.is_deleted}
-              title="Resend Tickets"
-              size="small"
+  const columns = useMemo(
+    () => [
+      {
+        title: "#",
+        key: "index",
+        align: "center",
+        width: 60,
+        render: (_, __, index) => index + 1,
+      },
+      {
+        title: "Name",
+        dataIndex: "name",
+        key: "name",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Number",
+        dataIndex: "number",
+        key: "number",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Event Name",
+        dataIndex: "event_name",
+        key: "event_name",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Ticket Type",
+        dataIndex: "ticket_name",
+        key: "ticket_name",
+        align: "center",
+        searchable: true,
+      },
+      {
+        title: "Total Bookings",
+        dataIndex: "booking_count",
+        key: "booking_count",
+        align: "center",
+        sorter: (a, b) => a.booking_count - b.booking_count,
+        render: (count) => (
+          <Tag color="blue" style={{ fontSize: 14 }}>
+            {count}
+          </Tag>
+        ),
+      },
+      {
+        title: "Generate Date",
+        dataIndex: "booking_date",
+        key: "booking_date",
+        align: "center",
+        sorter: (a, b) =>
+          new Date(a.booking_date) - new Date(b.booking_date),
+        render: (date) => formatDateTime(date),
+      },
+      {
+        title: "Status",
+        dataIndex: "is_deleted",
+        key: "status",
+        align: "center",
+        width: 120,
+        filters: [
+          { text: "Active", value: 0 },
+          { text: "Disabled", value: 1 },
+        ],
+        onFilter: (value, record) => record.is_deleted === value,
+        render: (isDeleted, record) => (
+          <PermissionChecker permission={PERMISSIONS.DELETE_COMPLIMENTARY_BOOKING} fallback={
+            <Tag color={!isDeleted ? 'success' : 'error'}>
+              {!isDeleted ? 'Active' : 'Disabled'}
+            </Tag>
+          }>
+            <Switch
+              checked={!isDeleted}
+              onChange={() => DeleteBooking(record.batch_id)}
+              checkedChildren="Active"
+              unCheckedChildren="Disabled"
+              loading={toggleBookingMutation.isPending}
             />
-          )}
-          <Button
-            type="default"
-            icon={<FileZipOutlined />}
-            onClick={() => HandleZipDownload(record.batch_id)}
-            disabled={record?.is_deleted}
-            title="Download ZIP"
-            size="small"
-            style={{ color: "#52c41a" }}
-          />
-        </Space>
-      ),
-    },
-  ],
-  [
-    DeleteBooking,
-    HandleResend,
-    HandleZipDownload,
-    formatDateTime,
-    toggleBookingMutation.isPending,
-  ]
-);
+          </PermissionChecker>
+        ),
+      },
+      {
+        title: "Action",
+        key: "action",
+        align: "center",
+        width: 120,
+        render: (_, record) => (
+          <Space size="small">
+            {record.type === true && (
+              <PermissionChecker permission={PERMISSIONS.RESEND_COMPLIMENTARY_BOOKING}>
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
+                  onClick={() => HandleResend(record.batch_id, record)}
+                  disabled={record?.is_deleted}
+                  title="Resend Tickets"
+                  size="small"
+                />
+              </PermissionChecker>
+            )}
+            <PermissionChecker permission={PERMISSIONS.DOWNLOAD_COMPLIMENTARY_BOOKING}>
+              <Button
+                type="default"
+                icon={<FileZipOutlined />}
+                onClick={() => HandleZipDownload(record.batch_id)}
+                disabled={record?.is_deleted}
+                title="Download ZIP"
+                size="small"
+                style={{ color: "#52c41a" }}
+              />
+            </PermissionChecker>
+          </Space>
+        ),
+      },
+    ],
+    [
+      DeleteBooking,
+      HandleResend,
+      HandleZipDownload,
+      formatDateTime,
+      toggleBookingMutation.isPending,
+    ]
+  );
 
   return (
     <Fragment>
-      <BatchDataModel show={show} onHide={onHide} batchData={batchData} />
+      <BatchDataModel show={show} onHide={onHide} batchData={batchData} batchId={selectedBatchId} />
 
       <DataTable
         title="Complimentary Bookings"
@@ -310,16 +331,17 @@ const columns = useMemo(
         error={error}
         showRefresh
         onRefresh={refetch}
-        enableExport
-        exportRoute="export-complimentaryBooking"
-        ExportPermission={true}
+        enableExport={true}
+        ExportPermission={canExport}
         emptyText="No complimentary bookings found"
         enableSearch
         showSearch
         extraHeaderContent={
-          <Link to="new">
-            <Button type="primary">New Booking</Button>
-          </Link>
+          <PermissionChecker permission={PERMISSIONS.ADD_COMPLIMENTARY_BOOKING}>
+            <Link to="new">
+              <Button type="primary">New Booking</Button>
+            </Link>
+          </PermissionChecker>
         }
         tableProps={{
           bordered: false,

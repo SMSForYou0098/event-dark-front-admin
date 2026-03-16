@@ -1,12 +1,12 @@
 import React from 'react';
 import { Dropdown, Avatar } from 'antd';
 import { useDispatch } from 'react-redux'
-import { 
-    EditOutlined, 
-    SettingOutlined, 
-    ShopOutlined, 
-    QuestionCircleOutlined, 
-    LogoutOutlined 
+import {
+    EditOutlined,
+    SettingOutlined,
+    ShopOutlined,
+    QuestionCircleOutlined,
+    LogoutOutlined
 } from '@ant-design/icons';
 import NavItem from './NavItem';
 import Flex from 'components/shared-components/Flex';
@@ -67,9 +67,9 @@ const MenuItemSignOut = (props) => {
     )
 }
 
-export const NavProfile = ({mode}) => {
-    const {UserData} = useMyContext();
-    
+export const NavProfile = ({ mode }) => {
+    const { UserData } = useMyContext();
+
     // ✅ Moved items array inside component to access UserData
     const items = [
         {
@@ -95,13 +95,13 @@ export const NavProfile = ({mode}) => {
     ];
 
     return (
-        <Dropdown placement="bottomRight" menu={{items}} trigger={["click"]}>
+        <Dropdown placement="bottomRight" menu={{ items }} trigger={["click"]}>
             <NavItem mode={mode}>
                 <Profile>
-                    <Avatar 
+                    <Avatar
                         src={UserData?.photo}
-                        style={{ 
-                            backgroundColor: UserData?.photo ? 'transparent' : '#1890ff' 
+                        style={{
+                            backgroundColor: UserData?.photo ? 'transparent' : '#1890ff'
                         }}
                     >
                         {!UserData?.photo && UserData?.name?.charAt(0).toUpperCase()}

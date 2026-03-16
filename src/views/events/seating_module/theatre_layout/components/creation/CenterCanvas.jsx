@@ -422,15 +422,74 @@ const CenterCanvas = (props) => {
               }}
             >
 
-              {/* Rows and Seats */}
-              {section.rows.map(row => {
+              {/* Standing Section - No rows/seats, just ticket info */}
+              {section.type === 'Standing' && (
+                <Group>
+                  <Rect
+                    x={20}
+                    y={40}
+                    width={section.width - 40}
+                    height={section.height - 60}
+                    fill="rgba(181, 21, 21, 0.15)"
+                    stroke="#b51515"
+                    strokeWidth={1}
+                    dash={[6, 4]}
+                    cornerRadius={8}
+                  />
+                  <Text
+                    x={20}
+                    y={section.height / 2 - 20}
+                    width={section.width - 40}
+                    text={`🎫 STANDING AREA`}
+                    fontSize={16}
+                    fill="#FFFFFF"
+                    fontStyle="bold"
+                    align="center"
+                  />
+                  <Text
+                    x={20}
+                    y={section.height / 2 + 5}
+                    width={section.width - 40}
+                    text={`Tickets: ${section.totalTickets || 0}`}
+                    fontSize={14}
+                    fill="#CCCCCC"
+                    align="center"
+                  />
+                </Group>
+              )}
+
+              {/* Rows and Seats (non-standing sections) */}
+              {section.type !== 'Standing' && section.rows.map(row => {
                 // Safety check for row seats
                 if (!row.seats || row.seats.length === 0) return null;
 
                 const firstSeatY = row.seats[0]?.y ?? 50;
+                const isRowSelected = selectedType === 'row' && selectedElement?.id === row.id;
+
+                let minX = 0, minY = 0, maxX = 0, maxY = 0;
+                if (isRowSelected) {
+                  minX = Math.min(0, ...row.seats.map(s => (s.x || 0) - (s.radius || 12)));
+                  minY = Math.min((firstSeatY), ...row.seats.map(s => (s.y || 0) - (s.radius || 12)));
+                  maxX = Math.max(30, ...row.seats.map(s => (s.x || 0) + (s.radius || 12)));
+                  maxY = Math.max((firstSeatY + 15), ...row.seats.map(s => (s.y || 0) + (s.radius || 12)));
+                }
 
                 return (
                   <Group key={row.id}>
+                    {isRowSelected && (
+                      <Rect
+                        x={minX}
+                        y={minY}
+                        width={(maxX - minX)}
+                        height={(maxY - minY)}
+                        fill={PRIMARY}
+                        stroke={PRIMARY}
+                        strokeWidth={1}
+                        opacity={0.2}
+                        cornerRadius={8}
+                        listening={false}
+                      />
+                    )}
                     <Text
                       x={10}
                       y={firstSeatY - 5}

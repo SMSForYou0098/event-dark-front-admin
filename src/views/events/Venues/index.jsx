@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Button, Image, message, Modal, Space, Tooltip } from 'antd';
 import { User, Trash2, Pencil, Eye } from 'lucide-react';
 import { useMyContext } from '../../../Context/MyContextProvider';
@@ -8,70 +8,132 @@ import api from 'auth/FetchInterceptor';
 import { PlusOutlined } from '@ant-design/icons';
 import VenueModal from './VaneModal';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import Utils from 'utils';
 
 const Venues = () => {
-  const { api: apiUrl, UserPermissions, authToken, UserData , isMobile } = useMyContext();
+  const { api: apiUrl, UserPermissions, authToken, UserData, isMobile, userRole } = useMyContext();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('create');
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [error, setError] = useState(null);
-const [mapModalVisible, setMapModalVisible] = useState(false);
-const [selectedMapUrl, setSelectedMapUrl] = useState('');
+  const [mapModalVisible, setMapModalVisible] = useState(false);
+  const [selectedMapUrl, setSelectedMapUrl] = useState('');
+  const isAdmin = userRole === 'Admin';
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
 
-  // Fetch organizers with React Query
+  // Fetch venues with React Query
   const fetchVenue = async () => {
-    const url = `/venue-list/${UserData?.id}`;
+    const params = new URLSearchParams();
+
+    // Pagination params
+    params.set("page", currentPage.toString());
+    params.set("per_page", pageSize.toString());
+
+    // Search param
+    if (searchText) {
+      params.set("search", searchText);
+    }
+
+    // Sorting params
+    if (sortField && sortOrder) {
+      params.set("sort_by", sortField);
+      params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+    }
+
+    const url = `/venues?${params.toString()}`;
     const response = await api.get(url);
     if (!response.status) {
-      throw new Error('Failed to fetch organizers');
+      throw new Error(response.message || 'Failed to fetch venues');
     }
-    return response.data || [];
+
+    // Extract pagination data from response
+    const paginationData = response.pagination || {
+      current_page: currentPage,
+      per_page: pageSize,
+      total: response.data?.length || 0,
+      last_page: 1,
+    };
+
+    return { venues: response.data || [], pagination: paginationData };
   };
   const handleViewMap = (record) => {
-  if (record.aembeded_code) {
-    // Extract src URL from iframe string
-    const srcMatch = record.aembeded_code.match(/src="([^"]+)"/);
-    if (srcMatch && srcMatch[1]) {
-      setSelectedMapUrl(srcMatch[1]);
-      setMapModalVisible(true);
+    if (record.aembeded_code) {
+      // Extract src URL from iframe string
+      const srcMatch = record.aembeded_code.match(/src="([^"]+)"/);
+      if (srcMatch && srcMatch[1]) {
+        setSelectedMapUrl(srcMatch[1]);
+        setMapModalVisible(true);
+      } else {
+        message.error('Invalid map code');
+      }
     } else {
-      message.error('Invalid map code');
+      message.warning('No map available for this location');
     }
-  } else {
-    message.warning('No map available for this location');
-  }
-};
+  };
 
   const {
-    data: venues = [],
+    data: venuesData = { venues: [], pagination: null },
     isLoading: loading,
-    error: organizersError,
+    error: venuesError,
     refetch
   } = useQuery({
     queryFn: fetchVenue,
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
-    queryKey: ['venue', UserData?.id],
+    queryKey: ['venue', UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
     onError: (err) => {
-      setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
-      message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");
+      setError(Utils.getErrorMessage(err));
+      message.error(Utils.getErrorMessage(err));
     }
   });
+
+  // Extract venues and pagination from query data
+  const venues = useMemo(() => venuesData.venues || [], [venuesData.venues]);
+  const pagination = venuesData.pagination;
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
+  }, []);
   const columns = [
     {
       title: '#',
       width: isMobile ? 20 : 50,
       render: (_, __, index) => index + 1,
       searchable: false,
+      align: 'center',
     },
     {
       title: 'Thumb',
       dataIndex: 'thumbnail',
       key: 'thumbnail',
-       width: 80,
+      width: 80,
       render: (thumbnail) => thumbnail ? <Image src={thumbnail} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       searchable: false,
+      align: 'center',
     },
     {
       title: 'Name',
@@ -79,6 +141,7 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
       key: 'name',
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
+      align: 'center',
       render: (name) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
           <User size={16} className="text-primary" />
@@ -86,24 +149,26 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
         </div>
       )
     },
-    {
+    ...(isAdmin ? [{
       title: 'Organisation',
-      dataIndex: 'organisation',
+      dataIndex: ['user', 'organisation'],
       key: 'organisation',
-      sorter: (a, b) => a.organisation?.localeCompare(b.organisation),
+      sorter: (a, b) => a.user?.organisation?.localeCompare(b.user?.organisation),
       searchable: true,
+      align: 'center',
       render: (organisation) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
           <User size={16} className="text-primary" />
-          <span>{organisation}</span>
+          <span>{organisation || 'N/A'}</span>
         </div>
       )
-    },
+    }] : []),
     {
       title: 'Address',
       dataIndex: 'address',
       key: 'address',
       searchable: true,
+      align: 'center',
       render: (address) => address || 'N/A'
     },
     {
@@ -111,12 +176,14 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
       dataIndex: 'city',
       key: 'city',
       searchable: true,
+      align: 'center',
       render: (city) => city || 'N/A'
     },
     {
       title: 'State',
       dataIndex: 'state',
       key: 'state',
+      align: 'center',
       searchable: true,
       render: (state) => state || 'N/A'
     },
@@ -124,33 +191,39 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
       title: "Actions",
       key: "actions",
       fixed: "right",
+      align: 'center',
       width: 150,
       render: (_, record) => {
-        const isDisabled = record?.is_deleted || record?.status === "1";
+        const isDeleted = record?.is_deleted || record?.status === "1";
+        // Check if user owns this venue (admin can access all, others only their org's venues)
+        const isOwnVenue = isAdmin || String(record?.org_id) === String(UserData?.id);
+        const isDisabled = isDeleted || !isOwnVenue;
 
         const actions = [
           {
-            permission: "View Location",
+            permission: null,
             tooltip: "View Location",
             icon: <Eye size={14} />,
             onClick: () => handleViewMap(record),
             type: "default",
+            disabled: false, // View is always allowed
           },
           {
             permission: "Update Venue",
-            tooltip: "Update Venue",
+            tooltip: isOwnVenue ? "Update Venue" : "You can only edit your own venues",
             icon: <Pencil size={14} />,
             onClick: () => handleEdit(record),
             type: "default",
+            disabled: isDisabled,
           },
           {
             permission: "Delete Venue",
-            tooltip: "Delete Venue",
+            tooltip: isOwnVenue ? "Delete Venue" : "You can only delete your own venues",
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(record.id),
             type: "primary",
             danger: true,
-            // loading: deleteUserMutation.isPending,
+            disabled: isDisabled,
           },
         ];
 
@@ -159,18 +232,18 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
             <Space>
               {actions.map((action, index) => (
                 <PermissionChecker key={index} permission={action.permission}>
-                <Tooltip title={action.tooltip}>
-                  <Button
-                    size="small"
-                    type={action.type}
-                    danger={action.danger}
-                    icon={action.icon}
-                    onClick={action.onClick}
-                    disabled={isDisabled}
-                    loading={action.loading}
-                  />
-                </Tooltip>
-                 </PermissionChecker>
+                  <Tooltip title={action.tooltip}>
+                    <Button
+                      size="small"
+                      type={action.type}
+                      danger={action.danger}
+                      icon={action.icon}
+                      onClick={action.onClick}
+                      disabled={action.disabled}
+                      loading={action.loading}
+                    />
+                  </Tooltip>
+                </PermissionChecker>
               ))}
             </Space>
           </div>
@@ -191,9 +264,7 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
       message.success("Venue Deleted successfully.");
     },
     onError: (err) => {
-      message.error(
-        err.response?.data?.message || err.message || "An error occurred"
-      );
+      message.error(Utils.getErrorMessage(err));
     },
   });
 
@@ -213,7 +284,7 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
         DeleteMethod.mutate(id);
       }
     });
-  }, [loading,DeleteMethod]);
+  }, [loading, DeleteMethod]);
 
   const handleCreate = () => {
     setModalMode('create');
@@ -232,37 +303,37 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
     setSelectedVenue(null);
     refetch()
   };
-  
+
   return (
     <>
-     <Modal
-      title="Location Map"
-      open={mapModalVisible}
-      onCancel={() => {
-        setMapModalVisible(false);
-        setSelectedMapUrl('');
-      }}
-      footer={null}
-      width={900}
-      centered
-      destroyOnClose
-      styles={{
-        body: { padding: 0 }
-      }}
-    >
-      <div style={{ width: '100%', height: '500px' }}>
-        <iframe
-          src={selectedMapUrl}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen=""
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          title="Google Map Location"
-        />
-      </div>
-    </Modal>
+      <Modal
+        title="Location Map"
+        open={mapModalVisible}
+        onCancel={() => {
+          setMapModalVisible(false);
+          setSelectedMapUrl('');
+        }}
+        footer={null}
+        width={900}
+        centered
+        destroyOnClose
+        styles={{
+          body: { padding: 0 }
+        }}
+      >
+        <div style={{ width: '100%', height: '500px' }}>
+          <iframe
+            src={selectedMapUrl}
+            width="100%"
+            height="100%"
+            style={{ border: 0 }}
+            allowFullScreen=""
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+            title="Google Map Location"
+          />
+        </div>
+      </Modal>
       <VenueModal
         open={isModalOpen}
         onCancel={handleModalClose}
@@ -277,21 +348,28 @@ const [selectedMapUrl, setSelectedMapUrl] = useState('');
         addButtonProps={null}
         enableExport={true}
         exportRoute={'export-venues'}
-        ExportPermission={UserPermissions?.includes("Export Venues")}
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes(PERMISSIONS.EXPORT_VENUES)}
         authToken={authToken}
         loading={loading}
+        // Backend pagination props
+        serverSide={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        onSearch={handleSearchChange}
+        onSortChange={handleSortChange}
+        searchValue={searchText}
         extraHeaderContent={
-          <PermissionChecker permission="Create Venue">
-          <Tooltip title="Create Venue">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={handleCreate}
-            />
-          </Tooltip>
-           </PermissionChecker>
+          <PermissionChecker permission={PERMISSIONS.CREATE_VENUE}>
+            <Tooltip title="Create Venue">
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={handleCreate}
+              />
+            </Tooltip>
+          </PermissionChecker>
         }
-        error={organizersError || error}
+        error={venuesError || error}
         tableProps={{
           scroll: { x: 1200 },
           size: "middle",

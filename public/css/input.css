@@ -15,13 +15,20 @@
 .ant-upload-wrapper .ant-upload-drag {
     border: 1px dashed var(--border-secondary) !important;
 }
-
+.jodit-ui-input__input,
+textarea.jodit-ui-text-area__input,
+input.jodit-ui-input__input {
+    background-color: black !important;
+    background: black !important;
+}
 /* Base states for all input types */
 .ant-input,
 .ant-input-affix-wrapper,
 .ant-input-group .ant-input,
+
 .ant-table-filter-dropdown,
 .ant-select-selector {
+    background: transparent !important;
     background-color: transparent !important;
     border: 1px solid var(--border-secondary) !important;
     color: #ffff !important;

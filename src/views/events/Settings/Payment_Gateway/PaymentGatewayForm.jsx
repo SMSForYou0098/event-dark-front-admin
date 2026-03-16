@@ -4,7 +4,9 @@ import { Button, Col, Form, Row, Switch, Input, Select, Space, message, Card, Di
 import { useMutation } from '@tanstack/react-query';
 import { SaveOutlined } from '@ant-design/icons';
 import apiClient from 'auth/FetchInterceptor';
+import Utils from 'utils';
 import { useMyContext } from 'Context/MyContextProvider';
+import GatewayOTPModal from 'components/shared-components/GatewayOTPModal';
 
 
 const { Option } = Select;
@@ -24,7 +26,11 @@ const PaymentGatewayForm = ({
   const { UserData } = useMyContext();
   const [form] = Form.useForm();
   const [status, setStatus] = useState(false);
+  const [refund, setRefund] = useState(false);
   const [environment, setEnvironment] = useState(null);
+  const [otpModalOpen, setOtpModalOpen] = useState(false);
+  const [pendingFormValues, setPendingFormValues] = useState(null);
+  const [resendTimer, setResendTimer] = useState(0);
 
   // Update form mutation
   const updateGatewayMutation = useMutation({
@@ -37,9 +43,70 @@ const PaymentGatewayForm = ({
     },
     onError: (error) => {
       console.error('Error updating gateway:', error);
-      message.error(`Failed to store ${gatewayType} credentials!`);
+      message.error(Utils.getErrorMessage(error));
     }
   });
+
+  // Send OTP mutation
+  const sendOtpMutation = useMutation({
+    mutationFn: async () => {
+      return await apiClient.post('gateway/refund/send-otp', {
+        user_id: user || UserData?.id,
+        gateway_type: gatewayType
+      });
+    },
+    onSuccess: (response) => {
+      message.success(response?.message || 'OTP sent successfully!');
+      setOtpModalOpen(true);
+      setResendTimer(60);
+    },
+    onError: (error) => {
+      console.error('Error sending OTP:', error);
+      message.error(Utils.getErrorMessage(error));
+      // Reset refund switch on error
+      setRefund(gateway?.refund || false);
+      setPendingFormValues(null);
+    }
+  });
+
+  // Verify OTP mutation
+  const verifyOtpMutation = useMutation({
+    mutationFn: async (otpCode) => {
+      return await apiClient.post('gateway/refund/verify-otp', {
+        user_id: user || UserData?.id,
+        gateway_type: gatewayType,
+        otp: otpCode
+      });
+    },
+    onSuccess: (response) => {
+      message.success(response?.message || 'OTP verified successfully!');
+      setOtpModalOpen(false);
+      // Save the gateway after OTP verification with hash_key (only when refund is enabled)
+      if (pendingFormValues) {
+        const payloadWithHash = {
+          ...pendingFormValues,
+          ...(pendingFormValues.refund && { hash_key: response?.hash_key || response?.data?.hash_key })
+        };
+        updateGatewayMutation.mutate(payloadWithHash);
+        setPendingFormValues(null);
+      }
+    },
+    onError: (error) => {
+      console.error('Error verifying OTP:', error);
+      message.error(Utils.getErrorMessage(error));
+    }
+  });
+
+  // Resend timer countdown
+  useEffect(() => {
+    let interval;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
 
   // Initialize form when gateway data changes
   useEffect(() => {
@@ -49,13 +116,15 @@ const PaymentGatewayForm = ({
         formValues[field.name] = gateway[field.gatewayKey] || '';
       });
       form.setFieldsValue(formValues);
-      setStatus(gateway.status === 1);
+      setStatus(gateway.status);
+      setRefund(gateway.refund || false);
       if (hasEnvironment) {
         setEnvironment(gateway.env || null);
       }
     } else {
       form.resetFields();
       setStatus(false);
+      setRefund(false);
       if (hasEnvironment) {
         setEnvironment(null);
       }
@@ -65,7 +134,8 @@ const PaymentGatewayForm = ({
   const handleSubmit = async (values) => {
     const payload = {
       user_id: user || UserData?.id,
-      status: status ? 1 : 0,
+      status: status,
+      refund: refund,
       ...values
     };
 
@@ -73,7 +143,34 @@ const PaymentGatewayForm = ({
       payload.env = environment;
     }
 
+    // If refund is being enabled (not already enabled), require OTP verification first
+    if (refund && !gateway?.refund) {
+      setPendingFormValues(payload);
+      // Send OTP first, modal will open only on success
+      sendOtpMutation.mutate();
+      return;
+    }
+
     updateGatewayMutation.mutate(payload);
+  };
+
+  // Handle OTP verification
+  const handleVerifyOtp = (otpCode) => {
+    verifyOtpMutation.mutate(otpCode);
+  };
+
+  // Handle resend OTP
+  const handleResendOtp = () => {
+    sendOtpMutation.mutate();
+  };
+
+  // Handle OTP modal close
+  const handleOtpModalClose = () => {
+    setOtpModalOpen(false);
+    setPendingFormValues(null);
+    setResendTimer(0);
+    // Reset refund switch if OTP verification was cancelled
+    setRefund(gateway?.refund || false);
   };
 
   const environmentOptions = [
@@ -81,7 +178,7 @@ const PaymentGatewayForm = ({
     { value: "prod", label: "Production Environment" },
   ];
 
-    const handleStatusChange = (checked) => {
+  const handleStatusChange = (checked) => {
     setStatus(checked);
     onStatusChange?.(checked);
   };
@@ -161,7 +258,7 @@ const PaymentGatewayForm = ({
           )}
 
           {/* Status Switch */}
-          <Col xs={24} sm={24} md={hasEnvironment ? 12 : 24} lg={hasEnvironment ? 12 : 24} xl={hasEnvironment ? 12 : 24}>
+          <Col xs={24} sm={24} md={12} lg={12} xl={12}>
             <Form.Item
               label={<span className="font-medium">Gateway Status</span>}
             >
@@ -180,6 +277,26 @@ const PaymentGatewayForm = ({
             </Form.Item>
           </Col>
 
+          {/* Refund Switch */}
+          <Col xs={24} sm={24} md={12} lg={12} xl={12}>
+            <Form.Item
+              label={<span className="font-medium">Refund Support</span>}
+            >
+              <Space align="center" size="middle">
+                <Switch
+                  checked={refund}
+                  onChange={setRefund}
+                  checkedChildren="Enabled"
+                  unCheckedChildren="Disabled"
+                  size="default"
+                />
+                <Text type={refund ? 'success' : 'secondary'}>
+                  {refund ? 'Refunds enabled' : 'Refunds disabled'}
+                </Text>
+              </Space>
+            </Form.Item>
+          </Col>
+
           {/* Submit Button */}
           <Col span={24}>
             <Divider className="my-4" />
@@ -190,6 +307,7 @@ const PaymentGatewayForm = ({
                 onClick={() => {
                   form.resetFields();
                   setStatus(false);
+                  setRefund(false);
                   if (hasEnvironment) setEnvironment(null);
                 }}
                 disabled={updateGatewayMutation.isPending}
@@ -199,18 +317,31 @@ const PaymentGatewayForm = ({
               <Button
                 type="primary"
                 htmlType="submit"
-                loading={updateGatewayMutation.isPending}
+                loading={updateGatewayMutation.isPending || sendOtpMutation.isPending}
                 icon={<SaveOutlined />}
                 size="large"
-                // style={{ minWidth: '120px' }}
+              // style={{ minWidth: '120px' }}
               >
-                {updateGatewayMutation.isPending ? 'Saving...' : 'Save Changes'}
+                {sendOtpMutation.isPending ? 'Sending OTP...' : updateGatewayMutation.isPending ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </Col>
 
         </Row>
       </Form>
+
+      {/* OTP Verification Modal for Refund */}
+      <GatewayOTPModal
+        open={otpModalOpen}
+        onClose={handleOtpModalClose}
+        onVerify={handleVerifyOtp}
+        onResend={handleResendOtp}
+        title="Verify Refund Authorization"
+        description="For security purposes, please verify your identity to enable refund support for this gateway."
+        isVerifying={verifyOtpMutation.isPending}
+        isSending={sendOtpMutation.isPending}
+        resendTimer={resendTimer}
+      />
     </Card>
   );
 };

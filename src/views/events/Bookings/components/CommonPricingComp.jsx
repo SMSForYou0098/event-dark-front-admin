@@ -15,7 +15,7 @@ const CommonPricingComp = ({ currency, isSale, price, salePrice }) => {
 
     return (
         <>
-            {isSale === 1 ? (
+            {isSale ? (
                 <>
                     {/* Show original price (could be free or paid) */}
                     {normalPrice === 0 ? (
@@ -23,7 +23,7 @@ const CommonPricingComp = ({ currency, isSale, price, salePrice }) => {
                             Free
                         </Text>
                     ) : (
-                        <Text type="secondary" delete >
+                        <Text type="secondary" className='text-muted' delete >
                             {currencySymbol}{normalPrice}
                         </Text>
                     )}
@@ -33,7 +33,7 @@ const CommonPricingComp = ({ currency, isSale, price, salePrice }) => {
                     {discountPrice === 0 ? (
                         <strong>Free</strong>
                     ) : (
-                        <Text strong style={{fontSize:'1rem'}}>
+                        <Text strong style={{ fontSize: '1rem' }}>
                             {currencySymbol}{discountPrice}
                         </Text>
                     )}
@@ -44,7 +44,7 @@ const CommonPricingComp = ({ currency, isSale, price, salePrice }) => {
                     {normalPrice === 0 ? (
                         <strong>Free</strong>
                     ) : (
-                        <strong style={{fontSize:'1rem'}}>{currencySymbol}{normalPrice}</strong>
+                        <strong style={{ fontSize: '1rem' }}>{currencySymbol}{normalPrice}</strong>
                     )}
                 </>
             )}

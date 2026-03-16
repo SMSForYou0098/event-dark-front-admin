@@ -1,11 +1,11 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { Card, Button, Table, Space, Tag, Modal, Typography, message } from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   HolderOutlined,
-  ExclamationCircleOutlined 
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -13,6 +13,8 @@ import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import AddFields from './AddFields';
 import { useMyContext } from 'Context/MyContextProvider';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { confirm } = Modal;
 
@@ -108,7 +110,7 @@ const AttendeeFields = () => {
     },
     onError: (error) => {
       console.error('Error deleting field:', error);
-      message.error(error.response?.data?.message || 'Failed to delete field');
+      message.error(Utils.getErrorMessage(error));
     },
   });
 
@@ -131,7 +133,7 @@ const AttendeeFields = () => {
     },
     onError: (error) => {
       console.error('Error rearranging fields:', error);
-      message.error('Failed to save new order');
+      message.error(Utils.getErrorMessage(error));
       // Refetch to revert changes
       queryClient.invalidateQueries(['attendee-fields']);
     },
@@ -222,10 +224,10 @@ const AttendeeFields = () => {
         key: 'field_required',
         align: 'center',
         render: (required) =>
-          required === 1 ? (
-            <Tag color="red">Yes</Tag>
+          required === true ? (
+            <Tag color="green">Yes</Tag>
           ) : (
-            <Tag color="orange">No</Tag>
+            <Tag color="red">No</Tag>
           ),
       },
       {
@@ -278,7 +280,7 @@ const AttendeeFields = () => {
   );
 
   return (
-    <>
+    <PermissionChecker role="Admin">
       <AddFields
         open={modalOpen}
         onClose={handleModalClose}
@@ -322,7 +324,7 @@ const AttendeeFields = () => {
           </SortableContext>
         </DndContext>
       </Card>
-    </>
+    </PermissionChecker>
   );
 };
 

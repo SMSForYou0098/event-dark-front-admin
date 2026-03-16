@@ -27,6 +27,7 @@ const FolderItem = ({
   onStatusChange,
   onAssignTicket,
   onEditGeometry,
+  editGeometryTooltip = 'Edit Geometry',
   isMobile,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
@@ -115,9 +116,9 @@ const FolderItem = ({
               <Text style={{ color: '#fff', fontWeight: 500, fontSize: 14 }}>
                 {item.name || item.label || `${type} ${item.order + 1}`}
               </Text>
-              {item.status === 'inactive' && (
+              {item.status === 'blocked' && (
                 <Tag style={{ background: 'rgba(239,68,68,0.15)', border: 'none', color: '#f87171', margin: 0, fontSize: 10 }}>
-                  Inactive
+                  Blocked
                 </Tag>
               )}
               {item.ticketId && (
@@ -139,11 +140,11 @@ const FolderItem = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Status toggle */}
-        <Tooltip title={item.status === 'active' ? 'Active' : 'Inactive'}>
+        <Tooltip title={item.status === 'active' ? 'Active' : 'Blocked'}>
           <Switch
             size="small"
-            checked={item.status === 'active'}
-            onChange={(checked) => onStatusChange?.(checked ? 'active' : 'inactive')}
+            checked={item.status !== 'blocked'}
+            onChange={(checked) => onStatusChange?.(checked ? 'active' : 'blocked')}
             style={{ marginRight: 4 }}
           />
         </Tooltip>
@@ -157,9 +158,9 @@ const FolderItem = ({
           style={{ color: 'rgba(255,255,255,0.5)' }}
         />
 
-        {/* Edit geometry (for stands only) */}
+        {/* Edit geometry (for stands) or aisles (for sections) */}
         {onEditGeometry && (
-          <Tooltip title="Edit Geometry">
+          <Tooltip title={editGeometryTooltip}>
             <Button
               type="text"
               size="small"

@@ -1,6 +1,6 @@
 import { useMyContext } from 'Context/MyContextProvider';
 import React, { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Col, message, Row, Modal } from 'antd';
+import { Col, message, Row, Modal, Alert } from 'antd';
 import PosEvents from '../components/PosEvents';
 import AgentBookingModal from './AgentBookingModal';
 import { handleDiscountChange, processImageFile } from './utils';
@@ -8,6 +8,7 @@ import { handleDiscountChange, processImageFile } from './utils';
 // Import step components
 import StepIndicator from './components/StepIndicator';
 import TicketSelectionStep from './components/TicketSelectionStep';
+import PreprintedCardStep from './components/PreprintedCardStep';
 import AttendeeManagementStep from './components/AttendeeManagementStep';
 import OrderSummary from './components/OrderSummary';
 
@@ -16,23 +17,28 @@ import {
   useUserAttendees,
   useCheckEmail,
   useCreateUser,
-  useUpdateUser,
+  useUpdateUserAddress,
   useCorporateBooking,
   useAgentBooking,
+  useLockSeats,
+  useCategoryDetail,
+  useEventFields,
 } from './useAgentBookingHooks';
 import BookingSummary from './components/BookingSummary';
 import { calcTicketTotals, distributeDiscount, getSubtotal } from 'utils/ticketCalculations';
 import BookingLayout from 'views/events/seating_module/theatre_booking/Bookinglayout';
 import SeatingModuleSummary from './components/SeatingModuleSummary';
+import EventSeatsListener from '../components/EventSeatsListener';
+import Utils from 'utils';
 
 const NewAgentBooking = memo(({ type }) => {
   const {
     UserData,
     isMobile,
     authToken,
+    userRole,
     getCurrencySymbol,
     formatDateRange,
-    fetchCategoryData,
   } = useMyContext();
 
   // State management
@@ -42,9 +48,20 @@ const NewAgentBooking = memo(({ type }) => {
   const [selectedTickets, setSelectedTickets] = useState([]);
   const [discount, setDiscount] = useState(0);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
-  const [number, setNumber] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+
+
+  // Consolidated User Details State
+  const [userDetails, setUserDetails] = useState({
+    name: '',
+    number: '',
+    email: '',
+    photo: null,
+    doc: null,
+    companyName: '',
+    designation: '',
+    address: ''
+  });
+
   const [disableChoice, setDisableChoice] = useState(false);
   const [discountType, setDiscountType] = useState('fixed');
   const [discountValue, setDiscountValue] = useState();
@@ -61,21 +78,54 @@ const NewAgentBooking = memo(({ type }) => {
   const [stickerData, setStickerData] = useState(null);
   const [printInvoiceData, setPrintInvoiceData] = useState(null);
   const [openStickerModal, setOpenStickerModal] = useState(false);
-  const [photo, setPhoto] = useState(null);
-  const [doc, setDoc] = useState(null);
-  const [companyName, setCompanyName] = useState('');
-  const [designation, setDesignation] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [createdUser, setCreatedUser] = useState(null);
   // const [masterBookings, setMasterBookings] = useState([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [bookingResponse, setBookingResponse] = useState(null);
   const [ticketAttendees, setTicketAttendees] = useState({});
+  const [selectedCardToken, setSelectedCardToken] = useState(null);
+
+  const [usedTokens, setUsedTokens] = useState([]);
+  const [bookingError, setBookingError] = useState(null);
+
+  // Queries
+  const { data: categoryDataResponse } = useCategoryDetail(categoryId, { enabled: !!categoryId });
+  const { data: eventFields } = useEventFields(eventID, {
+    enabled: !!eventID && !!event?.event_controls?.attendee_required && !categoryDataResponse?.categoryData?.attendy_required
+  });
+
+
+  // Effect to update attendee requirements and fields
+  useEffect(() => {
+    if (!categoryId) return;
+
+    if (categoryDataResponse?.status) {
+      const categoryAttendeeRequired = categoryDataResponse?.categoryData?.attendy_required === true;
+      const eventAttendeeRequired = event?.event_controls?.attendee_required === true;
+
+      if (categoryAttendeeRequired) {
+        setIsAttendeeRequire(true);
+        setCategoryFields(categoryDataResponse?.customFieldsData || []);
+      } else if (eventAttendeeRequired) {
+        setIsAttendeeRequire(true);
+        setCategoryFields(eventFields || []);
+      } else {
+        setIsAttendeeRequire(false);
+        setCategoryFields([]);
+      }
+    }
+  }, [categoryDataResponse, eventFields, event]);
+
+  // Ref for BookingLayout to update seat status
+  const bookingLayoutRef = useRef(null);
 
   // Custom hooks
   const { data: existingAttendees = [], refetch: refetchAttendees } = useUserAttendees({
     userId: UserData?.id,
     categoryId,
+    eventId: eventID,
     isCorporate,
     isAgent,
     enabled: isAttendeeRequire && !!categoryId && !!UserData?.id,
@@ -91,11 +141,11 @@ const NewAgentBooking = memo(({ type }) => {
     },
     onError: (error) => {
       console.error('Create user error:', error);
-      message.error(error.message || 'Failed to create user');
+      message.error(Utils.getErrorMessage(error, 'Failed to create user'));
     },
   });
 
-  const updateUserMutation = useUpdateUser({
+  const updateUserMutation = useUpdateUserAddress({
     // onSuccess: (response) => {
     //   if (response.status && response.user) {
     //     message.success('User updated successfully!');
@@ -103,7 +153,7 @@ const NewAgentBooking = memo(({ type }) => {
     // },
     onError: (error) => {
       console.error('Update user error:', error);
-      message.error(error.message || 'Failed to update user');
+      message.error(Utils.getErrorMessage(error, 'Failed to update user'));
     },
   });
 
@@ -142,11 +192,12 @@ const NewAgentBooking = memo(({ type }) => {
     },
     onError: (error) => {
       console.error('Corporate booking error:', error);
-      message.error(error.message || 'Failed to process corporate ticket purchase');
+      message.error(Utils.getErrorMessage(error, 'Failed to process corporate ticket purchase'));
     },
   });
 
   const agentBookingMutation = useAgentBooking();
+  const lockSeatsMutation = useLockSeats();
 
   const [isBookingInProgress, setIsBookingInProgress] = useState(false);
   const lastBookingAttemptRef = useRef(0);
@@ -158,6 +209,8 @@ const NewAgentBooking = memo(({ type }) => {
       message.warning('Booking is already in progress, please wait...');
       return;
     }
+
+    setBookingError(null);
 
     // ✅ Check cooldown period
     const now = Date.now();
@@ -218,12 +271,16 @@ const NewAgentBooking = memo(({ type }) => {
     const bookingPayload = {
       agent_id: UserData?.id,
       user_id: user?.id,
-      number: user?.number || number,
-      email: user?.email || email,
-      name: user?.name || name,
+      number: user?.number || userDetails.number,
+      email: user?.email || userDetails.email,
+      name: user?.name || userDetails.name,
+      address: user?.address || userDetails.address,
+      card_allocated: user?.card_allocated || userDetails.card_allocated || false,
       payment_method: method,
       type: event?.event_type || 'daily',
-      tickets: ticketsPayload
+      tickets: ticketsPayload,
+      seating_module: seatingModule,
+      ...(selectedCardToken ? { card_token: selectedCardToken.token, card_token_id: selectedCardToken.id } : {}),
     };
     // console.log(bookingPayload)
     // return
@@ -256,10 +313,20 @@ const NewAgentBooking = memo(({ type }) => {
         }
         if (response.status) {
           message.success(response.message || 'Booking created successfully!');
+
+          // ✅ Mark seats as booked in UI (reduces API calls)
+          if (seatingModule && bookingLayoutRef.current) {
+            bookingLayoutRef.current.markSeatsAsBooked();
+          }
+
           setBookingResponse(response.bookings || null);
+          if (selectedCardToken) {
+            setUsedTokens(prev => [...prev, selectedCardToken.token]);
+          }
           setSavedAttendeeIds({});
           setSelectedTickets([]);
           setTicketAttendees({});
+          setSelectedCardToken(null);
           setCurrentStep(currentStep + 1);
           setIsConfirmed(true);
         }
@@ -271,7 +338,25 @@ const NewAgentBooking = memo(({ type }) => {
       },
       onError: (error) => {
         console.error('❌ Booking error:', error);
-        message.error(error.message || 'Booking failed');
+
+        // ✅ Handle 409 conflict - seats no longer available
+        if (error?.meta === 409 || error?.response?.status === 409 || error?.status === 409) {
+          const unavailableSeatIds = error?.seats || error?.response?.data?.seats || [];
+          if (seatingModule && bookingLayoutRef.current && unavailableSeatIds.length > 0) {
+            bookingLayoutRef.current.markSeatIdsAsBooked(unavailableSeatIds);
+            const errMsg = error?.response?.data?.message || 'Some seats are no longer available';
+            message.error(errMsg);
+            setBookingError(errMsg);
+          } else {
+            const errMsg = Utils.getErrorMessage(error, 'Some seats are no longer available');
+            message.error(errMsg);
+            setBookingError(errMsg);
+          }
+        } else {
+          const errMsg = Utils.getErrorMessage(error, 'Booking failed');
+          message.error(errMsg);
+          setBookingError(errMsg);
+        }
 
         // ✅ Reset booking state on error
         setTimeout(() => {
@@ -279,7 +364,7 @@ const NewAgentBooking = memo(({ type }) => {
         }, 1000);
       }
     });
-  }, [isBookingInProgress, type, selectedTickets, UserData, number, email, name, method, event, isAmusment, eventID, agentBookingMutation, currentStep]);
+  }, [isBookingInProgress, type, selectedTickets, UserData, userDetails, method, event, isAmusment, eventID, agentBookingMutation, currentStep, seatingModule, selectedCardToken]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const lastSubmitAttemptRef = useRef(0);
@@ -301,13 +386,18 @@ const NewAgentBooking = memo(({ type }) => {
       return;
     }
 
-    if (!name) {
+    if (!userDetails.name) {
       message.error("Name is required");
       return;
     }
 
-    if (!number) {
+    if (!userDetails.number) {
       message.error("Mobile number is required");
+      return;
+    }
+
+    if (event?.event_controls?.use_preprinted_cards && !userDetails.address) {
+      message.error("Address is required. Please edit details and add address.");
       return;
     }
 
@@ -326,8 +416,8 @@ const NewAgentBooking = memo(({ type }) => {
 
     try {
       const checkResult = await checkEmailMutation.mutateAsync({
-        email,
-        number
+        email: userDetails.email,
+        number: userDetails.number
       });
 
       let user = null;
@@ -340,22 +430,26 @@ const NewAgentBooking = memo(({ type }) => {
         } else {
           if (checkResult?.mobile_exists) {
             const formData = new FormData();
-            if (companyName) formData.append('company_name', companyName);
-            if (photo) {
-              const processedPhoto = photo instanceof File ? await processImageFile(photo) : photo;
+            if (userDetails.companyName) formData.append('company_name', userDetails.companyName);
+            if (userDetails.photo) {
+              const processedPhoto = userDetails.photo instanceof File ? await processImageFile(userDetails.photo) : userDetails.photo;
               formData.append('photo', processedPhoto);
             }
-            if (doc) {
-              const processedDoc = doc instanceof File ? await processImageFile(doc) : doc;
+            if (userDetails.doc) {
+              const processedDoc = userDetails.doc instanceof File ? await processImageFile(userDetails.doc) : userDetails.doc;
               formData.append('doc', processedDoc);
             }
-            if (designation) formData.append('designation', designation);
-            formData.append('user_id', checkResult.user.id);
+            if (userDetails.designation) formData.append('designation', userDetails.designation);
+            if (userDetails.address) formData.append('address', userDetails.address);
+            // formData.append('user_id', checkResult.user.id);
 
-            await updateUserMutation.mutateAsync({
-              userId: checkResult.user.id,
-              formData
-            });
+
+            if (isEditing) {
+              await updateUserMutation.mutateAsync({
+                userId: checkResult.user.id,
+                formData
+              });
+            }
 
             user = checkResult.user;
             setCreatedUser(user);
@@ -368,20 +462,21 @@ const NewAgentBooking = memo(({ type }) => {
       } else {
         // New user creation
         const formData = new FormData();
-        formData.append('name', name);
-        formData.append('email', email);
-        formData.append('number', number);
-        formData.append('password', number);
+        formData.append('name', userDetails.name);
+        formData.append('email', userDetails.email);
+        formData.append('number', userDetails.number);
+        formData.append('password', userDetails.number);
         formData.append('reporting_user', UserData?.id);
+        if (userDetails.address) formData.append('address', userDetails.address);
 
-        if (companyName) formData.append('company_name', companyName);
-        if (designation) formData.append('designation', designation);
-        if (photo) {
-          const processedPhoto = await processImageFile(photo);
+        if (userDetails.companyName) formData.append('company_name', userDetails.companyName);
+        if (userDetails.designation) formData.append('designation', userDetails.designation);
+        if (userDetails.photo) {
+          const processedPhoto = await processImageFile(userDetails.photo);
           formData.append('photo', processedPhoto);
         }
-        if (doc) {
-          const processedDoc = await processImageFile(doc);
+        if (userDetails.doc) {
+          const processedDoc = await processImageFile(userDetails.doc);
           formData.append('doc', processedDoc);
         }
 
@@ -450,19 +545,20 @@ const NewAgentBooking = memo(({ type }) => {
 
     } catch (err) {
       console.error('Error in handleUserSubmit:', err);
-      message.error(err.message || "An error occurred, please try again.");
+      message.error(Utils.getErrorMessage(err, "An error occurred, please try again."));
 
       // ✅ Reset submission state on error
       setTimeout(() => {
         setIsSubmitting(false);
       }, 1000);
     }
-  }, [isSubmitting, name, number, email, companyName, designation, photo, doc, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, updateUserMutation, handleBookingAfterUser]);
+  }, [isSubmitting, userDetails, UserData, isAttendeeRequire, selectedTickets, checkEmailMutation, createUserMutation, handleBookingAfterUser]);
 
   const isLoading =
     corporateBookingMutation.isPending ||
     agentBookingMutation.isPending ||
     // masterBookingMutation.isPending ||
+    createUserMutation.isPending ||
     createUserMutation.isPending ||
     updateUserMutation.isPending;
 
@@ -475,22 +571,9 @@ const NewAgentBooking = memo(({ type }) => {
     setSeatingModule(evnt?.event_controls?.ticket_system);
     setCategoryId(evnt?.category);
     setCurrentStep(0); // Reset to step 0
-
-    const response = await fetchCategoryData(evnt?.category);
-
-    if (response.status) {
-      const attendeeRequired = response?.categoryData?.attendy_required === 1;
-      setIsAttendeeRequire(attendeeRequired);
-
-      if (attendeeRequired) {
-        setCategoryFields(response?.customFieldsData || []);
-      } else {
-        setCategoryFields([]);
-      }
-    }
-
+    setSelectedCardToken(null);
     setIsAmusment(evnt?.event_type === 'amusement');
-  }, [fetchCategoryData]);
+  }, []);
 
   const handleDiscount = useCallback(() => {
     handleDiscountChange({
@@ -504,13 +587,37 @@ const NewAgentBooking = memo(({ type }) => {
     });
   }, [discountValue, discountType, selectedTickets]);
 
-  const goToNextStep = useCallback(() => {
+  const goToNextStep = useCallback(async () => {
     if (currentStep === 0) {
       const hasValidTicket = selectedTickets?.some(ticket => Number(ticket?.quantity) > 0);
       if (!hasValidTicket) {
         message.error('Please select at least one ticket');
         return;
       }
+
+      // Lock seats if seating module is enabled and seats are selected
+      if (seatingModule && eventID) {
+        const seats = selectedTickets?.flatMap(ticket =>
+          (ticket.seats || []).map(seat => seat.seat_id || seat.id).filter(Boolean)
+        ) || [];
+
+        if (seats.length > 0) {
+          try {
+            message.loading({ content: 'Locking seats...', key: 'lockSeats' });
+            const payload = {
+              event_id: eventID,
+              seats: seats
+            };
+            await lockSeatsMutation.mutateAsync({ ...payload, user_id: UserData?.id });
+            message.success({ content: 'Seats locked successfully', key: 'lockSeats' });
+          } catch (error) {
+            console.error('Failed to lock seats:', error);
+            message.error({ content: Utils.getErrorMessage(error, 'Failed to lock seats'), key: 'lockSeats' });
+            return; // Don't proceed if seat locking fails
+          }
+        }
+      }
+
       if (isAttendeeRequire) {
         setCurrentStep(1);
       } else {
@@ -526,7 +633,7 @@ const NewAgentBooking = memo(({ type }) => {
       }
       setShowPrintModel(true);
     }
-  }, [currentStep, selectedTickets, isAttendeeRequire]);
+  }, [currentStep, selectedTickets, isAttendeeRequire, seatingModule, eventID, lockSeatsMutation]);
 
   const goToPreviousStep = useCallback(() => {
     if (currentStep > 0) {
@@ -535,6 +642,11 @@ const NewAgentBooking = memo(({ type }) => {
       setTicketAttendees({});
     }
   }, [currentStep]);
+
+  // Check if token is claimed
+  const isTokenClaimed = useMemo(() => {
+    return selectedCardToken?.status === 'claimed';
+  }, [selectedCardToken]);
 
   // ✅ Also update handleBooking to not interfere
   const handleBooking = useCallback(() => {
@@ -550,36 +662,66 @@ const NewAgentBooking = memo(({ type }) => {
     setShowPrintModel(true);
   }, [selectedTickets]);
 
+  // ✅ Lock seats API call
+  const handleLockSeats = useCallback(async () => {
+    // Extract seat IDs from selected tickets (just the seat_id values)
+    const seats = selectedTickets?.flatMap(ticket =>
+      (ticket.seats || []).map(seat => seat.seat_id)
+    ) || [];
+
+    if (seats.length === 0) {
+      // No seats to lock (non-seating module tickets)
+      return { success: true };
+    }
+
+    try {
+      const response = await lockSeatsMutation.mutateAsync({
+        event_id: eventID,
+        seats: seats
+      });
+      return { success: true, response };
+    } catch (error) {
+      console.error('Failed to lock seats:', error);
+      message.error(Utils.getErrorMessage(error, 'Failed to lock seats'));
+      return { success: false, error };
+    }
+  }, [selectedTickets, lockSeatsMutation, eventID]);
+
   //console.log(UserData?.id);
 
   return (
     <Fragment>
+      {/* WebSocket listener for real-time seat updates */}
+      {seatingModule && eventID && (
+        <EventSeatsListener
+          eventId={eventID}
+          bookingLayoutRef={bookingLayoutRef}
+          enabled={seatingModule}
+          id={UserData?.id}
+        />
+      )}
+
       <AgentBookingModal
         showPrintModel={showPrintModel}
-        handleClose={() => setShowPrintModel(false)}
+        handleClose={() => {
+          setShowPrintModel(false);
+          setBookingError(null);
+        }}
         confirm={isConfirmed}
         setConfirmed={setIsConfirmed}
         disabled={isLoading}
         loading={isLoading}
-        setName={setName}
-        name={name}
-        setNumber={setNumber}
-        number={number}
-        email={email}
-        setEmail={setEmail}
+        userDetails={userDetails}
+        setUserDetails={setUserDetails}
         handleSubmit={handleUserSubmit}
         setMethod={setMethod}
         method={method}
-        setPhoto={setPhoto}
-        photo={photo}
-        setDoc={setDoc}
-        doc={doc}
-        setCompanyName={setCompanyName}
-        companyName={companyName}
-        designation={designation}
-        setDesignation={setDesignation}
         event={event}
         selectedTickets={selectedTickets}
+        bookingError={bookingError}
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
+        isCardBooking={event?.event_controls?.use_preprinted_cards}
       />
 
 
@@ -603,11 +745,28 @@ const NewAgentBooking = memo(({ type }) => {
                 {seatingModule ? (
                   <Col xs={24} lg={16}>
                     <BookingLayout
+                      ref={bookingLayoutRef}
                       eventId={event?.id}
                       setSelectedTkts={setSelectedTickets}
                       layoutId={event?.layout_id}
                       onNext={goToNextStep}
                     />
+                  </Col>
+                ) : event?.event_controls?.use_preprinted_cards ? (
+                  <Col xs={24} lg={16}>
+                    {
+                      userRole === 'Agent' ?
+                        <PreprintedCardStep
+                          event={event}
+                          tickets={tickets}
+                          selectedTickets={selectedTickets}
+                          setSelectedTickets={setSelectedTickets}
+                          onTokenSelect={setSelectedCardToken}
+                          onNext={goToNextStep}
+                          usedTokens={usedTokens}
+                        />
+                        : <Alert type="warning" message="Access denied. Only agents are permitted to perform this action" />
+                    }
                   </Col>
                 ) : (
                   <Col xs={24} lg={16}>
@@ -630,6 +789,7 @@ const NewAgentBooking = memo(({ type }) => {
               <Col xs={24} lg={16}>
                 <AttendeeManagementStep
                   ref={attendeeStepRef}
+                  eventName={event?.name}
                   selectedTickets={selectedTickets}
                   categoryFields={categoryFields}
                   existingAttendees={existingAttendees}
@@ -659,15 +819,14 @@ const NewAgentBooking = memo(({ type }) => {
                       currentStep={currentStep}
                       isAttendeeRequire={isAttendeeRequire}
                       selectedTickets={selectedTickets}
-                      isLoading={isLoading}
+                      isLoading={isLoading || lockSeatsMutation.isPending}
                       onNext={goToNextStep} // ✅ Pass navigation function
                       onCheckout={handleBooking} // ✅ Only used for final checkout
+                      onLockSeats={handleLockSeats} // ✅ Pass lock seats function
                       isMobile={isMobile}
                       discount={discount}
+                      disabled={isTokenClaimed}
                     />
-                  </Col>
-                  <Col xs={24} lg={24}>
-                    <SeatingModuleSummary selectedTickets={selectedTickets} />
                   </Col>
                 </>
                 :
@@ -677,6 +836,11 @@ const NewAgentBooking = memo(({ type }) => {
                   </Col>
                 </>
             }
+            {seatingModule && (
+              <Col xs={24} lg={24}>
+                <SeatingModuleSummary selectedTickets={selectedTickets} />
+              </Col>
+            )}
           </>
         )}
       </Row>

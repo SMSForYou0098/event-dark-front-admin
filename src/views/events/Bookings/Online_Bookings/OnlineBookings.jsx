@@ -1,26 +1,33 @@
-import React, { memo, useState, useCallback } from "react";
-import { Button, message, Space, Tag, Modal, Switch, Tooltip, Spin } from "antd";
+import React, { memo, useState, useCallback, useMemo } from "react";
+import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import { CheckCircle, Send, Ticket, XCircle, AlertCircle } from "lucide-react";
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined,} from '@ant-design/icons';
+import { Send, Ticket, AlertCircle } from "lucide-react";
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, DollarOutlined } from '@ant-design/icons';
 import DataTable from "../../common/DataTable";
-import TicketModal from "views/events/Tickets/modals/TicketModal";
+import TicketDrawer from "views/events/Tickets/modals/TicketDrawer";
 import api from "auth/FetchInterceptor";
-import { withAccess } from "../../common/withAccess";
 import BookingCount from "./BookingCount";
+import RefundModal from "./RefundModal";
 import { resendTickets } from "../agent/utils";
 import { LoadingOutlined } from '@ant-design/icons';
+import Utils from "utils";
+import PermissionChecker from "layouts/PermissionChecker";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import usePermission from "utils/hooks/usePermission";
 
 const OnlineBookings = memo(() => {
-  
+
   const {
     UserData,
     formatDateTime,
     truncateString,
     formatDateRange,
     UserPermissions,
+    userRole,
   } = useMyContext();
+
+  const canExportOnline = usePermission(PERMISSIONS.EXPORT_ONLINE_BOOKINGS);
 
   const [dateRange, setDateRange] = useState(null);
   const [ticketData, setTicketData] = useState(null);
@@ -29,27 +36,54 @@ const OnlineBookings = memo(() => {
   const [loadingId, setLoadingId] = useState(null);
   const [show, setShow] = useState(false);
   const [showGatewayReport, setShowGatewayReport] = useState(false);
+  const [refundBookingData, setRefundBookingData] = useState(null);
   const queryClient = useQueryClient();
+
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
 
   // Fetch bookings using TanStack Query
   const {
-    data: bookings = [],
+    data: bookingsData = { bookings: [], pagination: null },
     isLoading,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["onlineBookings", UserData?.id, dateRange],
-    queryFn: async () => {
-      const queryParams = dateRange
-        ? `?date=${dateRange.startDate},${dateRange.endDate}`
-        : "";
-      const url = `master-bookings/${UserData?.id}${queryParams}`;
+    queryKey: ["onlineBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder],
+    queryFn: async ({ queryKey }) => {
+      const [_key, userId, dateRange, page, perPage, searchText, sortField, sortOrder] = queryKey;
+      const params = new URLSearchParams();
 
+      // Pagination params
+      params.set("page", page.toString());
+      params.set("per_page", perPage.toString());
+
+      // Search param
+      if (searchText) {
+        params.set("search", searchText);
+      }
+
+      // Sorting params
+      if (sortField && sortOrder) {
+        params.set("sort_by", sortField);
+        params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+      }
+
+      // Date range params
+      if (dateRange) {
+        params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+      }
+
+      const url = `bookings/online/${userId}?${params.toString()}`;
       const res = await api.get(url);
 
       if (res.status) {
-        let data = res.bookings;
+        let data = res.bookings || [];
         const filteredBookings = data.filter(
           (booking) =>
             booking.bookings &&
@@ -59,28 +93,43 @@ const OnlineBookings = memo(() => {
         const normalBooking = data.filter((booking) => !booking.bookings);
         const allBookings = [...filteredBookings, ...normalBooking];
 
-        allBookings.sort((a, b) => {
-          const dateA = new Date(a.created_at);
-          const dateB = new Date(b.created_at);
-          return dateB.getTime() - dateA.getTime();
-        });
+        // Only sort on frontend if no server-side sorting
+        if (!sortField) {
+          allBookings.sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return dateB.getTime() - dateA.getTime();
+          });
+        }
 
-        return allBookings;
+        // Extract pagination data from response
+        const paginationData = res.pagination || {
+          current_page: currentPage,
+          per_page: pageSize,
+          total: allBookings.length,
+          last_page: 1,
+        };
+
+        return { bookings: allBookings, pagination: paginationData };
       } else {
-        throw new Error(res?.message || "Failed to fetch bookings");
+        throw new Error(Utils.getErrorMessage(res, "Failed to fetch bookings"));
       }
     },
     enabled: !!UserData?.id,
     refetchOnWindowFocus: false,
   });
 
+  // Extract bookings and pagination from query data
+  const bookings = useMemo(() => bookingsData.bookings || [], [bookingsData.bookings]);
+  const pagination = bookingsData.pagination;
+
   // Delete/Restore booking mutation
   const deleteMutation = useMutation({
     mutationFn: async ({ id, isDeleted, token }) => {
       if (isDeleted) {
-        return api.get(`restore-booking/${id}/${token}`);
+        return api.get(`restore/online/${token}`);
       } else {
-        return api.delete(`delete-booking/${id}/${token}`);
+        return api.delete(`disable/online/${token}`);
       }
     },
     onSuccess: (res, variables) => {
@@ -95,26 +144,26 @@ const OnlineBookings = memo(() => {
       }
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || "Operation failed");
+      message.error(Utils.getErrorMessage(err, "Operation failed"));
     },
   });
 
-    const HandleSendTicket = useCallback(async (record) => {
-      if (!record?.id) return;
-      setLoadingId(record.id);
-      try {
-        // call resendTickets; remove setLoading param if it mutates boolean
-        await resendTickets(record, 'online');
-      } catch (err) {
-        // handle error if needed
-      } finally {
-        setLoadingId(null);
-      }
-    }, []);
+  const HandleSendTicket = useCallback(async (record) => {
+    if (!record?.id) return;
+    setLoadingId(record.id);
+    try {
+      // call resendTickets; remove setLoading param if it mutates boolean
+      await resendTickets(record, 'online');
+    } catch (err) {
+      // handle error if needed
+    } finally {
+      setLoadingId(null);
+    }
+  }, []);
 
   const DeleteBooking = useCallback(
-    (id) => {
-      const data = bookings?.find((item) => item?.id === id);
+    (data) => {
+      // const data = bookings?.find((item) => item?.id === id);
       if (!data) return;
 
       Modal.confirm({
@@ -127,7 +176,7 @@ const OnlineBookings = memo(() => {
         cancelText: "No",
         onOk: () => {
           deleteMutation.mutate({
-            id,
+            id: data?.id,
             isDeleted: data?.is_deleted === true,
             token: data?.token || data?.order_id,
           });
@@ -185,7 +234,9 @@ const OnlineBookings = memo(() => {
     setShow(false);
   }, []);
 
-  const handleDateRangeChange = (dates) => {
+  // Handle date range change
+  const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1); // Reset to first page on date change
     if (dates) {
       setDateRange({
         startDate: dates[0].format("YYYY-MM-DD"),
@@ -194,7 +245,81 @@ const OnlineBookings = memo(() => {
     } else {
       setDateRange(null);
     }
-  };
+  }, []);
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    if (newPageSize && newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    } else {
+      setCurrentPage(page);
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
+  }, []);
+
+  // Approval mutation
+  // Approval mutation
+  const approvalMutation = useMutation({
+    mutationFn: async ({ id, is_master, status }) => {
+      // Using generic endpoint or sticking to ID-based if preferred. 
+      // User asked to pass payload: { is_master, id, status }
+      return api.post(`/update-approval-status`, { is_master, id, status });
+    },
+    onSuccess: (res, variables) => {
+      if (res.status) {
+        queryClient.invalidateQueries(["onlineBookings"]);
+        message.success(
+          variables.status === 'approved'
+            ? 'Booking approved successfully!'
+            : 'Booking rejected successfully!'
+        );
+      }
+    },
+    onError: (err) => {
+      message.error(Utils.getErrorMessage(err, 'Approval action failed'));
+    },
+  });
+
+  // Handle approval action
+  const handleApproval = useCallback((record, actionStatus) => {
+    // Determine is_master based on if record has nested bookings
+    // If record.bookings exists and has length, assume it's a master/grouped record
+    const is_master = record?.bookings && record?.bookings.length > 0 ? true : false;
+    const bookingId = record?.id;
+
+    // Map actionStatus ('approved'/'rejected') to API status ('approved'/'rejected')
+    const apiStatus = actionStatus === 'approved' ? 'approved' : 'rejected';
+
+    Modal.confirm({
+      title: actionStatus === 'approved' ? 'Approve Booking?' : 'Reject Booking?',
+      content: actionStatus === 'approved'
+        ? 'Are you sure you want to approve this booking?'
+        : 'Are you sure you want to reject this booking?',
+      icon: <AlertCircle size={24} color={actionStatus === 'approved' ? '#52c41a' : '#ff4d4f'} />,
+      okText: 'Yes',
+      cancelText: 'No',
+      okButtonProps: {
+        danger: actionStatus === 'rejected',
+        style: actionStatus === 'approved' ? { background: '#52c41a', borderColor: '#52c41a' } : {}
+      },
+      onOk: () => {
+        approvalMutation.mutate({ id: bookingId, is_master, status: apiStatus });
+      },
+    });
+  }, [approvalMutation]);
+
 
   const columns = [
     {
@@ -214,8 +339,12 @@ const OnlineBookings = memo(() => {
       render: (_, record) => {
         const eventName =
           record?.bookings?.[0]?.event_name || record?.event_name || "";
-          
-        return <span title={eventName}>{truncateString(eventName)}</span>;
+
+        return (
+          <Tooltip title={eventName}>
+            <span>{truncateString(eventName, 25)}</span>
+          </Tooltip>
+        );
       },
       sorter: (a, b) => {
         const nameA = a?.bookings?.[0]?.event_name || a?.event_name || "";
@@ -232,49 +361,37 @@ const OnlineBookings = memo(() => {
       render: (_, record) =>
         record?.bookings?.[0]?.organizer || record?.organizer || "",
     },
-    ...(UserPermissions?.includes("View Username")
+    ...(UserPermissions?.includes("View Username") || userRole === 'Admin'
       ? [
-          {
-            title: "User Name",
-            dataIndex: ["user", "name"],
-            key: "userName",
-            align: "center",
-            searchable: true,
-            render: (_, record) =>
-              record?.bookings?.[0]?.user?.name || record?.user?.name || "",
-          },
-        ]
+        {
+          title: "User Name",
+          dataIndex: ["user", "name"],
+          key: "userName",
+          align: "center",
+          render: (_, record) =>
+            record?.bookings?.[0]?.user?.name || record?.user?.name || "",
+        },
+      ]
       : []),
-    ...(UserPermissions?.includes("View Contact")
+    ...(UserPermissions?.includes("View Contact") || userRole === 'Admin'
       ? [
-          {
-            title: "Number",
-            dataIndex: "number",
-            key: "number",
-            align: "center",
-            // searchable: true,
-            render: (_, record) =>
-              record?.bookings?.[0]?.number || record?.number || "",
-          },
-        ]
+        {
+          title: "Number",
+          dataIndex: "number",
+          key: "number",
+          align: "center",
+          render: (_, record) =>
+            record?.bookings?.[0]?.number || record?.number || "",
+        },
+      ]
       : []),
     {
       title: "Ticket",
       dataIndex: ["ticket", "name"],
       key: "ticketName",
       align: "center",
-      // searchable: true,
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
-    },
-    {
-      title: "Transaction ID",
-      dataIndex: "payment_id",
-      key: "payment_id",
-      align: "center",
-      // searchable: true,
-      render: (_, record) =>
-        record?.payment_id || record?.bookings?.[0]?.payment_id || "",
     },
     {
       title: "Mode",
@@ -288,13 +405,72 @@ const OnlineBookings = memo(() => {
         "",
     },
     {
-      title: "Gateway",
+      title: "PG",
       dataIndex: "gateway",
       key: "gateway",
       align: "center",
-      render: (_, record) =>
-        record?.gateway || record?.bookings?.[0]?.gateway || "",
+      render: (_, record) => {
+        const gateway = (record?.gateway || record?.bookings?.[0]?.gateway || "").toLowerCase();
+        if (gateway.includes("easebuzz")) return "EB";
+        if (gateway.includes("cashfree")) return "CF";
+        if (gateway.includes("razorpay")) return "RP";
+        if (gateway.includes("phonepay") || gateway.includes("phonepe")) return "PP";
+        return gateway.toUpperCase() || "-";
+      },
     },
+    {
+      title: "Approval",
+      key: "approval",
+      align: "center",
+      render: (_, record) => {
+        const approvalStatus = record?.approval_status || record?.bookings?.[0]?.approval_status;
+
+        if (approvalStatus === "pending") {
+          return (
+            <PermissionChecker permission={PERMISSIONS.APPROVE_ONLINE_BOOKING}>
+              <Space size="small">
+                <Tooltip title="Approve">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    onClick={() => handleApproval(record, 'approved')}
+                    style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                  />
+                </Tooltip>
+                <Tooltip title="Reject">
+                  <Button
+                    danger
+                    size="small"
+                    icon={<CloseCircleOutlined />}
+                    onClick={() => handleApproval(record, 'rejected')}
+                  />
+                </Tooltip>
+              </Space>
+            </PermissionChecker>
+          );
+        }
+
+        if (approvalStatus === "approved") {
+          return <Tag color="success">Approved</Tag>;
+        }
+        if (approvalStatus === "rejected") {
+          return <Tag color="error">Rejected</Tag>;
+        }
+
+        return "-";
+      },
+    },
+    {
+      title: "Tran ID",
+      dataIndex: "payment_id",
+      key: "payment_id",
+      align: "center",
+      // searchable: true,
+      render: (_, record) =>
+        record?.payment_id || record?.bookings?.[0]?.payment_id || "",
+    },
+
     {
       title: "Qty",
       dataIndex: "quantity",
@@ -315,75 +491,18 @@ const OnlineBookings = memo(() => {
         return `₹${discount}`;
       },
     },
-    // {
-    //   title: "B Amt",
-    //   dataIndex: "base_amount",
-    //   key: "base_amount",
-    //   align: "center",
-    //   render: (_, record) => {
-    //     const baseAmount =
-    //       (record?.bookings && record?.bookings[0]?.base_amount) ||
-    //       record?.base_amount ||
-    //       0;
-    //     return `₹${baseAmount}`;
-    //   },
-    // },
+
     {
       title: "Total",
       dataIndex: "total_amount",
       key: "total_amount",
       align: "center",
-    },
-    {
-      title: "Action",
-      key: "action",
-      align: "center",
       render: (_, record) => {
-        const isDisabled =
-          record?.is_deleted === true ||
-          (record?.bookings && record?.bookings[0]?.status) === "1";
-
-        return (
-          <Space size="small">
-            <Button
-              type="primary"
-              size="small"
-              // show spinner only for current record
-              icon={
-                loadingId === record.id ? (
-                  <LoadingOutlined style={{ fontSize: 14 }} spin />
-                ) : (
-                  <Send size={14} />
-                )
-              }
-              onClick={() => HandleSendTicket(record)}
-              disabled={isDisabled}
-              title="Resend Ticket"
-            />
-            <Button
-              danger
-              size="small"
-              icon={<Ticket size={14} />}
-              onClick={() => GenerateTicket(record)}
-              disabled={isDisabled}
-              title="Generate Ticket"
-            />
-            <Button
-              type={record?.is_deleted ? "primary" : "default"}
-              danger={!record?.is_deleted}
-              size="small"
-              icon={
-                record?.is_deleted ? (
-                  <CheckCircle size={14} />
-                ) : (
-                  <XCircle size={14} />
-                )
-              }
-              onClick={() => DeleteBooking(record.id)}
-              title={record?.is_deleted ? "Enable Ticket" : "Disable Ticket"}
-            />
-          </Space>
-        );
+        const totalAmount =
+          record?.total_amount ||
+          (record?.bookings && record?.bookings[0]?.total_amount) ||
+          0;
+        return `₹${totalAmount}`;
       },
     },
     {
@@ -392,45 +511,135 @@ const OnlineBookings = memo(() => {
       key: "status",
       align: "center",
       render: (_, record) => {
-          if (record.is_deleted) {
-              return (
-                  <Tooltip title="Disabled">
-                      <Tag icon={<CloseCircleOutlined className='m-0'/>} color="error" />
-                  </Tooltip>
-              );
-          }
-          const status =
-              record.status || (record.bookings && record.bookings[0]?.status);
-
-          return status === "0" ? (
-              <Tooltip title="Pending">
-                  <Tag icon={<ClockCircleOutlined className='m-0'/>} color="warning" />
-              </Tooltip>
-          ) : (
-              <Tooltip title="Scanned">
-                  <Tag icon={<CheckCircleOutlined className='m-0'/>} color="success" />
-              </Tooltip>
+        if (record.is_deleted) {
+          return (
+            <Tooltip title="Disabled">
+              <Tag icon={<CloseCircleOutlined className='m-0' />} color="error" />
+            </Tooltip>
           );
+        }
+        const status =
+          record.status || (record.bookings && record.bookings[0]?.status);
+
+        return status === "0" ? (
+          <Tooltip title="Pending">
+            <Tag icon={<ClockCircleOutlined className='m-0' />} color="warning" />
+          </Tooltip>
+        ) : (
+          <Tooltip title="Scanned">
+            <Tag icon={<CheckCircleOutlined className='m-0' />} color="success" />
+          </Tooltip>
+        );
       },
-  },
+    },
     {
-      title: "Purchase Date",
+      title: "Booking Date",
       dataIndex: "created_at",
       key: "created_at",
       align: "center",
       render: (date) => formatDateTime(date),
       sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
     },
+    ...(UserPermissions?.includes("Initiate Refund") || userRole?.toLowerCase() === 'admin'
+      ? [
+        {
+          title: "Refund",
+          key: "refund",
+          align: "center",
+          render: (_, record) => {
+            const totalAmount = record?.total_amount || record?.bookings?.[0]?.total_amount || 0;
+
+            // Only show refund button if total_amount is greater than 0
+            if (totalAmount <= 0) {
+              return '-';
+            }
+
+            const isDisabled =
+              record?.is_deleted === true ||
+              (record?.bookings && record?.bookings[0]?.status) === "1";
+
+            return (
+              <Button
+                type="default"
+                size="small"
+                icon={<DollarOutlined />}
+                onClick={() => setRefundBookingData(record)}
+                disabled={isDisabled}
+                title="Refund"
+              >
+                Refund
+              </Button>
+            );
+          },
+        },
+      ]
+      : []),
+    {
+      title: "Action",
+      key: "action",
+      align: "center",
+      // fixed: 'right',
+      render: (_, record) => {
+        const isDisabled =
+          record?.is_deleted === true ||
+          (record?.bookings && record?.bookings[0]?.status) === "1";
+
+        return (
+          <Space size="small" className="p-0">
+            <PermissionChecker permission={PERMISSIONS.RESEND_TICKETS}>
+              <Button
+                type="primary"
+                size="small"
+                // show spinner only for current record
+                icon={
+                  loadingId === record.id ? (
+                    <LoadingOutlined style={{ fontSize: 14 }} spin />
+                  ) : (
+                    <Send size={14} />
+                  )
+                }
+                onClick={() => HandleSendTicket(record)}
+                disabled={isDisabled}
+                title="Resend Ticket"
+              />
+            </PermissionChecker>
+            <PermissionChecker permission={PERMISSIONS.GENERATE_ONLINE_TICKETS}>
+              <Button
+                danger
+                size="small"
+                icon={<Ticket size={14} />}
+                onClick={() => GenerateTicket(record)}
+                disabled={isDisabled}
+                title="Ticket"
+              />
+            </PermissionChecker>
+            <PermissionChecker permission={PERMISSIONS.DELETE_ONLINE_BOOKING} fallback={
+              <Tag color={!record?.is_deleted ? 'success' : 'error'}>
+                {!record?.is_deleted ? 'Active' : 'Disabled'}
+              </Tag>
+            }>
+              <Switch
+                size="small"
+                checked={!record?.is_deleted}
+                onChange={() => DeleteBooking(record)}
+                checkedChildren="Active"
+                unCheckedChildren="Disabled"
+              />
+            </PermissionChecker>
+          </Space>
+        );
+      },
+    },
   ];
 
   return (
     <>
       {showGatewayReport && (
-         <BookingCount data={bookings} date={dateRange} type={'online'} showGatewayAmount={true}/>
+        <BookingCount data={bookings} date={dateRange} type={'online'} showGatewayAmount={true} />
       )}
-      
+
       <DataTable
-        title="Online Bookings"
+        title={<span style={{ fontSize: 14 }}>Online</span>}
         data={bookings}
         columns={columns}
         showDateRange={true}
@@ -438,13 +647,17 @@ const OnlineBookings = memo(() => {
         dateRange={dateRange}
         extraHeaderContent={
           <Space>
-            <span style={{ fontSize: 14 }}>Gateway Report:</span>
-            <Switch
-              checked={showGatewayReport}
-              onChange={(checked) => setShowGatewayReport(checked)}
-              checkedChildren="Show"
-              unCheckedChildren="Hide"
-            />
+            <PermissionChecker permission={PERMISSIONS.VIEW_GATEWAY}>
+              <>
+                {/* <span style={{ fontSize: 14 }}>Report:</span> */}
+                <Switch
+                  checked={showGatewayReport}
+                  onChange={(checked) => setShowGatewayReport(checked)}
+                  checkedChildren="Show"
+                  unCheckedChildren="Hide"
+                />
+              </>
+            </PermissionChecker>
           </Space>
         }
         onDateRangeChange={handleDateRangeChange}
@@ -452,19 +665,37 @@ const OnlineBookings = memo(() => {
         error={isError ? error : null}
         enableSearch={true}
         showSearch={true}
+        // Backend pagination props
+        serverSide={true}
+        pagination={pagination ? { ...pagination, current_page: currentPage, per_page: pageSize } : null}
+        onPaginationChange={handlePaginationChange}
+        onSearch={handleSearchChange}
+        onSortChange={handleSortChange}
+        searchValue={searchText}
+        // Export functionality
         enableExport={true}
         exportRoute="export-onlineBooking"
-        ExportPermission={UserPermissions?.includes("Export Online Bookings")}
+        ExportPermission={canExportOnline}
         onRefresh={refetch}
         emptyText="No bookings found"
       />
 
-      <TicketModal
+      <TicketDrawer
         show={show}
         handleCloseModal={handleCloseModal}
         ticketType={ticketType}
         ticketData={ticketData}
         formatDateRange={formatDateRange}
+        showTicketDetails={false}
+      />
+
+      <RefundModal
+        bookingData={refundBookingData}
+        onClose={() => setRefundBookingData(null)}
+        onRefundComplete={() => {
+          setRefundBookingData(null);
+          refetch();
+        }}
       />
     </>
   );
@@ -473,14 +704,4 @@ const OnlineBookings = memo(() => {
 OnlineBookings.displayName = "OnlineBookings";
 
 // ✅ Wrap with withAccess HOC for permission guard
-export default withAccess({
-  requiredPermissions: ["View Total Bookings"],
-  mode: "all",
-  redirectTo: "/dashboard",
-  whenDenied: (
-    <div style={{ padding: "24px", textAlign: "center" }}>
-      <h3>Access Denied</h3>
-      <p>You don't have permission to view Online Bookings.</p>
-    </div>
-  ),
-})(OnlineBookings);
+export default OnlineBookings;

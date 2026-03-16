@@ -1,59 +1,29 @@
 import React, { memo, useEffect, useState, useCallback } from "react";
-import { Modal, Checkbox, Row, Col, Card, Button, Input, Spin, notification, Empty } from "antd";
-import axios from "axios";
-import { useMyContext } from "../../../../Context/MyContextProvider";
+import { Modal, Checkbox, Row, Col, Card, Button, Input, Spin, notification } from "antd";
+import { useQuery } from '@tanstack/react-query';
+import api from 'auth/FetchInterceptor';
 import { ROW_GUTTER } from "constants/ThemeConstant";
+
 const { Search } = Input;
 
 const AssignFields = memo(({ showFields, onClose, editState, onFieldsChange, selectedIds = [], onFieldsNameChange }) => {
-  const { api, successAlert, ErrorAlert, authToken } = useMyContext();
-
-  const [fields, setFields] = useState([]);
-  const [filteredFields, setFilteredFields] = useState([]);
   const [selected, setSelected] = useState(selectedIds);
-  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // ========================= FETCH AVAILABLE FIELDS =========================
-  const fetchFields = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(`${api}fields-name`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      if (response.data.status) {
-        setFields(response.data.customFields);
-        setFilteredFields(response.data.customFields);
-      }
-    } catch (error) {
-      console.error("Error fetching fields:", error);
-      ErrorAlert("Failed to fetch fields");
-    } finally {
-      setLoading(false);
-    }
-  }, [api, authToken, ErrorAlert]);
-
-  useEffect(() => {
-    if (showFields) fetchFields();
-  }, [fetchFields, showFields]);
-
-  // ========================= HANDLE SEARCH =========================
-  const handleSearch = useCallback(
-    (value) => {
-      if (!value.trim()) return setFilteredFields(fields);
-      const lower = value.toLowerCase();
-      setFilteredFields(
-        fields.filter((f) => f.field_name.toLowerCase().includes(lower))
-      );
+  const { data: fields = [], isLoading } = useQuery({
+    queryKey: ['fields-name'],
+    queryFn: async () => {
+      const res = await api.get('fields-name');
+      return res.customFields || [];
     },
-    [fields]
-  );
+    enabled: showFields, // Only fetch when modal is open
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
 
-  // ========================= HANDLE SELECTION =========================
-  const handleSelectionChange = useCallback(
-    (checkedValues) => {
-      setSelected(checkedValues);
-    },
-    []
+  // ========================= FILTER FIELDS =========================
+  const filteredFields = fields.filter(f => 
+    f.field_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   // ========================= SUBMIT =========================
@@ -67,12 +37,13 @@ const AssignFields = memo(({ showFields, onClose, editState, onFieldsChange, sel
 
     notification.success({ message: "Fields updated successfully" });
     onClose();
-  }, [selected, fields, onFieldsChange, onFieldsNameChange, onClose, successAlert]);
+  }, [selected, fields, onFieldsChange, onFieldsNameChange, onClose]);
 
   // ========================= RESET WHEN CLOSED =========================
   useEffect(() => {
-    if (!showFields) {
+    if (showFields) {
       setSelected(selectedIds);
+      setSearchTerm("");
     }
   }, [showFields, selectedIds]);
 
@@ -103,53 +74,57 @@ const AssignFields = memo(({ showFields, onClose, editState, onFieldsChange, sel
       <div className="text-right py-2">
         <Search
           placeholder="Search fields..."
-          onSearch={handleSearch}
-          onChange={(e) => handleSearch(e.target.value)}
+          onSearch={setSearchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
           allowClear
           style={{ width: 300 }}
+          value={searchTerm}
         />
-        <div>
-        </div>
       </div>
 
-      <Spin spinning={loading}>
+      <Spin spinning={isLoading}>
         <Row gutter={ROW_GUTTER}>
-        {filteredFields.map((item) => {
-          const isChecked = selected.includes(item.id);
-          const handleCardClick = () => {
-            if (isChecked) {
-              setSelected(prev => prev.filter(id => id !== item.id));
-            } else {
-              setSelected(prev => [...prev, item.id]);
-            }
-          };
-          return (
-            <Col span={8} key={item.id}>
-              <Card
-                size="small"
-                hoverable
-                onClick={handleCardClick}
-                className={`transition-all cursor-pointer ${isChecked ? "border-primary shadow-md" : ""}`}
-              >
-                <Checkbox
-                  value={item.id}
-                  checked={isChecked}
-                  onChange={handleCardClick} // Prevent warning
-                  onClick={(e) => e.stopPropagation()} // Prevent checkbox click from bubbling to card
+          {filteredFields.map((item) => {
+            const isChecked = selected.includes(item.id);
+            const handleCardClick = () => {
+              if (isChecked) {
+                setSelected(prev => prev.filter(id => id !== item.id));
+              } else {
+                setSelected(prev => [...prev, item.id]);
+              }
+            };
+            return (
+              <Col span={8} key={item.id}>
+                <Card
+                  size="small"
+                  hoverable
+                  onClick={handleCardClick}
+                  className={`transition-all cursor-pointer ${isChecked ? "border-primary shadow-md" : ""}`}
                 >
-                  {item.field_name}
-                </Checkbox>
-              </Card>
+                  <Checkbox
+                    value={item.id}
+                    checked={isChecked}
+                    onChange={() => {}} // Handled by Card click
+                    onClick={(e) => e.stopPropagation()} // Prevent bubbling
+                  >
+                    {item.field_name}
+                  </Checkbox>
+                </Card>
+              </Col>
+            );
+          })}
+          {filteredFields.length === 0 && !isLoading && (
+            <Col span={24}>
+              <div style={{ textAlign: 'center', padding: '20px' }}>
+                No fields found
+              </div>
             </Col>
-          );
-        })}
+          )}
         </Row>
-
       </Spin>
     </Modal>
   );
-}
-);
+});
 
 AssignFields.displayName = "AssignFields";
 export default AssignFields;

@@ -21,8 +21,8 @@ const SelectedAttendees = ({ attendees = [], onRemove, onEdit, categoryFields = 
             >
               <Row gutter={[8, 8]} align="middle">
                 <Col flex="none">
-                  {attendee.Photo ? (
-                    <Image src={attendee.Photo} width={40} height={40} className='rounded-circle' />
+                  {attendee?.photo ? (
+                    <Image src={attendee?.photo} width={40} height={40} className='rounded-circle' />
                   ) : (
                     <Avatar icon={<UserOutlined />} size={40} />
                   )}
@@ -30,20 +30,20 @@ const SelectedAttendees = ({ attendees = [], onRemove, onEdit, categoryFields = 
 
                 <Col flex="auto">
                   <Space direction="vertical" size={0} style={{ width: '100%' }}>
-                    <Text strong>{attendee.Name || 'N/A'}</Text>
-                    {attendee.Mo && (
+                    <Text strong>{attendee.name || 'N/A'}</Text>
+                    {attendee?.number && (
                       <Text type="secondary" style={{ fontSize: '12px' }}>
-                        📱 {attendee.Mo}
+                        📱 {attendee?.number}
                       </Text>
                     )}
-                    {attendee.email && (
+                    {attendee?.email && (
                       <Text type="secondary" style={{ fontSize: '12px' }}>
-                        📧 {attendee.email}
+                        📧 {attendee?.email}
                       </Text>
                     )}
-                    {attendee.Company_Name && (
+                    {attendee?.company_name && (
                       <Text type="secondary" style={{ fontSize: '12px' }}>
-                        🏢 {attendee.Company_Name}
+                        🏢 {attendee?.company_name}
                       </Text>
                     )}
                   </Space>

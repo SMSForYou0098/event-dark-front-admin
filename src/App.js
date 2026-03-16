@@ -11,6 +11,7 @@ import Layouts from './layouts'
 import { THEME_CONFIG } from './configs/AppConfig'
 import './index.css' // keep whatever global CSS you need
 import { MyContextProvider } from 'Context/MyContextProvider'
+import { PrinterProvider } from 'Context/PrinterContext'
 
 const themes = {
   dark: `${process.env.PUBLIC_URL}/css/dark-theme.css`,
@@ -34,6 +35,7 @@ function App() {
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           <MyContextProvider>
+          <PrinterProvider>
 
           <QueryClientProvider client={queryClient}>
             <BrowserRouter>
@@ -46,6 +48,7 @@ function App() {
               </ThemeSwitcherProvider>
             </BrowserRouter>
           </QueryClientProvider>
+          </PrinterProvider>
           </MyContextProvider>
         </PersistGate>
       </Provider>

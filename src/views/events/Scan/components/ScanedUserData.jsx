@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { Descriptions, List, Tag, Button, Divider, Space, Typography, Drawer, Card, Image, Row, Col, Carousel, Badge, Modal } from 'antd';
+import {
+  Descriptions, List, Tag, Button, Divider, Space,
+  Typography, Drawer, Card, Image, Row, Col, Carousel, Badge, Modal
+} from 'antd';
+import DataTable from 'views/events/common/DataTable';
 import {
   CheckCircleOutlined,
   UserOutlined,
@@ -13,28 +17,37 @@ import {
   MailOutlined,
   FileImageOutlined,
   ExclamationCircleOutlined,
-  PrinterOutlined
+  PrinterOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useMyContext } from 'Context/MyContextProvider';
 import Loader from 'utils/Loader';
-import AttendeesPrint from './AttendeesPrint';
+import { MdProductionQuantityLimits } from 'react-icons/md';
 
 const { Text, Title } = Typography;
 
 const ScanedUserData = ({
   show,
   setShow,
-  event,
+  setAttendees,
   ticketData,
-  type,
   showAttendeee,
   attendees = [],
   handleVerify,
+  handlePrintAttendees,
   loading
 }) => {
+  const {
+    bookings = {},
+    is_master = false,
+    type = '',
+    event = {},
+    scan_history = []
+  } = ticketData ?? {};
+
   const { isMobile } = useMyContext();
-    const attendeesPrintRef = useRef(null);
+
   useEffect(() => {
     if (show && isMobile) {
       const dotsElement = document.querySelector('ul.slick-dots.slick-dots-bottom.custom-dots');
@@ -43,47 +56,31 @@ const ScanedUserData = ({
       }
     }
   }, [show, isMobile]);
+
   if (!ticketData) return null;
 
-
-  const handleClose = () => setShow(false);
-
-  const { bookings, is_master } = ticketData;
-  const eventData = ticketData?.event || event;
-
-  // Determine if this is a master booking or regular booking
-  const isMasterBooking = is_master === true;
-
-  // Get ticket data based on type
-  const ticket = isMasterBooking
-    ? bookings?.tickets?.[0] // For master booking, get first ticket from array
-    : bookings?.ticket; // For regular booking, get single ticket
-
-  // Get attendees data
-  const attendeesList = isMasterBooking
-    ? bookings?.attendees || []
-    : attendees;
-
-  // Get customer name and phone
-  const getCustomerInfo = () => {
-    if (isMasterBooking && attendeesList.length > 0) {
-      // For master booking, use first attendee's data
-      const firstAttendee = attendeesList[0];
-      return {
-        name: firstAttendee?.Name || 'N/A',
-        phone: firstAttendee?.Mo || firstAttendee?.Email || 'N/A'
-      };
-    }
-    // For regular booking
-    return {
-      name: bookings?.name || 'N/A',
-      phone: bookings?.number || 'N/A'
-    };
+  const handleClose = () => {
+    setShow(false);
+    setAttendees([]);
   };
+
+  const eventData = event;
+
+  const ticket = is_master
+    ? bookings?.tickets?.[0]
+    : bookings?.tickets;
+
+  const attendeesList = is_master === true
+    ? bookings?.attendees || []
+    : attendees || [];
+
+  const getCustomerInfo = () => ({
+    name: bookings?.user?.name || bookings?.name || 'N/A',
+    phone: bookings?.user?.number || bookings?.number || 'N/A'
+  });
 
   const customerInfo = getCustomerInfo();
 
-  // Status color mapping
   const getStatusTag = (status) => {
     const statusMap = {
       "0": { color: "warning", text: "Pending" },
@@ -95,273 +92,320 @@ const ScanedUserData = ({
 
   const statusInfo = getStatusTag(bookings?.status);
 
-  // Booking Information
+  const scanHistoryColumns = [
+    {
+      title: '#',
+      key: 'index',
+      align: 'center',
+      width: 50,
+      render: (_, __, index) => index + 1,
+    },
+    {
+      title: 'Checkpoint',
+      dataIndex: 'checkpoint_name',
+      key: 'checkpoint_name',
+      align: 'center',
+      render: (name) => <Tag color="purple">{name || '-'}</Tag>,
+    },
+    {
+      title: 'Scanned By',
+      dataIndex: 'scanner_name',
+      key: 'scanner_name',
+      align: 'center',
+      render: (name) => name || '-',
+    },
+    {
+      title: 'Scanned At',
+      dataIndex: 'scanned_at',
+      key: 'scanned_at',
+      align: 'center',
+      render: (scannedAt) => {
+        if (!scannedAt) return '-';
+        const date = dayjs(scannedAt);
+        return date.isSame(dayjs(), 'day')
+          ? `Today, ${date.format('hh:mm A')}`
+          : date.format('DD MMM YYYY, hh:mm A');
+      },
+    }
+  ];
+
   const bookingInfo = [
     {
-      label: <>
-        <IdcardOutlined className='text-primary mr-2' /> Name
-      </>,
+      label: <><IdcardOutlined className='text-primary me-2' /> Name</>,
       value: customerInfo.name,
     },
     {
-      label: <>
-        <PhoneOutlined className='text-primary mr-2' style={{transform : 'rotate(100deg)'}}/> Number
-      </>,
+      label: <><PhoneOutlined className='text-primary me-2' style={{ transform: 'rotate(100deg)' }} /> Number</>,
       value: <Text copyable>{customerInfo.phone}</Text>,
     },
     {
-      label: 'Quantity',
+      label: <><MdProductionQuantityLimits className='text-primary me-2' /> Quantity</>,
       value: <Text strong>{bookings?.quantity || 0} Ticket(s)</Text>,
     },
     {
-      label: <>
-        <CalendarOutlined className='text-primary mr-2' /> Booking Date
-      </>,
+      label: <><CalendarOutlined className='text-primary me-2' /> Booking Date</>,
       value: bookings?.created_at
-        ? dayjs(bookings.created_at).format('DD MMM YYYY, hh:mm A')
+        ? dayjs(bookings?.created_at).format('DD MMM YYYY, hh:mm A')
         : bookings?.booking_date
-          ? dayjs(bookings.booking_date).format('DD MMM YYYY, hh:mm A')
+          ? dayjs(bookings?.booking_date).format('DD MMM YYYY, hh:mm A')
           : 'N/A',
     },
     {
-      label: <>
-        <TagOutlined className='text-primary mr-2' /> Booking Type
-      </>,
-      value: <Tag color={ticketData?.type === 'POS' ? 'blue' : 'green'}>
-        {ticketData?.type || bookings?.booking_type || type || 'N/A'}
-      </Tag>,
+      label: <><TagOutlined className='text-primary me-2' /> Booking Type</>,
+      value: (
+        <Tag color={bookings?.type === 'POS' ? 'blue' : 'green'}>
+          {bookings?.type || type || 'N/A'}
+        </Tag>
+      ),
     },
-    ...(bookings?.status ? [{
-      label: 'Booking Status',
-      value: <Tag color={statusInfo.color}>{statusInfo.text}</Tag>,
-    }] : []),
+    // ...(bookings?.status ? [{
+    //   label: 'Booking Status',
+    //   value: <Tag color={statusInfo.color}>{statusInfo.text}</Tag>,
+    // }] : []),
     {
-      label: <>
-        <CalendarOutlined className='text-primary mr-2' /> Event Name
-      </>,
+      label: <><CalendarOutlined className='text-primary me-2' /> Event Name</>,
       value: <Text strong>{eventData?.name || 'N/A'}</Text>,
     },
     {
-      label: <>
-        <TagOutlined className='text-primary mr-2' /> Ticket
-      </>,
-      value: <Tag color="purple">{ticket?.name || 'N/A'}</Tag>,
-    },
-
+      label: <><TagOutlined className="text-primary me-2" /> Ticket</>,
+      value: Array.isArray(ticket)
+        ? ticket?.length > 0
+          ? ticket?.map((t) => (
+            <Tag color="cyan" key={t?.id} className="mb-1">
+              {t?.name} - {t?.quantity}
+            </Tag>
+          ))
+          : "N/A"
+        : ticket?.name
+          ? <Tag color="purple">{ticket?.name}</Tag>
+          : "N/A",
+    }
   ];
 
+  const formatFieldLabel = (key) => {
+    return key
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
 
-  // Render attendee card for master bookings
-  const renderAttendeeCard = (attendee, idx) => (
-    <Card
-      size="small"
-      key={attendee.id || idx}
-      className="mb-3"
-      bordered
-    >
-      <div className="d-flex gap-3">
-        <Space size="small" className="w-100">
-          {attendee?.Photo && (
-            <Image
-              src={attendee.Photo}
-              alt={attendee.Name}
-              width={80}
-              height={80}
-              style={{ objectFit: 'cover', borderRadius: '8px' }}
-              fallback="data:image/png;base64,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"
-            />
+  const excludedFields = ['id', 'photo', 'created_at', 'updated_at', 'booking_id', 'deleted_at'];
+
+  const renderAttendeeCard = (attendee, idx) => {
+    const dynamicFields = Object.entries(attendee || {}).filter(
+      ([key, value]) => !excludedFields.includes(key) && value !== null && value !== undefined && value !== ''
+    );
+
+    return (
+      <Card
+        size="small"
+        key={attendee?.id || idx}
+        className="mb-3 shadow-sm"
+        bordered
+        style={{ borderRadius: 10 }}
+      >
+        <div className="d-flex gap-3 align-items-start">
+          {attendee?.photo && (
+            <div className="flex-shrink-0">
+              <Image
+                src={attendee?.photo}
+                alt={attendee?.name || `Attendee ${idx + 1}`}
+                width={isMobile ? 60 : 80}
+                height={isMobile ? 60 : 80}
+                style={{ objectFit: 'cover', borderRadius: '8px' }}
+                fallback="data:image/png;base64,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"
+              />
+            </div>
           )}
-          <div className="flex-grow-1">
-            <Space direction="vertical" size="small" className="w-100">
-              <div>
-                <UserOutlined className="mr-2" />
-                <Text strong>{attendee?.Name || `Attendee ${idx + 1}`}</Text>
-                {/* {attendee?.mr_/mrs/_ms && (
-                <Tag size="small" className="ml-2">{attendee['mr_/mrs/_ms']}</Tag>
-              )} */}
-              </div>
-
-              {attendee?.Email && (
-                <div>
-                  <MailOutlined className="mr-2" />
-                  <Text copyable>{attendee.Email}</Text>
+          <div className="flex-grow-1 overflow-hidden">
+            <Space direction="vertical" size={4} className="w-100">
+              {dynamicFields.map(([key, value]) => (
+                <div key={key} className="d-flex flex-wrap align-items-baseline gap-1">
+                  <Text type="secondary" style={{ fontSize: 11, flexShrink: 0 }}>
+                    {formatFieldLabel(key)}:
+                  </Text>
+                  <Text
+                    strong={key === 'name'}
+                    style={{ fontSize: 13, wordBreak: 'break-word' }}
+                    copyable={['email', 'number', 'phone', 'registration_id'].includes(key)}
+                  >
+                    {value}
+                  </Text>
                 </div>
-              )}
-
-              {attendee?.Mo && (
-                <div>
-                  <PhoneOutlined className="mr-2" />
-                  <Text copyable>{attendee.Mo}</Text>
-                </div>
-              )}
-
-              {attendee?.Gender && (
-                <div>
-                  <Tag color="blue">{attendee.Gender}</Tag>
-                </div>
+              ))}
+              {dynamicFields.length === 0 && (
+                <Text type="secondary" style={{ fontSize: 12 }}>No attendee information available</Text>
               )}
             </Space>
           </div>
-        </Space>
-      </div>
-    </Card>
-  );
+        </div>
+      </Card>
+    );
+  };
 
   const renderAttendeesSection = () => {
     if (isMobile) {
-      // Carousel for mobile
       return (
         <Carousel
           dots={{ className: 'custom-dots' }}
           autoplay={false}
           dotPosition="bottom"
         >
-          {attendeesList.map((attendee, idx) => (
-            <div key={attendee.id || idx} style={{ padding: '0 8px' }}>
+          {attendeesList?.map((attendee, idx) => (
+            <div key={attendee?.id || idx} style={{ padding: '0 4px' }}>
               {renderAttendeeCard(attendee, idx)}
             </div>
           ))}
         </Carousel>
       );
-    } else {
-      // Grid layout for desktop (2 cards per row)
-      return (
-        <Row gutter={[16, 16]}>
-          {attendeesList.map((attendee, idx) => (
-            <Col xs={24} sm={24} md={12} lg={12} xl={12} key={attendee.id || idx}>
-              {renderAttendeeCard(attendee, idx)}
-            </Col>
-          ))}
-        </Row>
-      );
     }
+    return (
+      <Row gutter={[12, 12]}>
+        {attendeesList?.map((attendee, idx) => (
+          <Col xs={24} sm={24} md={24} lg={24} xl={24} key={attendee?.id || idx}>
+            {renderAttendeeCard(attendee, idx)}
+          </Col>
+        ))}
+      </Row>
+    );
   };
 
+  const isAlreadyScanned = bookings?.is_scaned;
+  const hasAttendees = attendeesList?.length > 0;
+
   return (
-    <>
     <Drawer
       open={show}
       closable={false}
-      placement={isMobile ? 'bottom' : "right"}
-      height="85vh"
-      width="95vh"
+      placement={isMobile ? 'bottom' : 'right'}
+      height={isMobile ? '92dvh' : undefined}
+      width={isMobile ? '100%' : 520}
+      styles={{
+        body: {
+          padding: isMobile ? '12px 12px 0' : '16px 20px 0',
+          overflowX: 'hidden',
+        },
+        footer: {
+          padding: isMobile ? '10px 12px' : '12px 20px',
+          borderTop: '1px solid #f0f0f0',
+        },
+        header: {
+          padding: isMobile ? '12px 12px' : '16px 20px',
+          borderBottom: '1px solid #f0f0f0',
+        }
+      }}
       title={
         <Space size="small">
-          <CheckCircleOutlined style={{ color: '#52c41a' }} />
-          <span>Scanned Ticket Details</span>
+          <CheckCircleOutlined style={{ color: '#52c41a', fontSize: isMobile ? 16 : 18 }} />
+          <span style={{ fontSize: isMobile ? 14 : 16, fontWeight: 600 }}>Scanned Ticket Details</span>
         </Space>
       }
       extra={
-        <CloseOutlined onClick={handleClose} />
+        <Button
+          type="text"
+          icon={<CloseOutlined />}
+          onClick={handleClose}
+          size="small"
+          style={{ color: '#8c8c8c' }}
+        />
       }
       footer={
-        <Space className='w-100' size="middle">
-           {isMasterBooking && attendeesList.length > 0 && (
+        <div className={`d-flex ${isMobile ? 'flex-column' : 'flex-row'} gap-2`}>
+          {hasAttendees && (
             <Button
               type="default"
-              className='btn-tertiary'
-               onClick={() => attendeesPrintRef.current?.handlePrintAllAttendees()}
+              className="btn-tertiary"
+              onClick={handlePrintAttendees}
               icon={<PrinterOutlined />}
-              size="large"
-              block={isMobile}
+              size={isMobile ? 'middle' : 'large'}
+              block
             >
-              Print Attendees ({attendeesList.length})
+              Print Attendees ({attendeesList?.length})
             </Button>
           )}
           <Button
             type="primary"
             onClick={handleVerify}
             icon={loading?.verifying ? <LoadingOutlined spin /> : <CheckCircleOutlined />}
-            disabled={bookings?.is_scaned || loading?.verifying}
-            size="large"
-            block={isMobile}
+            disabled={isAlreadyScanned || loading?.verifying}
+            size={isMobile ? 'middle' : 'large'}
+            block
           >
-            {bookings?.is_scaned ? 'Already Verified' : 'Verify Ticket'}
+            {isAlreadyScanned ? 'Already Verified' : 'Verify Ticket'}
           </Button>
-        </Space>
+        </div>
       }
-      footerStyle={{ textAlign: 'center', padding: '16px' }}
-      styles={{
-        body: { paddingBottom: 80 }
-      }}
     >
       {loading?.fetching ? (
         <Loader />
       ) : (
-        <>
-          {/* Booking Details */}
-          {/* <Title level={5}>Booking Information</Title> */}
-          <Descriptions bordered column={1} size="small">
-            {bookingInfo.map((item, idx) => (
-              <Descriptions.Item key={idx} label={item.label}>
-                {item.value}
+        <div className="pb-3">
+
+          {/* ── Booking Details ── */}
+          <Descriptions
+            bordered
+            column={1}
+            size="small"
+            labelStyle={{
+              fontSize: isMobile ? 12 : 13,
+              padding: isMobile ? '6px 8px' : '8px 12px',
+              whiteSpace: 'nowrap',
+              width: isMobile ? 130 : 150,
+            }}
+            contentStyle={{
+              fontSize: isMobile ? 12 : 13,
+              padding: isMobile ? '6px 8px' : '8px 12px',
+              wordBreak: 'break-word',
+            }}
+          >
+            {bookingInfo?.map((item, idx) => (
+              <Descriptions.Item key={idx} label={item?.label}>
+                {item?.value}
               </Descriptions.Item>
             ))}
           </Descriptions>
 
-          {/* Event Details */}
-          {/* <Title level={5}>Event Information</Title>
-          <Descriptions bordered column={1} size="small">
-            {eventInfo.map((item, idx) => (
-              <Descriptions.Item key={idx} label={item.label}>
-                {item.value}
-              </Descriptions.Item>
-            ))}
-          </Descriptions> */}
-
-          {/* Attendees List - Enhanced for Master Bookings */}
-          {(showAttendeee || isMasterBooking) && Boolean(attendeesList?.length) && (
-            <>
-              <Divider orientation="left" className='mt-0'>
-                <TeamOutlined /> Attendees ({attendeesList.length})
-              </Divider>
-
-              {isMasterBooking ? (
-                // Rich attendee cards for master bookings
-                <div>
-                  {renderAttendeesSection()}
-                </div>
-              ) : (
-
-                // Simple list for regular bookings
-                <List
-                  bordered
-                  dataSource={attendeesList}
-                  renderItem={(attendee, idx) => (
-                    <List.Item>
-                      <div className="d-flex align-items-center w-100 justify-content-between">
-                        <div className="d-flex align-items-center gap-2">
-                          <UserOutlined />
-                          <span>
-                            {attendee?.name || `Attendee ${idx + 1}`} (
-                            {attendee?.phone || 'N/A'})
-                          </span>
-                        </div>
-                        <Tag color={attendee?.status ? 'success' : 'default'}>
-                          {attendee?.status ? 'Checked In' : 'Pending'}
-                        </Tag>
-                      </div>
-                    </List.Item>
-                  )}
-                />
-              )}
-            </>
+          {/* ── Scan History ── */}
+          {scan_history?.length > 0 && (
+            <div className="mt-3">
+              <DataTable
+                title={
+                  <span style={{ fontSize: isMobile ? 13 : 14 }}>
+                    <HistoryOutlined className="me-2" />
+                    Scan History ({scan_history?.length})
+                  </span>
+                }
+                data={scan_history}
+                columns={scanHistoryColumns}
+                emptyText="No scan history"
+                tableProps={{
+                  rowKey: (record, index) => `scan-${index}`,
+                  pagination: false,
+                  size: 'small',
+                  scroll: { x: isMobile ? 400 : 600 },
+                }}
+              />
+            </div>
           )}
-        </>
+
+          {/* ── Attendees ── */}
+          {hasAttendees && (
+            <div className="mt-2">
+              <Divider orientation="left" className="mt-2 mb-2" style={{ fontSize: isMobile ? 13 : 14 }}>
+                <TeamOutlined className="me-1" />
+                Attendees ({attendeesList?.length})
+              </Divider>
+              {renderAttendeesSection()}
+            </div>
+          )}
+
+        </div>
       )}
     </Drawer>
-     {isMasterBooking && attendeesList.length > 0 && (
-      <AttendeesPrint
-        ref={attendeesPrintRef}
-        attendeesList={attendeesList}
-        eventData={eventData}
-        ticket={ticket}
-        bookings={bookings}
-        primaryColor="#B51515"
-      />
-    )}
-    </>
-    
   );
 };
 

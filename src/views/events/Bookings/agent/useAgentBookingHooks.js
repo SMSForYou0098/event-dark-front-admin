@@ -1,26 +1,27 @@
 // hooks/useAgentBookingHooks.js
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 /**
  * Helper: Convert base64/dataURL to File object
  */
 const dataURLtoFile = (dataurl, filename) => {
   if (!dataurl || typeof dataurl !== 'string') return null;
-  
+
   try {
     const arr = dataurl.split(',');
     const mime = arr[0].match(/:(.*?);/)?.[1];
     if (!mime) return null;
-    
+
     const bstr = atob(arr[1]);
     let n = bstr.length;
     const u8arr = new Uint8Array(n);
-    
+
     while (n--) {
       u8arr[n] = bstr.charCodeAt(n);
     }
-    
+
     return new File([u8arr], filename, { type: mime });
   } catch (error) {
     console.error('Error converting dataURL to File:', error);
@@ -40,8 +41,8 @@ export const buildAttendeesFormData = ({ attendees = [], userMeta = {}, fieldGro
       const fieldValue = attendee[fieldKey];
 
       // Skip internal/meta fields
-      if (['id', 'created_at', 'updated_at', 'deleted_at', 'status', 'booking_id', 
-           'user_id', 'agent_id', 'token', 'ticketId'].includes(fieldKey)) {
+      if (['id', 'created_at', 'updated_at', 'deleted_at', 'status', 'booking_id',
+        'user_id', 'agent_id', 'token', 'ticketId'].includes(fieldKey)) {
         return;
       }
 
@@ -50,17 +51,17 @@ export const buildAttendeesFormData = ({ attendees = [], userMeta = {}, fieldGro
         const fileExtension = fieldValue.match(/data:image\/(.*?);/)?.[1] || 'jpg';
         const fileName = `${fieldKey}_${index}_${Date.now()}.${fileExtension}`;
         const file = dataURLtoFile(fieldValue, fileName);
-        
+
         if (file) {
           fd.append(`${fieldGroupName}[${index}][${fieldKey}]`, file);
         } else {
           console.warn(`Failed to convert ${fieldKey} for attendee ${index}`);
         }
-      } 
+      }
       // ✅ Handle File objects directly
       else if (fieldValue instanceof File) {
         fd.append(`${fieldGroupName}[${index}][${fieldKey}]`, fieldValue);
-      } 
+      }
       // ✅ Handle Blob objects
       else if (fieldValue instanceof Blob) {
         const fileName = `${fieldKey}_${index}_${Date.now()}.jpg`;
@@ -96,14 +97,14 @@ export const buildAttendeesFormData = ({ attendees = [], userMeta = {}, fieldGro
  * Fetch attendees for a user/category
  * usage: const { data, refetch } = useUserAttendees({ userId, categoryId, isCorporate, isAgent, enabled })
  */
-export const useUserAttendees = ({ userId, categoryId, isCorporate = false, isAgent = true, enabled = true } = {}) =>
+export const useUserAttendees = ({ userId, categoryId, eventId, isCorporate = false, isAgent = true, enabled = true } = {}) =>
   useQuery({
     queryKey: ['user-attendees', userId, categoryId, isCorporate, isAgent],
-    enabled: enabled && !!categoryId && !!userId,
+    enabled: enabled && !!categoryId && !!userId && !!eventId,
     queryFn: async () => {
       const endpoint = isCorporate
         ? `corporate-attendee/${userId}/${categoryId}`
-        : `user-attendee/${userId}/${categoryId}?isAgent=${isAgent}`;
+        : `user-attendee/${userId}/${categoryId}/${eventId}?isAgent=${isAgent}`;
 
       const res = await api.get(endpoint);
       if (res?.status && Array.isArray(res.attendees)) {
@@ -130,13 +131,52 @@ export const useCategoryData = (categoryId, options = {}) =>
     enabled: !!categoryId,
     queryFn: async () => {
       const res = await api.get(`category-detail/${categoryId}`);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to fetch category data');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch category data'));
       }
       // return raw server object so calling code can access categoryData, customFieldsData etc.
       return res;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
+// getting fields of category
+export const useCategoryDetail = (categoryId, options = {}) =>
+  useQuery({
+    queryKey: ['category-data', categoryId],
+    enabled: !!categoryId,
+    queryFn: async () => {
+      const res = await api.get(`category-data/${categoryId}`);
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch category data'));
+      }
+      // return raw server object so calling code can access categoryData, customFieldsData etc.
+      return res;
+    },
+    staleTime: 5 * 60 * 1000,
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
+
+export const useEventFields = (eventId, options = {}) =>
+  useQuery({
+    queryKey: ['event-fields', eventId],
+    enabled: !!eventId,
+    queryFn: async () => {
+      const res = await api.get(`event/attendee/fields/${eventId}`);
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to load event fields'));
+      }
+      return res.data || [];
     },
     staleTime: 5 * 60 * 1000,
     retry: (count, err) => {
@@ -152,15 +192,18 @@ export const useCategoryData = (categoryId, options = {}) =>
 
 /**
  * Check email + number existing
- * POST: chek-email
+ * POST: check-email
  * payload: { email, number }
  */
 export const useCheckEmail = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
-      const res = await api.post('chek-email', payload);
+      const res = await api.post('check-email', payload);
       // keep raw response for upstream logic
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -178,12 +221,13 @@ export const useCreateUser = (options = {}) =>
   useMutation({
     mutationFn: async (formData) => {
       const res = await api.post('create-user', formData);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to create user');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create user'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -197,17 +241,18 @@ export const useCreateUser = (options = {}) =>
  * POST: update-user/{userId}
  * params: { userId, formData }
  */
-export const useUpdateUser = (options = {}) =>
+export const useUpdateUserAddress = (options = {}) =>
   useMutation({
     mutationFn: async ({ userId, formData }) => {
       if (!userId) throw new Error('userId is required');
-      const res = await api.post(`update-user/${userId}`, formData);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to update user');
-        err.server = res;
-        throw err;
+      const res = await api.post(`update-user-address/${userId}`, formData);
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to update user address'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -220,31 +265,46 @@ export const useUpdateUser = (options = {}) =>
  * Store attendees
  * POST: attndy-store OR corporate-user-store (based on isCorporate flag)
  * Returns: Array of saved attendees with IDs
+ *
+ * Also invalidates all `user-attendees` queries so newly created/updated
+ * attendees are immediately reflected wherever `useUserAttendees` is used
+ * (e.g. suggestions in attendee step) without needing a full page reload.
  */
-export const useStoreAttendees = (options = {}) =>
-  useMutation({
+export const useStoreAttendees = (options = {}) => {
+  const queryClient = useQueryClient();
+  const { onSuccess, ...restOptions } = options;
+
+  return useMutation({
     mutationFn: async ({ formData, isCorporate = false }) => {
       const endpoint = isCorporate ? 'corporate-user-store' : 'attndy-store';
-      const config = {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      };
-      const res = await api.post(endpoint, formData, config);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to store attendees');
-        err.server = res;
-        throw err;
+      // ✅ Don't set Content-Type manually - browser will set it with boundary automatically
+      // This ensures FormData is properly serialized and visible in Network tab
+      const res = await api.post(endpoint, formData);
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to store attendees'));
       }
       // ✅ Return full response with saved attendee data
       return res;
+    },
+    onSuccess: (data, variables, context) => {
+      // ✅ Ensure attendee lists refetch after create/update,
+      // even when the initial `useUserAttendees` response was `[]`.
+      queryClient.invalidateQueries({ queryKey: ['user-attendees'] });
+
+      if (typeof onSuccess === 'function') {
+        onSuccess(data, variables, context);
+      }
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
       return status >= 500 && count < 2;
     },
-    ...options,
+    ...restOptions,
   });
+};
 
 /**
  * Corporate booking
@@ -255,12 +315,13 @@ export const useCorporateBooking = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('corporate-pos/true', payload);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to create corporate booking');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create corporate booking'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -281,7 +342,13 @@ export const useAgentBooking = (options = {}) => {
         `${url}`,
         payload, // ✅ Send as JSON
       );
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to create agent booking'));
+      }
       return response;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     ...options
   });
@@ -297,12 +364,40 @@ export const useMasterBooking = (options = {}) =>
     mutationFn: async ({ url, payload }) => {
       if (!url) throw new Error('URL is required for master booking');
       const res = await api.post(url, payload);
-      if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to create master booking');
-        err.server = res;
-        throw err;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create master booking'));
       }
       return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
+    },
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options,
+  });
+
+/**
+ * Lock seats for booking
+ * POST: lock-seats
+ * payload: { event_id, seats: [seat_id, ...] }
+ */
+export const useLockSeats = (options = {}) =>
+  useMutation({
+    mutationFn: async ({ event_id, seats, user_id }) => {
+      if (!event_id) throw new Error('event_id is required');
+      if (!seats || seats.length === 0) throw new Error('seats array is required');
+
+      const res = await api.post('seats/lock', { event_id, seats, user_id });
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to lock seats'));
+      }
+      return res;
+    },
+    onError: (error) => {
+      options.onError?.(error);
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -341,3 +436,21 @@ export const useBookingHistory = (userId, options = {}) =>
   });
 
 
+
+/**
+ * Fetch user by phone number
+ * GET: user-from-number/{phoneNumber}
+ */
+export const useUserByNumber = (phoneNumber, options = {}) =>
+  useQuery({
+    queryKey: ['user-by-number', phoneNumber],
+    enabled: !!phoneNumber && (phoneNumber.length === 10 || phoneNumber.length === 12),
+    queryFn: async () => {
+      const res = await api.get(`user-from-number/${phoneNumber}`);
+      // return raw response to handle status check in component
+      return res;
+    },
+    retry: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    ...options,
+  });

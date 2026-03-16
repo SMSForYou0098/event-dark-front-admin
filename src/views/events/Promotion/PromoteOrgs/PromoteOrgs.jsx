@@ -18,6 +18,9 @@ import { HolderOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import CreatePromoteOrgModal from './CreatePromoteOrgModal';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { Text } = Typography;
 
@@ -102,8 +105,8 @@ export default function PromoteOrgs() {
             message.success('Organization removed from sponsors successfully');
             queryClient.invalidateQueries({ queryKey: ['promote-orgs'] });
         },
-        onError: () => {
-            message.error('Failed to remove organization');
+        onError: (error) => {
+            message.error(Utils.getErrorMessage(error));
         },
     });
 
@@ -122,8 +125,8 @@ export default function PromoteOrgs() {
             message.success('Order updated successfully');
             queryClient.invalidateQueries({ queryKey: ['promote-orgs'] });
         },
-        onError: () => {
-            message.error('Failed to update order');
+        onError: (error) => {
+            message.error(Utils.getErrorMessage(error));
         },
     });
 
@@ -167,7 +170,7 @@ export default function PromoteOrgs() {
     };
 
     return (
-        <>
+        <PermissionChecker permission={PERMISSIONS.VIEW_PROMOTE_ORGS}>
             <Card
                 title="Promoted Organizations (drag card handle to reorder)"
                 extra={<Button type="primary" onClick={() => setModalOpen(true)}>Create New</Button>}
@@ -204,6 +207,6 @@ export default function PromoteOrgs() {
                 onSuccess={handleModalSuccess}
                 editingOrg={editingOrg}
             />
-        </>
+        </PermissionChecker>
     );
 }

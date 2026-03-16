@@ -18,8 +18,8 @@ export const OrganisationList = ({ onChange, disabled }) => {
                 showSearch
                 placeholder="Select organization"
                 options={OrganizerList?.map(org => ({
-                    value: String(org.value),
-                    label: `${org.organisation} (${org.label})`,
+                    value: String(org.id),
+                    label: `${org.organisation} (${org.name})`,
                 }))}
                 optionFilterProp="label"
                 onChange={onChange}
@@ -54,7 +54,7 @@ export const RoleSelect = ({
     });
 
     // Filter roles based on user permissions or custom allowed roles
-   const filteredRoles = useMemo(() => {
+    const filteredRoles = useMemo(() => {
         // If custom allowed roles are provided, use them
         if (allowedRoles && Array.isArray(allowedRoles)) {
             return roles.filter(role => allowedRoles.includes(role.name));
@@ -66,21 +66,21 @@ export const RoleSelect = ({
         } else if (userRole === 'Organizer') {
             return roles.filter(role => ORGANIZER_ALLOWED_ROLES.includes(role.name));
         }
-        
+
         return [];
     }, [roles, userRole, allowedRoles]);
 
     // Handle role change
     const handleChange = (roleId) => {
         const selectedRole = filteredRoles.find(r => r.id === Number(roleId));
-        
+
         if (onChange) {
             onChange(roleId, selectedRole?.name, selectedRole);
         }
     };
 
     // Prepare options for Select
-    const options = useMemo(() => 
+    const options = useMemo(() =>
         filteredRoles.map(role => ({
             value: role.id,
             label: role.name,

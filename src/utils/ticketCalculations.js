@@ -156,3 +156,57 @@ export function calcTicketTotals(tickets = [], discount = 0) {
     grandTotal: getGrandTotal(tickets, finalDiscount),
   };
 }
+
+export function calculateTicketPrice(price, quantity, taxData) {
+  const safePrice = Number.isFinite(price) ? price : 0;
+  const safeQuantity = Number.isFinite(quantity) ? quantity : 0;
+
+  const unitBaseAmount = +(safePrice).toFixed(2);
+
+  const convenienceFeeValue = Number(taxData?.convenience_fee || 0);
+  const convenienceFeeType = taxData?.type || "flat";
+
+  // Dynamically calculate convenience fee
+  let unitConvenienceFee = 0;
+  if (convenienceFeeType === "percentage") {
+    unitConvenienceFee = +(unitBaseAmount * (convenienceFeeValue / 100)).toFixed(2);
+  } else {
+    unitConvenienceFee = +convenienceFeeValue.toFixed(2);
+  }
+
+  const unitCentralGST = +(unitConvenienceFee * 0.09).toFixed(2);
+  const unitStateGST = +(unitConvenienceFee * 0.09).toFixed(2);
+
+  // Per-unit calculations
+  const unitTotalTax = +(unitCentralGST + unitStateGST).toFixed(2);
+  const unitFinalAmount = +(safePrice + unitConvenienceFee + unitTotalTax).toFixed(2);
+
+  // Totals for the selected quantity
+  const totalBaseAmount = +(unitBaseAmount * safeQuantity).toFixed(2);
+  const totalCentralGST = +(unitCentralGST * safeQuantity).toFixed(2);
+  const totalStateGST = +(unitStateGST * safeQuantity).toFixed(2);
+  const totalConvenienceFee = +(unitConvenienceFee * safeQuantity).toFixed(2);
+  const totalTotalTax = +(totalCentralGST + totalStateGST + totalConvenienceFee).toFixed(2);
+  const totalFinalAmount = +((safePrice * safeQuantity) + totalTotalTax).toFixed(2);
+
+  return {
+    price: +(+safePrice).toFixed(2),
+    quantity: safeQuantity,
+
+    // per-unit
+    baseAmount: unitBaseAmount,
+    centralGST: unitCentralGST,
+    stateGST: unitStateGST,
+    totalTax: unitTotalTax,
+    convenienceFee: unitConvenienceFee,
+    finalAmount: unitFinalAmount,
+
+    // totals
+    totalBaseAmount,
+    totalCentralGST,
+    totalStateGST,
+    totalTaxTotal: totalTotalTax,
+    totalConvenienceFee,
+    totalFinalAmount,
+  };
+}

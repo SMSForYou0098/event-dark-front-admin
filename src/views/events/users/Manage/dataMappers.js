@@ -5,58 +5,86 @@
  */
 export const mapApiToForm = (apiData) => {
     if (!apiData) return {};
-    
+
     const user = apiData.user || apiData;
-    
+
     // Extract event IDs
     const eventIds = user.events?.map(e => e.id) || [];
-    
-    // Extract ticket IDs - FIXED: Use agentTickets instead of events.tickets
-    const ticketIds = user.agentTickets?.map(ticket => String(ticket.id)) || [];
+
+    // Extract ticket IDs - support multiple API response formats
+    let ticketIds = [];
+    if (user.agentTickets?.length) {
+        ticketIds = user.agentTickets.map(ticket => String(ticket.id));
+    } else if (user.user_tickets?.length) {
+        ticketIds = user.user_tickets
+            .filter(ut => ut.ticket_id)
+            .map(ut => String(ut.ticket_id));
+    } else if (user.events?.length) {
+        // Fallback: extract tickets from events[].tickets[]
+        ticketIds = user.events
+            .flatMap(e => (e.tickets || []).map(t => String(t.id)));
+    }
 
     return {
         // Basic Info
         name: user.name || '',
         email: user.email || '',
         number: user.phone_number?.toString() || '',
-        
+
         // Role
         roleId: user.role?.id || null,
         roleName: user.role?.name || '',
-        
+
         // Organization & Reporting
         organisation: user.organisation || '',
         reportingUser: user.reporting_user_id?.toString() || null,
-        
+
         // Events & Tickets - FIXED
         events: eventIds,
         tickets: ticketIds, // Now uses agentTickets
-        
+
         // Address
+        address: user.address || '',
         city: user.city || '',
         pincode: user.pincode || '',
-        
+
         // Banking (Organizer)
         bankName: user.bank_name || '',
         bankIfsc: user.bank_ifsc || '',
         bankBranch: user.bank_branch || '',
         bankNumber: user.bank_number || '',
         orgGstNumber: user.org_gst_no || '',
-        
+        orgPanNumber: user.org_pan_no || '',
+
         // Status & Security
-        status: user.status ,
+        status: Boolean(user.status),
         authentication: user.authentication === 1,
         agreementStatus: user.agreement_status === 1,
-        agentDiscount: user.agent_disc === 1,
-        
+        // agentDiscount: user.agent_disc === 1,
+        agentDiscount: user.agent_disc,
+
         // Role-specific
         paymentMethod: user.payment_method || 'Cash',
         qrLength: user.qr_length || null,
-        
+
         // Add convenience fee mappings
         brandName: user.brandName || '',
         convenienceFeeType: user.convenience_fee_type || 'percentage',
         convenienceFee: user.convenience_fee || '',
+
+        // Email verification
+        email_verified_at: user.email_verified_at || null,
+
+        // Signature data
+        signatureType: user.org_signature_type || 'type',
+        signatureText: user.signature_text || '',
+        signatureFont: user.signature_font || '',
+        signatureFontStyle: user.signature_font_style || '',
+        signatureImage: user.org_signatory_image || null,
+        agreement: user.agreement || null,
+
+        // Agreement verification status (for edit mode)
+        agreementVerification: user.agreement_verification === true || user.agreement_verification === 1,
     };
 };
 
@@ -72,54 +100,57 @@ export const mapFormToApi = (formData) => {
         number: formData.number,
         alt_number: formData.altNumber || null,
         organisation: formData.organisation,
-        
+
         // Address
+        address: formData.address,
         city: formData.city,
         pincode: formData.pincode,
         state: formData.state,
-        
+
         // Role
         role_id: formData.roleId !== undefined && formData.roleId !== null ? Number(formData.roleId) : null,
         reporting_user: formData.reportingUser,
-        status: formData.status,
+        status: Boolean(formData.status),
         role_name: formData.roleName,
-        
+
         // Banking
         bank_name: formData.bankName,
         bank_number: formData.bankNumber,
         bank_ifsc: formData.bankIfsc,
         bank_branch: formData.bankBranch,
         bank_micr: formData.bankMicr,
-        
+
         // Shop
         shop_name: formData.shopName,
         shop_number: formData.shopNumber,
         gst_number: formData.gstNumber,
-        
+
         // Organization
         org_gst_no: formData.orgGstNumber,
-        
+        org_pan_no: formData.orgPanNumber,
+
         // Settings
         qr_length: formData.qrLength,
-        authentication: formData.authentication ? 1 : 0,
-        agent_disc: formData.agentDiscount ? 1 : 0,
-        agreement_status: formData.agreementStatus ? 1 : 0,
+        authentication: formData.authentication,
+        agent_disc: formData.agentDiscount,
+        agreement_status: formData.agreementStatus,
         payment_method: formData.paymentMethod,
-        
-        // Events & Tickets - send as arrays of IDs
-        event_ids : Array.isArray(formData.events) ? formData.events : formData.events ? [formData.events] : [],
-        ticket_ids: (formData.tickets || []).map(t => Number(t)),
-        gate_ids: formData.gates || [],
-        
+
+        // Events & Tickets - send as user_tickets array
+        user_tickets: formData.userTickets || [],
+
         // Password (only include if provided)
         ...(formData.password && { password: formData.password }),
-        
+
         // Agreement Details
         ...(formData.aggrementDetails || {}),
-        
+
         // Add convenience fee mappings
         brandName: formData.brandName,
         convenience_fee_type: formData.convenienceFeeType,
         convenience_fee: formData.convenienceFee ? Number(formData.convenienceFee) : null,
+
+        // Email verification (only for Admin creating Organizer)
+        verification_required: formData.verifiedEmail
     };
 };

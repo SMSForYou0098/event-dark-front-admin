@@ -5,8 +5,13 @@ const usePermission = (requiredPermission, requiredRole, matchType = 'AND') => {
     const userPermissions = user?.permissions || [];
     const userRole = user?.role;
 
+    // Admin bypass - Admin has full access to everything
+    if (userRole?.toLowerCase() === 'admin') {
+        return true;
+    }
+
     // Check permission
-    const hasPermission = requiredPermission 
+    const hasPermission = requiredPermission
         ? Array.isArray(requiredPermission)
             ? requiredPermission.some(permission => userPermissions.includes(permission))
             : userPermissions.includes(requiredPermission)

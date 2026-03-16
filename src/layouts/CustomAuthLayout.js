@@ -10,7 +10,6 @@ const backgroundStyle = {
 }
 
 const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) => {
-    // const {systemSetting} = useMyContext()
     return (
         <div className="h-100" style={backgroundStyle}>
             <div className="container d-flex flex-column justify-content-center h-100">
@@ -19,22 +18,22 @@ const CustomAuthLayout = ({ children, bottomText, bottomLink, bottomLinkText }) 
                         <Card className='glassmorphism-card' hoverable>
                             <div className="my-4">
                                 <div className="text-center mb-3">
-                                    <img 
+                                    <img
                                         className="img-fluid"
-                                        src={'/img/logo.webp'} 
-                                        alt="logo" 
+                                        src={'/img/logo.webp'}
+                                        alt="logo"
                                         width={100}
                                     />
-                                  
+
                                 </div>
                                 <Row justify="center">
                                     <Col xs={24} sm={24} md={20} lg={20}>
                                         {children}
                                     </Col>
                                 </Row>
-                                  {bottomText && (
-                                        <p className='text-center'>{bottomText} <Link to={bottomLink}><strong>{bottomLinkText}</strong></Link></p>
-                                    )}
+                                {bottomText && (
+                                    <p className='text-center'>{bottomText} <Link to={bottomLink}><strong>{bottomLinkText}</strong></Link></p>
+                                )}
                             </div>
                         </Card>
                     </Col>

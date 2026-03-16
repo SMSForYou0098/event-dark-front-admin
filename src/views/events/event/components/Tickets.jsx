@@ -1,31 +1,29 @@
 import React, { useState } from 'react';
-import { Form, Input, Row, Col, Switch, Card, Button, Modal, List, Typography, Tag } from 'antd';
+import { Form, Row, Col, Switch, Card, Button, Modal, List, Typography, Tag } from 'antd';
 import { ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
 import TicketManager from 'views/events/Tickets/TicketManager/TicketManager';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useNavigate } from 'react-router-dom';
-
-const { TextArea } = Input;
+import ContentSelect from './ContentSelect';
 const { Text } = Typography;
 
-const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
+const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, contentLoading, orgId, form }) => {
   const navigate = useNavigate();
-  const form = Form.useFormInstance();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
-
-  const toChecked = (v) => v === 1 || v === '1';
-  const toNumber = (checked) => (checked ? 1 : 0);
+  const venueId = form.getFieldValue('venue_id');
+  const toBoolean = (v) => v === true || v === 1 || v === '1';
+  const toBooleanValue = (checked) => Boolean(checked);
 
   const handleBookingTypeChange = (fieldName, checked) => {
     if (checked) {
       // If one is turned on, turn off the other
       if (fieldName === 'ticket_system') {
-        form.setFieldValue('bookingBySeat', 0);
+        form.setFieldValue('bookingBySeat', false);
       } else if (fieldName === 'bookingBySeat') {
-        form.setFieldValue('ticket_system', 0);
+        form.setFieldValue('ticket_system', false);
       }
     }
-    return toNumber(checked);
+    return toBooleanValue(checked);
   };
 
   const handleManageLayoutClick = () => {
@@ -37,7 +35,11 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
         cancelText: 'Cancel',
         centered: true,
         onOk: () => {
-          navigate(`/theatre/new?venueId=${eventLayoutId}`);
+          if (eventLayoutId) {
+            navigate(`/theatre/new?venueId=${eventLayoutId}`);
+          } else {
+            navigate(`/theatre/new?venueId=${venueId}`);
+          }
         }
       });
       return;
@@ -51,18 +53,18 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
   };
 
   const switchFields = [
-    { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans', initialValue: 0 },
+    { name: 'multi_scan', label: 'Multi Scan Ticket', tooltip: 'Allow multiple scans', initialValue: false },
     {
       name: 'ticket_system',
       label: 'Booking By Ticket',
       onChange: (checked) => handleBookingTypeChange('ticket_system', checked),
-      initialValue: 1  // Default checked
+      initialValue: true  // Default checked
     },
     {
       name: 'bookingBySeat',
       label: 'Booking By Seat',
       onChange: (checked) => handleBookingTypeChange('bookingBySeat', checked),
-      initialValue: 0
+      initialValue: false
     },
   ];
 
@@ -70,13 +72,13 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
     <Row gutter={ROW_GUTTER}>
       <Col xs={24} md={12} lg={18}>
         {/* Ticket Manager Section */}
-        <Card className="mb-4">
+        {/* <Card className="mb-4">
           <TicketManager
             eventId={eventId}
             eventName={eventName}
             showEventName={true}
           />
-        </Card>
+        </Card> */}
       </Col>
 
       {/* Ticket Settings */}
@@ -89,8 +91,8 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
                 <Form.Item
                   name={f.name}
                   valuePropName="checked"
-                  getValueProps={(v) => ({ checked: toChecked(v) })}
-                  getValueFromEvent={f.onChange || toNumber}
+                  getValueProps={(v) => ({ checked: toBoolean(v) })}
+                  getValueFromEvent={f.onChange || toBooleanValue}
                   initialValue={f.initialValue}
                   noStyle
                 >
@@ -103,7 +105,7 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
           <Form.Item shouldUpdate noStyle>
             {() => {
               const bookingBySeatValue = form.getFieldValue('bookingBySeat');
-              return toChecked(bookingBySeatValue) ? (
+              return toBoolean(bookingBySeatValue) ? (
                 <Button type="primary" onClick={handleManageLayoutClick}>
                   Manage Ticket in Layout
                 </Button>
@@ -116,18 +118,18 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
       {/* Terms & Conditions */}
       <Col span={24}>
         <Card title="Terms & Conditions">
-          <Form.Item
-            name="ticket_terms"
+          <ContentSelect
+            form={form}
+            fieldName="ticket_terms"
+            contentType="description"
             label="Ticket Terms & Conditions"
-            rules={[{ required: true, message: 'Please enter ticket terms' }]}
-          >
-            <TextArea
-              rows={3}
-              placeholder="Enter ticket terms and conditions..."
-              showCount
-              maxLength={1000}
-            />
-          </Form.Item>
+            contentList={contentList}
+            loading={contentLoading}
+            customOrgId={orgId}
+            placeholder="Select ticket terms"
+            rules={[{ required: true, message: "Please select ticket terms" }]}
+          />
+
         </Card>
       </Col>
 
@@ -142,7 +144,6 @@ const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId }) => {
           dataSource={layouts}
           renderItem={(item) => {
             const isAssigned = Number(item.id) === Number(eventLayoutId);
-            console.log(item.id, eventLayoutId, isAssigned)
             return (<List.Item
               className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}
               onClick={() => {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
+import DataTable from '../../common/DataTable';
 import {
     Card,
     Row,
@@ -16,7 +17,7 @@ import {
     Modal,
     Spin
 } from 'antd';
-import { EditOutlined, DeleteOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, SaveOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import SytemVariables from './SytemVariables';
 import {
@@ -26,6 +27,8 @@ import {
     useUpdateSMSTemplate,
     useDeleteSMSTemplate
 } from '../hooks/useSettings';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { TextArea } = Input;
 
@@ -40,17 +43,19 @@ const SmsSetting = () => {
     const [editState, setEditState] = useState(false);
     const [status, setStatus] = useState(false);
     const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
+    const [searchText, setSearchText] = useState('');
+    const [isVariablesVisible, setIsVariablesVisible] = useState(false);
 
     // Tanstack Query Hooks
     const { data: smsData, isLoading: isLoadingSMS, refetch } = useSMSConfig(UserData?.id);
-    
+
     const { mutate: storeSMSConfig, isPending: isSavingConfig } = useStoreSMSConfig({
         onSuccess: (res) => {
             message.success(res?.message || 'Configuration saved successfully');
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to save configuration');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -61,7 +66,7 @@ const SmsSetting = () => {
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to create template');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -74,7 +79,7 @@ const SmsSetting = () => {
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to update template');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -85,7 +90,7 @@ const SmsSetting = () => {
             refetch();
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to delete template');
+            message.error(Utils.getErrorMessage(error));
         }
     });
 
@@ -104,10 +109,10 @@ const SmsSetting = () => {
     const HandleSubmit = async () => {
         try {
             const values = await form.validateFields();
-            
-            const payload = { 
-                user_id: UserData?.id, 
-                status: status 
+
+            const payload = {
+                user_id: UserData?.id,
+                status: status
             };
 
             if (customShow) {
@@ -132,7 +137,7 @@ const SmsSetting = () => {
     const SubmitTemplate = async () => {
         try {
             const values = await templateForm.validateFields();
-            
+
             const payload = {
                 user_id: UserData?.id,
                 template_name: values.template_name.trim(),
@@ -192,6 +197,7 @@ const SmsSetting = () => {
                 dataIndex: 'template_name',
                 key: 'template_name',
                 sorter: (a, b) => a.template_name.localeCompare(b.template_name),
+                searchable: true,
             },
             {
                 title: 'Content',
@@ -205,7 +211,8 @@ const SmsSetting = () => {
                 title: 'Action',
                 key: 'action',
                 width: 120,
-                align: 'center',
+                fixed: 'right',
+                align: 'left',
                 render: (_, record) => (
                     <Space size="small">
                         <Tooltip title="Edit">
@@ -243,7 +250,7 @@ const SmsSetting = () => {
     const isTemplateLoading = isCreatingTemplate || isUpdatingTemplate;
 
     return (
-        <>
+        <PermissionChecker role="Admin">
             {/* Delete Confirmation Modal */}
             <Modal
                 title="Are you sure?"
@@ -478,29 +485,56 @@ const SmsSetting = () => {
                     <Row gutter={[16, 16]}>
                         {/* SMS Templates Table */}
                         <Col xs={24}>
-                            <Card title="SMS Templates">
+                            <Card
+                                title="SMS Templates"
+                                size="small"
+                                extra={
+                                    <Space>
+                                        <Input
+                                            placeholder="Search..."
+                                            prefix={<SearchOutlined />}
+                                            allowClear
+                                            onChange={(e) => setSearchText(e.target.value)}
+                                            style={{ width: 150 }}
+                                            size="small"
+                                        />
+                                        <Button type="default" onClick={() => setIsVariablesVisible(true)} size="small">
+                                            System Variables
+                                        </Button>
+                                    </Space>
+                                }
+                            >
                                 <Table
+                                    dataSource={templates.filter(item =>
+                                        !searchText ||
+                                        item.template_name?.toLowerCase().includes(searchText.toLowerCase()) ||
+                                        item.content?.toLowerCase().includes(searchText.toLowerCase())
+                                    )}
                                     columns={columns}
-                                    dataSource={templates}
-                                    rowKey="id"
+                                    loading={isLoadingSMS}
+                                    size="small"
                                     pagination={{
-                                        pageSize: 10,
+                                        pageSize: 5,
                                         showSizeChanger: true,
-                                        showTotal: (total) => `Total ${total} templates`,
+                                        pageSizeOptions: ['5', '10', '20', '50'],
+                                        showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
                                     }}
                                     scroll={{ x: 600 }}
+                                    rowKey="id"
                                 />
                             </Card>
                         </Col>
 
-                        {/* System Variables */}
-                        <Col xs={24}>
-                            <SytemVariables />
-                        </Col>
+
                     </Row>
                 </Col>
             </Row>
-        </>
+            <SytemVariables
+                isDrawer={true}
+                open={isVariablesVisible}
+                onClose={() => setIsVariablesVisible(false)}
+            />
+        </PermissionChecker>
     );
 };
 

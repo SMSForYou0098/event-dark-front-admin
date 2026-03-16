@@ -1,0 +1,580 @@
+import React, { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { fabric } from 'fabric-pure-browser';
+import { useMyContext } from 'Context/MyContextProvider';
+import QRCode from 'qrcode';
+
+/**
+ * TicketCanvasView - A reusable canvas component for rendering tickets
+ *
+ * Canvas size: 300px width × 600px height
+ *
+ * Props:
+ *  showDetails       - boolean: whether to render ticket detail text
+ *  ticketNumber      - number: ticket index (1-based)
+ *  ticketLabel       - string: label shown on canvas, e.g. "(I)" or "(G)"
+ *  ticketData        - object: booking / order data
+ *  preloadedImage    - string | null: pre-fetched blob URL for the background
+ *  onReady           - () => void: called when canvas is fully rendered
+ *  onError           - (msg) => void: called when rendering fails
+ *
+ * Imperative handle (via ref):
+ *  download()        - triggers JPEG download
+ *  print()           - opens print window
+ *  isReady()         - returns current canvas-ready state
+ *  getDataURL(opts)  - returns dataURL from canvas
+ */
+const TicketCanvasView = forwardRef((props, ref) => {
+  const {
+    showDetails,
+    ticketNumber,
+    ticketLabel,
+    preloadedImage,
+    onReady,
+    onError,
+    ticketData,
+  } = props;
+
+  // Default to true so event name, date, time, venue etc. render when not explicitly disabled
+
+  const { convertTo12HourFormat, formatDateRange } = useMyContext();
+  const canvasRef = useRef(null);
+  const fabricCanvasRef = useRef(null);
+
+  // ─── Data extraction ──────────────────────────────────────────────────────
+  const ticket = ticketData?.ticket || ticketData?.bookings?.[0]?.ticket || {};
+  const event =
+    ticketData?.event ||
+    ticketData?.bookings?.[0]?.event ||
+    ticketData?.ticket?.event ||
+    ticketData?.bookings?.[0]?.ticket?.event ||
+    {};
+  const venue = event?.venue || {};
+
+  const userObj =
+    ticketData?.user ||
+    ticketData?.attendee ||
+    ticketData?.bookings?.[0]?.user ||
+    ticketData?.bookings?.[0]?.attendee;
+  const firstBooking = ticketData?.bookings?.[0] || {};
+
+  const user = userObj
+    ? userObj
+    : {
+      name: firstBooking?.name || ticketData?.name,
+      number: firstBooking?.number || ticketData?.number,
+      email: firstBooking?.email || ticketData?.email,
+    };
+
+  const ticketName = ticket?.name || 'Ticket Name';
+  const userName = user?.name || user?.Name || 'User Name';
+
+  const seatNames =
+    ticketData?.bookings?.length > 1
+      ? ticketData.bookings
+        .map((b) => b.seat_name || b.event_seat_status?.seat_name)
+        .filter(Boolean)
+        .join(', ')
+      : null;
+  const number =
+    seatNames ||
+    ticketData?.seat_name ||
+    ticketData?.event_seat_status?.seat_name ||
+    'N/A';
+
+  const address = venue?.address || event?.address || 'Address Not Specified';
+  // Format date range: comma-separated "2026-02-03,2026-02-05" → "3 Feb 2026 to 5 Feb 2026"
+  const formattedDate = ticketData?.booking_date || event?.date_range;
+  // const date = (() => {
+  //   if (!dateRangeSource) return 'Date Not Available';
+  //   const parts = String(dateRangeSource).split(',').map((s) => s.trim()).filter(Boolean);
+  //   const formatOne = (isoStr) => {
+  //     if (!isoStr) return '';
+  //     const d = new Date(isoStr);
+  //     if (Number.isNaN(d.getTime())) return isoStr;
+  //     const day = d.getDate();
+  //     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  //     const month = months[d.getMonth()];
+  //     const year = d.getFullYear();
+  //     return `${day} ${month} ${year}`;
+  //   };
+  //   if (parts.length === 0) return formatDateRange?.(dateRangeSource) || 'Date Not Available';
+  //   if (parts.length === 1) return formatOne(parts[0]) || formatDateRange?.(dateRangeSource) || 'Date Not Available';
+  //   return `${formatOne(parts[0])} to ${formatOne(parts[1])}`;
+  // })();
+
+  const date = (() => {
+    if (!formattedDate) return 'Date Not Available';
+
+    const parts = String(formattedDate)
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const parseDate = (isoStr) => {
+      const d = new Date(isoStr);
+      if (Number.isNaN(d.getTime())) return null;
+
+      return {
+        day: d.getDate(),
+        month: months[d.getMonth()],
+        monthIndex: d.getMonth(),
+        year: d.getFullYear()
+      };
+    };
+
+    if (parts.length === 1) {
+      const d = parseDate(parts[0]);
+      return d ? `${d.day} ${d.month} ${d.year}` : parts[0];
+    }
+
+    const start = parseDate(parts[0]);
+    const end = parseDate(parts[1]);
+
+    if (!start || !end) return formattedDate;
+
+    // ✅ same date
+    if (
+      start.day === end.day &&
+      start.monthIndex === end.monthIndex &&
+      start.year === end.year
+    ) {
+      return `${start.day} ${start.month} ${start.year}`;
+    }
+
+    // same month & year
+    if (start.year === end.year && start.monthIndex === end.monthIndex) {
+      return `${start.day} to ${end.day} ${start.month} ${start.year}`;
+    }
+
+    // same year
+    if (start.year === end.year) {
+      return `${start.day} ${start.month} to ${end.day} ${end.month} ${start.year}`;
+    }
+
+    // different year
+    return `${start.day} ${start.month} ${start.year} to ${end.day} ${end.month} ${end.year}`;
+  })();
+  const time =
+    convertTo12HourFormat?.(event?.start_time) || 'Time Not Set';
+  const OrderId = ticketData?.order_id || ticketData?.token || 'N/A';
+  const title = event?.name || 'Event Name';
+  const eventType = event?.event_type || '';
+  const bookingType =
+    ticketData?.booking_type || firstBooking?.booking_type || 'Online';
+  const gate = ticketData?.booking_gate || event?.gate || ticketData?.gate || '';
+
+
+  // ─── State ────────────────────────────────────────────────────────────────
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [isCanvasReady, setIsCanvasReady] = useState(false);
+
+  const textColor = '#000';
+  const CANVAS_WIDTH = 300;
+  const CANVAS_HEIGHT = 750;
+
+  // Background: only from parent (single API call in TicketModal). No image / error → white bg
+  const imageUrl = preloadedImage ?? null;
+
+  // ─── Imperative handle ────────────────────────────────────────────────────
+  useImperativeHandle(
+    ref,
+    () => ({
+      download: () => downloadCanvas(),
+      print: () => printCanvas(),
+      isReady: () => isCanvasReady,
+      getDataURL: (options = {}) => {
+        const canvas = fabricCanvasRef.current;
+        if (!canvas) return null;
+        return canvas.toDataURL({
+          format: 'jpeg',
+          quality: 0.9,
+          multiplier: 2,
+          ...options,
+        });
+      },
+    }),
+    [isCanvasReady] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
+  // ─── Generate QR code ─────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!OrderId) return;
+    QRCode.toDataURL(OrderId, { width: 150, margin: 1, errorCorrectionLevel: 'H' })
+      .then((url) => setQrDataUrl(url))
+      .catch((err) => {
+        console.error('QR Generation Error', err);
+        onError?.('Failed to generate QR code');
+      });
+  }, [OrderId, onError]);
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────
+  const loadFabricImage = useCallback(
+    (url, options = {}) =>
+      new Promise((resolve, reject) => {
+        fabric.Image.fromURL(
+          url,
+          (img) => {
+            if (img && img.getElement()) {
+              resolve(img);
+            } else {
+              reject(new Error('Failed to load image'));
+            }
+          },
+          { crossOrigin: 'anonymous', ...options }
+        );
+      }),
+    []
+  );
+
+  const centerText = useCallback(
+    (text, fontSize, fontFamily, canvas, top, options = {}) => {
+      const textObj = new fabric.Text(text || '', {
+        fontSize,
+        fontFamily,
+        top,
+        fill: textColor,
+        selectable: false,
+        evented: false,
+        originX: 'center',
+        left: canvas.width / 2,
+        ...options,
+      });
+      canvas.add(textObj);
+      return textObj;
+    },
+    [textColor]
+  );
+
+  // ─── Draw canvas ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!canvasRef.current || !qrDataUrl) return;
+
+    if (fabricCanvasRef.current) {
+      fabricCanvasRef.current.dispose();
+    }
+
+    const canvas = new fabric.StaticCanvas(canvasRef.current, {
+      enableRetinaScaling: true,
+    });
+    fabricCanvasRef.current = canvas;
+
+    const draw = async () => {
+      try {
+        // Set fixed canvas dimensions
+        canvas.setDimensions({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+
+        if (imageUrl) {
+          const img = await loadFabricImage(imageUrl);
+          canvas.setBackgroundImage(img, canvas.renderAll.bind(canvas), {
+            scaleX: CANVAS_WIDTH / img.width,
+            scaleY: CANVAS_HEIGHT / img.height
+          });
+        } else {
+          // White fallback background when no image
+          canvas.setBackgroundColor('#ffffff', canvas.renderAll.bind(canvas));
+        }
+
+        // Event name at top (above QR code)
+        if (showDetails) {
+          centerText(title, 16, 'Arial', canvas, 50, { fontWeight: 'bold' });
+          if (eventType) {
+            centerText(eventType.charAt(0).toUpperCase() + eventType.slice(1), 11, 'Arial', canvas, 70, { fill: '#000' });
+          }
+          centerText(ticketName, 18, 'Arial', canvas, 185, { fontWeight: 'bold' });
+        }
+
+        // Add QR code
+        if (qrDataUrl) {
+          const qrImg = await loadFabricImage(qrDataUrl);
+          const qrCodeSize = 85;
+          const padding = 4;
+          const qrPositionX = (CANVAS_WIDTH / 2) - (qrCodeSize / 2);
+          const qrPositionY = 220;
+
+          const qrBackground = new fabric.Rect({
+            left: qrPositionX - padding,
+            top: qrPositionY - padding,
+            width: qrCodeSize + padding * 2,
+            height: qrCodeSize + padding * 2,
+            fill: 'white',
+            selectable: false,
+            evented: false,
+            rx: 4,
+            ry: 4
+          });
+
+          qrImg.set({
+            left: qrPositionX,
+            top: qrPositionY,
+            selectable: false,
+            evented: false,
+            scaleX: qrCodeSize / qrImg.width,
+            scaleY: qrCodeSize / qrImg.height,
+          });
+
+          canvas.add(qrBackground);
+          canvas.add(qrImg);
+        }
+
+        // Add details
+        let currentY = 310;
+
+        // Ticket name (larger and bold) - REMOVE THIS
+        // centerText(ticketName, 18, 'Arial', canvas, currentY, { fontWeight: 'bold' });
+        // currentY += 30;
+
+        // Label (I) or (G)
+        if (props.ticketLabel) {
+          centerText(props.ticketLabel + (ticketNumber ? ' ' + ticketNumber : ''), 12, 'Arial', canvas, currentY, { fontWeight: 'bold', fill: '#000' });
+          currentY += 30;
+        } else {
+          currentY += 10;
+        }
+        if (showDetails) {
+
+          // Booking Type
+          centerText(` ${bookingType}`, 10, 'Arial', canvas, currentY);
+          currentY += 30;
+
+          // User number/seat
+          if (number !== 'N/A') {
+            centerText(`Seat: ${number}`, 15, 'Arial', canvas, currentY);
+            currentY += 30;
+          }
+
+          // Date Column (FIRST)
+          const dateStartX = 40;
+
+          // const dateLabel = new fabric.Text('📅 Date', {
+          //   left: dateStartX,
+          //   top: currentY,
+          //   fontSize: 14,
+          //   fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+          //   fill: textColor,
+          //   selectable: false,
+          //   evented: false,
+          //   fontWeight: 'normal',
+          // });
+          // canvas.add(dateLabel);
+
+          const dateValue = new fabric.Textbox(`📅 ${date}`, {
+            left: dateStartX,
+            top: currentY + 20,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            fill: textColor,
+            selectable: false,
+            evented: false,
+            fontWeight: 'bold',
+            width: 120,
+            lineHeight: 1.4,
+          });
+          canvas.add(dateValue);
+
+
+          // Time Column (SECOND)
+          const timeStartX = 180;
+
+          // const timeLabel = new fabric.Text('⏰ Time', {
+          //   left: timeStartX,
+          //   top: currentY,
+          //   fontSize: 14,
+          //   fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+          //   fill: textColor,
+          //   selectable: false,
+          //   evented: false,
+          //   fontWeight: 'normal',
+          // });
+          // canvas.add(timeLabel);
+
+          const timeValue = new fabric.Text(`⏰ ${time}`, {
+            left: timeStartX,
+            top: currentY + 20,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            fill: textColor,
+            selectable: false,
+            evented: false,
+            fontWeight: 'bold',
+          });
+          canvas.add(timeValue);
+
+          // here
+
+          // Calculate height based on the taller element
+          const timeHeight = 20 + (timeValue.height || 20);
+          const dateHeight = 20 + (dateValue.height || 20);
+          const maxHeight = Math.max(timeHeight, dateHeight);
+          currentY += maxHeight + 10;
+
+          // Gate Section (Centered)
+          if (gate) {
+            // const gateLabel = new fabric.Text('🏟 Gate', {
+            //     left: CANVAS_WIDTH / 2,
+            //     top: currentY,
+            //     fontSize: 14,
+            //     fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+            //     fill: textColor,
+            //     selectable: false,
+            //     evented: false,
+            //     fontWeight: 'normal',
+            //     originX: 'center'
+            // });
+            // canvas.add(gateLabel);
+
+            const gateValue = new fabric.Text(`🏟 ${gate.toString()}`, {
+              left: CANVAS_WIDTH / 2,
+              top: currentY + 20,
+              fontSize: 14,
+              fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+              fill: textColor,
+              selectable: false,
+              evented: false,
+              fontWeight: 'bold',
+              originX: 'center'
+            });
+            canvas.add(gateValue);
+            currentY += 90;
+          } else {
+            currentY += 120;
+          }
+
+          // Venue/Address - wrapped to multiple lines for readability
+          const venueLabel = new fabric.Text('📍 Address', {
+            left: canvas.getWidth() / 2,
+            top: currentY,
+            fontSize: 18,
+            fontFamily: 'Arial, Segoe UI Emoji, Apple Color Emoji',
+            fill: textColor,
+            fontWeight: 'bold',
+            originX: 'center',   // centers horizontally
+            textAlign: 'center',
+            selectable: false,
+            evented: false,
+          });
+
+          canvas.add(venueLabel);
+          currentY += 30;
+
+          const eventVenueText = new fabric.Textbox(address, {
+            left: 15,
+            top: currentY,
+            fontSize: 14,
+            fontFamily: 'Arial',
+            fontWeight: 'bold',
+            fill: textColor,
+            selectable: false,
+            evented: false,
+            width: CANVAS_WIDTH - 30,
+            lineHeight: 1.5,
+            textAlign: 'center',
+          });
+          canvas.add(eventVenueText);
+
+          // Order ID at bottom
+        }
+
+        canvas.renderAll();
+        setIsCanvasReady(true);
+        onReady?.();
+
+      } catch (error) {
+        console.error('Error drawing canvas:', error);
+        onError?.('Failed to render ticket');
+      }
+    };
+
+    draw();
+
+    return () => {
+      if (fabricCanvasRef.current) {
+        fabricCanvasRef.current.dispose();
+        fabricCanvasRef.current = null;
+      }
+    };
+  }, [
+    imageUrl,
+    qrDataUrl,
+    showDetails,
+    ticketName,
+    userName,
+    number,
+    address,
+    date,
+    time,
+    title,
+    ticketNumber,
+    ticketLabel,
+    bookingType,
+    OrderId,
+    centerText,
+    loadFabricImage,
+    textColor,
+    onReady,
+    onError,
+    eventType,
+  ]);
+
+  // ─── Download ─────────────────────────────────────────────────────────────
+  const downloadCanvas = () => {
+    try {
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) throw new Error('Canvas not ready');
+      const dataURL = canvas.toDataURL({ format: 'jpeg', quality: 0.9, multiplier: 2 });
+      const link = document.createElement('a');
+      link.href = dataURL;
+      link.download = `ticket_${userName}_${ticketName}_${ticketNumber}.jpg`;
+      link.click();
+      return true;
+    } catch (error) {
+      console.error('Download error:', error);
+      onError?.('Failed to download ticket');
+      return false;
+    }
+  };
+
+  // ─── Print ────────────────────────────────────────────────────────────────
+  const printCanvas = () => {
+    try {
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) throw new Error('Canvas not ready');
+      const dataURL = canvas.toDataURL({ format: 'png', multiplier: 1.5 });
+      const printWindow = window.open('', '', 'width=800,height=600');
+      const printImage = new Image();
+      printImage.src = dataURL;
+      printImage.onload = () => {
+        printWindow.document.write(
+          '<html><head><title>Print Ticket</title></head><body style="text-align:center;">'
+        );
+        printWindow.document.body.appendChild(printImage);
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 250);
+      };
+      return true;
+    } catch (error) {
+      console.error('Print error:', error);
+      onError?.('Failed to print ticket');
+      return false;
+    }
+  };
+
+  // ─── Render ───────────────────────────────────────────────────────────────
+  return (
+    <div className="ticket-canvas-view">
+      <div style={{ display: 'flex', justifyContent: 'center', width: '100%', minHeight: '300px' }}>
+        <canvas ref={canvasRef} />
+      </div>
+    </div>
+  );
+});
+
+TicketCanvasView.displayName = 'TicketCanvasView';
+
+export default TicketCanvasView;

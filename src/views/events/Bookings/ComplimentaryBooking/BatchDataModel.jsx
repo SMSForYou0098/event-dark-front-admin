@@ -6,11 +6,16 @@ import {
   MailOutlined,
   CloseOutlined,
   LoadingOutlined,
+  SendOutlined,
 } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
 import DataTable from 'views/events/common/DataTable';
+import { resendTickets } from '../agent/utils';
+import SendTickets from './SendTickets';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
-const BatchDataModel = ({ show, onHide, batchData = [] }) => {
+const BatchDataModel = ({ show, onHide, batchData = [], batchId }) => {
   const { handleWhatsappAlert, extractDetails, HandleSendSMS, sendMail } = useMyContext();
   const [loadingId, setLoadingId] = useState(null);
   const [processingType, setProcessingType] = useState(null);
@@ -61,7 +66,7 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
     } catch (error) {
       hideLoading();
       message.error({
-        content: `Failed to send ${processName}. Please try again.`,
+        content: Utils.getErrorMessage(error, `Failed to send ${processName}. Please try again.`),
         duration: 3,
       });
       console.error(`${processName} Error:`, error);
@@ -115,6 +120,12 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
       total: 0,
     };
     await sendMail([data]);
+  };
+
+  const sendTickets = async (booking) => {
+    console.log(booking)
+    const response = await resendTickets(booking, 'complimentary_bookings')
+    console.log(response)
   };
 
   // Define columns
@@ -179,7 +190,7 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
 
         return (
           <Space size="small">
-            <Button
+            {/* <Button
               type="default"
               icon={isLoading && processingType === 'WhatsApp' ? <LoadingOutlined /> : <WhatsAppOutlined />}
               onClick={() => handleWhatsApp(record.id)}
@@ -187,7 +198,7 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
               disabled={isDisabled}
               title="Send WhatsApp"
               size="small"
-              style={{ 
+              style={{
                 color: '#25D366',
                 borderColor: isLoading && processingType === 'WhatsApp' ? '#25D366' : undefined
               }}
@@ -200,7 +211,7 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
               disabled={isDisabled}
               title="Send SMS"
               size="small"
-              style={{ 
+              style={{
                 color: '#1890ff',
                 borderColor: isLoading && processingType === 'SMS' ? '#1890ff' : undefined
               }}
@@ -213,11 +224,21 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
               disabled={isDisabled}
               title="Send Email"
               size="small"
-              style={{ 
+              style={{
                 color: '#f5222d',
                 borderColor: isLoading && processingType === 'Email' ? '#f5222d' : undefined
               }}
-            />
+            /> */}
+            <PermissionChecker permission="Resend Complimentary Booking">
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                onClick={() => sendTickets(record)}
+                disabled={record?.is_deleted}
+                title="Resend Tickets"
+                size="small"
+              />
+            </PermissionChecker>
           </Space>
         );
       },
@@ -246,7 +267,6 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
         showSearch
         emptyText="No tickets found"
         tableProps={{
-          bordered: true,
           size: 'middle',
           scroll: { x: 800 },
           pagination: {
@@ -257,6 +277,11 @@ const BatchDataModel = ({ show, onHide, batchData = [] }) => {
             position: ['bottomCenter'],
           },
         }}
+        extraHeaderContent={
+          <Space>
+            <SendTickets batchId={batchId} />
+          </Space>
+        }
       />
     </Modal>
   );

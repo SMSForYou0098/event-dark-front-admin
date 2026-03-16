@@ -72,7 +72,7 @@ const MetaFields = ({ meta, onChange }) => {
       });
 
       const areEqual = JSON.stringify(categoryIds.sort()) === JSON.stringify(selectedCategoryOptions.sort());
-      
+
       if (!areEqual) {
         setSelectedCategoryOptions(categoryIds);
       }

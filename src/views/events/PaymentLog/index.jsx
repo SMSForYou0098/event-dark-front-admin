@@ -4,6 +4,9 @@ import { Code } from "lucide-react";
 import { Button, Modal, Tooltip, Alert, Input } from "antd";
 import { useMyContext } from "Context/MyContextProvider";
 import usePermission from "utils/hooks/usePermission";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import PermissionChecker from "layouts/PermissionChecker";
+import Utils from "utils";
 import DataTable from "../common/DataTable";
 import { useQuery } from "@tanstack/react-query";
 import { SearchOutlined } from '@ant-design/icons';
@@ -42,7 +45,7 @@ const PaymentLogs = memo(() => {
         enabled: !!authToken, // Only run query if authToken exists
         staleTime: 5 * 60 * 1000, // 5 minutes
         onError: (error) => {
-            ErrorAlert("Failed to fetch logs");
+            ErrorAlert(Utils.getErrorMessage(error));
         },
     });
 
@@ -185,7 +188,7 @@ const PaymentLogs = memo(() => {
         }
     }, [modalSearchText]);
     return (
-        <>
+        <PermissionChecker permission={PERMISSIONS.VIEW_PAYMENT_LOGS}>
             <Modal
                 centered
                 title="Payment Details"
@@ -261,7 +264,7 @@ const PaymentLogs = memo(() => {
                     size: "middle",
                 }}
             />
-        </>
+        </PermissionChecker>
     );
 });
 

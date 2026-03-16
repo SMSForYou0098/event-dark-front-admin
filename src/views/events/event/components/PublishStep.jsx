@@ -12,6 +12,7 @@ import {
   WhatsAppOutlined
 } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
+import Utils from 'utils';
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -21,17 +22,12 @@ const PublishStep = ({ eventData, formData }) => {
   const slug = createSlug(eventData?.name || formData?.name || '');
   const canonicalUrl = `https://eventgyt.com/event/${eventData?.key || eventData?.event_key}/${slug}`;
 
-  // Prefer backend-provided short URL if available
-  const shortUrl =
-    eventData?.short_url ||
-    eventData?.shortUrl ||
-    eventData?.data?.short_url ||
-    eventData?.data?.shortUrl ||
-    formData?.short_url ||
-    formData?.shortUrl ||
-    '';
+  // Priority logic for URLs
+  const fullUrl = eventData?.full_url || eventData?.fullUrl || canonicalUrl;
+  const shortUrl = eventData?.short_url || eventData?.shortUrl || '';
 
-  const urlToUse = shortUrl || canonicalUrl;
+  // Use fullUrl for the QR code and main display as requested
+  const urlToUse = fullUrl;
 
   const [qrVisible, setQrVisible] = React.useState(false);
   const [qrDataUrl, setQrDataUrl] = React.useState('');
@@ -58,10 +54,10 @@ const PublishStep = ({ eventData, formData }) => {
     message.success('QR code downloaded!');
   };
 
-  const handleCopyUrl = async () => {
+  const handleCopyUrl = async (url) => {
     try {
-      await navigator.clipboard.writeText(urlToUse);
-      message.success('Event link copied to clipboard!');
+      await navigator.clipboard.writeText(url);
+      message.success('Link copied to clipboard!');
     } catch (err) {
       message.error('Failed to copy link');
     }
@@ -140,31 +136,42 @@ const PublishStep = ({ eventData, formData }) => {
               <Text type="secondary" className="d-block mb-1">Category</Text>
               <Text>{eventData.category?.title || 'N/A'}</Text>
             </Col>
-            {/* <Col xs={24} sm={12}>
+            <Col xs={24} sm={12}>
               <Text type="secondary" className="d-block mb-1">Venue</Text>
-              <Text>{eventData.venue_id || 'N/A'}</Text>
-            </Col> */}
+              <Text>{eventData.venue?.city || 'N/A'}</Text>
+            </Col>
           </Row>
+
           <Divider className="my-2" />
 
-          <div>
-            <Text type="secondary" className="d-block mb-2">Event Link</Text>
-            <div className="d-flex align-items-center flex-wrap gap-2">
-              <Text
-                copyable
-                className="flex-grow-1 min-w-200 p-2 px-3 bg-dark rounded text-light"
-                style={{ wordBreak: 'break-all' }}
-              >
-                {urlToUse}
-              </Text>
-              {/* <Button
-                icon={<LinkOutlined />}
-                onClick={handleCopyUrl}
-              >
-                Copy Link
-              </Button> */}
-            </div>
-          </div>
+          <Row gutter={[16, 16]}>
+            <Col xs={24} md={12}>
+              <Text type="secondary" className="d-block mb-2">Full Event Link (QR Link)</Text>
+              <div className="d-flex align-items-center flex-wrap gap-2">
+                <Text
+                  copyable
+                  className="flex-grow-1 min-w-200 p-2 px-3 bg-dark rounded text-light"
+                  style={{ wordBreak: 'break-all' }}
+                >
+                  {fullUrl}
+                </Text>
+              </div>
+            </Col>
+            {shortUrl && (
+              <Col xs={24} md={12}>
+                <Text type="secondary" className="d-block mb-2">Short Link</Text>
+                <div className="d-flex align-items-center flex-wrap gap-2">
+                  <Text
+                    copyable
+                    className="flex-grow-1 min-w-200 p-2 px-3 bg-dark rounded text-light"
+                    style={{ wordBreak: 'break-all' }}
+                  >
+                    {shortUrl}
+                  </Text>
+                </div>
+              </Col>
+            )}
+          </Row>
         </Space>
       </Card>
 

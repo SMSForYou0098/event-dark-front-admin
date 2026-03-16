@@ -6,6 +6,7 @@ import { signOutSuccess, logout } from 'store/slices/authSlice'; // adjust path
 import { AUTH_TOKEN } from 'constants/AuthConstant';
 import { API_BASE_URL } from 'configs/AppConfig';
 import { message } from 'antd';
+import Utils from 'utils';
 
 const DEFAULT_TIMEOUT = 60000;
 // NOTE: you included 400 earlier — keep if you intentionally treat 400 as auth-related
@@ -41,7 +42,7 @@ export const api = axios.create({
   timeout: DEFAULT_TIMEOUT,
 });
 
-// Request interceptor: attach Authorization header (Bearer)
+// Request interceptor: attach Authorization header (Bearer) and custom headers
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
@@ -49,6 +50,9 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Add custom header for all requests
+    config.headers = config.headers || {};
+    config.headers['X-Request-Source'] = process.env.REACT_APP_BACKEND_HEADER || 'GTX025U';
     return config;
   },
   (error) => Promise.reject(error)
@@ -94,7 +98,7 @@ api.interceptors.response.use(
       // Clear persisted token (choose one approach)
       try {
         localStorage.removeItem(AUTH_TOKEN);
-      } catch (e) {}
+      } catch (e) { }
 
       // Dispatch a redux action to update auth state
       if (store?.dispatch) {
@@ -104,7 +108,7 @@ api.interceptors.response.use(
           // store.dispatch(signOutSuccess());
         }
       }
-      message.error('Your session has expired or you are not authorized. Please log in again.');
+      // message.error(error?.response?.data?.message || error?.response?.data?.error || 'Your session has expired or you are not authorized. Please log in again.');
 
       return Promise.reject(error);
     }
@@ -117,19 +121,15 @@ api.interceptors.response.use(
 
     // Specific status messaging (404/500/508 etc)
     if (status === 404) {
-      message.error(`Resource not found: ${url}`);
+      // message.error(`Resource not found: ${url}`);
     } else if (status === 500) {
       message.error('Server Error: Something went wrong on server.');
     } else if (status === 408 || status === 508) {
       message.error('Request Timeout: Request timed out.');
     } else {
       // Generic fallback: prefer server-supplied message if present
-      const serverMsg =
-        error?.response?.data?.message ||
-        error?.response?.data?.error ||
-        error?.response?.data ||
-        'An error occurred';
-      message.error(`Error ${status}: ${serverMsg}`);
+      const serverMsg = Utils.getErrorMessage(error);
+      message.error(serverMsg);
     }
 
     return Promise.reject(error);

@@ -1,37 +1,47 @@
 import { useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import OrganizerService from 'services/OrganizerService';
 
 export const useDashboardData = (userId) => {
-    const fetchBookingData = async () => {
-        const response = await api.get(`bookingCount/${userId}`);
-        return response;
+    // Fetch all dashboard data in parallel for better performance
+    const fetchAllDashboardData = async () => {
+        const [bookingData, salesData, gatewayWiseSalesData, organizerSummary, organizerTickets, userStats] = await Promise.all([
+            api.get(`bookingCount/${userId}`),
+            api.get(`calculateSale/${userId}`),
+            api.get(`gateway-wise-sales/${userId}`).catch(() => null), // Graceful fallback if gateway API fails
+            OrganizerService.getOrganizerSummary(userId),
+            OrganizerService.getDashboardOrgTickets(),
+            api.get(`user-stats`).catch(() => null) // Graceful fallback if gateway API fails
+        ]);
+
+        return {
+            bookingData,
+            salesData,
+            gatewayWiseSalesData,
+            organizerSummary,
+            organizerTickets,
+            userStats
+        };
     };
 
-    const fetchSalesData = async () => {
-        const response = await api.get(`calculateSale/${userId}`);
-        return response;
-    };
-
-    const { data: bookingData, error: bookingError, isLoading: isBookingLoading } = useQuery({
-        queryKey: ['bookingData', userId],
-        queryFn: () => fetchBookingData(userId),
+    const { data, error, isLoading } = useQuery({
+        queryKey: ['dashboardData', userId],
+        queryFn: fetchAllDashboardData,
         staleTime: 5 * 60 * 1000, // 5 minutes
         cacheTime: 30 * 60 * 1000, // 30 minutes
-        keepPreviousData: true
-    });
-
-    const { data: salesData, error: salesError, isLoading: salesLoading } = useQuery({
-        queryKey: ['salesData', userId],
-        queryFn: () => fetchSalesData(userId),
-        staleTime: 5 * 60 * 1000,
-        cacheTime: 30 * 60 * 1000,
-        keepPreviousData: true
+        keepPreviousData: true,
+        enabled: !!userId // Only fetch when userId is available
     });
 
     return {
-            bookingData: bookingData,
-            salesData: salesData,
-            isLoading: isBookingLoading || salesLoading,
-            error: bookingError || salesError,
+        bookingData: data?.bookingData,
+        salesData: data?.salesData,
+        gatewayWiseSalesData: data?.gatewayWiseSalesData,
+        gatewayLoading: isLoading,
+        organizerSummary: data?.organizerSummary,
+        organizerTickets: data?.organizerTickets,
+        userStats: data?.userStats,
+        isLoading,
+        error
     };
 };

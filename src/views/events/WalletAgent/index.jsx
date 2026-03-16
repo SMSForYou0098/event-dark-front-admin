@@ -25,12 +25,13 @@ import {
     DollarOutlined
 } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import apiClient from 'auth/FetchInterceptor';
 import CountUp from 'react-countup';
 import { useMyContext } from 'Context/MyContextProvider';
 import { capitilize } from '../users/wallet/Transaction';
 import QRScanner from '../Scan/QRScanner';
 import { IndianRupee } from 'lucide-react';
+import Utils from 'utils';
 
 const { Text, Title } = Typography;
 
@@ -101,10 +102,8 @@ const AgentCredit = ({ id }) => {
         queryKey: ['userBalance', selectedUserId],
         queryFn: async () => {
             if (!selectedUserId) return null;
-            const response = await axios.get(`${api}chek-user/${selectedUserId}`, {
-                headers: { Authorization: `Bearer ${authToken}` },
-            });
-            return response.data.balance;
+            const response = await apiClient.get(`chek-user/${selectedUserId}`);
+            return response.balance;
         },
         enabled: !!selectedUserId,
         staleTime: 1000 * 60 * 2, // 2 minutes
@@ -135,8 +134,8 @@ const AgentCredit = ({ id }) => {
     // Update balance mutation
     const updateBalanceMutation = useMutation({
         mutationFn: async () => {
-            return await axios.post(
-                `${api}add-balance`,
+            return await apiClient.post(
+                `add-balance`,
                 {
                     amount: calculatedBalance,
                     assign_by: UserData?.id,
@@ -144,22 +143,19 @@ const AgentCredit = ({ id }) => {
                     newCredit: creditAmount,
                     deduction: false,
                     payment_method: paymentMethod,
-                },
-                {
-                    headers: { Authorization: `Bearer ${authToken}` },
                 }
             );
         },
         onSuccess: (response) => {
-            if (response.data.status) {
+            if (response.status) {
                 queryClient.invalidateQueries({ queryKey: ['userBalance', selectedUserId] });
                 sendWhatsAppAlert();
-                successAlert('Success', response.data.message);
+                successAlert('Success', response.message);
                 setCreditAmount(0);
             }
         },
         onError: (error) => {
-            message.error(error.response?.data?.message || 'Failed to update balance');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 
@@ -172,7 +168,7 @@ const AgentCredit = ({ id }) => {
     };
 
     const handleQRData = (data) => {
-        console.log('QR Code scanned:', data);
+        // console.log('QR Code scanned:', data);
     };
 
     // Set user ID from prop

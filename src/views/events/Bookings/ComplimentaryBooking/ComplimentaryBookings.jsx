@@ -24,6 +24,7 @@ import {
   CheckCircleOutlined,
   LoadingOutlined,
   CloseCircleOutlined,
+  SendOutlined,
 } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import * as XLSX from "xlsx";
@@ -36,6 +37,10 @@ import { useMyContext } from "../../../../Context/MyContextProvider";
 import generateQRCodeZip from "views/events/Tickets/generateQRCodeZip";
 import QRGenerator from "views/events/Tickets/QRGenerator";
 import PosEvents from "../components/PosEvents";
+import DataTable from "views/events/common/DataTable";
+import Utils from "utils";
+import PermissionChecker from "layouts/PermissionChecker";
+import { PERMISSIONS } from "constants/PermissionConstant";
 // import CommonEventAccordion from "./CommonEventAccordion";
 
 const { Title, Text } = Typography;
@@ -64,6 +69,8 @@ const ComplimentaryBookings = memo(() => {
   const [duplicateData, setDuplicateData] = useState([]);
   const fileInputRef = useRef(null);
   const [zipLoading, setZipLoading] = useState(false);
+  const [batchId, setBatchId] = useState(null);
+  const [sending, setSending] = useState(false);
 
 
   // Check users mutation
@@ -89,7 +96,7 @@ const ComplimentaryBookings = memo(() => {
       }
     },
     onError: (error) => {
-      message.error("An error occurred while checking user booking.");
+      message.error(Utils.getErrorMessage(error, "An error occurred while checking user booking."));
     },
   });
 
@@ -104,19 +111,27 @@ const ComplimentaryBookings = memo(() => {
     },
     onSuccess: (response) => {
       if (response.status) {
-        const allBookings = response.bookings?.map((item) => ({
-          token: item?.token,
-          name: item?.name,
-          email: item?.email,
-          number: item?.number,
-        }));
+        // Store batch_id for SendTickets
+        if (response.batch_id) {
+          setBatchId(response.batch_id);
+        }
 
-        setBookings(allBookings);
+        // Handle bookings array for ZIP download
+        if (response.bookings && Array.isArray(response.bookings)) {
+          const allBookings = response.bookings.map((item) => ({
+            token: item?.token,
+            name: item?.name,
+            email: item?.email,
+            number: item?.number,
+          }));
+          setBookings(allBookings);
+        }
+
         message.success("Complimentary Booking Created Successfully");
       }
     },
     onError: (error) => {
-      message.error(error.response?.data?.message || "Something went wrong");
+      message.error(Utils.getErrorMessage(error, "Something went wrong"));
     },
   });
 
@@ -145,10 +160,35 @@ const ComplimentaryBookings = memo(() => {
       });
     } catch (e) {
       console.error('Error generating ZIP:', e);
-      message.error('Failed to generate QR codes. Please try again.');
+      message.error(Utils.getErrorMessage(e, 'Failed to generate QR codes. Please try again.'));
     } finally {
       // Always stop button loading when done (success or error)
       setZipLoading(false);
+    }
+  };
+
+  const handleSendTickets = async () => {
+    if (!batchId) {
+      message.error("Batch ID not found. Please create bookings first.");
+      return;
+    }
+
+    setSending(true);
+    try {
+      const response = await api.post("/resend-ticket-bulk", {
+        batch_id: batchId,
+        table_name: "complimentary_bookings"
+      });
+      if (response.status) {
+        message.success("Tickets sent successfully!");
+      } else {
+        message.error(Utils.getErrorMessage(response, "Failed to send tickets."));
+      }
+    } catch (error) {
+      console.error(error);
+      message.error(Utils.getErrorMessage(error, "Failed to send tickets."));
+    } finally {
+      setSending(false);
     }
   };
 
@@ -195,6 +235,13 @@ const ComplimentaryBookings = memo(() => {
     // reset upload input and zip state
     resetFileInput();
     setZipLoading(false);
+
+    // reset batch/booking data
+    setBatchId(null);
+    setSending(false);
+    setBookings([]);
+    setData([]);
+    setDisable(true);
 
     // close any loading modal
     setLoadingModal({ open: false, title: "" });
@@ -304,7 +351,7 @@ const ComplimentaryBookings = memo(() => {
           }
         } catch (error) {
           resetFileInput();
-          message.error(error.message);
+          message.error(Utils.getErrorMessage(error));
         } finally {
           loadingAlert.close();
         }
@@ -507,15 +554,16 @@ const ComplimentaryBookings = memo(() => {
       {tickets.length > 0 ? (
         <Form layout="vertical">
           <Row gutter={[16, 16]}>
-              <Col xs={24} sm={12} md={8} lg={12}>
-            <Card
-              title='Complimentary Bookings'
-              extra={
-                <Button danger onClick={() => fullReset()} icon={<CloseCircleOutlined />}>
-                  Reset Bookings
-                </Button>
-              }
-            >
+            <Col xs={24} md={12} >
+              <Card
+                bordered={false}
+                title='Complimentary Bookings'
+                extra={
+                  <Button danger onClick={() => fullReset()} icon={<CloseCircleOutlined />}>
+                    Reset Bookings
+                  </Button>
+                }
+              >
                 <Row gutter={[16, 16]}>
                   <Col xs={24} sm={12} md={8} lg={12}>
                     <Form.Item label="Select Category" required>
@@ -589,26 +637,28 @@ const ComplimentaryBookings = memo(() => {
                           ) : (
                             <Col xs={24} sm={12} md={8} lg={12}>
                               <Form.Item label="Download Sample">
-                                <Button
-                                  icon={<FileExcelOutlined />}
-                                  href={`/uploads/sample.xlsx`}
-                                  download
-                                  className="d-flex justify-content-center align-items-center"
-                                  block
-                                >
-                                  Sample File
-                                </Button>
+                                <PermissionChecker permission={PERMISSIONS.DOWNLOAD_COMPLIMENTARY_BOOKING}>
+                                  <Button
+                                    icon={<FileExcelOutlined />}
+                                    href={`/uploads/sample.xlsx`}
+                                    download
+                                    className="d-flex justify-content-center align-items-center"
+                                    block
+                                  >
+                                    Sample File
+                                  </Button>
+                                </PermissionChecker>
                               </Form.Item>
                             </Col>
                           )}
 
-                          {bookings.length > 0 && (
+                          {/* {batchId && (
                             <Col xs={24} sm={12} md={8} lg={12}>
                               <Form.Item label="Send Tickets">
-                                <SendTickets bookings={bookings} />
+                                <SendTickets batchId={batchId} />
                               </Form.Item>
                             </Col>
-                          )}
+                          )} */}
                         </>
                       ) : (
                         <Col xs={24} sm={12} md={8} lg={12}>
@@ -633,38 +683,115 @@ const ComplimentaryBookings = memo(() => {
 
                       <Col xs={24} sm={12} md={8} lg={24}>
                         <Form.Item label="Action">
-                          {bookings.length > 0 ? (
-                            <Button
-                              type="primary"
-                              icon={<DownloadOutlined />}
-                              onClick={handleZip}
-                              loading={zipLoading || createBookingMutation.isPending}
-                              disabled={zipLoading || createBookingMutation.isPending}
-                              block
-                            >
-                              {zipLoading ? 'Generating...' : 'Download ZIP'}
-                            </Button>
+                          {bookings.length > 0 || batchId ? (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <PermissionChecker permission={PERMISSIONS.DOWNLOAD_COMPLIMENTARY_BOOKING}>
+                                <Button
+                                  type="primary"
+                                  icon={<DownloadOutlined />}
+                                  onClick={handleZip}
+                                  loading={zipLoading}
+                                  disabled={zipLoading || sending || bookings.length === 0}
+                                  style={{ flex: 1 }}
+                                >
+                                  {zipLoading ? 'Generating...' : 'Download ZIP'}
+                                </Button>
+                              </PermissionChecker>
+                              <PermissionChecker permission={PERMISSIONS.RESEND_COMPLIMENTARY_BOOKING}>
+                                <Button
+                                  type="primary"
+                                  icon={<SendOutlined />}
+                                  onClick={handleSendTickets}
+                                  loading={sending}
+                                  disabled={sending || zipLoading || !batchId}
+                                  style={{ flex: 1 }}
+                                >
+                                  {sending ? 'Sending...' : 'Send Tickets'}
+                                </Button>
+                              </PermissionChecker>
+                            </div>
                           ) : (
-                            <Button
-                              type="primary"
-                              disabled={disable}
-                              onClick={handleSubmit}
-                              loading={createBookingMutation.isPending}
-                              block
-                            >
-                              Submit Booking
-                            </Button>
+                            <PermissionChecker permission={PERMISSIONS.ADD_COMPLIMENTARY_BOOKING}>
+                              <Button
+                                type="primary"
+                                disabled={disable}
+                                onClick={handleSubmit}
+                                loading={createBookingMutation.isPending}
+                                block
+                              >
+                                Submit Booking
+                              </Button>
+                            </PermissionChecker>
                           )}
                         </Form.Item>
                       </Col>
                     </>
                   )}
                 </Row>
-            </Card>
-              </Col>
-          </Row>
-        </Form>
+              </Card>
+            </Col>
+            <Col md={12} xs={24}>
+
+              {/* Bookings Table Section */}
+              {bookings.length > 0 && (
+                <Row gutter={[16, 16]} >
+                  <Col span={24}>
+                    <DataTable
+                      title="Generated Bookings"
+                      data={bookings.map((item, index) => ({ ...item, key: index }))}
+                      columns={[
+                        {
+                          title: '#',
+                          key: 'index',
+                          render: (_, __, index) => index + 1,
+                          width: 60,
+                        },
+                        {
+                          title: 'Name',
+                          dataIndex: 'name',
+                          key: 'name',
+                        },
+                        {
+                          title: 'Number',
+                          dataIndex: 'number',
+                          key: 'number',
+                        },
+                        {
+                          title: 'Token',
+                          dataIndex: 'token',
+                          key: 'token',
+                        },
+                      ]}
+                      showSearch={true}
+                    // extraHeaderContent={
+                    //   <Button
+                    //     type="primary"
+                    //     icon={<FileExcelOutlined />}
+                    //     onClick={() => {
+                    //       const ws = XLSX.utils.json_to_sheet(bookings.map((item, idx) => ({
+                    //         '#': idx + 1,
+                    //         Name: item.name || '',
+                    //         Number: item.number || '',
+                    //         Token: item.token || '',
+                    //       })));
+                    //       const wb = XLSX.utils.book_new();
+                    //       XLSX.utils.book_append_sheet(wb, ws, 'Bookings');
+                    //       XLSX.writeFile(wb, `complimentary_bookings_${new Date().toISOString().split('T')[0]}.xlsx`);
+                    //       message.success('Excel file downloaded!');
+                    //     }}
+                    //   >
+                    //     Export Excel
+                    //   </Button>
+                    // }
+                    />
+                  </Col>
+                </Row>
+              )}
+            </Col>
+          </Row >
+        </Form >
       ) : "This event has no tickets available for complimentary booking."}
+
     </>
   );
 });

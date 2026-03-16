@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { connect } from 'react-redux'
-import { LockOutlined, MailOutlined, UserOutlined, PhoneOutlined, HomeOutlined, BankOutlined, EnvironmentOutlined } from '@ant-design/icons';
-import { Button, Form, Input, Alert, Typography, Row, Col } from "antd";
-import { signUp, showAuthMessage, showLoading, hideAuthMessage } from '../../../store/slices/authSlice';
-import { useNavigate, useLocation, Link } from 'react-router-dom'
+import { connect, useDispatch, useSelector } from 'react-redux'
+import { MailOutlined, UserOutlined, PhoneOutlined, BankOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Alert, Row, Col, message as antMessage } from "antd";
+import { signUp, showAuthMessage, showLoading, hideAuthMessage, setOtpCooldown, clearOtpCooldown } from '../../../store/slices/authSlice';
+import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from "framer-motion"
 import axios from 'axios';
-import { API_BASE_URL, AUTH_PREFIX_PATH } from 'configs/AppConfig';
-
-const { Text } = Typography;
+import { API_BASE_URL } from 'configs/AppConfig';
+import api from 'auth/FetchInterceptor';
+import { OtpVerificationModal } from 'views/events/users/Manage/components';
+import { parseRetryAfter, formatCooldownTime } from 'utils/otpUtils';
+import Utils from 'utils';
 
 const rules = {
 	name: [
@@ -45,14 +47,14 @@ const rules = {
 			message: 'Please enter a valid email!'
 		}
 	],
-	company: [
+	organisation: [
 		{
 			required: true,
-			message: 'Please input your company name'
+			message: 'Please input your organisation name'
 		},
 		{
 			min: 2,
-			message: 'Company name must be at least 2 characters'
+			message: 'organisation name must be at least 2 characters'
 		}
 	],
 	city: [
@@ -78,9 +80,27 @@ export const RegisterForm = (props) => {
 	const navigate = useNavigate();
 	const location = useLocation();
 	const data = location?.state?.data;
+	const dispatch = useDispatch();
 
 	const [error, setError] = useState('');
 	const [formLoading, setFormLoading] = useState(false);
+
+	// OTP verification state
+	const [otpModalVisible, setOtpModalVisible] = useState(false);
+	const [otpValue, setOtpValue] = useState('');
+	const [otpLoading, setOtpLoading] = useState(false);
+	const [otpSending, setOtpSending] = useState(false);
+	const [pendingFormValues, setPendingFormValues] = useState(null);
+	const [sessionId, setSessionId] = useState(null);
+
+	// Get OTP cooldown from Redux
+	const otpCooldownEnd = useSelector((state) => state.auth.otpCooldownEnd);
+	const otpCooldownNumber = useSelector((state) => state.auth.otpCooldownNumber);
+	const [remainingCooldown, setRemainingCooldown] = useState(0);
+
+	// Default cooldown duration in seconds when no retry_after is provided
+	const DEFAULT_COOLDOWN_SECONDS = 10; // For initial OTP send failures
+	const RESEND_COOLDOWN_SECONDS = 30; // For resend button cooldown
 
 	useEffect(() => {
 		if (data) {
@@ -119,74 +139,182 @@ export const RegisterForm = (props) => {
 		}
 	}, [token, allowRedirect, navigate, redirect, showMessage, hideAuthMessage]);
 
-	const handleLogin = async (phoneNumber) => {
-		if (!phoneNumber) {
-			setError('Please enter your email or mobile number.');
+	// Update remaining cooldown time
+	useEffect(() => {
+		if (!otpCooldownEnd) {
+			setRemainingCooldown(0);
 			return;
 		}
-		try {
-			setFormLoading(true);
-			const response = await axios.post(`${API_BASE_URL}verify-user`, { data: phoneNumber });
-			if (response.data.status) {
-				const isPassReq = response.data?.pass_req;
-				const path = '/';
 
-				if (isPassReq === true) {
-					const session_id = response.data.session_id;
-					const auth_session = response.data.auth_session;
-					const info = {
-						data: phoneNumber,
-						password_required: isPassReq,
-						session_id,
-						auth_session
-					};
-					navigate(`${AUTH_PREFIX_PATH}/verify-password`, { state: { info } });
-				} else {
-					navigate(`${AUTH_PREFIX_PATH}/two-factor`, { state: { data: phoneNumber, path } });
-				}
-				setFormLoading(false);
-			} else {
-				setFormLoading(false);
+		const updateCooldown = () => {
+			const now = Date.now();
+			const remaining = Math.max(0, Math.ceil((otpCooldownEnd - now) / 1000));
+			setRemainingCooldown(remaining);
+
+			if (remaining <= 0) {
+				dispatch(clearOtpCooldown());
 			}
-		} catch (err) {
-			setError(err.response?.data?.message || err.response?.data?.error || 'Something went wrong');
-			setFormLoading(false);
+		};
+
+		updateCooldown();
+		const interval = setInterval(updateCooldown, 1000);
+
+		return () => clearInterval(interval);
+	}, [otpCooldownEnd]);
+
+	// Send OTP to phone number
+	const sendOtp = async (phoneNumber) => {
+		// Check if we're in cooldown period for the same phone number
+		if (otpCooldownEnd && otpCooldownNumber === phoneNumber && Date.now() < otpCooldownEnd) {
+			// Just return false - timer will show on Sign Up button
+			return false;
+		}
+
+		setOtpSending(true);
+		try {
+			const response = await api.post(`${API_BASE_URL}onboarding/otp`, { number: phoneNumber });
+
+			if (response?.status) {
+				antMessage.success('OTP sent successfully!');
+				return true;
+			} else {
+				// Check for rate limit error with retry_after
+				if (response?.retry_after) {
+					const seconds = parseRetryAfter(response.retry_after);
+					const cooldownEndTime = Date.now() + (seconds * 1000);
+					dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
+					antMessage.error(Utils.getErrorMessage(response) || 'Too many OTP requests');
+				} else {
+					// Apply default 10s cooldown on any failed request
+					const cooldownEndTime = Date.now() + (DEFAULT_COOLDOWN_SECONDS * 1000);
+					dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
+					antMessage.error(Utils.getErrorMessage(response) || 'Failed to send OTP');
+				}
+				return false;
+			}
+		} catch (error) {
+			console.error('Send OTP error:', error);
+			// Check for rate limit error in error response
+			const errorData = error?.response?.data;
+			if (errorData?.retry_after) {
+				const seconds = parseRetryAfter(errorData.retry_after);
+				const cooldownEndTime = Date.now() + (seconds * 1000);
+				dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
+				antMessage.error(Utils.getErrorMessage(error) || 'Too many OTP requests');
+			} else {
+				// Apply default 10s cooldown on any failed request
+				const cooldownEndTime = Date.now() + (DEFAULT_COOLDOWN_SECONDS * 1000);
+				dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber }));
+				antMessage.error(Utils.getErrorMessage(error) || 'Failed to send OTP');
+			}
+			return false;
+		} finally {
+			setOtpSending(false);
 		}
 	};
 
-	const handleSignup = async (values) => {
+	// Verify OTP and get session_id
+	const verifyOtp = async () => {
+		if (!otpValue || otpValue.length < 6) {
+			antMessage.error('Please enter a valid 6-digit OTP');
+			return;
+		}
+
+		if (!pendingFormValues?.number) {
+			antMessage.error('Phone number not found');
+			return;
+		}
+
+		setOtpLoading(true);
+		try {
+			const response = await api.post(`${API_BASE_URL}user/otp/verify`, {
+				number: pendingFormValues.number,
+				otp: otpValue
+			});
+
+			if (response?.status && response?.session_id) {
+				antMessage.success('OTP verified successfully!');
+				setSessionId(response?.session_id);
+				setOtpModalVisible(false);
+				setOtpValue('');
+
+				// Now proceed with user creation using session_id
+				await handleSignup(pendingFormValues, response?.session_id);
+			} else {
+				antMessage.error(Utils.getErrorMessage(response) || 'Invalid OTP');
+			}
+		} catch (error) {
+			console.error('Verify OTP error:', error);
+			antMessage.error(Utils.getErrorMessage(error) || 'Failed to verify OTP');
+		} finally {
+			setOtpLoading(false);
+		}
+	};
+
+	// Resend OTP
+	const resendOtp = async () => {
+		if (pendingFormValues?.number) {
+			const success = await sendOtp(pendingFormValues.number);
+			// Apply 30s cooldown for resend regardless of success
+			if (success) {
+				const cooldownEndTime = Date.now() + (RESEND_COOLDOWN_SECONDS * 1000);
+				dispatch(setOtpCooldown({ timestamp: cooldownEndTime, phoneNumber: pendingFormValues.number }));
+			}
+		}
+	};
+
+	const handleSignup = async (values, sessionId = null) => {
 		try {
 			setFormLoading(true);
 			const formData = {
 				email: values.email,
 				number: values.number,
 				name: values.name,
-				company: values.company,
+				organisation: values.organisation,
 				city: values.city,
 				password: values.number, // Using phone number as password
-				role_id: 4
 			};
 
-			const response = await axios.post(`${API_BASE_URL}create-user`, formData);
+			// Add session_id if available (from OTP verification)
+			if (sessionId) {
+				formData.session_id = sessionId;
+			}
+
+			const response = await axios.post(
+				`${API_BASE_URL}create-user?`,
+				formData,
+				{
+					headers: {
+						"X-Unique-Request": "org_form_1",   // your custom header
+						"X-Custom-Token": "abc123",            // you can add anything
+					}
+				}
+			);
 
 			if (response.data.status) {
-				const phoneNumber = response.data.user?.number;
-				handleLogin(phoneNumber);
+				// const phoneNumber = response.data.user?.number;
+				// handleLogin(phoneNumber);
+				navigate(`auth/login?set=email-verification-pending`);
 			}
 			setFormLoading(false);
 		} catch (err) {
-			setError(
-				err.response?.data?.error ||
-				err.response?.data?.message ||
-				'Something went wrong'
-			);
+			setError(Utils.getErrorMessage(err));
 			setFormLoading(false);
 		}
 	};
 
 	const onSignUp = () => {
-		form.validateFields().then(values => {
-			handleSignup(values);
+		form.validateFields().then(async values => {
+			// Store form values and trigger OTP flow
+			setPendingFormValues(values);
+
+			// Send OTP to the phone number
+			const otpSent = await sendOtp(values.number);
+
+			if (otpSent) {
+				// Show OTP modal
+				setOtpModalVisible(true);
+			}
 		}).catch(info => {
 			console.log('Validate Failed:', info);
 		});
@@ -272,14 +400,14 @@ export const RegisterForm = (props) => {
 
 					<Col xs={24} sm={12}>
 						<Form.Item
-							name="company"
-							label="Company Name"
-							rules={rules.company}
+							name="organisation"
+							label="Organisation"
+							rules={rules.organisation}
 							hasFeedback
 						>
 							<Input
 								prefix={<BankOutlined className="text-primary" />}
-								placeholder="Enter your company name"
+								placeholder="Enter your organisation name"
 								size="large"
 							/>
 						</Form.Item>
@@ -293,11 +421,37 @@ export const RegisterForm = (props) => {
 						block
 						loading={loading || formLoading}
 						size="large"
+						disabled={remainingCooldown > 0}
 					>
-						{loading || formLoading ? 'Creating account...' : 'Sign Up'}
+						{loading || formLoading
+							? 'Creating account...'
+							: remainingCooldown > 0
+								? `Wait ${Math.floor(remainingCooldown / 60)}:${String(remainingCooldown % 60).padStart(2, '0')}`
+								: 'Sign Up'
+						}
 					</Button>
 				</Form.Item>
 			</Form>
+
+			{/* OTP Verification Modal */}
+			<OtpVerificationModal
+				open={otpModalVisible}
+				onClose={() => {
+					setOtpModalVisible(false);
+					setOtpValue('');
+				}}
+				onVerify={verifyOtp}
+				onResend={resendOtp}
+				phoneNumber={pendingFormValues?.number}
+				title="Verify OTP"
+				description={`Please enter the OTP sent to ${pendingFormValues?.number} to complete registration.`}
+				otpValue={otpValue}
+				onOtpChange={setOtpValue}
+				isVerifying={otpLoading}
+				isSending={otpSending}
+				verifyButtonText="Verify & Create Account"
+				cooldownSeconds={remainingCooldown}
+			/>
 		</>
 	)
 }

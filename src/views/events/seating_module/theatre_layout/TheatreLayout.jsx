@@ -1,8 +1,8 @@
 // AuditoriumLayoutDesigner.jsx - UPDATED WITH TICKET ASSIGNMENT API
 import React, { useRef, useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined } from '@ant-design/icons';
-import { Button, Card, Col, Input, message, Row } from 'antd';
+import { useParams, useNavigate } from 'react-router-dom';
+import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Button, Card, Col, Input, message, Row, Tooltip } from 'antd';
 import api from 'auth/FetchInterceptor';
 import LeftBar from './components/creation/LeftBar';
 import CenterCanvas from './components/creation/CenterCanvas';
@@ -41,7 +41,9 @@ const sanitizeSection = (section) => ({
   y: parseFloat(section.y) || 0,
   width: parseFloat(section.width) || 600,
   height: parseFloat(section.height) || 250,
-  rows: section.rows?.map(sanitizeRow) || []
+  totalTickets: parseInt(section.totalTickets) || 0,
+  ticketCategory: section.ticketCategory || null,
+  rows: section.type === 'Standing' ? [] : (section.rows?.map(sanitizeRow) || [])
 });
 
 const AuditoriumLayoutDesigner = () => {
@@ -49,6 +51,8 @@ const AuditoriumLayoutDesigner = () => {
 
   // Determine mode: if eventId exists, we're in ticket assignment mode
   const isAssignMode = !!eventId;
+
+  const navigate = useNavigate();
 
   // State Management
   const [stage, setStage] = useState({
@@ -107,7 +111,7 @@ const AuditoriumLayoutDesigner = () => {
           setNextSectionId(layoutData.sections.length + 1);
         }
 
-        message.success('Layout loaded successfully');
+        // message.success('Layout loaded successfully');
       } catch (error) {
         if (error.name === 'AbortError') return;
         if (!isMounted) return;
@@ -205,7 +209,7 @@ const AuditoriumLayoutDesigner = () => {
 
         const ticketsData = response?.tickets || response;
         setTicketCategories(ticketsData);
-        message.success(`Loaded ${ticketsData.length} ticket categories`);
+        // message.success(`Loaded ${ticketsData.length} ticket categories`);
       } catch (error) {
         if (error.name === 'AbortError') return;
         if (!isMounted) return;
@@ -330,7 +334,9 @@ const AuditoriumLayoutDesigner = () => {
       width: 600,
       height: 250,
       rows: [],
-      subSections: []
+      subSections: [],
+      totalTickets: 0,
+      ticketCategory: null
     };
 
     setSections([...sections, newSection]);
@@ -354,6 +360,8 @@ const AuditoriumLayoutDesigner = () => {
   const addRowToSection = (sectionId) => {
     setSections(sections.map(section => {
       if (section.id === sectionId) {
+        // Don't add rows to standing sections
+        if (section.type === 'Standing') return section;
         const rowNumber = section.rows.length + 1;
         const newRow = {
           id: generateId('row'),
@@ -567,6 +575,11 @@ const AuditoriumLayoutDesigner = () => {
     setSections(sections.map(section => {
       if (section.id === sectionId) {
         const updatedSection = { ...section, ...updates };
+
+        // If type changed to Standing, clear rows
+        if (updates.type === 'Standing' && section.type !== 'Standing') {
+          updatedSection.rows = [];
+        }
 
         // Regenerate seats if width or height changed significantly
         if ((updates.width && Math.abs(updates.width - section.width) > 10) ||
@@ -822,6 +835,20 @@ const AuditoriumLayoutDesigner = () => {
     const assignments = [];
 
     sections.forEach(section => {
+      // Handle standing sections — tickets only, no seats
+      if (section.type === 'Standing') {
+        if (section.ticketCategory && section.totalTickets) {
+          assignments.push({
+            sectionId: section.id,
+            ticketId: section.ticketCategory,
+            totalTickets: section.totalTickets,
+            type: 'standing',
+            status: 'available'
+          });
+        }
+        return;
+      }
+
       section.rows.forEach(row => {
         row.seats.forEach(seat => {
           if (seat.ticketCategory) {
@@ -857,11 +884,11 @@ const AuditoriumLayoutDesigner = () => {
 
         message.success(`Successfully assigned tickets to ${ticketAssignments.length} seats!`);
       } else {
-        if (!vanueId?.trim()) {
+        if (!vanueId || String(vanueId).trim() === '') {
           message.error("Please Select Venue for the layout");
           return;
         }
-        if (!layoutName?.trim()) {
+        if (!layoutName || String(layoutName).trim() === '') {
           message.error("Please Enter Layout Name");
           return;
         }
@@ -878,9 +905,13 @@ const AuditoriumLayoutDesigner = () => {
             updatedAt: new Date().toISOString(),
             totalSections: sections.length,
             totalSeats: sections.reduce((total, section) =>
-              total + section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0)
+              total + (section.type === 'Standing'
+                ? (section.totalTickets || 0)
+                : section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0))
               , 0),
-            totalRows: sections.reduce((total, section) => total + section.rows.length, 0)
+            totalRows: sections.reduce((total, section) => total + (section.type === 'Standing' ? 0 : section.rows.length), 0),
+            totalStandingTickets: sections.reduce((total, section) =>
+              total + (section.type === 'Standing' ? (section.totalTickets || 0) : 0), 0)
           }
         };
 
@@ -894,7 +925,7 @@ const AuditoriumLayoutDesigner = () => {
         }
 
         message.success(layoutId ? 'Layout updated successfully!' : 'Layout saved successfully!');
-        console.log('Saved layout response:', response);
+        // console.log('Saved layout response:', response);
       }
 
     } catch (error) {
@@ -966,7 +997,7 @@ const AuditoriumLayoutDesigner = () => {
   return (
     <Card className="auditorium-designer" bodyStyle={{ paddingTop: 10 }}>
       <Row align="middle" gutter={10} wrap={false} className='mb-4'>
-        <Col span={10}>
+        <Col span={9}>
           <h5>
             {isAssignMode
               ? `Assign Tickets to Layout: ${layoutName}`
@@ -1029,6 +1060,15 @@ const AuditoriumLayoutDesigner = () => {
           >
             {isAssignMode ? "Save" : layoutId ? "Update" : "Save"}
           </Button>
+        </Col>
+        <Col>
+          <Tooltip title="Back">
+            <Button
+              type="primary"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate(-1)}
+            />
+          </Tooltip>
         </Col>
 
       </Row>

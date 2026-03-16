@@ -1,20 +1,37 @@
-import { useQuery } from '@tanstack/react-query';
-import { Alert, Button, Card, Col, Form, Input, message, Radio, Row, Select, Space, Spin, Switch } from 'antd';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Alert, Button, Card, Col, Form, Input, message, Modal, Radio, Row, Select, Space, Spin, Switch, Tag, Typography } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
 import apiClient from "auth/FetchInterceptor";
 import { useMyContext } from 'Context/MyContextProvider';
-import { Key } from 'lucide-react';
+import { CircleCheckBig, CircleX, Key, ScrollText } from 'lucide-react';
 import { mapApiToForm, mapFormToApi } from './dataMappers';
 import axios from 'axios';
 import { updateUser } from 'store/slices/authSlice';
 import Flex from 'components/shared-components/Flex';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
+import Utils from 'utils';
 import { ORGANIZER_ALLOWED_ROLES } from '../constants';
 import { RoleSelect } from 'utils/CommonInputs';
+import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
+import { useGetAllOrganizerAgreements } from '../../Agreement/Organizer/useOrganizerAgreement';
+import OtpVerificationModal from 'components/shared-components/OtpVerificationModal';
+import { VALIDATION_RULES, VALIDATION_FUNCTIONS } from 'constants/ValidationConstants';
 
-const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
+// Child Components
+import {
+    AgreementSelectionModal,
+    FormActionButtons,
+    SecurityCard,
+    AddressCard,
+    BankingDetailsCard,
+    PaymentMethodCard,
+} from './components';
+import { createValidationRules } from './hooks/useProfileFormData';
+import { useApproveOrganizerOnboarding } from 'views/events/Onboarding/Organizer/useOrganizerOnboarding';
+
+const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNumber }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
     const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
@@ -34,10 +51,13 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         roleId: null,
         roleName: '',
         reportingUser: '',
-        status: 'Active',
+        status: true,
+        email_verified_at: null,
+        agreement: null,
 
         // Role-specific fields
         agreementStatus: false,
+        agreementVerification: false,  // For edit mode - tracks if agreement is verified
         organisation: '',
         agentDiscount: false,
         qrLength: '',
@@ -49,6 +69,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         gates: [],
 
         // Address
+        address: '',
         city: '',
         pincode: '',
 
@@ -58,6 +79,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         bankBranch: '',
         bankNumber: '',
         orgGstNumber: '',
+        orgPanNumber: '',
 
         // Security
         password: '',
@@ -73,9 +95,43 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [convenienceFeeType, setConvenienceFeeType] = useState('percentage');
 
+    // OTP verification state (for own profile edit)
+    const [otpModalVisible, setOtpModalVisible] = useState(false);
+    const [otpValue, setOtpValue] = useState('');
+    const [otpLoading, setOtpLoading] = useState(false);
+    const [pendingFormValues, setPendingFormValues] = useState(null);
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpSending, setOtpSending] = useState(false);
+
+    // OTP verification state (for user creation)
+    const [createOtpModalVisible, setCreateOtpModalVisible] = useState(false);
+    const [createOtpValue, setCreateOtpValue] = useState('');
+    const [createOtpSessionId, setCreateOtpSessionId] = useState(null);
+    const [pendingCreateValues, setPendingCreateValues] = useState(null);
+
+    // Track original email and phone for comparison
+    const originalEmail = useRef(null);
+    const originalNumber = useRef(null);
+
     // Track if form has been initialized
     const didInit = useRef(false);
     const isInitializing = useRef(false);
+
+    // Signature state (for Organizers with agreementStatus = false)
+    const [signatureType, setSignatureType] = useState('type');
+    const [selectedFont, setSelectedFont] = useState(SIGNATURE_FONTS[0]);
+    const [typedSignature, setTypedSignature] = useState('');
+    const [uploadedSignature, setUploadedSignature] = useState(null);
+    const [signaturePreview, setSignaturePreview] = useState(null);
+    const canvasRef = useRef(null);
+
+    // Agreement modal state (for creating Organizer with verifiedEmail)
+    const [agreementModalVisible, setAgreementModalVisible] = useState(false);
+    const [selectedAgreementId, setSelectedAgreementId] = useState(null);
+    const [createdUserId, setCreatedUserId] = useState(null);  // Store created user ID for agreement approval
+
+    // Agreement state (OTP removed - now done at user creation)
+    // Keeping these for backward compatibility but they won't be used for new flow
 
     // Fetch user data in edit mode
     const { data: fetchedData, isLoading: loading } = useQuery({
@@ -84,7 +140,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         queryFn: async () => {
             const res = await apiClient.get(`edit-user/${id}`);
             if (!res?.status) {
-                throw new Error(res?.message || res?.error || 'Failed to load user');
+                throw new Error(Utils.getErrorMessage(res));
             }
             return res;
         },
@@ -117,7 +173,102 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             return (res?.role || []).slice().reverse();
         },
         staleTime: 5 * 60 * 1000,
+        enabled: UserData?.activity_status === true, // ⬅️ run only when active
     });
+
+    // Fetch agreements for organizer creation with verifiedEmail
+    const { data: agreements = [] } = useGetAllOrganizerAgreements({
+        enabled: userRole === 'Admin',
+    });
+
+    // Approve organizer mutation (for creating organizer with agreement)
+    const approveMutation = useApproveOrganizerOnboarding({
+        onSuccess: () => {
+            setAgreementModalVisible(false);
+            setSelectedAgreementId(null);
+            setCreatedUserId(null);
+            navigate(-1);
+        },
+    });
+
+    // Send OTP mutation for user creation
+    const sendCreateOtpMutation = useMutation({
+        mutationFn: async (number) => {
+            const response = await apiClient.post('user/otp', { number });
+            return response;
+        },
+        onSuccess: (data) => {
+            if (data?.status) {
+                message.success('OTP sent successfully!');
+                setCreateOtpModalVisible(true);
+            } else {
+                message.error(data?.message || 'Failed to send OTP');
+            }
+        },
+        onError: (error) => {
+            console.error('Send OTP error:', error);
+            message.error(Utils.getErrorMessage(error));
+        },
+    });
+
+    // Verify OTP mutation for user creation - returns session_id
+    const verifyCreateOtpMutation = useMutation({
+        mutationFn: async ({ number, otp }) => {
+            const response = await apiClient.post('user/otp/verify', { number, otp });
+            return response;
+        },
+        onSuccess: async (data) => {
+            if (data?.status && data?.session_id) {
+                message.success('OTP verified successfully!');
+                setCreateOtpSessionId(data.session_id);
+                setCreateOtpModalVisible(false);
+                setCreateOtpValue('');
+
+                // Now proceed with user creation using session_id
+                if (pendingCreateValues) {
+                    await saveUserProfile(pendingCreateValues, true, data.session_id);
+                    setPendingCreateValues(null);
+                }
+            } else {
+                message.error(data?.message || 'Invalid OTP');
+            }
+        },
+        onError: (error) => {
+            console.error('Verify OTP error:', error);
+            message.error(Utils.getErrorMessage(error));
+        },
+    });
+
+    // Agreement options for select dropdown
+    const agreementOptions = useMemo(() => {
+        return agreements
+            .filter((a) => a.status === 1 || a.status === true)
+            .map((a) => ({ label: a.title, value: a.id }));
+    }, [agreements]);
+
+    // Get the selected agreement
+    const selectedAgreement = useMemo(() => {
+        if (selectedAgreementId) {
+            return agreements.find((a) => a.id === selectedAgreementId);
+        }
+        return null;
+    }, [agreements, selectedAgreementId]);
+
+    // Auto-select if only one agreement is available
+    useEffect(() => {
+        if (agreementOptions.length === 1 && !selectedAgreementId) {
+            setSelectedAgreementId(agreementOptions[0].value);
+        }
+    }, [agreementOptions, selectedAgreementId]);
+
+    // Process agreement content with placeholders
+    const processedAgreementContent = useMemo(() => {
+        if (!selectedAgreement?.content) return selectedAgreement?.content || '';
+
+        return selectedAgreement.content
+            .replace(/:C_Name/g, `<strong>${formState.name || ''}</strong>`)
+            .replace(/:ORG_Name/g, `<strong>${formState.organisation || ''}</strong>`);
+    }, [selectedAgreement, formState.name, formState.organisation]);
 
     // Filter roles based on user permissions
     const filteredRoles = useMemo(() => {
@@ -136,10 +287,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // FIXED: Set initial reporting user and handle query params separately
     useEffect(() => {
-        if (mode === 'edit' && fetchedData?.user && initialReportingUser.current === null) {
-            initialReportingUser.current = fetchedData?.user?.reporting_user_id?.toString();
+        if (mode === 'edit' && fetchedData?.data && initialReportingUser.current === null) {
+            initialReportingUser.current = fetchedData?.data?.reporting_user_id?.toString();
         }
-    }, [mode, fetchedData?.user]);
+    }, [mode, fetchedData?.data]);
 
     // FIXED: Handle query params in separate effect for create mode
     useEffect(() => {
@@ -177,14 +328,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Get events from edit-user response (for edit mode, unchanged org)
     const eventsFromEditResponse = useMemo(() => {
-        if (mode !== 'edit' || !fetchedData?.user?.events) return [];
+        if (mode !== 'edit' || !fetchedData?.data?.events) return [];
 
-        return fetchedData.user.events.map(event => ({
+        return fetchedData.data.events.map(event => ({
             value: event.id,
             label: event.name,
             tickets: event.tickets || [],
         }));
-    }, [mode, fetchedData?.user?.events]);
+    }, [mode, fetchedData?.data?.events]);
 
 
     // ✅ SIMPLIFIED: Fetch events only when we have a valid reporting user
@@ -199,18 +350,31 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     }, [needsEvents, reportingUserId]);
 
     // Fetch events
-    const { data: fetchedEvents = [], isLoading: eventsLoading, isFetching: eventsFetching } = useQuery({
-        queryKey: ["org-events", reportingUserId],
-        enabled: shouldFetchEvents,
-        queryFn: async () => {
-            // ✅ Double-check before making API call
-            if (!reportingUserId || reportingUserId === 'undefined') {
-                throw new Error('Invalid reporting user ID');
-            }
+    const roleName = formState.roleName;
 
-            const res = await apiClient.get(`org-event/${reportingUserId}`);
-            const list = Array.isArray(res?.data) ? res.data : Array.isArray(res?.events) ? res.events : [];
-            return list.map(event => ({
+    const {
+        data: fetchedEvents = [],
+        isLoading: eventsLoading,
+        isFetching: eventsFetching,
+    } = useQuery({
+        queryKey: ["org-events", reportingUserId, roleName],
+        enabled:
+            shouldFetchEvents &&
+            !!reportingUserId &&
+            reportingUserId !== "undefined" &&
+            !!roleName, // 👈 runs when roleName is set
+        queryFn: async () => {
+            const res = await apiClient.get(
+                `org-event/${reportingUserId}?role=${roleName}`
+            );
+
+            const list = Array.isArray(res?.data)
+                ? res.data
+                : Array.isArray(res?.events)
+                    ? res.events
+                    : [];
+
+            return list.map((event) => ({
                 value: event.id,
                 label: event.name,
                 tickets: event.tickets || [],
@@ -219,6 +383,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         staleTime: 5 * 60 * 1000,
         placeholderData: (previousData) => previousData,
     });
+
 
     // Use all available events for options/ticket derivation: prefer fetchedEvents, fallback to edit response
     const allEvents = useMemo(() => {
@@ -232,6 +397,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
         }
 
         const selectedEventObjects = allEvents.filter(e => formState.events.includes(e.value));
+        console.log(selectedEventObjects, "selectedEventObjects");
         return selectedEventObjects.map(event => ({
             label: event.label,
             options: (event.tickets || []).map(ticket => ({
@@ -244,15 +410,36 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
     // Initialize form with fetched data
     useEffect(() => {
-        if (mode === 'edit' && fetchedData?.user && !didInit.current && !isInitializing.current) {
+        if (mode === 'edit' && fetchedData?.data && !didInit.current && !isInitializing.current) {
             isInitializing.current = true;
-            const formData = mapApiToForm(fetchedData.user);
+            const formData = mapApiToForm(fetchedData.data);
 
             setFormState(prevState => ({ ...prevState, ...formData }));
 
             // Set convenience fee type state
             if (formData.convenienceFeeType) {
                 setConvenienceFeeType(formData.convenienceFeeType);
+            }
+
+            // Store original email and phone for OTP verification check
+            originalEmail.current = formData.email || fetchedData.data.email;
+            originalNumber.current = formData.number || fetchedData.data.number;
+
+            // Initialize signature state from fetched data
+            if (formData.signatureType) {
+                setSignatureType(formData.signatureType);
+            }
+            if (formData.signatureText) {
+                setTypedSignature(formData.signatureText);
+            }
+            if (formData.signatureFont) {
+                const font = SIGNATURE_FONTS.find(f => f.name === formData.signatureFont);
+                if (font) {
+                    setSelectedFont(font);
+                }
+            }
+            if (formData.signatureImage) {
+                setSignaturePreview(formData.signatureImage);
             }
 
             // Also set form fields for Ant Design Form
@@ -264,8 +451,13 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             if (setSelectedRole && formData.roleName) {
                 setSelectedRole(formData.roleName);
             }
+
+            // Pass user number to parent for reset OTP limits feature
+            if (setUserNumber && formData.number) {
+                setUserNumber(formData.number);
+            }
         }
-    }, [mode, fetchedData?.user, form, setSelectedRole]);
+    }, [mode, fetchedData?.data, form, setSelectedRole, setUserNumber]);
 
     // Sync form state with Ant Design Form
     const handleFormChange = useCallback((changedFields, allFields) => {
@@ -347,54 +539,378 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
     }, [allEvents, formState.tickets, eventsLoading, eventsFetching, updateMultipleFields]);
 
     // Custom validation rules
-    const requiredIf = (condition, message) => ({
-        validator(_, value) {
-            if (!condition) return Promise.resolve();
-            const hasValue = Array.isArray(value)
-                ? value.length > 0
-                : value !== undefined && value !== null && value !== '';
-            return hasValue ? Promise.resolve() : Promise.reject(new Error(message));
+    const { requiredIf } = VALIDATION_FUNCTIONS;
+
+    // Check if user is editing their own profile (compare as strings to handle type mismatch)
+    const isEditingOwnProfile = mode === 'edit' && String(id) === String(UserData?.id);
+
+    // Check if email or name has changed (Identity changed)
+    const hasIdentityChanged = useCallback((values) => {
+        if (!isEditingOwnProfile) return false;
+
+        const currentEmail = values.email?.trim()?.toLowerCase();
+        const currentName = values.name?.trim();
+        const origEmail = originalEmail.current?.trim()?.toLowerCase();
+        // Assuming originalName is tracked, otherwise comparing with formState initial values if needed
+        // But originalEmail ref is used. Let's start with what we have.
+        // Wait, originalName was NOT tracked in the original code. 
+        // I should add originalName tracking or use fetchedData.
+
+        // Let's use fetchedData directly since it's available in scope
+        const origName = fetchedData?.data?.name?.trim();
+
+        const emailChanged = origEmail && currentEmail !== origEmail;
+        const nameChanged = origName && currentName !== origName;
+
+        return emailChanged || nameChanged;
+    }, [isEditingOwnProfile, fetchedData]);
+
+    // Send OTP for verification
+    const sendOtp = async (values) => {
+        setOtpSending(true);
+        try {
+            // Determine what changed (normalize for comparison)
+            const currentEmail = values.email?.trim()?.toLowerCase();
+            const currentName = values.name?.trim();
+            const origEmail = originalEmail.current?.trim()?.toLowerCase();
+            const origName = fetchedData?.data?.name?.trim();
+
+            const emailChanged = origEmail && currentEmail !== origEmail;
+            const nameChanged = origName && currentName !== origName;
+
+            const payload = {
+                user_id: id,
+                email: emailChanged ? values.email : null,
+                // number: phoneChanged ? values.number : null, // Phone not updating here
+                number: null,
+                type: 'email', // Always email for name or email change
+            };
+
+            // Call OTP send API
+            const response = await apiClient.post('user/otp', payload);
+
+            if (response?.status) {
+                message.success('OTP sent successfully');
+                setOtpSent(true);
+                return true;
+            } else {
+                message.error(response?.message || 'Failed to send OTP');
+                return false;
+            }
+        } catch (error) {
+            message.error(Utils.getErrorMessage(error));
+            return false;
+        } finally {
+            setOtpSending(false);
         }
-    });
+    };
+
+    // Verify OTP and save
+    const verifyOtpAndSave = async () => {
+        if (!otpValue || otpValue.length < 4) {
+            message.error('Please enter a valid OTP');
+            return;
+        }
+
+        setOtpLoading(true);
+        try {
+            // Verify OTP
+            const verifyResponse = await apiClient.post('user/otp/verify', {
+                user_id: id,
+                otp: otpValue,
+            });
+
+            if (!verifyResponse?.status) {
+                message.error(verifyResponse?.message || 'Invalid OTP');
+                return;
+            }
+
+            // OTP verified, proceed with save
+            await saveUserProfile(pendingFormValues);
+
+            // Close modal and reset state
+            setOtpModalVisible(false);
+            setOtpValue('');
+            setOtpSent(false);
+            setPendingFormValues(null);
+
+        } catch (error) {
+            message.error(Utils.getErrorMessage(error));
+        } finally {
+            setOtpLoading(false);
+        }
+    };
+
+    // Get signature data based on type
+    const getSignatureData = useCallback(async () => {
+        // Only include signature for Organizers with inactive agreement
+        if (formState.roleName !== 'Organizer' || formState.agreementStatus) {
+            return null;
+        }
+
+        if (signatureType === 'draw' && canvasRef.current) {
+            return { type: 'draw', data: canvasRef.current.toDataURL() };
+        } else if (signatureType === 'type' && typedSignature) {
+            return {
+                type: 'type',
+                text: typedSignature,
+                font: selectedFont.name,
+                fontStyle: selectedFont.style
+            };
+        } else if (signatureType === 'upload' && uploadedSignature) {
+            return { type: 'upload', file: uploadedSignature };
+        }
+        return null;
+    }, [formState.roleName, formState.agreementStatus, signatureType, typedSignature, selectedFont, uploadedSignature]);
+
+    // Save user profile (actual API call)
+    const saveUserProfile = async (values, isVerifiedOrganizer = false, sessionId = null) => {
+        // Build user_tickets: [{event_id, ticket_id?}, ...]
+        const selectedEvents = Array.isArray(values.events) ? values.events : values.events ? [values.events] : [];
+        const selectedTickets = (values.tickets || []).map(t => String(t));
+        const userTickets = [];
+
+        selectedEvents.forEach(eventId => {
+            const eventData = allEvents.find(e => e.value === eventId);
+            const eventTicketIds = (eventData?.tickets || []).map(t => String(t.id || t.value));
+            const ticketsForEvent = selectedTickets.filter(tId => eventTicketIds.includes(tId));
+
+            if (ticketsForEvent.length > 0) {
+                ticketsForEvent.forEach(ticketId => {
+                    userTickets.push({ event_id: eventId, ticket_id: Number(ticketId) });
+                });
+            } else {
+                userTickets.push({ event_id: eventId });
+            }
+        });
+
+        const mergedValues = {
+            ...values,
+            roleId: values.roleId ?? formState.roleId,
+            roleName: values.roleName ?? formState.roleName,
+            convenienceFeeType: values.convenienceFeeType ?? formState.convenienceFeeType,
+            convenienceFee: values.convenienceFee ?? formState.convenienceFee,
+            reportingUser: reportingUserId,
+            userTickets,
+        };
+
+        // Get signature data
+        const signatureData = await getSignatureData();
+
+        const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
+        let response;
+
+        // If signature exists, use FormData; otherwise use JSON
+        if (signatureData) {
+            const formData = new FormData();
+            const apiData = mapFormToApi(mergedValues);
+
+            // Append all form fields to FormData
+            Object.keys(apiData).forEach(key => {
+                const value = apiData[key];
+                if (value !== null && value !== undefined) {
+                    if (Array.isArray(value)) {
+                        // Handle arrays (user_tickets, etc.)
+                        formData.append(key, JSON.stringify(value));
+                    } else if (typeof value === 'object') {
+                        formData.append(key, JSON.stringify(value));
+                    } else {
+                        formData.append(key, value);
+                    }
+                }
+            });
+
+            // Append session_id if available (from OTP verification)
+            if (sessionId) {
+                formData.append('session_id', sessionId);
+            }
+
+            // Append signature data
+            formData.append('signature_type', signatureData.type);
+
+            if (signatureData.type === 'type') {
+                formData.append('signature_text', signatureData.text);
+                formData.append('signature_font', signatureData.font);
+                formData.append('signature_font_style', signatureData.fontStyle);
+            } else if (signatureData.type === 'draw') {
+                // Base64 data for draw
+                formData.append('signature_image', signatureData.data);
+            } else if (signatureData.type === 'upload' && signatureData.file) {
+                // File object for upload
+                formData.append('signature_image', signatureData.file);
+            }
+
+            response = await axios.post(url, formData, {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken,
+                    'Content-Type': 'multipart/form-data',
+                }
+            });
+        } else {
+            // No signature - use regular JSON payload
+            const apiData = mapFormToApi(mergedValues);
+
+            // Add session_id if available (from OTP verification)
+            if (sessionId) {
+                apiData.session_id = sessionId;
+            }
+
+            response = await axios.post(url, apiData, {
+                headers: {
+                    'Authorization': 'Bearer ' + authToken,
+                }
+            });
+        }
+
+        if (response.data?.status) {
+            // If creating verified organizer, show agreement modal with user ID
+            if (isVerifiedOrganizer && response.data?.user?.id) {
+                message.success('User created! Please select an agreement.');
+                setCreatedUserId(response.data.user.id);
+                setAgreementModalVisible(true);
+                return response; // Return early, don't navigate
+            }
+
+            if (id === UserData?.id) {
+                dispatch(updateUser(response.data.user));
+                navigate(-1);
+            }
+            message.success(`User ${mode === "create" ? "created" : "updated"}`);
+
+            if (mode === "create") {
+                navigate(-1);
+            }
+        }
+
+        return response;
+    };
 
 
     // Form submit handler
     const onFinish = async (values) => {
         setIsSubmitting(true);
         try {
-            const mergedValues = {
-                ...values,
-                roleId: values.roleId ?? formState.roleId,
-                roleName: values.roleName ?? formState.roleName,
-                convenienceFeeType: values.convenienceFeeType ?? formState.convenienceFeeType,
-                convenienceFee: values.convenienceFee ?? formState.convenienceFee,
-                reportingUser: reportingUserId,
-            };
-            const apiData = mapFormToApi(mergedValues);
-            const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
-            const response = await axios.post(url, apiData, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                }
-            });
+            // Check if creating Organizer - always use OTP flow (no direct create-user for organizer)
+            const isCreatingVerifiedOrganizer =
+                mode === 'create' &&
+                formState.roleName === 'Organizer';
+            // && !values.verifiedEmail;  // Commented out: no direct create-user for organizer
 
-            if (response.data?.status) {
-                if (id === UserData?.id) {
-                    dispatch(updateUser(response.data.user));
-                    navigate(-1);
-                }
-                message.success(`User ${mode === "create" ? "created" : "updated"}`);
+            // Check if editing own profile and email/name changed
+            if (hasIdentityChanged(values)) {
+                // Store values and show OTP modal
+                setPendingFormValues(values);
+                setOtpModalVisible(true);
 
-                if (mode === "create") {
-                    navigate(-1);
-                }
+                // Send OTP
+                await sendOtp(values);
+            } else if (isCreatingVerifiedOrganizer) {
+                // For creating organizer - send OTP first, then create user with session_id
+                setPendingCreateValues(values);
+                // setCreateOtpModalVisible(true);
+
+                // Send OTP to the mobile number
+                sendCreateOtpMutation.mutate(values.number);
+            } else {
+                // Create or update user normally
+                await saveUserProfile(values, false);
             }
         } catch (error) {
-            message.error(`Error: ${error.response?.data?.error || error.response?.data?.message || 'Something went wrong!'}`);
+            message.error(`Error: ${Utils.getErrorMessage(error)}`);
         } finally {
             setIsSubmitting(false);
         }
     };
+
+
+
+    // Handle OTP modal cancel
+    const handleOtpModalCancel = () => {
+        setOtpModalVisible(false);
+        setOtpValue('');
+        setOtpSent(false);
+        setPendingFormValues(null);
+    };
+
+    // Resend OTP
+    const handleResendOtp = async () => {
+        if (pendingFormValues) {
+            await sendOtp(pendingFormValues);
+        }
+    };
+
+    // Agreement modal handlers
+    const handleAgreementModalClose = useCallback(() => {
+        setAgreementModalVisible(false);
+        setSelectedAgreementId(null);
+        setCreatedUserId(null);
+    }, []);
+
+    // Open agreement modal for edit mode (when agreement_verification is false)
+    const handleOpenAgreementModal = useCallback(() => {
+        setAgreementModalVisible(true);
+    }, []);
+
+    const handleAgreementChange = useCallback((value) => {
+        setSelectedAgreementId(value);
+    }, []);
+
+    // Handle approve with agreement - directly assign without OTP (OTP already done at creation)
+    const handleApproveWithAgreement = useCallback(() => {
+        if (!selectedAgreementId) {
+            message.error('Please select an agreement');
+            return;
+        }
+
+        // Use createdUserId (for create mode) or id (for edit mode)
+        const userId = createdUserId || id;
+        if (!userId) {
+            message.error('User ID not found');
+            return;
+        }
+
+        // Directly call the agreement approval API (OTP was already verified during user creation)
+        approveMutation.mutate({
+            id: userId,
+            payload: {
+                agreement_id: selectedAgreementId,
+                action: 'sign',
+                agreement_title: selectedAgreement?.title,
+                organizer_email: formState.email,
+                organizer_name: formState.name,
+                organization_name: formState.organisation,
+            },
+        });
+    }, [selectedAgreementId, createdUserId, id, approveMutation, selectedAgreement, formState.email, formState.name, formState.organisation]);
+
+    // Handle OTP verification for user creation
+    const handleVerifyCreateOtp = useCallback(() => {
+        if (!createOtpValue || createOtpValue.length < 6) {
+            message.error('Please enter a valid 6-digit OTP');
+            return;
+        }
+
+        // Verify OTP using TanStack mutation - this will trigger user creation with session_id
+        verifyCreateOtpMutation.mutate({
+            number: pendingCreateValues?.number,
+            otp: createOtpValue,
+        });
+    }, [createOtpValue, pendingCreateValues, verifyCreateOtpMutation]);
+
+    // Handle resend OTP for user creation
+    const handleResendCreateOtp = useCallback(() => {
+        if (pendingCreateValues?.number) {
+            sendCreateOtpMutation.mutate(pendingCreateValues.number);
+        }
+    }, [pendingCreateValues, sendCreateOtpMutation]);
+
+    // Handle close create OTP modal
+    const handleCreateOtpModalClose = useCallback(() => {
+        setCreateOtpModalVisible(false);
+        setCreateOtpValue('');
+        setPendingCreateValues(null);
+        setIsSubmitting(false);
+    }, []);
 
     // Calculate conditions for UI
     const showRoleGate = mode === "create" && !formState.roleId;
@@ -410,13 +926,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
             onFinish={onFinish}
             onFieldsChange={handleFormChange}
             initialValues={{
-                status: 'Active',
+                status: true,
                 paymentMethod: 'Cash',
                 authentication: false,
                 agreementStatus: false,
                 agentDiscount: false,
                 convenienceFeeType: 'percentage',
-                convenienceFee: ''
+                convenienceFee: '',
+                verifiedEmail: false
             }}
         >
             <Row gutter={[16, 16]}>
@@ -460,18 +977,67 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                     {/* Basic Information */}
                     <Card title="Basic Information"
                         extra={
-                            editOtherUser &&
-                            <PermissionChecker permission={["Edit User", "Edit Profile"]}>
-                                <Flex justifyContent="end">
-                                    <Button className="mr-2" onClick={() => navigate(-1)}>
-                                        Discard
-                                    </Button>
-                                    <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                                        {mode === "create" ? "Create" : "Update"}
-                                    </Button>
-                                </Flex>
-                            </PermissionChecker>
+                            <Flex justifyContent="end" alignItems="center" gap="middle">
+                                {formState?.email_verified_at ? (
+                                    <Tag
+                                        color="success"
+                                        className="btn btn-secondary d-inline-flex align-items-center gap-2"
+                                    >
+                                        <CircleCheckBig size={14} />
+                                        Email Verified
+                                    </Tag>
+                                ) : (
+                                    <Tag
+                                        color="error"
+                                        className="btn btn-secondary d-inline-flex align-items-center gap-2"
+                                    >
+                                        <CircleX size={14} />
+                                        Email Not Verified
+                                    </Tag>
+                                )}
+                                {editOtherUser &&
+                                    <PermissionChecker permission={["Edit User", "Edit Profile"]}>
+                                        <Flex justifyContent="end">
+                                            <Button className="mr-2" onClick={() => navigate(-1)}>
+                                                Discard
+                                            </Button>
+                                            <Button type="primary" htmlType="submit" loading={isSubmitting}>
+                                                {mode === "create" ? "Create" : "Update"}
+                                            </Button>
+                                        </Flex>
+                                    </PermissionChecker>
+                                }
+
+                                {formState.agreement && (
+                                    <PermissionChecker role={["Admin", "Organizer"]}>
+                                        <Button
+                                            type="default"
+                                            onClick={() => navigate(`/agreement/preview/${formState.agreement}`)}
+                                            className="btn btn-secondary d-inline-flex align-items-center gap-2"
+                                            icon={<ScrollText size={16} />}
+                                        >
+                                            View Agreement
+                                        </Button>
+                                    </PermissionChecker>
+                                )}
+
+                                {/* Assign Agreement button - shows in edit mode when agreement_verification is false */}
+                                {mode === 'edit' && formState.roleName === 'Organizer' && !formState.agreementVerification && (
+                                    <PermissionChecker role={["Admin"]}>
+                                        <Button
+                                            type="primary"
+                                            onClick={handleOpenAgreementModal}
+                                            className="d-inline-flex align-items-center gap-2"
+                                            icon={<ScrollText size={16} />}
+                                        >
+                                            Assign Agreement
+                                        </Button>
+                                    </PermissionChecker>
+                                )}
+
+                            </Flex>
                         }
+
                     >
 
                         <Row gutter={[16, 16]}>
@@ -479,9 +1045,23 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                 <Form.Item
                                     label="Name"
                                     name="name"
-                                    rules={[{ required: true, message: 'Please enter name' }]}
+                                    rules={[
+                                        ...VALIDATION_RULES.NAME,
+                                        {
+                                            validator: (_, value) => {
+                                                if (value && value.endsWith(' ')) {
+                                                    return Promise.reject('No space allowed at the end of the name');
+                                                }
+                                                return Promise.resolve();
+                                            }
+                                        }
+                                    ]}
+                                    getValueFromEvent={(e) => e.target.value.trimStart().replace(/\s\s+/g, ' ')}
                                 >
-                                    <Input placeholder="Enter name" />
+                                    <Input
+                                        placeholder="Enter name"
+                                        onBlur={(e) => form.setFieldsValue({ name: e.target.value.trim() })}
+                                    />
                                 </Form.Item>
                             </Col>
 
@@ -489,12 +1069,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                 <Form.Item
                                     label="Mobile Number"
                                     name="number"
-                                    rules={[
-                                        { required: true, message: 'Please enter mobile number' },
-                                        { pattern: /^\d{10,12}$/, message: 'Must be 10-12 digits' }
-                                    ]}
+                                    rules={VALIDATION_RULES.MOBILE}
                                 >
-                                    <Input placeholder="Enter mobile number" />
+                                    <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} />
                                 </Form.Item>
                             </Col>
 
@@ -502,14 +1079,28 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                 <Form.Item
                                     label="Email"
                                     name="email"
-                                    rules={[
-                                        { required: true, message: 'Please enter email' },
-                                        { type: 'email', message: 'Please enter valid email' }
-                                    ]}
+                                    rules={VALIDATION_RULES.EMAIL}
+                                    getValueFromEvent={(e) => e.target.value.trim()}
                                 >
                                     <Input placeholder="Enter email" />
                                 </Form.Item>
                             </Col>
+
+                            {/* Verified Email Checkbox - Only for Admin creating Organizer */}
+                            {mode === 'create' && (userRole === 'Admin' || userRole === 'Organizer') && (
+                                <Col xs={24} md={8}>
+                                    <Form.Item
+                                        label="Email Verification Required"
+                                        name="verifiedEmail"
+                                        valuePropName="checked"
+                                    >
+                                        <Switch
+                                            checkedChildren="Yes"
+                                            unCheckedChildren="No"
+                                        />
+                                    </Form.Item>
+                                </Col>
+                            )}
 
                             {formState.roleName === 'Organizer' && (
                                 <>
@@ -534,21 +1125,21 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                         </Form.Item>
                                     </Col>
                                     <Col xs={24} md={8}>
-                                        <Form.Item label="GST Number" name="orgGstNumber">
+                                        <Form.Item
+                                            label="GST Number"
+                                            name="orgGstNumber"
+                                            rules={VALIDATION_RULES.GST}
+                                        >
                                             <Input placeholder="GST Number" />
                                         </Form.Item>
                                     </Col>
-
-                                    <Col xs={24} md={12}>
+                                    <Col xs={24} md={8}>
                                         <Form.Item
-                                            label="Agreement Status"
-                                            name="agreementStatus"
-                                            valuePropName="checked"
+                                            label="PAN Number"
+                                            name="orgPanNumber"
+                                            rules={VALIDATION_RULES.PAN}
                                         >
-                                            <Switch
-                                                checkedChildren="Active"
-                                                unCheckedChildren="Inactive"
-                                            />
+                                            <Input placeholder="PAN Number" />
                                         </Form.Item>
                                     </Col>
                                     {
@@ -627,8 +1218,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             showSearch
                                             placeholder="Select organization"
                                             options={OrganizerList?.map(org => ({
-                                                value: String(org.value),
-                                                label: `${org.organisation} (${org.label})`,
+                                                value: String(org.id),
+                                                label: `${org.organisation} (${org.name})`,
                                             }))}
                                             optionFilterProp="label"
                                         />
@@ -638,15 +1229,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
                             {/* Events Assignment */}
                             {needsEvents && (
-                                <>
+                                <PermissionChecker role={['Admin', 'Organizer']}>
                                     <Col xs={24} md={12}>
                                         <Form.Item
                                             label="Assign Events"
                                             name="events"
-                                        //rules={[requiredIf(needsEvents, 'Please select at least one event')]}
                                         >
                                             <Select
-                                                mode={formState.roleName !== 'Scanner' && "multiple"}
+                                                mode="multiple"
                                                 placeholder="Select events"
                                                 options={fetchedEvents}
                                                 onChange={handleEventChange}
@@ -659,6 +1249,45 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                                         !reportingUserId ? 'Please select an account manager first' :
                                                             'No events found'
                                                 }
+                                                dropdownRender={(menu) => {
+
+                                                    const allEventValues = fetchedEvents.map(e => e.value);
+                                                    const allSelected = allEventValues.length > 0 &&
+                                                        formState.events?.length === allEventValues.length;
+
+                                                    return (
+                                                        <>
+                                                            {allEventValues.length > 0 && (
+                                                                <div style={{ padding: '8px 12px', borderBottom: '1px solid #303030' }}>
+                                                                    <Space>
+                                                                        <Button
+                                                                            size="small"
+                                                                            type={allSelected ? 'default' : 'primary'}
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                if (allSelected) {
+                                                                                    // Deselect all
+                                                                                    handleEventChange([]);
+                                                                                } else {
+                                                                                    // Select all
+                                                                                    handleEventChange(allEventValues);
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            {allSelected ? 'Deselect All' : 'Select All'}
+                                                                        </Button>
+                                                                        {formState.events?.length > 0 && !allSelected && (
+                                                                            <span style={{ color: '#888', fontSize: 12 }}>
+                                                                                {formState.events.length} / {allEventValues.length} selected
+                                                                            </span>
+                                                                        )}
+                                                                    </Space>
+                                                                </div>
+                                                            )}
+                                                            {menu}
+                                                        </>
+                                                    );
+                                                }}
                                             />
                                         </Form.Item>
                                     </Col>
@@ -676,6 +1305,39 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                                     showSearch
                                                     options={ticketOptions}
                                                     optionFilterProp="label"
+                                                    dropdownRender={(menu) => {
+                                                        const allTicketValues = ticketOptions.flatMap(group => group.options.map(opt => opt.value));
+                                                        const allSelected = allTicketValues.length > 0 &&
+                                                            formState.tickets?.length === allTicketValues.length;
+
+                                                        return (
+                                                            <>
+                                                                {allTicketValues.length > 0 && (
+                                                                    <div style={{ padding: '8px 12px', borderBottom: '1px solid #303030' }}>
+                                                                        <Space>
+                                                                            <Button
+                                                                                size="small"
+                                                                                type={allSelected ? 'default' : 'primary'}
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    const newValues = allSelected ? [] : allTicketValues;
+                                                                                    updateField('tickets', newValues);
+                                                                                }}
+                                                                            >
+                                                                                {allSelected ? 'Deselect All' : 'Select All'}
+                                                                            </Button>
+                                                                            {formState.tickets?.length > 0 && !allSelected && (
+                                                                                <span style={{ color: '#888', fontSize: 12 }}>
+                                                                                    {formState.tickets.length} / {allTicketValues.length} selected
+                                                                                </span>
+                                                                            )}
+                                                                        </Space>
+                                                                    </div>
+                                                                )}
+                                                                {menu}
+                                                            </>
+                                                        );
+                                                    }}
                                                     notFoundContent={
                                                         !formState.events?.length ? 'Please select events first' :
                                                             'No tickets available for selected events'
@@ -684,20 +1346,23 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
                                             </Form.Item>
                                         </Col>
                                     }
-                                </>
+                                </PermissionChecker>
                             )}
 
                             {/* Agent Discount */}
                             {formState.roleName === 'Agent' && (
-                                <Col xs={24} md={12}>
-                                    <Form.Item
-                                        label="Agent Discount"
-                                        name="agentDiscount"
-                                        valuePropName="checked"
-                                    >
-                                        <Switch />
-                                    </Form.Item>
-                                </Col>
+                                <PermissionChecker role={['Admin', 'Organizer']}>
+
+                                    <Col xs={24} md={12}>
+                                        <Form.Item
+                                            label="Agent Discount"
+                                            name="agentDiscount"
+                                            valuePropName="checked"
+                                        >
+                                            <Switch />
+                                        </Form.Item>
+                                    </Col>
+                                </PermissionChecker>
                             )}
 
                             {/* Scanner QR Length */}
@@ -732,175 +1397,123 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole }) => {
 
                         </Row>
                     </Card>
+                    {/* Signature Section - Only for Organizers with inactive agreement */}
+                    {formState.roleName === 'Organizer' && !formState.agreementStatus && (
+                        <Col xs={24}>
+                            <Card title="Admin Signature" className="mb-4">
+                                <SignatureInput
+                                    signatureType={signatureType}
+                                    onSignatureTypeChange={setSignatureType}
+                                    selectedFont={selectedFont}
+                                    onFontChange={setSelectedFont}
+                                    typedSignature={typedSignature}
+                                    onTypedSignatureChange={setTypedSignature}
+                                    uploadedSignature={uploadedSignature}
+                                    onUploadedSignatureChange={setUploadedSignature}
+                                    signaturePreview={signaturePreview}
+                                    onSignaturePreviewChange={setSignaturePreview}
+                                    canvasRef={canvasRef}
+                                    onClearCanvas={() => {
+                                        const canvas = canvasRef.current;
+                                        if (canvas) {
+                                            const ctx = canvas.getContext('2d');
+                                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+                                        }
+                                    }}
+                                />
+                            </Card>
+                        </Col>
+                    )}
                 </Col>
 
                 {/* Right Column */}
                 <Col xs={24} lg={12}>
                     {/* Payment Method */}
                     {(formState.roleName === 'POS' || formState.roleName === 'Corporate') && (
-                        <Card title="Payment Method" style={{ marginBottom: 16 }}>
-                            <Form.Item
-                                name="paymentMethod"
-                                rules={[{ required: true, message: 'Please select payment method' }]}
-                            >
-                                <Radio.Group>
-                                    <Radio value="Cash">Cash</Radio>
-                                    <Radio value="UPI">UPI</Radio>
-                                    <Radio value="Card">Card</Radio>
-                                </Radio.Group>
-                            </Form.Item>
-                        </Card>
+                        <PaymentMethodCard />
                     )}
 
                     {/* Address */}
-                    {!showRoleGate && (
-                        <Card title="Address" style={{ marginBottom: 16 }}>
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="City" name="city">
-                                        <Input placeholder="Enter city" />
-                                    </Form.Item>
-                                </Col>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="Pincode" name="pincode">
-                                        <Input placeholder="Enter pincode" />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </Card>
-                    )}
+                    {!showRoleGate && <AddressCard />}
 
                     {/* Banking Details (Admin + Organizer role) */}
-                    {userRole === 'Admin' && formState.roleName === 'Organizer' && (
-                        <Card title="Banking Details" style={{ marginBottom: 16 }}>
-                            <Row gutter={[16, 16]}>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="Bank Name" name="bankName">
-                                        <Input placeholder="Enter bank name" />
-                                    </Form.Item>
-                                </Col>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="IFSC Code" name="bankIfsc">
-                                        <Input placeholder="Enter IFSC code" />
-                                    </Form.Item>
-                                </Col>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="Branch Name" name="bankBranch">
-                                        <Input placeholder="Enter branch name" />
-                                    </Form.Item>
-                                </Col>
-                                <Col xs={24} md={12}>
-                                    <Form.Item label="Account Number" name="bankNumber">
-                                        <Input placeholder="Enter account number" />
-                                    </Form.Item>
-                                </Col>
-                            </Row>
-                        </Card>
-                    )}
+                    {formState.roleName === 'Organizer' && <BankingDetailsCard />}
 
                     {/* Status & Security */}
                     {!showRoleGate && (
-                        <PermissionChecker role={['Admin', 'Organizer']}>
-                            <Card title="Status & Security" extra={
-                                <PermissionChecker permission={["Edit User", "Edit Profile"]}>
-                                    <Flex justifyContent="end">
-                                        <Button className="mr-2" onClick={() => navigate(-1)}>
-                                            Discard
-                                        </Button>
-
-                                        <Button type="primary" htmlType="submit" loading={isSubmitting}>
-                                            {mode === "create" ? "Create" : "Update"}
-                                        </Button>
-                                    </Flex>
-                                </PermissionChecker>
-                            }>
-                                <Row gutter={[16, 16]}>
-                                    {/* Password Fields */}
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="Password"
-                                            name="password"
-                                            rules={[
-                                                { required: mode === 'create', message: 'Please enter password' },
-                                                ...(mode === 'create' ? [{ min: 6, message: 'Min 6 characters' }] : [])
-                                            ]}
-                                        >
-                                            <Input.Password
-                                                prefix={<Key className="text-primary" size={16} />}
-                                                placeholder="Enter password"
-                                            />
-                                        </Form.Item>
-                                    </Col>
-                                    {mode === 'create' && (
-                                        <Col xs={24} md={12}>
-                                            <Form.Item
-                                                label="Confirm Password"
-                                                name="repeatPassword"
-                                                dependencies={['password']}
-                                                rules={[
-                                                    { required: true, message: 'Please confirm password' },
-                                                    ({ getFieldValue }) => ({
-                                                        validator(_, value) {
-                                                            if (!value || getFieldValue('password') === value) {
-                                                                return Promise.resolve();
-                                                            }
-                                                            return Promise.reject(new Error('Passwords do not match'));
-                                                        }
-                                                    })
-                                                ]}
-                                            >
-                                                <Input.Password placeholder="Re-enter password" />
-                                            </Form.Item>
-                                        </Col>
-                                    )}
-                                    <Col xs={24} md={12}>
-                                        <Form.Item
-                                            label="User Status"
-                                            name="status"
-                                            valuePropName="checked"
-                                            getValueFromEvent={(checked) => (checked ? 1 : 0)}
-                                        >
-                                            <Switch checkedChildren="Active" unCheckedChildren="Inactive" />
-                                        </Form.Item>
-                                    </Col>
-                                    <Col xs={24} md={12}>
-                                        <Space size="large">
-                                            <Form.Item
-                                                label="Authentication"
-                                                name="authentication"
-                                                valuePropName="checked"
-                                            >
-                                                <Switch
-                                                    checkedChildren="Password"
-                                                    unCheckedChildren="OTP"
-                                                />
-                                            </Form.Item>
-                                            <Form.Item noStyle shouldUpdate={(prevValues, currentValues) =>
-                                                prevValues.authentication !== currentValues.authentication
-                                            }>
-                                                {({ getFieldValue }) => {
-                                                    const isPasswordAuth = getFieldValue('authentication');
-                                                    return (
-                                                        <Alert
-                                                            type="info"
-                                                            message={
-                                                                isPasswordAuth
-                                                                    ? "Password login is currently active"
-                                                                    : "OTP (One-Time Password) login is currently active"
-                                                            }
-                                                            showIcon
-                                                        />
-                                                    );
-                                                }}
-                                            </Form.Item>
-                                        </Space>
-                                    </Col>
-                                </Row>
-                            </Card>
-                        </PermissionChecker>
+                        <SecurityCard
+                            mode={mode}
+                            isSubmitting={isSubmitting}
+                        />
                     )}
                 </Col>
             </Row>
+
+
+
+            {/* OTP Verification Modal for Profile Edit */}
+            <OtpVerificationModal
+                open={otpModalVisible && otpSent}
+                onClose={handleOtpModalCancel}
+                onVerify={verifyOtpAndSave}
+                onResend={handleResendOtp}
+                phoneNumber={
+                    pendingFormValues?.email !== originalEmail.current && pendingFormValues?.number !== originalNumber.current
+                        ? 'email and phone'
+                        : pendingFormValues?.email !== originalEmail.current
+                            ? 'email'
+                            : 'phone'
+                }
+                title="Verify OTP"
+                description="You've changed your email or phone number. Please verify with OTP to save changes."
+                otpValue={otpValue}
+                onOtpChange={setOtpValue}
+                isVerifying={otpLoading}
+                isSending={otpSending}
+                verifyButtonText="Verify & Save"
+            />
+
+            {!otpSent && otpModalVisible && (
+                <Modal
+                    open={otpModalVisible}
+                    footer={null}
+                    closable={false}
+                    centered
+                >
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <Spin tip="Sending OTP..." />
+                    </div>
+                </Modal>
+            )}
+
+            {/* Agreement Selection Modal for Organizer with Verified Email */}
+            <AgreementSelectionModal
+                open={agreementModalVisible}
+                onClose={handleAgreementModalClose}
+                onAssign={handleApproveWithAgreement}
+                agreementOptions={agreementOptions}
+                selectedAgreementId={selectedAgreementId}
+                onAgreementChange={handleAgreementChange}
+                selectedAgreement={selectedAgreement}
+                processedContent={processedAgreementContent}
+                isLoading={approveMutation.isPending}
+            />
+
+            {/* OTP Verification Modal for User Creation */}
+            <OtpVerificationModal
+                open={createOtpModalVisible}
+                onClose={handleCreateOtpModalClose}
+                onVerify={handleVerifyCreateOtp}
+                onResend={handleResendCreateOtp}
+                phoneNumber={pendingCreateValues?.number}
+                title="Verify OTP"
+                description={`Please enter the OTP sent to ${pendingCreateValues?.number} to create the user.`}
+                otpValue={createOtpValue}
+                onOtpChange={setCreateOtpValue}
+                isVerifying={verifyCreateOtpMutation.isPending || isSubmitting}
+                isSending={sendCreateOtpMutation.isPending}
+                verifyButtonText="Submit"
+            />
         </Form>
     );
 };

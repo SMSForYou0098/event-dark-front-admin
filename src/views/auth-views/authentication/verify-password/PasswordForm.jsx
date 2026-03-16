@@ -5,7 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { logout, signIn } from "../../../../store/slices/authSlice";
 
@@ -26,6 +26,7 @@ const VerifyPassword = memo(() => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
   // Pulled from navigation state
   const number = location?.state?.info?.data;
@@ -33,6 +34,8 @@ const VerifyPassword = memo(() => {
   //   const passwordRequired = location?.state?.info?.password_required;
   const auth_session = location?.state?.info?.auth_session;
 
+  // Extract redirect from URL query parameters
+  const redirect = searchParams.get('redirect');
   const [password, setPassword] = useState("");
   const [attempts, setAttempts] = useState(0);
   const [error, setError] = useState("");
@@ -118,7 +121,7 @@ const VerifyPassword = memo(() => {
 
       if (action?.type === "login/fulfilled") {
         message.success("Login successful");
-        navigate("/dashboard");
+        navigate(redirect ?? "/dashboard");
       } else {
         setError(action?.payload || "Invalid password");
       }
@@ -129,7 +132,7 @@ const VerifyPassword = memo(() => {
       setLoading(false);
       isVerifyingRef.current = false;
     }
-  }, [password, number, session_id, auth_session, dispatch, navigate]);
+  }, [password, number, session_id, auth_session, redirect, dispatch, navigate]);
 
   // Memoized key handler
   const handleKeyDown = useCallback(
@@ -143,7 +146,7 @@ const VerifyPassword = memo(() => {
 
   // Memoized back handler
   const handleBack = useCallback(() => {
-    navigate(`auth/sign-in`);
+    navigate(`${AUTH_PREFIX_PATH}/sign-in`);
   }, [navigate]);
 
   // Memoized password change handler
@@ -156,7 +159,7 @@ const VerifyPassword = memo(() => {
   );
 
   const handleForgotPassword = useCallback(() => {
-    navigate(`auth/forgot-password`);
+    navigate(`${AUTH_PREFIX_PATH}/forgot-password`);
   }, [navigate]);
   return (
     <div>

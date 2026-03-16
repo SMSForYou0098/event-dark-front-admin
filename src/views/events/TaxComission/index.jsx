@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import Comission from './Comission';
 import { useMyContext } from 'Context/MyContextProvider';
+import Utils from 'utils';
 
 const Tax = () => {
     const { api, UserData, authToken } = useMyContext();
@@ -43,7 +44,7 @@ const Tax = () => {
             });
         },
         onError: (error) => {
-            message.error('Error retrieving tax data');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 
@@ -72,7 +73,7 @@ const Tax = () => {
             queryClient.invalidateQueries(['tax', 1]);
         },
         onError: (error) => {
-            message.error('Error storing tax');
+            message.error(Utils.getErrorMessage(error));
         },
     });
 

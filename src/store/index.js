@@ -10,7 +10,9 @@ const persistConfig = {
   storage,
   version: 1,
   // persist only these slices (change as needed)
-  whitelist: ['auth', 'theme'],
+  // Note: 'printer' persists config settings (autoPrint, printerType, connectionMode)
+  // but runtime state (isConnected, deviceName) will reset on refresh as expected
+  whitelist: ['auth', 'theme', 'printer'],
   // blacklist: ['someTransientSlice'] // alternatively use blacklist
 }
 

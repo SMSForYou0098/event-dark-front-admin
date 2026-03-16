@@ -2,10 +2,12 @@ import { Table, Input, Button, Space, Spin, Grid, Card, Tooltip, Alert, DatePick
 import { SearchOutlined, ReloadOutlined, CloudUploadOutlined, FilterOutlined } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import dayjs from "dayjs";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
 import BookingCount from "../Bookings/Online_Bookings/BookingCount";
+import { debounce } from "utils/debounce";
+import { useMyContext } from "Context/MyContextProvider";
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
@@ -30,7 +32,17 @@ export const ExpandDataTable = ({
   extraHeaderContent,
   emptyText = "No data",
   tableProps = {},
-  type
+  type,
+  // Backend pagination props
+  serverSide = false,
+  pagination = null,
+  onPaginationChange,
+  onSearch,
+  onSortChange,
+  searchValue = "",
+  // Custom stats component props
+  statsComponent: StatsComponent = null,
+  showReportSwitch = true,
 }) => {
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const [searchText, setSearchText] = useState("");
@@ -42,6 +54,21 @@ export const ExpandDataTable = ({
   const [showGatewayReport, setShowGatewayReport] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
 
+  const { userRole } = useMyContext();
+
+  // Local input value for immediate UI feedback (server-side mode)
+  const [localSearchValue, setLocalSearchValue] = useState(searchValue);
+
+  // Sync controlled search value for server-side mode
+  const displaySearchText = serverSide ? localSearchValue : searchText;
+
+  // Sync localSearchValue when searchValue prop changes
+  useEffect(() => {
+    if (serverSide) {
+      setLocalSearchValue(searchValue);
+    }
+  }, [searchValue, serverSide]);
+
   const searchInput = useRef(null);
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -49,8 +76,25 @@ export const ExpandDataTable = ({
   const isSmallMobile = !screens.sm;
 
   useEffect(() => {
-    setFilteredData(data);
-  }, [data]);
+    if (!serverSide) {
+      setFilteredData(data);
+    }
+  }, [data, serverSide]);
+
+  // Debounced search handler for server-side search (300ms delay)
+  const debouncedServerSearch = useMemo(
+    () => debounce((value) => {
+      onSearch?.(value);
+    }, 300),
+    [onSearch]
+  );
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedServerSearch.cancel();
+    };
+  }, [debouncedServerSearch]);
 
   // Expandable row render
   const expandedRowRender = useCallback((record) => {
@@ -60,15 +104,18 @@ export const ExpandDataTable = ({
     }
 
     return (
-      <Table
-        columns={innerColumns}
-        dataSource={record.bookings}
-        pagination={false}
-        rowKey={(booking) => booking.id} // Individual bookings should have their own id
-        size="small"
-        bordered
-        showHeader={true}
-      />
+      <div style={{ overflowX: 'auto', width: '100%' }}>
+        <Table
+          columns={innerColumns}
+          dataSource={record.bookings}
+          pagination={false}
+          rowKey={(booking) => booking.id}
+          size="small"
+          bordered
+          showHeader={true}
+          scroll={{ x: 'max-content' }}
+        />
+      </div>
     );
   }, [innerColumns]);
 
@@ -79,37 +126,62 @@ export const ExpandDataTable = ({
     );
   }, []);
 
-  // Global search handler
+  // Global search handler - supports both client and server side
   const handleGlobalSearch = (value) => {
-    setSearchText(value);
+    if (serverSide) {
+      // Update local value immediately for UI feedback
+      setLocalSearchValue(value);
+      // Server-side search - delegate to parent with debounce
+      debouncedServerSearch(value);
+    } else {
+      // Client-side search
+      setSearchText(value);
 
-    if (!value) {
-      setFilteredData(data);
-      return;
+      if (!value) {
+        setFilteredData(data);
+        return;
+      }
+
+      const searchLower = value.toLowerCase();
+      const filtered = data.filter((record) => {
+        return columns.some((column) => {
+          const dataIndex = column.dataIndex;
+          if (!dataIndex) return false;
+
+          let cellValue;
+          if (Array.isArray(dataIndex)) {
+            cellValue = dataIndex.reduce((obj, key) => obj?.[key], record);
+          } else {
+            cellValue = record[dataIndex];
+          }
+
+          if (cellValue === null || cellValue === undefined) return false;
+          return String(cellValue).toLowerCase().includes(searchLower);
+        });
+      });
+
+      setFilteredData(filtered);
+    }
+  };
+
+  // Handle table change for server-side sorting/pagination
+  const handleTableChange = (paginationConfig, filters, sorter) => {
+    if (serverSide) {
+      // Handle pagination change
+      if (onPaginationChange && paginationConfig) {
+        const { current, pageSize } = paginationConfig;
+        onPaginationChange(current, pageSize);
+      }
+
+      // Handle sorting change
+      if (onSortChange && sorter) {
+        const { field, order } = sorter;
+        onSortChange(field, order);
+      }
     }
 
-    const searchLower = value.toLowerCase();
-    const filtered = data.filter((record) => {
-      // Search across all columns
-      return columns.some((column) => {
-        const dataIndex = column.dataIndex;
-        if (!dataIndex) return false;
-
-        // Handle nested dataIndex (e.g., ['user', 'name'])
-        let cellValue;
-        if (Array.isArray(dataIndex)) {
-          cellValue = dataIndex.reduce((obj, key) => obj?.[key], record);
-        } else {
-          cellValue = record[dataIndex];
-        }
-
-        // Convert to string and search
-        if (cellValue === null || cellValue === undefined) return false;
-        return String(cellValue).toLowerCase().includes(searchLower);
-      });
-    });
-
-    setFilteredData(filtered);
+    // Call any existing onChange from tableProps
+    tableProps.onChange?.(paginationConfig, filters, sorter);
   };
 
   // Search helpers
@@ -215,9 +287,23 @@ export const ExpandDataTable = ({
     }
     setExportLoading(true);
     try {
+      // Format date if it's an object
+      let formattedDate = dateRange;
+      console.log(dateRange);
+
+      if (dateRange && typeof dateRange === 'object') {
+        if (Array.isArray(dateRange) && dateRange.length === 2) {
+          const start = dayjs(dateRange[0]).format('YYYY-MM-DD');
+          const end = dayjs(dateRange[1]).format('YYYY-MM-DD');
+          formattedDate = `${start},${end}`;
+        } else if (dateRange.startDate && dateRange.endDate) {
+          formattedDate = `${dateRange.startDate},${dateRange.endDate}`;
+        }
+      }
+
       const response = await api.post(
         exportRoute,
-        { date: dateRange },
+        { date: formattedDate, type: type },
         { responseType: "blob" }
       );
 
@@ -250,7 +336,7 @@ export const ExpandDataTable = ({
         <Input
           placeholder="Search across..."
           prefix={<SearchOutlined />}
-          value={searchText}
+          value={displaySearchText}
           onChange={(e) => handleGlobalSearch(e.target.value)}
           allowClear
           style={{ width: isTablet ? 200 : 250 }}
@@ -260,7 +346,9 @@ export const ExpandDataTable = ({
         <RangePicker
           value={
             dateRange
-              ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
+              ? Array.isArray(dateRange)
+                ? [dayjs(dateRange[0]), dayjs(dateRange[1])]
+                : [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
               : null
           }
           onChange={handleDateRangeChange}
@@ -282,7 +370,7 @@ export const ExpandDataTable = ({
           </Button>
         </Tooltip>
       )}
-      {enableExport && ExportPermission && exportRoute && (
+      {enableExport && (ExportPermission || userRole === "Admin") && exportRoute && (
         <Tooltip title="Export Data">
           <Button
             type="primary"
@@ -295,12 +383,14 @@ export const ExpandDataTable = ({
         </Tooltip>
       )}
       {extraHeaderContent}
-      <Switch
-        checked={showGatewayReport}
-        onChange={(checked) => setShowGatewayReport(checked)}
-        checkedChildren="Hide"
-        unCheckedChildren="Show Report"
-      />
+      {showReportSwitch && (
+        <Switch
+          checked={showGatewayReport}
+          onChange={(checked) => setShowGatewayReport(checked)}
+          checkedChildren=""
+          unCheckedChildren=""
+        />
+      )}
     </Space>
   );
 
@@ -342,12 +432,14 @@ export const ExpandDataTable = ({
   return (
     <>
       {showGatewayReport && (
-        <BookingCount date={dateRange} type={type} />
+        StatsComponent
+          ? <StatsComponent dateRange={dateRange} />
+          : <BookingCount date={dateRange} showGatewayAmount={showGatewayReport} type={type} />
       )}
       <Card
         bordered={false}
         title={
-          <Flex flexDirection="column" gap={filteredData.length > 0 ? 16 : 0} flexWrap="nowrap">
+          <Flex flexDirection="column" gap={16} flexWrap="nowrap">
             <Flex justifyContent="space-between" alignItems="center" width="100%">
               <span className="font-weight-bold">{title}</span>
               <div className="action">
@@ -358,11 +450,9 @@ export const ExpandDataTable = ({
                     onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
                   />
                 </span>
-                {!loading && (
-                  <span className="d-none d-sm-block">
-                    {renderDesktopHeaderControls()}
-                  </span>
-                )}
+                <span className="d-none d-sm-block">
+                  {renderDesktopHeaderControls()}
+                </span>
               </div>
             </Flex>
             <span className="d-block d-sm-none">
@@ -378,7 +468,7 @@ export const ExpandDataTable = ({
           <div>
             <Table
               columns={enhancedColumns}
-              dataSource={filteredData}
+              dataSource={serverSide ? data : filteredData}
               rowKey={(record) => {
                 // For set bookings, use set_id, otherwise use id
                 if (record.is_set === true && record.set_id) {
@@ -399,17 +489,36 @@ export const ExpandDataTable = ({
                 expandedRowKeys,
                 onExpand: handleExpand,
               }}
-              pagination={{
-                pageSize: isMobile ? 5 : 10,
-                showTotal: (total, range) =>
-                  isMobile
-                    ? `${range[0]}-${range[1]}/${total}`
-                    : `Showing ${range[0]}-${range[1]} of ${total} items`,
-                size: isMobile ? "small" : "default",
-                simple: isSmallMobile,
-                responsive: true,
-                position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-              }}
+              pagination={
+                serverSide && pagination
+                  ? {
+                    current: pagination.current_page,
+                    pageSize: pagination.per_page,
+                    total: pagination.total,
+                    showTotal: (total, range) =>
+                      isMobile
+                        ? `${range[0]}-${range[1]}/${total}`
+                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                    size: isMobile ? "small" : "default",
+                    simple: isSmallMobile,
+                    responsive: true,
+                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                    showSizeChanger: !isMobile,
+                    pageSizeOptions: ["10", "15", "20", "50", "100"],
+                  }
+                  : {
+                    pageSize: isMobile ? 5 : 10,
+                    showTotal: (total, range) =>
+                      isMobile
+                        ? `${range[0]}-${range[1]}/${total}`
+                        : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                    size: isMobile ? "small" : "default",
+                    simple: isSmallMobile,
+                    responsive: true,
+                    position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                  }
+              }
+              onChange={handleTableChange}
               locale={{ emptyText }}
               {...tableProps}
             />

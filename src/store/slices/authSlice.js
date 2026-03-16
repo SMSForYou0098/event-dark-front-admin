@@ -41,6 +41,10 @@ export const initialState = {
   session_id: null,     // session_key in fulfilled mapped here
   auth_session: null,   // user.id in fulfilled mapped here
   isImpersonating: false,
+
+  // OTP Rate Limiting
+  otpCooldownEnd: null, // Timestamp when cooldown expires
+  otpCooldownNumber: null, // Phone number that the cooldown applies to
 };
 
 /* ============================================================
@@ -68,14 +72,22 @@ export const signIn = createAsyncThunk(
         otp,
       } = data;
 
-      const response = await axios.post(`${API_BASE_URL}login`, {
-        password,
-        number,
-        passwordRequired,
-        session_id,
-        auth_session,
-        otp,
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}login`,
+        {
+          password,
+          number,
+          passwordRequired,
+          session_id,
+          auth_session,
+          otp,
+        },
+        {
+          headers: {
+            'X-Request-Source': process.env.REACT_APP_BACKEND_HEADER,
+          },
+        }
+      );
 
       return response.data;
     } catch (err) {
@@ -221,9 +233,9 @@ export const authSlice = createSlice({
       state.redirect = '/';
       state.token = action.payload.token;
       state.session_id = action.payload.session_id;
-			state.user = action.payload.user;
-			state.auth_session = action.payload.auth_session;
-			state.isImpersonating = action.payload.isImpersonating || false;
+      state.user = action.payload.user;
+      state.auth_session = action.payload.auth_session;
+      state.isImpersonating = action.payload.isImpersonating || false;
     },
     signOutSuccess: (state) => {
       // Default theme behavior
@@ -241,7 +253,7 @@ export const authSlice = createSlice({
       state.loading = false;
       state.token = null;
       state.user = [];
-      state.redirect = '/login';
+      state.redirect = '/';
       state.twoFactor = false;
       state.session_id = null;
       state.auth_session = null;
@@ -267,6 +279,19 @@ export const authSlice = createSlice({
     },
     validateTwoFector: (state) => {
       state.twoFactor = false;
+    },
+
+    /* =========================
+     * OTP RATE LIMITING
+     * ========================= */
+    setOtpCooldown: (state, action) => {
+      // action.payload should be { timestamp, phoneNumber }
+      state.otpCooldownEnd = action.payload.timestamp;
+      state.otpCooldownNumber = action.payload.phoneNumber;
+    },
+    clearOtpCooldown: (state) => {
+      state.otpCooldownEnd = null;
+      state.otpCooldownNumber = null;
     },
   },
   extraReducers: (builder) => {
@@ -350,7 +375,7 @@ export const authSlice = createSlice({
           // If you want full purge like current theme:
           // localStorage.clear();
           // sessionStorage.clear();
-        } catch (_) {}
+        } catch (_) { }
       })
       .addCase(signOut.rejected, (state) => {
         state.loading = false;
@@ -412,6 +437,10 @@ export const {
   logout,
   updateUser,
   validateTwoFector,
+
+  // OTP Rate Limiting
+  setOtpCooldown,
+  clearOtpCooldown,
 } = authSlice.actions;
 
 // Default export

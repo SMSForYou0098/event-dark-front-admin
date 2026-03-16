@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { Button, message, Image, Tooltip, Modal } from 'antd';
+import { Button, message, Image, Tooltip, Modal, Select } from 'antd';
 import { User, Mail, LogIn, PlusIcon, Settings, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMyContext } from '../../../Context/MyContextProvider';
@@ -11,47 +11,65 @@ import api from 'auth/FetchInterceptor';
 import { persistor } from 'store';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { withAccess } from '../common/withAccess';
+import Utils from 'utils';
 
 const Organizers = () => {
-  const { 
-    api: apiUrl, 
-    UserPermissions, 
-    authToken, 
-    auth_session, 
+  const {
+    api: apiUrl,
+    UserPermissions,
+    authToken,
+    auth_session,
     session_id,
-    loader
+    loader,
+    userRole
   } = useMyContext();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const [dateRange, setDateRange] = useState(null);
   const [error, setError] = useState(null);
+  const [selectedRole, setSelectedRole] = useState(userRole === 'Admin' ? 'Organizer' : 'POS');
   const [mutationLoading, setMutationLoading] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  // Fetch roles
+  const { data: roles = [] } = useQuery({
+    queryKey: ["roles"],
+    queryFn: async () => {
+      const res = await api.get(`role-list`);
+      return (res?.role || []);
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   // Fetch organizers with React Query
   const fetchOrganizers = async () => {
     const params = new URLSearchParams();
+
     if (dateRange && dateRange.startDate && dateRange.endDate) {
-      params.set('start_date', dateRange.startDate);
-      params.set('end_date', dateRange.endDate);
+      params.set("type", "custom");
+      params.set('date', `${dateRange.startDate},${dateRange.endDate}`);
     } else {
       params.set('type', 'all');
     }
-    const url = `organizers?${params.toString()}`;
+    if (searchText) {
+      params.set("search", searchText);
+    }
+    const url = `users-by-role/${selectedRole}?${params.toString()}`;
+    // const url = `users-by-role/${selectedRole}`;
     const response = await api.get(url);
     if (!response.status) {
-      throw new Error('Failed to fetch organizers');
+      throw new Error(response.message || 'Failed to fetch organizers');
     }
     return response.data || [];
   };
 
-  const { 
-    data: organizers = [], 
-    isLoading: organizersLoading, 
+  const {
+    data: organizers = [],
+    isLoading: organizersLoading,
     error: organizersError,
-    refetch: refetchOrganizers 
+    refetch: refetchOrganizers
   } = useQuery({
-    queryKey: ['organizers', { dateRange }],
+    queryKey: ['organizers', { dateRange, selectedRole, searchText }],
     queryFn: fetchOrganizers,
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -60,8 +78,8 @@ const Organizers = () => {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
     onError: (err) => {
-      setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
-      message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");
+      setError(Utils.getErrorMessage(err));
+      message.error(Utils.getErrorMessage(err));
     }
   });
 
@@ -99,8 +117,8 @@ const Organizers = () => {
         persistor.purge();
         navigate('/sign-in');
       }
-      setError(err.response?.data?.error || err.message || "Unexpected error occurred");
-      message.error(err.response?.data?.error || err.message || "Unexpected error occurred");
+      setError(Utils.getErrorMessage(err));
+      message.error(Utils.getErrorMessage(err));
       setMutationLoading(false);
     }
   });
@@ -112,7 +130,7 @@ const Organizers = () => {
 
 
   const handleNavigate = () => {
-    navigate('/users/new?type=Organizer');
+    navigate(`/users/new?type=${selectedRole}`);
   };
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -126,34 +144,35 @@ const Organizers = () => {
     refetchOrganizers();
   };
 
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+  }, []);
+
   const formatOrganizerData = (organizers) => {
-    return organizers.map(organizer => ({ 
-      ...organizer, 
-      key: organizer.id 
+    return organizers.map(organizer => ({
+      ...organizer,
+      key: organizer.id
     }));
   };
 
-    // Delete user mutation
-    const deleteUserMutation = useMutation({
-      mutationFn: async (userId) => {
-        const res = await api.delete(`user-delete/${userId}`);
-        console.log("Delete response:", res);
-        return res.data;
-      },
-      onSuccess: () => {
-        refetchOrganizers();
-        message.success("User Deleted successfully.");
-        setMutationLoading(false);
-      },
-      onError: (err) => {
-        message.error(
-          err.response?.data?.message || err.message || "An error occurred"
-        );
-        setMutationLoading(false);
-      },
-    });
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId) => {
+      const res = await api.delete(`user-delete/${userId}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      refetchOrganizers();
+      message.success("User Deleted successfully.");
+      setMutationLoading(false);
+    },
+    onError: (err) => {
+      message.error(Utils.getErrorMessage(err));
+      setMutationLoading(false);
+    },
+  });
 
-    const handleDelete = useCallback((id) => {
+  const handleDelete = useCallback((id) => {
     if (!id) return;
 
     Modal.confirm({
@@ -217,11 +236,23 @@ const Organizers = () => {
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
       render: (name) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'left' }}>
           <User size={16} className="text-primary" />
           <span>{name}</span>
         </div>
       )
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      searchable: true,
+      render: (email) => email ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'left' }}>
+          <Mail size={16} className="text-primary" />
+          <span>{email}</span>
+        </div>
+      ) : 'N/A'
     },
     {
       title: 'Contact',
@@ -231,16 +262,20 @@ const Organizers = () => {
       render: (number) => number || 'N/A'
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      searchable: true,
-      render: (email) => email ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-          <Mail size={16} className="text-primary" />
-          <span>{email}</span>
-        </div>
-      ) : 'N/A'
+      title: 'Organization',
+      dataIndex: 'reportingUser',
+      key: 'reportingUser',
+      render: (reportingUser) => reportingUser?.organisation || 'N/A'
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (date) => date ? new Date(date).toLocaleDateString('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      }) : 'N/A'
     },
   ];
 
@@ -249,21 +284,21 @@ const Organizers = () => {
   actionColumns.push({
     title: 'Actions',
     key: 'actions',
-    fixed : 'right',
+    fixed: 'right',
     width: '150px',
     align: 'center',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
         <PermissionChecker permission="Impersonet">
           {/* <Tooltip title="Impersonate User"> */}
-            <Button
-              type="primary"
-              icon={<LogIn size={14} />}
-              onClick={() => impersonateLogin(record.id)}
-              loading={impersonateMutation.isPending}
-              disabled={mutationLoading || record?.status === "0" || record?.status === 0}
-              size="small"
-            />
+          <Button
+            type="primary"
+            icon={<LogIn size={14} />}
+            onClick={() => impersonateLogin(record.id)}
+            loading={impersonateMutation.isPending}
+            disabled={mutationLoading || record?.status === "0" || record?.status === 0}
+            size="small"
+          />
           {/* </Tooltip> */}
         </PermissionChecker>
 
@@ -302,7 +337,7 @@ const Organizers = () => {
       {renderMutationLoader()}
 
       <DataTable
-        title="Organizers Management"
+        title={`${selectedRole} Management`}
         data={formatOrganizerData(organizers)}
         columns={columns}
         showDateRange={true}
@@ -313,23 +348,45 @@ const Organizers = () => {
         dateRange={dateRange}
         onDateRangeChange={handleDateRangeChange}
         extraHeaderContent={
-        <PermissionChecker permission="Add User">
-            <Tooltip title={"Add Organizer"}>
-              <Button
-                type="primary"
-                icon={<PlusIcon size={16} />}
-                onClick={handleNavigate}
-              />
-            </Tooltip>
-          </PermissionChecker>
+          <div className="d-flex align-items-center gap-2">
+            <Select
+              placeholder="Select Role"
+              value={selectedRole}
+              onChange={(value) => setSelectedRole(value)}
+              style={{ minWidth: 150 }}
+            >
+              {roles
+                .filter(role =>
+                  role.name !== 'User' &&
+                  (userRole === 'Admin' || (role.name !== 'Organizer' && role.name !== 'Sub Admin' && role.name !== 'Admin'))
+                )
+                .map((role) => (
+                  <Select.Option key={role.id} value={role.name}>
+                    {role.name}
+                  </Select.Option>
+                ))}
+            </Select>
+            <PermissionChecker permission="Add User">
+              <Tooltip title={`Add ${selectedRole}`}>
+                <Button
+                  type="primary"
+                  icon={<PlusIcon size={16} />}
+                  onClick={handleNavigate}
+                />
+              </Tooltip>
+            </PermissionChecker>
+          </div>
         }
         enableExport={true}
+        serverSide={true}
         exportRoute={'export-organizers'}
-        ExportPermission={UserPermissions?.includes("Export Organizers")}
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Organizers")}
         authToken={authToken}
         loading={organizersLoading || mutationLoading}
         error={organizersError || error}
         onRefresh={handleRefresh}
+        onSearch={handleSearchChange}
+        searchValue={searchText}
         tableProps={{
           scroll: { x: 1200 },
           size: "middle",
@@ -343,5 +400,5 @@ const Organizers = () => {
 
 // using HOC to prevent other users to access this component
 export default withAccess({
-  allowedRoles: ["Admin"],
+  allowedRoles: ["Admin", "Organizer"],
 })(Organizers);

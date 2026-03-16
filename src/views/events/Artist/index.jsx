@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Button, Image, message, Modal, Space, Tooltip } from 'antd';
 import { User, Trash2, Pencil } from 'lucide-react';
 import { useMyContext } from '../../../Context/MyContextProvider';
@@ -8,6 +8,7 @@ import api from 'auth/FetchInterceptor';
 import { PlusOutlined } from '@ant-design/icons';
 import ArtistModal from './artistModal';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 
 const Artist = () => {
   const { api: apiUrl, UserPermissions, authToken, UserData } = useMyContext();
@@ -16,15 +17,48 @@ const Artist = () => {
   const [selectedData, setSelectedData] = useState(null);
   const [error, setError] = useState(null);
 
-  // Fetch organizers with React Query
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
+  // Fetch artists with React Query
   const fetchData = async () => {
-    const url = `/artist-list/${UserData?.id}`;
+    const params = new URLSearchParams();
+
+    // Pagination params
+    params.set("page", currentPage.toString());
+    params.set("per_page", pageSize.toString());
+
+    // Search param
+    if (searchText) {
+      params.set("search", searchText);
+    }
+
+    // Sorting params
+    if (sortField && sortOrder) {
+      params.set("sort_by", sortField);
+      params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+    }
+
+    const url = `/artist-list/${UserData?.id}?${params.toString()}`;
     const response = await api.get(url);
-    return response.data || [];
+
+    // Extract pagination data from response
+    const paginationData = response.pagination || {
+      current_page: currentPage,
+      per_page: pageSize,
+      total: response.data?.length || 0,
+      last_page: 1,
+    };
+
+    return { artists: response.data || [], pagination: paginationData };
   };
 
   const {
-    data: artists = [],
+    data: artistsData = { artists: [], pagination: null },
     isLoading: loading,
     error: artistError,
     refetch
@@ -33,12 +67,37 @@ const Artist = () => {
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
     cacheTime: 30 * 60 * 1000, // 30 minutes
-    queryKey: ['artists', UserData?.id],
+    queryKey: ['artists', UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
     onError: (err) => {
-      setError(err.response?.data?.error || err.message || "Failed to fetch organizers");
-      message.error(err.response?.data?.error || err.message || "Failed to fetch organizers");
+      setError(err.response?.data?.error || err.message || "Failed to fetch artists");
+      message.error(err.response?.data?.error || err.message || "Failed to fetch artists");
     }
   });
+
+  // Extract artists and pagination from query data
+  const artists = useMemo(() => artistsData.artists || [], [artistsData.artists]);
+  const pagination = artistsData.pagination;
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
+  }, []);
 
   const columns = [
     {
@@ -62,9 +121,23 @@ const Artist = () => {
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
       render: (name) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'left', gap: 8, justifyContent: 'left' }}>
           <User size={16} className="text-primary" />
           <span>{name}</span>
+        </div>
+      )
+    },
+    {
+      title: 'Type',
+      dataIndex: 'type',
+      key: 'type',
+      align: 'center',
+      sorter: (a, b) => a.type?.localeCompare(b.type),
+      searchable: true,
+      render: (type) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
+          <User size={16} className="text-primary" />
+          <span>{type}</span>
         </div>
       )
     },
@@ -72,6 +145,7 @@ const Artist = () => {
       title: 'Category',
       dataIndex: 'category',
       key: 'category',
+      align: 'center',
       sorter: (a, b) => a.category?.localeCompare(b.category),
       searchable: true,
     },
@@ -85,14 +159,14 @@ const Artist = () => {
 
         const actions = [
           {
-            permission: "Update Artist",
+            permission: PERMISSIONS.UPDATE_ARTIST,
             tooltip: "Update Artist",
             icon: <Pencil size={14} />,
             onClick: () => handleEdit(record),
             type: "default",
           },
           {
-            permission: "Delete Artist",
+            permission: PERMISSIONS.DELETE_ARTIST,
             tooltip: "Delete Artist",
             icon: <Trash2 size={14} />,
             onClick: () => handleDelete(record.id),
@@ -200,12 +274,19 @@ const Artist = () => {
         columns={columns}
         addButtonProps={null}
         enableExport={true}
-        exportRoute={'export-organizers'}
-        ExportPermission={UserPermissions?.includes("Export Artists")}
+        exportRoute={'export-artists'}
+        ExportPermission={UserPermissions?.includes(PERMISSIONS.EXPORT_ARTISTS)}
         authToken={authToken}
         loading={loading}
+        // Backend pagination props
+        serverSide={true}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
+        onSearch={handleSearchChange}
+        onSortChange={handleSortChange}
+        searchValue={searchText}
         extraHeaderContent={
-          <PermissionChecker permission="Create Artist">
+          <PermissionChecker permission={PERMISSIONS.CREATE_ARTIST}>
             <Tooltip title="Create Artist">
               <Button
                 type="primary"

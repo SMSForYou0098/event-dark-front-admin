@@ -1,5 +1,5 @@
 // components/common/DataTable.js
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import {
   Table,
   Input,
@@ -22,6 +22,8 @@ import Highlighter from "react-highlight-words";
 import dayjs from "dayjs";
 import api from "auth/FetchInterceptor";
 import Flex from "components/shared-components/Flex";
+import { debounce } from "utils/debounce";
+import Utils from 'utils';
 
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
@@ -45,19 +47,65 @@ const DataTable = ({
   exportRoute,
   ExportPermission = false,
   onRefresh,
+  // Backend pagination props
+  serverSide = false, // Enable server-side pagination/sorting/searching
+  pagination = null, // { current_page, per_page, total, last_page }
+  onPaginationChange, // (page, pageSize) => void
+  onSearch, // (searchText) => void - for server-side search
+  onSortChange, // (field, order) => void - for server-side sorting
+  searchValue = "", // Controlled search value for server-side
+  pageSizeOptions = ["10", "20", "50", "100"], // Options for items per page
+  defaultPageSize = 10, // Default page size for client-side pagination
+  size, // Table size: 'small' | 'middle' | 'large' - overrides responsive default
+  exportPayload = {},
 }) => {
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const [exportLoading, setExportLoading] = useState(false);
   const [filterDrawerVisible, setFilterDrawerVisible] = useState(false);
 
+  // For frontend filtering (when serverSide is false)
   const [filteredData, setFilteredData] = useState(data);
-  useEffect(() => {
-    setFilteredData(data);
-  }, [data]);
 
-  // Update the search handler
-  const handleGlobalSearch = (value) => {
+  // Local input value for immediate UI feedback
+  const [localSearchValue, setLocalSearchValue] = useState(searchValue);
+
+  // State for client-side page size
+  const [currentPageSize, setCurrentPageSize] = useState(defaultPageSize);
+
+  // Sync controlled search value for server-side mode
+  const displaySearchText = serverSide ? localSearchValue : searchText;
+
+  // Sync localSearchValue when searchValue prop changes (e.g., on reset)
+  useEffect(() => {
+    if (serverSide) {
+      setLocalSearchValue(searchValue);
+    }
+  }, [searchValue, serverSide]);
+
+  useEffect(() => {
+    if (!serverSide) {
+      setFilteredData(data);
+    }
+  }, [data, serverSide]);
+
+  // Debounced search handler for server-side search (300ms delay)
+  const debouncedServerSearch = useMemo(
+    () => debounce((value) => {
+      onSearch?.(value);
+    }, 300),
+    [onSearch]
+  );
+
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedServerSearch.cancel();
+    };
+  }, [debouncedServerSearch]);
+
+  // Client-side filtering logic
+  const performClientSearch = useCallback((value) => {
     setSearchText(value);
 
     if (!value) {
@@ -67,12 +115,10 @@ const DataTable = ({
 
     const searchLower = value.toLowerCase();
     const filtered = data.filter((record) => {
-      // Search across all columns
       return columns.some((column) => {
         const dataIndex = column.dataIndex;
         if (!dataIndex) return false;
 
-        // Handle nested dataIndex (e.g., ['user', 'name'])
         let cellValue;
         if (Array.isArray(dataIndex)) {
           cellValue = dataIndex.reduce((obj, key) => obj?.[key], record);
@@ -80,13 +126,50 @@ const DataTable = ({
           cellValue = record[dataIndex];
         }
 
-        // Convert to string and search
         if (cellValue === null || cellValue === undefined) return false;
         return String(cellValue).toLowerCase().includes(searchLower);
       });
     });
 
     setFilteredData(filtered);
+  }, [data, columns]);
+
+  // Update the search handler - supports both client and server side
+  const handleGlobalSearch = (value) => {
+    if (serverSide) {
+      // Update local value immediately for UI feedback
+      setLocalSearchValue(value);
+      // Server-side search - delegate to parent with debounce
+      debouncedServerSearch(value);
+    } else {
+      // Client-side search (no debounce needed for local filtering)
+      performClientSearch(value);
+    }
+  };
+
+  // Handle table change for server-side sorting
+  const handleTableChange = (paginationConfig, filters, sorter) => {
+    if (serverSide) {
+      // Handle pagination change
+      if (onPaginationChange && paginationConfig) {
+        const { current, pageSize } = paginationConfig;
+        onPaginationChange(current, pageSize);
+      }
+
+      // Handle sorting change
+      if (onSortChange && sorter) {
+        const { field, order } = sorter;
+        onSortChange(field, order); // order: 'ascend' | 'descend' | undefined
+      }
+    } else {
+      // Handle client-side page size change
+      if (paginationConfig && paginationConfig.pageSize !== currentPageSize) {
+        setCurrentPageSize(paginationConfig.pageSize);
+      }
+    }
+
+    // Call any existing onChange from tableProps
+    tableProps.onChange?.(paginationConfig, filters, sorter);
   };
 
 
@@ -138,9 +221,18 @@ const DataTable = ({
 
     setExportLoading(true);
     try {
+      // Only include date parameter if dateRange has valid values
+      const requestBody = {};
+      if (dateRange?.startDate && dateRange?.endDate) {
+        requestBody.date = `${dateRange.startDate},${dateRange.endDate}`;
+      }
+
       const response = await api.post(
         exportRoute,
-        { date: `${dateRange.startDate},${dateRange.endDate}` },
+        {
+          ...exportPayload,
+          ...requestBody,
+        },
         { responseType: "blob" }
       );
 
@@ -178,80 +270,107 @@ const DataTable = ({
     setSearchText("");
   };
 
-  const getColumnSearchProps = (dataIndex) => ({
-    filterDropdown: ({
-      setSelectedKeys,
-      selectedKeys,
-      confirm,
-      clearFilters,
-    }) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInput}
-          placeholder={`Search ${dataIndex}`}
-          value={selectedKeys[0]}
-          onChange={(e) =>
-            setSelectedKeys(e.target.value ? [e.target.value] : [])
-          }
-          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ width: 188, marginBottom: 8, display: "block" }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-            icon={<SearchOutlined />}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Search
-          </Button>
-          <Button
-            onClick={() => handleReset(clearFilters)}
-            size="small"
-            style={{ width: 90 }}
-          >
-            Reset
-          </Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: (filtered) => (
-      <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
-    ),
-    onFilter: (value, record) => {
-      const recordValue = record[dataIndex];
-      if (recordValue === null || recordValue === undefined) return false;
-      const str =
-        typeof recordValue === "object"
-          ? JSON.stringify(recordValue)
-          : String(recordValue);
-      return str.toLowerCase().includes(String(value).toLowerCase());
-    },
-    onFilterDropdownOpenChange: (visible) => {
-      if (visible) {
-        setTimeout(() => searchInput.current?.select(), 100);
-      }
-    },
-    render: (text) =>
-      searchedColumn === dataIndex ? (
-        <Highlighter
-          highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
-          searchWords={[searchText]}
-          autoEscape
-          textToHighlight={text ? String(text) : ""}
-        />
-      ) : (
-        text
+  const getColumnSearchProps = (column) => {
+    const { dataIndex } = column;
+    return {
+      filterDropdown: ({
+        setSelectedKeys,
+        selectedKeys,
+        confirm,
+        clearFilters,
+      }) => (
+        <div style={{ padding: 8 }}>
+          <Input
+            ref={searchInput}
+            placeholder={`Search ${Array.isArray(dataIndex) ? dataIndex.join(".") : dataIndex}`}
+            value={selectedKeys[0]}
+            onChange={(e) =>
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }
+            onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
+            style={{ width: 188, marginBottom: 8, display: "block" }}
+          />
+          <Space>
+            <Button
+              type="primary"
+              onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
+              icon={<SearchOutlined />}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Search
+            </Button>
+            <Button
+              onClick={() => handleReset(clearFilters)}
+              size="small"
+              style={{ width: 90 }}
+            >
+              Reset
+            </Button>
+          </Space>
+        </div>
       ),
-  });
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
+      ),
+      onFilter: (value, record) => {
+        let recordValue;
+        if (Array.isArray(dataIndex)) {
+          recordValue = dataIndex.reduce((obj, key) => obj?.[key], record);
+        } else {
+          recordValue = record[dataIndex];
+        }
+
+        if (recordValue === null || recordValue === undefined) return false;
+        const str =
+          typeof recordValue === "object"
+            ? JSON.stringify(recordValue)
+            : String(recordValue);
+        return str.toLowerCase().includes(String(value).toLowerCase());
+      },
+      onFilterDropdownOpenChange: (visible) => {
+        if (visible) {
+          setTimeout(() => searchInput.current?.select(), 100);
+        }
+      },
+      render: (text, record, index) => {
+        let displayValue = text;
+        if (column.render) {
+          displayValue = column.render(text, record, index);
+        }
+
+        // Simple equality check for primitive dataIndex, or JSON stringify for array
+        const isSearched = Array.isArray(searchedColumn) && Array.isArray(dataIndex)
+          ? JSON.stringify(searchedColumn) === JSON.stringify(dataIndex)
+          : searchedColumn === dataIndex;
+
+        return isSearched ? (
+          <Highlighter
+            highlightStyle={{ backgroundColor: "#ffc069", padding: 0 }}
+            searchWords={[searchText]}
+            autoEscape
+            // Ensure we only highlight strings/numbers to avoid [object Object]
+            textToHighlight={displayValue && ['string', 'number'].includes(typeof displayValue) ? String(displayValue) : ""}
+          >
+            {/* If displayValue is a React Element (not string/number), Highlighter renders children if textToHighlight is empty? 
+                 Actually Highlighter renders 'textToHighlight' with highlights. 
+                 If custom render returns a Component, we can't use Highlighter easily on it. 
+                 If we fallback to just returning displayValue when not string/number:
+             */}
+          </Highlighter>
+        ) : (
+          displayValue
+        );
+      },
+    };
+  };
 
   const enhancedColumns = enableSearch
     ? columns.map((column) => {
       if (column.searchable) {
         return {
           ...column,
-          ...getColumnSearchProps(column.dataIndex),
+          ...getColumnSearchProps(column),
         };
       }
       return column;
@@ -265,7 +384,7 @@ const DataTable = ({
         <Input
           placeholder="Search across..."
           prefix={<SearchOutlined />}
-          value={searchText}
+          value={displaySearchText}
           onChange={(e) => handleGlobalSearch(e.target.value)}
           allowClear
           style={{ width: isTablet ? 200 : 250 }}
@@ -311,7 +430,7 @@ const DataTable = ({
           />
         </Tooltip>
       )}
-      {!filterDrawerVisible && extraHeaderContent}
+      {extraHeaderContent}
     </Space>
   );
 
@@ -321,7 +440,7 @@ const DataTable = ({
       <Alert
         type="error"
         showIcon
-        message={<div>Error: {error?.message ?? "Failed to fetch data"}</div>}
+        message={<div>{Utils.getErrorMessage(error)}</div>}
         action={
           <Button
             type="primary"
@@ -353,7 +472,7 @@ const DataTable = ({
     <Card
       bordered={false}
       title={
-        <Flex flexDirection="column" gap={filteredData.length > 0 ? 16 : 0} flexWrap="nowrap">
+        <Flex flexDirection="column" gap={16} flexWrap="nowrap">
           <Flex justifyContent="space-between" alignItems="center" width="100%">
             <span className="font-weight-bold">{title}</span>
             <div className="action">
@@ -367,11 +486,9 @@ const DataTable = ({
                   />
                 </Space>
               </span>
-              {(!loading) && (
-                <span className="d-none d-sm-block">
-                  {renderDesktopHeaderControls()}
-                </span>
-              )}
+              <span className="d-none d-sm-block">
+                {renderDesktopHeaderControls()}
+              </span>
             </div>
           </Flex>
           <span className="d-block d-sm-none">
@@ -387,27 +504,46 @@ const DataTable = ({
         <div>
           <Table
             columns={enhancedColumns}
-            dataSource={filteredData}
+            dataSource={serverSide ? data : filteredData}
             loading={loading && { indicator: customLoadingIndicator }}
-            pagination={{
-              pageSize: isMobile ? 5 : 10,
-              // showSizeChanger: !isMobile,
-              // showQuickJumper: !isMobile,
-              showTotal: (total, range) =>
-                isMobile
-                  ? `${range[0]}-${range[1]}/${total}`
-                  : `Showing ${range[0]}-${range[1]} of ${total} items`,
-              size: isMobile ? "small" : "default",
-              simple: isSmallMobile,
-              responsive: true,
-              position: isMobile ? ["bottomCenter"] : ["bottomRight"],
-            }}
+            pagination={
+              serverSide && pagination
+                ? {
+                  current: pagination.current_page,
+                  pageSize: pagination.per_page,
+                  total: pagination.total,
+                  showTotal: (total, range) =>
+                    isMobile
+                      ? `${range[0]}-${range[1]}/${total}`
+                      : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                  size: isMobile ? "small" : "default",
+                  simple: isSmallMobile,
+                  responsive: true,
+                  position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                  showSizeChanger: !isMobile,
+                  pageSizeOptions: pageSizeOptions,
+                }
+                : {
+                  pageSize: isMobile ? 5 : currentPageSize,
+                  showTotal: (total, range) =>
+                    isMobile
+                      ? `${range[0]}-${range[1]}/${total}`
+                      : `Showing ${range[0]}-${range[1]} of ${total} items`,
+                  size: isMobile ? "small" : "default",
+                  simple: isSmallMobile,
+                  responsive: true,
+                  position: isMobile ? ["bottomCenter"] : ["bottomRight"],
+                  showSizeChanger: !isMobile,
+                  pageSizeOptions: pageSizeOptions,
+                }
+            }
+            onChange={handleTableChange}
             locale={{ emptyText }}
             scroll={{
               x: isMobile ? "max-content" : 1200,
               y: isMobile ? undefined : undefined,
             }}
-            size={isSmallMobile ? "small" : isMobile ? "middle" : "middle"}
+            size={size || (isSmallMobile ? "small" : "middle")}
             sticky={!isMobile}
             {...tableProps}
           />

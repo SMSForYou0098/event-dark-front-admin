@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Button, Dropdown, message, Modal, Space, Tag, Tooltip } from 'antd';
+import { Button, Dropdown, message, Modal, Space, Spin, Tag, Tooltip } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataTable from '../common/DataTable';
 import usePermission from 'utils/hooks/usePermission';
@@ -15,10 +15,12 @@ import {
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useMyContext } from 'Context/MyContextProvider';
-import { ArchiveRestore, Ticket } from 'lucide-react';
+import { ArchiveRestore, Ticket, CreditCard, Armchair, ClipboardList } from 'lucide-react';
 import api from 'auth/FetchInterceptor';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { USERSITE_URL } from 'utils/consts';
+import EmptyEventsState from './components/EmptyEventsState';
+import Utils from 'utils';
 
 const EventList = ({ isJunk = false }) => {
   const navigate = useNavigate();
@@ -26,29 +28,71 @@ const EventList = ({ isJunk = false }) => {
   const [dateRange, setDateRange] = useState(null);
   const queryClient = useQueryClient();
 
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
   // Fetch events using TanStack Query
   const {
-    data: events = [],
+    data: eventsData = { events: [], pagination: null },
     isLoading,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: ['eventList', UserData?.id , isJunk],
+    queryKey: ['eventList', UserData?.id, isJunk, currentPage, pageSize, searchText, sortField, sortOrder, dateRange],
     queryFn: async () => {
-      const url = isJunk ? `event/junk/${UserData?.id}` : `event-list/${UserData?.id}`
+      const params = new URLSearchParams();
+
+      // Pagination params
+      params.set("page", currentPage.toString());
+      params.set("per_page", pageSize.toString());
+
+      // Search param
+      if (searchText) {
+        params.set("search", searchText);
+      }
+
+      // Sorting params
+      if (sortField && sortOrder) {
+        params.set("sort_by", sortField);
+        params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+      }
+
+      // Date range params
+      if (dateRange && dateRange.startDate && dateRange.endDate) {
+        params.set("start_date", dateRange.startDate);
+        params.set("end_date", dateRange.endDate);
+      }
+
+      const baseUrl = isJunk ? `event/junk/${UserData?.id}` : `events/list`;
+      const url = `${baseUrl}?${params.toString()}`;
       const response = await api.get(url);
 
       if (response.status && response.events) {
-        return response.events;
+        // Extract pagination data from response
+        const paginationData = response.pagination || {
+          current_page: currentPage,
+          per_page: pageSize,
+          total: response.events.length,
+          last_page: 1,
+        };
+        return { events: response.events, pagination: paginationData };
       } else {
         throw new Error(response?.message || 'Failed to fetch events');
       }
     },
     enabled: !!UserData?.id,
-    refetchOnWindowFocus: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    // refetchOnWindowFocus: false,
+    // staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Extract events and pagination from query data
+  const events = useMemo(() => eventsData.events || [], [eventsData.events]);
+  const pagination = eventsData.pagination;
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -57,23 +101,24 @@ const EventList = ({ isJunk = false }) => {
     },
     onSuccess: (res) => {
       if (res.status) {
-        queryClient.invalidateQueries(['eventList']);
-        refetch()
-        message.success('Event deleted successfully');
+        queryClient.invalidateQueries({ queryKey: ['eventList'] });
+        message.success(res?.message || 'Event deleted successfully');
       } else {
-        message.error(res?.message || 'Failed to delete event');
+        message.error(Utils.getErrorMessage(res, 'Failed to delete event'));
       }
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || 'Failed to delete event');
+      message.error(Utils.getErrorMessage(err, 'Failed to delete event'));
     },
   });
 
   const getStatusBadge = useCallback((status) => {
     const statusMap = {
+      0: { color: 'default', text: 'TBA' },
       1: { color: 'success', text: 'Ongoing' },
       2: { color: 'blue', text: 'Upcoming' },
       3: { color: 'warning', text: 'Finished' },
+      4: { color: 'cyan', text: 'Draft' },
     };
 
     const { color = 'default', text = 'Unknown' } = statusMap[status] || {};
@@ -112,6 +157,7 @@ const EventList = ({ isJunk = false }) => {
   );
 
   const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1); // Reset to first page on date change
     if (dates) {
       setDateRange({
         startDate: dates[0].format('YYYY-MM-DD'),
@@ -122,8 +168,30 @@ const EventList = ({ isJunk = false }) => {
     }
   }, []);
 
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
+  }, []);
+
   const hasEditPermission = usePermission('Edit Event');
   const hasDeletePermission = usePermission('Delete Event');
+  const hasTicketPermission = usePermission('Manage Tickets');
 
   const handleViewEvent = useMemo(() => (row) => {
     const path = `${USERSITE_URL}events/${row?.venue?.city}/${createSlug(row?.user?.organisation)}/${createSlug(row?.name)}/${row?.event_key}`;
@@ -133,38 +201,41 @@ const EventList = ({ isJunk = false }) => {
 
   // API function to restore event
   const restoreEvent = async (eventId) => {
-    const response = await api.post(`/event/restore/${eventId}`);
-    return response.data;
+    return api.post(`/event/restore/${eventId}`);
   };
   // API function to permanently delete event
   const permanentDeleteEvent = async (eventId) => {
-    const response = await api.delete(`/event/destroy/${eventId}`);
-    return response.data;
+    return api.delete(`/event/destroy/${eventId}`);
   };
 
   const permanentDeleteMutation = useMutation({
     mutationFn: permanentDeleteEvent,
-    onSuccess: (data, variables) => {
-      message.success('Event permanently deleted');
-      refetch()
-      // Invalidate and refetch junk events list
-      queryClient.invalidateQueries({ queryKey: ['junkEvents'] });
+    onSuccess: (res) => {
+      if (res?.status) {
+        message.success(res?.message || 'Event permanently deleted');
+        queryClient.invalidateQueries({ queryKey: ['eventList'] });
+      } else {
+        message.error(Utils.getErrorMessage(res, 'Failed to delete event permanently'));
+      }
     },
     onError: (error) => {
-      message.error(error?.response?.data?.message || 'Failed to delete event permanently');
+      message.error(Utils.getErrorMessage(error, 'Failed to delete event permanently'));
     },
   });
 
   const restoreMutation = useMutation({
     mutationFn: restoreEvent,
-    onSuccess: (data, variables) => {
-      // message.success('Event restored successfully');
-      // Invalidate and refetch events list
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['junkEvents'] });
+    onSuccess: (res) => {
+      if (res?.status) {
+        message.success(res?.message || 'Event restored successfully');
+        queryClient.invalidateQueries({ queryKey: ['eventList'] });
+        refetch();
+      } else {
+        message.error(Utils.getErrorMessage(res, 'Failed to restore event'));
+      }
     },
     onError: (error) => {
-      message.error(error?.response?.data?.message || 'Failed to restore event');
+      message.error(Utils.getErrorMessage(error, 'Failed to restore event'));
     },
   });
 
@@ -196,21 +267,64 @@ const EventList = ({ isJunk = false }) => {
       cancelText: 'Cancel',
       onOk: () => {
         restoreMutation.mutate(row?.id, {
-          onSuccess: () => {
-            message.success(`Event "${row?.name}" restored successfully`);
-            refetch();
+          onSuccess: (res) => {
+            // Success handled in mutation definition or if you want specific behavior here:
+            if (res?.status) {
+              // refetch already handled in restoreMutation onSuccess if we want it there
+            }
           },
           onError: (error) => {
-            message.error(`Failed to restore event: ${error.message}`);
+            // Error already handled in restoreMutation definition
           },
         });
       },
     });
   }, [restoreMutation, refetch]);
 
-
+  const canExportEvents = usePermission('Export Events');
   const columns = useMemo(
     () => [
+      {
+        title: '*',
+        key: 'event_type_icons',
+        align: 'center',
+        width: 40,
+        render: (_, row) => {
+          const isCard = row?.event_controls?.use_preprinted_cards;
+          const isTicket = row?.event_controls?.ticket_system;
+          const isRegistration = row?.category?.title?.toLowerCase() === 'registration';
+
+          if (isRegistration) {
+            return (
+              <Tooltip title="Registration">
+                <span style={{ display: 'inline-flex' }}>
+                  <ClipboardList size={16} style={{ color: '#722ed1' }} />
+                </span>
+              </Tooltip>
+            );
+          }
+
+          return (
+            <Space size={4}>
+              {isCard && (
+                <Tooltip title="Pre printed Cards">
+                  <span style={{ display: 'inline-flex' }}>
+                    <CreditCard size={16} style={{ color: '#1677ff' }} />
+                  </span>
+                </Tooltip>
+              )}
+
+              {!isCard && isTicket && (
+                <Tooltip title="Seating Chart">
+                  <span style={{ display: 'inline-flex' }}>
+                    <Armchair size={16} style={{ color: '#8c8c8c' }} />
+                  </span>
+                </Tooltip>
+              )}
+            </Space>
+          );
+        },
+      },
       {
         title: 'Name',
         dataIndex: 'name',
@@ -277,44 +391,19 @@ const EventList = ({ isJunk = false }) => {
         title: 'Action',
         key: 'action',
         align: 'center',
-        ...(isMobile && { width: isJunk ? 100 : 60 }),
         fixed: 'right',
         render: (_, row) => {
           if (isJunk) {
-            const junkActions = [
-              {
-                tooltip: 'Restore Event',
-                isButton: true,
-                onClick: () => handleRestoreEvent(row),
-                type: 'default',
-                loadig : restoreMutation.isPending,
-                icon: <UndoOutlined />,
-              },
-              {
-                tooltip: 'Delete Permanently',
-                isButton: true,
-                onClick: () => handlePermanentDelete(row),
-                type: 'primary',
-                loading : permanentDeleteMutation.isPending,
-                danger: true,
-                icon: <DeleteOutlined />,
-              },
-            ];
-
+            // Only restore action in Action column for junk
             return (
-              <Space size="small">
-                {junkActions.map((action, index) => (
-                  <Tooltip key={index} title={action.tooltip}>
-                    <Button
-                      type={action.type}
-                      danger={action.danger}
-                      icon={action.icon}
-                      onClick={action.onClick}
-                      loading={action.loading}
-                    />
-                  </Tooltip>
-                ))}
-              </Space>
+              <Tooltip title="Restore Event">
+                <Button
+                  type="default"
+                  icon={<UndoOutlined />}
+                  onClick={() => handleRestoreEvent(row)}
+                  loading={restoreMutation.isPending}
+                />
+              </Tooltip>
             );
           }
           const actions = [
@@ -328,44 +417,20 @@ const EventList = ({ isJunk = false }) => {
               permission: null,
             },
             {
+              tooltip: 'Manage Tickets',
+              to: `ticket/${row?.event_key}/${createSlug(row?.name)}`,
+              type: 'default',
+              icon: <Ticket size={16} />,
+              permission: hasTicketPermission,
+            },
+            {
               tooltip: 'Edit Event',
               to: `update/${row?.event_key}`,
               type: 'default',
               icon: <EditOutlined />,
               permission: hasEditPermission,
             },
-            {
-              tooltip: 'Manage Tickets',
-              to: `ticket/${row?.event_key}/${createSlug(row?.name)}`,
-              type: 'default',
-              icon: <Ticket size={16} />,
-              permission: null,
-            },
-            {
-              tooltip: 'Delete Event',
-              onClick: () => HandleDelete(row?.id, row?.name),
-              type: 'primary',
-              danger: true,
-              icon: <DeleteOutlined />,
-              isButton: true,
-              permission: hasDeletePermission,
-            },
-            // {
-            //   tooltip: 'Manage Gates',
-            //   onClick: () => HandleGateModal(row?.id),
-            //   type: 'default',
-            //   icon: <MergeCellsOutlined />,
-            //   isButton: true,
-            //   permission: null,
-            // },
-            // {
-            //   tooltip: 'Manage Access Areas',
-            //   onClick: () => HandleGateModal(row?.id, true),
-            //   type: 'default',
-            //   icon: <KeyOutlined />,
-            //   isButton: true,
-            //   permission: null,
-            // },
+            // Delete moved to separate column
           ];
 
           const filteredActions = actions.filter(
@@ -481,6 +546,46 @@ const EventList = ({ isJunk = false }) => {
           );
         },
       },
+      // Separate Delete column for junk events
+      ...(isJunk ? [{
+        title: 'Delete',
+        key: 'delete',
+        align: 'center',
+        width: 80,
+        fixed: 'right',
+        render: (_, row) => (
+          <PermissionChecker permission="Delete Event Permanently">
+            <Tooltip title="Delete Permanently">
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => handlePermanentDelete(row)}
+                loading={permanentDeleteMutation.isPending}
+              />
+            </Tooltip>
+          </PermissionChecker>
+        ),
+      }] : [{
+        title: 'Delete',
+        key: 'delete',
+        align: 'center',
+        width: 80,
+        fixed: 'right',
+        render: (_, row) => (
+          <PermissionChecker permission="Delete Event">
+            <Tooltip title="Delete Event">
+              <Button
+                type="primary"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={() => HandleDelete(row?.id, row?.name)}
+                loading={deleteMutation.isPending}
+              />
+            </Tooltip>
+          </PermissionChecker>
+        ),
+      }]),
     ],
     [
       formatDateRange,
@@ -498,9 +603,16 @@ const EventList = ({ isJunk = false }) => {
       hasEditPermission,
       // HandleGateModal,
       createSlug,
+      hasTicketPermission,
       deleteMutation.isPending,
     ]
   );
+
+  const hasFilters = !!(searchText || (dateRange && dateRange.startDate && dateRange.endDate));
+
+  if (!isLoading && (!events || events.length === 0) && !hasFilters) {
+    return <EmptyEventsState isJunk={isJunk} />
+  }
 
   return (
     <DataTable
@@ -513,9 +625,17 @@ const EventList = ({ isJunk = false }) => {
       showAddButton={false}
       dateRange={dateRange}
       onDateRangeChange={handleDateRangeChange}
+      // Backend pagination props
+      serverSide={true}
+      pagination={pagination}
+      onPaginationChange={handlePaginationChange}
+      onSearch={handleSearchChange}
+      onSortChange={handleSortChange}
+      searchValue={searchText}
+      // Export functionality
       enableExport={true}
       exportRoute="export-events"
-      ExportPermission={usePermission('Export Events')}
+      ExportPermission={canExportEvents}
       extraHeaderContent={
         isJunk ?
           <Tooltip title="Back To Events">

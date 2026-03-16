@@ -1,6 +1,6 @@
-import React, { useState, memo, Fragment, useEffect, useCallback } from "react";
-import { Button, Row, Col, Card, Space, Typography, message } from "antd";
-import { CalendarOutlined, ArrowRightOutlined } from "@ant-design/icons";
+import React, { useState, memo, Fragment, useEffect, useCallback, useRef } from "react";
+import { Button, Row, Col, Card, Space, Typography, message, Drawer } from "antd";
+import { CalendarOutlined, ArrowRightOutlined, CloseCircleOutlined, SettingOutlined } from "@ant-design/icons";
 import axios from "axios";
 import POSAttendeeModal from "./POSAttendeeModal";
 import POSPrintModal from "./POSPrintModal";
@@ -15,6 +15,10 @@ import { BookingStats, handleDiscountChange } from "../agent/utils";
 import BookingLayout from "views/events/seating_module/theatre_booking/Bookinglayout";
 import SeatingModuleSummary from "../agent/components/SeatingModuleSummary";
 import { ROW_GUTTER } from "constants/ThemeConstant";
+import ErrorDrawer from "./components/ErrorDrawer";
+import { useLockSeats } from "../agent/useAgentBookingHooks";
+import EventSeatsListener from "../components/EventSeatsListener";
+import Utils from "utils";
 
 const { Title, Text } = Typography;
 
@@ -31,12 +35,11 @@ const POS = memo(() => {
   } = useMyContext();
 
   // State management
-  const [eventID, setEventID] = useState(true);
   const [isCheckOut, setIsCheckOut] = useState(true);
   const [event, setEvent] = useState([]);
   const [seatingModule, setSeatingModule] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
   const [selectedTickets, setSelectedTickets] = useState([]);
-
 
   const [number, setNumber] = useState('');
   const [name, setName] = useState('');
@@ -44,7 +47,6 @@ const POS = memo(() => {
 
   const [isAmusment, setIsAmusment] = useState(false);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
-
 
   // disc state 
   const [discount, setDiscount] = useState(0);
@@ -54,7 +56,14 @@ const POS = memo(() => {
   const [showPrintModel, setShowPrintModel] = useState(false);
   const [showAttendeeModel, setShowAttendeeModel] = useState(false);
   const [method, setMethod] = useState('Cash');
-  // const [tickets, setTickets] = useState([]);
+  const [showErrorDrawer, setShowErrorDrawer] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Ref for BookingLayout to update seat status
+  const bookingLayoutRef = useRef(null);
+
+  // Lock seats mutation hook
+  const lockSeatsMutation = useLockSeats();
 
   const {
     grandTotal,
@@ -62,14 +71,13 @@ const POS = memo(() => {
 
   const StorePOSBooking = useCallback(async () => {
     setShowAttendeeModel(false);
-    console.log(selectedTickets)
     const validTickets = selectedTickets?.filter(ticket => ticket?.quantity > 0);
-    console.log(validTickets)
 
     if (validTickets[0]?.quantity === undefined) {
       ErrorAlert('Please Select A Ticket');
       return;
     }
+
     const requestData = {
       user_id: UserData?.id,
       number,
@@ -78,12 +86,13 @@ const POS = memo(() => {
       discount,
       amount: grandTotal,
       payment_method: method,
+      seating_module: seatingModule,
     };
 
     try {
       const url = isAmusment
-        ? `${api}amusementBook-pos/${eventID}`
-        : `${api}book-pos/${eventID}`;
+        ? `${api}amusement/booking/pos`
+        : `${api}booking/pos`;
 
       const res = await axios.post(url, requestData, {
         headers: { 'Authorization': 'Bearer ' + authToken },
@@ -104,18 +113,31 @@ const POS = memo(() => {
             message.warning(res.data.message || "Something went wrong. Please try again.");
         }
 
-        // Stop further success flow if it’s a warning/error
-        //setIsBookingInProgress(false);
         return;
       }
       if (res.data.status) {
+        // ✅ Mark seats as booked in UI (reduces API calls)
+        if (seatingModule && bookingLayoutRef.current) {
+          bookingLayoutRef.current.markSeatsAsBooked();
+        }
+
         setShowPrintModel(true);
         setBookingData(res.data?.bookings);
       }
     } catch (err) {
-      console.log(err);
+      setErrorMessage(Utils.getErrorMessage(err, 'Booking failed'));
+      setShowErrorDrawer(true);
+
+      // ✅ Handle 409 conflict - seats no longer available
+      const errorData = err?.response?.data;
+      if (errorData?.meta === 409 || err?.response?.status === 409) {
+        const unavailableSeatIds = errorData?.seats || [];
+        if (seatingModule && bookingLayoutRef.current && unavailableSeatIds.length > 0) {
+          bookingLayoutRef.current.markSeatIdsAsBooked(unavailableSeatIds);
+        }
+      }
     }
-  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, eventID, authToken, ErrorAlert, grandTotal]);
+  }, [selectedTickets, UserData?.id, number, name, discount, method, isAmusment, api, authToken, ErrorAlert, grandTotal, seatingModule]);
 
   // Effects
   useEffect(() => {
@@ -136,7 +158,6 @@ const POS = memo(() => {
     });
   }, [discountValue, discountType, selectedTickets]);
 
-
   useEffect(() => {
     setDisableChoice(false);
     if (discountValue) {
@@ -144,11 +165,9 @@ const POS = memo(() => {
     }
   }, [discountValue, discountType]);
 
-
   const handleButtonClick = useCallback((evnt, tkts) => {
     setEvent(evnt)
     setSeatingModule(evnt?.event_controls?.ticket_system);
-    // setTickets(tkts)
   }, []);
 
   const closePrintModel = () => {
@@ -165,8 +184,6 @@ const POS = memo(() => {
     setDisableChoice(false);
   };
 
-
-
   const handleClose = useCallback((skip) => {
     setShowAttendeeModel(false);
     if (skip) {
@@ -174,17 +191,46 @@ const POS = memo(() => {
     }
   }, [StorePOSBooking]);
 
-  const handleBooking = useCallback(() => {
-    // console.log(selectedTickets)
+  const handleBooking = useCallback(async () => {
     const hasValidTicket = selectedTickets.some(ticket => Number(ticket?.quantity) > 0);
 
     if (!hasValidTicket) {
-      message.error('Please select at least one ticket');
-    } else {
-      setShowAttendeeModel(true);
-    }
-  }, [selectedTickets]);
+      setErrorMessage('Please select at least one ticket');
+      setShowErrorDrawer(true);
 
+      // Auto close after 3 seconds
+      setTimeout(() => {
+        setShowErrorDrawer(false);
+      }, 3000);
+      return;
+    }
+
+    // Lock seats if seating module is enabled and seats are selected
+    if (seatingModule && event?.id) {
+      const seats = selectedTickets?.flatMap(ticket =>
+        (ticket.seats || []).map(seat => seat.seat_id || seat.id).filter(Boolean)
+      ) || [];
+
+      if (seats.length > 0) {
+        try {
+          message.loading({ content: 'Locking seats...', key: 'lockSeats' });
+          const payload = {
+            event_id: event.id,
+            seats: seats,
+            user_id: UserData?.id
+          };
+          await lockSeatsMutation.mutateAsync(payload);
+          message.success({ content: 'Seats locked successfully', key: 'lockSeats' });
+        } catch (error) {
+          console.error('Failed to lock seats:', error);
+          message.error({ content: error?.message || 'Failed to lock seats', key: 'lockSeats' });
+          return; // Don't proceed if seat locking fails
+        }
+      }
+    }
+
+    setShowAttendeeModel(true);
+  }, [selectedTickets, seatingModule, event, lockSeatsMutation, UserData?.id]);
 
   // Utility function to calculate total tax + convenience fee from booking array
   const calculateTotalTax = (bookings) => {
@@ -199,10 +245,19 @@ const POS = memo(() => {
 
   const totalTax = calculateTotalTax(bookingData)
 
-
-
   return (
     <Fragment>
+      {/* WebSocket listener for real-time seat updates */}
+      {seatingModule && event?.id && (
+        <EventSeatsListener
+          eventId={event.id}
+          bookingLayoutRef={bookingLayoutRef}
+          enabled={seatingModule}
+          id={UserData?.id}
+
+        />
+      )}
+
       <POSAttendeeModal
         show={showAttendeeModel}
         handleClose={handleClose}
@@ -217,6 +272,8 @@ const POS = memo(() => {
 
       <POSPrintModal
         showPrintModel={showPrintModel}
+        showConfig={showConfig}
+        setShowConfig={setShowConfig}
         closePrintModel={closePrintModel}
         event={event}
         bookingData={bookingData}
@@ -224,45 +281,57 @@ const POS = memo(() => {
         totalTax={totalTax}
         discount={discount}
         grandTotal={grandTotal}
+        autoPrint={true}
       />
 
-
+      <ErrorDrawer
+        visible={showErrorDrawer}
+        message={errorMessage}
+        onClose={() => setShowErrorDrawer(false)}
+      />
 
       <Row gutter={ROW_GUTTER}>
         <Col span={24}>
           <PosEvents handleButtonClick={handleButtonClick} />
         </Col>
-        {seatingModule ? (
-          <Col xs={24} lg={16}>
-            <BookingLayout
-              eventId={event?.id}
-              setSelectedTkts={setSelectedTickets}
-              layoutId={event?.layout_id}
-            />
-          </Col>
-        ) : (
-          <Col xs={24} lg={16}>
-            <Card
-              bordered={false}
-              title={event?.name}
-              extra={event?.date_range && (
-                <Space>
-                  <CalendarOutlined className="text-primary" />
-                  <Text>{formatDateRange(event?.date_range)}</Text>
-                </Space>
-              )}
-            >
-              <BookingTickets
-                event={event}
-                selectedTickets={selectedTickets}
-                setSelectedTickets={setSelectedTickets}
-                getCurrencySymbol={getCurrencySymbol}
-                type={'pos'}
-              />
-            </Card>
-          </Col>
-        )}
 
+        <Col xs={24} lg={16}>
+          <Card
+            bordered={false}
+            title={event?.name}
+            extra={event?.date_range && (
+              <Space>
+                {/* add setting button */}
+                <Button
+                  size="small"
+                  className="mr-2"
+                  icon={<SettingOutlined />}
+                  onClick={() => setShowConfig(true)}
+                />
+                <CalendarOutlined className="text-primary" />
+                <Text>{formatDateRange(event?.date_range)}</Text>
+              </Space>
+            )}
+          >
+            <Col xs={24} lg={24}>
+              {seatingModule ? (
+                <BookingLayout
+                  ref={bookingLayoutRef}
+                  eventId={event?.id}
+                  setSelectedTkts={setSelectedTickets}
+                  layoutId={event?.layout_id}
+                />
+              ) : (
+                <BookingTickets
+                  event={event}
+                  selectedTickets={selectedTickets}
+                  setSelectedTickets={setSelectedTickets}
+                  getCurrencySymbol={getCurrencySymbol}
+                  type={'pos'}
+                />)}
+            </Col>
+          </Card>
+        </Col>
 
         <Col xs={24} lg={8}>
           <Card bordered={false}>
@@ -321,9 +390,11 @@ const POS = memo(() => {
             </Space>
           </Card>
         </Col>
-        <Col xs={24} lg={24}>
-          <SeatingModuleSummary selectedTickets={selectedTickets} />
-        </Col>
+        {seatingModule && (
+          <Col xs={24} lg={24}>
+            <SeatingModuleSummary selectedTickets={selectedTickets} />
+          </Col>
+        )}
       </Row>
     </Fragment>
   );

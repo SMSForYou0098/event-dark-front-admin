@@ -1,5 +1,8 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Modal, Button, Form, Input, Radio, Space, Typography } from "antd";
+import { useMyContext } from "../../../../Context/MyContextProvider";
+import axios from "axios";
+import Utils from "../../../../utils";
 
 const { Text } = Typography;
 
@@ -17,8 +20,71 @@ const POSAttendeeModal = (props) => {
     number
   } = props;
 
+  const { api, authToken } = useMyContext();
   const [form] = Form.useForm();
   const [error, setError] = useState("");
+  const [showNameField, setShowNameField] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(false);
+
+  // Fetch user details when phone number is valid
+  const fetchUserDetails = useCallback(async () => {
+    if ((number?.length === 10 || number?.length === 12) && /^\d+$/.test(number)) {
+      setIsLoadingUser(true);
+      setError("");
+
+      try {
+        const response = await axios.get(`${api}pos/ex-user/${number}`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+
+        if (response.data.status) {
+          const userData = response.data.data;
+          setName(userData.name || "");
+          form.setFieldsValue({ name: userData.name || "" });
+          setShowNameField(true);
+        } else {
+          // User not found, show name field for manual entry
+          setName("");
+          form.setFieldsValue({ name: "" });
+          setShowNameField(true);
+        }
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+        if (error.response && error.response.status === 404) {
+          // User not found, show name field for manual entry
+          setName("");
+          form.setFieldsValue({ name: "" });
+        } else {
+          setError(Utils.getErrorMessage(error, "Failed to fetch user details"));
+        }
+        setShowNameField(true);
+      } finally {
+        setIsLoadingUser(false);
+      }
+    } else {
+      setShowNameField(false);
+      setName("");
+      form.setFieldsValue({ name: "" });
+    }
+  }, [number, api, authToken, setName, form]);
+
+  useEffect(() => {
+    fetchUserDetails();
+  }, [fetchUserDetails]);
+
+  // Clear form values when modal is closed
+  useEffect(() => {
+    if (!show) {
+      form.resetFields();
+      setError("");
+      setShowNameField(false);
+      setName("");
+      setNumber("");
+      setMethod("Cash");
+    }
+  }, [show, form, setName, setNumber, setMethod]);
 
   const validateAndSubmit = useCallback(() => {
     form.validateFields()
@@ -35,7 +101,7 @@ const POSAttendeeModal = (props) => {
         handleSubmit();
       })
       .catch((errorInfo) => {
-        console.log('Validation failed:', errorInfo);
+        // console.error('Validation failed:', errorInfo);
       });
   }, [form, name, number, handleSubmit]);
 
@@ -54,7 +120,7 @@ const POSAttendeeModal = (props) => {
     setMethod(e.target.value);
   }, [setMethod]);
 
-  const isSubmitDisabled = !name.trim() || number?.length !== 10;
+  const isSubmitDisabled = !name.trim() || number?.length !== 10 || isLoadingUser;
 
   return (
     <Modal
@@ -63,7 +129,7 @@ const POSAttendeeModal = (props) => {
       closable={!disabled}
       title={
         <div style={{ textAlign: 'center', width: '100%' }}>
-          Attendee Detail For This Booking
+          Attendee Detail
         </div>
       }
       footer={null}
@@ -75,22 +141,6 @@ const POSAttendeeModal = (props) => {
         layout="vertical"
         initialValues={{ payment: 'Cash' }}
       >
-        <Form.Item
-          name="name"
-          label="Name"
-          rules={[
-            { required: true, message: 'Please enter name' },
-            { whitespace: true, message: 'Name cannot be empty' }
-          ]}
-        >
-          <Input
-            placeholder="Enter Name"
-            size="large"
-            value={name}
-            onChange={handleNameChange}
-          />
-        </Form.Item>
-
         <Form.Item
           name="phone"
           label="Phone Number"
@@ -112,6 +162,25 @@ const POSAttendeeModal = (props) => {
           />
         </Form.Item>
 
+        {showNameField && (
+          <Form.Item
+            name="name"
+            label="Name"
+            rules={[
+              { required: true, message: 'Please enter name' },
+              { whitespace: true, message: 'Name cannot be empty' }
+            ]}
+          >
+            <Input
+              placeholder={isLoadingUser ? "Loading..." : "Enter Name"}
+              size="large"
+              value={name}
+              onChange={handleNameChange}
+              disabled={isLoadingUser}
+            />
+          </Form.Item>
+        )}
+
         {error && (
           <div style={{ marginBottom: 16 }}>
             <Text type="danger" style={{ display: 'block', textAlign: 'center' }}>
@@ -119,14 +188,15 @@ const POSAttendeeModal = (props) => {
             </Text>
           </div>
         )}
-        {(userRole === 'Admin' || userRole === 'Organizer') &&
+
+        {/* {(userRole === 'Admin' || userRole === 'Organizer') && (
           <Form.Item
             name="payment"
             label="Payment Method"
           >
             <Radio.Group
               onChange={handleMethodChange}
-              initialValues="Cash"
+              defaultValue="Cash"
               style={{ width: '100%' }}
             >
               <Space direction="horizontal" size="large" style={{ width: '100%', justifyContent: 'space-between' }}>
@@ -136,7 +206,7 @@ const POSAttendeeModal = (props) => {
               </Space>
             </Radio.Group>
           </Form.Item>
-        }
+        )} */}
 
         <Form.Item style={{ marginBottom: 0 }}>
           <Space style={{ width: '100%', justifyContent: 'center' }} size="middle">
@@ -146,16 +216,11 @@ const POSAttendeeModal = (props) => {
               onClick={validateAndSubmit}
               disabled={isSubmitDisabled}
             >
-              Submit
+              {isLoadingUser ? "Loading..." : "Submit"}
             </Button>
             <Button
               type="default"
               size="large"
-              style={{
-                background: '#52c41a',
-                color: '#fff',
-                borderColor: '#52c41a'
-              }}
               onClick={() => handleClose(true)}
             >
               Skip

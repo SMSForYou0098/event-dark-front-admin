@@ -1,23 +1,23 @@
-import React, { memo, useEffect, useState, useMemo } from 'react';
-import { 
-  Card, 
-  Row, 
-  Col, 
-  Form, 
-  Input, 
-  Button, 
-  Modal, 
-  Radio, 
-  message, 
-  Table, 
+import React, { memo, useEffect, useState, useMemo, useRef } from 'react';
+import {
+  Card,
+  Row,
+  Col,
+  Form,
+  Input,
+  Button,
+  Modal,
+  Radio,
+  message,
+  Table,
   Space,
   Tooltip,
   Spin
 } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
+import DataTable from '../../common/DataTable';
 import { useMyContext } from '../../../../Context/MyContextProvider';
-import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
+import JoditEditor from 'jodit-react';
 import DOMPurify from 'dompurify';
 import {
   useEmailConfig,
@@ -27,11 +27,17 @@ import {
   useUpdateEmailTemplate,
   useDeleteEmailTemplate
 } from '../hooks/useSettings';
+import { joditConfig } from 'utils/consts';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
+import SytemVariables from './SytemVariables';
 
 const MailSettings = memo(() => {
   const { UserData } = useMyContext();
   const [form] = Form.useForm();
   const [templateForm] = Form.useForm();
+  const editor = useRef(null);
+  const [bodyContent, setBodyContent] = useState('');
 
   // Only essential states
   const [showTemplateModal, setShowTemplateModal] = useState(false);
@@ -40,6 +46,7 @@ const MailSettings = memo(() => {
   const [templateId, setTemplateId] = useState('');
   const [templatePreview, setTemplatePreview] = useState('');
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
+  const [isVariablesVisible, setIsVariablesVisible] = useState(false);
 
   // Tanstack Query Hooks
   const { data: emailConfig, isLoading: isLoadingConfig } = useEmailConfig();
@@ -50,7 +57,7 @@ const MailSettings = memo(() => {
       message.success(res?.message || 'Email Configuration Stored Successfully');
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to store mail configuration');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -61,7 +68,7 @@ const MailSettings = memo(() => {
       refetchTemplates();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to create template');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -72,7 +79,7 @@ const MailSettings = memo(() => {
       refetchTemplates();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to update template');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -83,7 +90,7 @@ const MailSettings = memo(() => {
       refetchTemplates();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to delete template');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -120,6 +127,7 @@ const MailSettings = memo(() => {
     setShowTemplateModal(false);
     setEditState(false);
     setTemplateId('');
+    setBodyContent('');
     templateForm.resetFields();
   };
 
@@ -131,12 +139,17 @@ const MailSettings = memo(() => {
   const HandleTemplateSubmit = async () => {
     try {
       const values = await templateForm.validateFields();
-      
+
+      if (!bodyContent || bodyContent.trim() === '' || bodyContent === '<p><br></p>') {
+        message.error('Please enter body content');
+        return;
+      }
+
       const payload = {
         user_id: UserData?.id,
         template_name: values.template_name,
         subject: values.subject,
-        body: values.body,
+        body: bodyContent,
       };
 
       if (editState) {
@@ -154,10 +167,10 @@ const MailSettings = memo(() => {
   const handleEdit = (record) => {
     setEditState(true);
     setTemplateId(record?.id);
+    setBodyContent(record?.body || '');
     templateForm.setFieldsValue({
       template_name: record?.template_id,
       subject: record?.subject,
-      body: record?.body,
     });
     setShowTemplateModal(true);
   };
@@ -200,6 +213,7 @@ const MailSettings = memo(() => {
         dataIndex: 'template_id',
         key: 'template_id',
         sorter: (a, b) => a.template_id.localeCompare(b.template_id),
+        searchable: true,
       },
       {
         title: 'Subject',
@@ -221,7 +235,8 @@ const MailSettings = memo(() => {
         title: 'Action',
         key: 'action',
         width: 150,
-        align: 'center',
+        align: 'left',
+        fixed: 'right',
         render: (_, record) => (
           <Space size="small">
             <Tooltip title="Edit">
@@ -267,7 +282,7 @@ const MailSettings = memo(() => {
   const isTemplateLoading = isCreatingTemplate || isUpdatingTemplate;
 
   return (
-    <>
+    <PermissionChecker role="Admin">
       {/* Delete Confirmation Modal */}
       <Modal
         title="Are you sure?"
@@ -310,20 +325,20 @@ const MailSettings = memo(() => {
           <Button key="cancel" onClick={handleTemplateModalClose}>
             Discard Changes
           </Button>,
-          <Button 
-            key="submit" 
-            type="primary" 
-            loading={isTemplateLoading} 
+          <Button
+            key="submit"
+            type="primary"
+            loading={isTemplateLoading}
             onClick={HandleTemplateSubmit}
           >
-            {isTemplateLoading 
-              ? editState 
-                ? 'Updating...' 
+            {isTemplateLoading
+              ? editState
+                ? 'Updating...'
                 : 'Saving...'
               : 'Save'}
           </Button>,
         ]}
-        width={800}
+        width={1000}
       >
         <Form form={templateForm} layout="vertical">
           <Form.Item
@@ -348,12 +363,15 @@ const MailSettings = memo(() => {
           </Form.Item>
           <Form.Item
             label="Body"
-            name="body"
-            rules={[{ required: true, message: 'Please enter body content' }]}
+            required
           >
-            <ReactQuill
-              theme="snow"
-              style={{ height: '300px', marginBottom: '50px' }}
+            <JoditEditor
+              ref={editor}
+              value={bodyContent}
+              config={joditConfig}
+              tabIndex={1}
+              onBlur={(newContent) => setBodyContent(newContent)}
+              onChange={() => { }}
             />
           </Form.Item>
         </Form>
@@ -444,9 +462,9 @@ const MailSettings = memo(() => {
                 </Col>
                 <Col xs={24}>
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <Button 
-                      type="primary" 
-                      loading={isSavingConfig} 
+                    <Button
+                      type="primary"
+                      loading={isSavingConfig}
                       onClick={HandleMailConfig}
                     >
                       {isSavingConfig ? 'Saving...' : 'Submit'}
@@ -460,32 +478,38 @@ const MailSettings = memo(() => {
 
         {/* Mail Templates */}
         <Col xs={24} lg={14}>
-          <Card
+          <DataTable
             title="Mail Templates"
-            extra={
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleTemplateModalShow}>
-                New Template
-              </Button>
+            extraHeaderContent={
+              <Space>
+                <Button type="default" onClick={() => setIsVariablesVisible(true)}>
+                  System Variables
+                </Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleTemplateModalShow}>
+                  New Template
+                </Button>
+              </Space>
             }
-          >
-            <Table
-              columns={columns}
-              dataSource={templates}
-              rowKey="id"
-              loading={isLoadingTemplates}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} templates`,
-              }}
-              scroll={{ x: 800 }}
-            />
-          </Card>
+            data={templates}
+            columns={columns}
+            loading={isLoadingTemplates}
+            enableSearch={true}
+            showSearch={true}
+            defaultPageSize={5}
+            pageSizeOptions={['5', '10', '20', '50']}
+            scroll={{ x: 800 }}
+          />
         </Col>
 
 
 
-        </Row>    </>
+      </Row>
+      <SytemVariables
+        isDrawer={true}
+        open={isVariablesVisible}
+        onClose={() => setIsVariablesVisible(false)}
+      />
+    </PermissionChecker>
   );
 }
 );

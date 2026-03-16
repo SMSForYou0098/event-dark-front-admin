@@ -16,7 +16,8 @@ import {
   Spin,
   Tag
 } from 'antd';
-import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, CloseOutlined, SearchOutlined } from '@ant-design/icons';
+import DataTable from '../../common/DataTable';
 import axios from 'axios';
 import { useMyContext } from '../../../../Context/MyContextProvider';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -30,6 +31,8 @@ import {
   useUpdateWhatsAppApi,
   useDeleteWhatsAppApi
 } from '../hooks/useSettings';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -52,6 +55,8 @@ const WhatsAppConfig = () => {
   const [previewData, setPreviewData] = useState();
   const [dynamicFields, setDynamicFields] = useState({});
   const [deleteModal, setDeleteModal] = useState({ visible: false, id: null });
+  const [searchText, setSearchText] = useState('');
+  const [isVariablesVisible, setIsVariablesVisible] = useState(false);
 
   // Tanstack Query Hooks
   const { data: configData, isLoading: isLoadingConfig } = useWhatsAppConfig(UserData?.id);
@@ -62,7 +67,7 @@ const WhatsAppConfig = () => {
       message.success(res?.message || 'Configuration saved successfully');
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to save configuration');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -73,7 +78,7 @@ const WhatsAppConfig = () => {
       refetchApis();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to create configuration');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -84,7 +89,7 @@ const WhatsAppConfig = () => {
       refetchApis();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to update configuration');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -95,7 +100,7 @@ const WhatsAppConfig = () => {
       refetchApis();
     },
     onError: (error) => {
-      message.error(error?.message || 'Failed to delete');
+      message.error(Utils.getErrorMessage(error));
     }
   });
 
@@ -362,18 +367,21 @@ const WhatsAppConfig = () => {
       dataIndex: 'title',
       key: 'title',
       sorter: (a, b) => a.title.localeCompare(b.title),
+      searchable: true,
     },
     {
       title: 'Template',
       dataIndex: 'template_name',
       key: 'template_name',
       sorter: (a, b) => a.template_name.localeCompare(b.template_name),
+      searchable: true,
     },
     {
       title: 'Action',
       key: 'action',
       width: 150,
-      align: 'center',
+      fixed: 'right',
+      align: 'left',
       render: (_, record) => (
         <Space size="small">
           <Tooltip title="Edit">
@@ -417,270 +425,294 @@ const WhatsAppConfig = () => {
   const isTemplateLoading = isCreatingApi || isUpdatingApi;
 
   return (
-    <DndProvider backend={HTML5Backend}>
-      {/* Delete Confirmation Modal */}
-      <Modal
-        title="Are you sure?"
-        open={deleteModal.visible}
-        onOk={confirmDelete}
-        onCancel={cancelDeleteModal}
-        okText="Yes, delete it!"
-        cancelText="Cancel"
-        confirmLoading={isDeletingApi}
-        centered
-        okButtonProps={{ danger: true }}
-      >
-        <p>You won't be able to revert this!</p>
-      </Modal>
+    <PermissionChecker role="Admin">
+      <DndProvider backend={HTML5Backend}>
+        {/* Delete Confirmation Modal */}
+        <Modal
+          title="Are you sure?"
+          open={deleteModal.visible}
+          onOk={confirmDelete}
+          onCancel={cancelDeleteModal}
+          okText="Yes, delete it!"
+          cancelText="Cancel"
+          confirmLoading={isDeletingApi}
+          centered
+          okButtonProps={{ danger: true }}
+        >
+          <p>You won't be able to revert this!</p>
+        </Modal>
 
-      {/* Template Modal */}
-      <Modal
-        title={`${editState ? 'Update' : 'Add New'} Configuration`}
-        open={show}
-        onCancel={handleClose}
-        footer={[
-          <Button key="cancel" onClick={handleClose}>
-            Close
-          </Button>,
-          <Button key="submit" type="primary" loading={isTemplateLoading} onClick={HandleSubmit}>
-            {isTemplateLoading ? (editState ? 'Updating...' : 'Saving...') : 'Save'}
-          </Button>,
-        ]}
-        width={800}
-      >
-        <Form form={templateForm} layout="vertical">
-          <Row gutter={[16, 16]}>
-            <Col xs={24}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Form.Item label="Custom" style={{ marginBottom: 16 }}>
-                  <Button
-                    type={customShow ? 'primary' : 'default'}
-                    onClick={() => setCustomShow(!customShow)}
+        {/* Template Modal */}
+        <Modal
+          title={`${editState ? 'Update' : 'Add New'} Configuration`}
+          open={show}
+          onCancel={handleClose}
+          footer={[
+            <Button key="cancel" onClick={handleClose}>
+              Close
+            </Button>,
+            <Button key="submit" type="primary" loading={isTemplateLoading} onClick={HandleSubmit}>
+              {isTemplateLoading ? (editState ? 'Updating...' : 'Saving...') : 'Save'}
+            </Button>,
+          ]}
+          width={800}
+        >
+          <Form form={templateForm} layout="vertical">
+            <Row gutter={[16, 16]}>
+              <Col xs={24}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <Form.Item label="Custom" style={{ marginBottom: 16 }}>
+                    <Button
+                      type={customShow ? 'primary' : 'default'}
+                      onClick={() => setCustomShow(!customShow)}
+                    >
+                      {customShow ? 'Custom Enabled' : 'Enable Custom'}
+                    </Button>
+                  </Form.Item>
+                </div>
+              </Col>
+              {!editState && (
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    label="Title"
+                    name="title"
+                    rules={[
+                      { required: true, message: 'Please enter title' },
+                      { min: 3, message: 'Title must be at least 3 characters' }
+                    ]}
                   >
-                    {customShow ? 'Custom Enabled' : 'Enable Custom'}
-                  </Button>
-                </Form.Item>
-              </div>
-            </Col>
-            {!editState && (
-              <Col xs={24} md={12}>
+                    <Input placeholder="Enter Title" />
+                  </Form.Item>
+                </Col>
+              )}
+              <Col xs={24} md={editState ? 24 : 12}>
                 <Form.Item
-                  label="Title"
-                  name="title"
+                  label="Template Name"
+                  name="template_name"
                   rules={[
-                    { required: true, message: 'Please enter title' },
-                    { min: 3, message: 'Title must be at least 3 characters' }
+                    { required: true, message: 'Please enter template name' },
+                    { min: 3, message: 'Template name must be at least 3 characters' }
                   ]}
                 >
-                  <Input placeholder="Enter Title" />
+                  <Input placeholder="Enter template name" />
                 </Form.Item>
               </Col>
-            )}
-            <Col xs={24} md={editState ? 24 : 12}>
-              <Form.Item
-                label="Template Name"
-                name="template_name"
-                rules={[
-                  { required: true, message: 'Please enter template name' },
-                  { min: 3, message: 'Template name must be at least 3 characters' }
-                ]}
-              >
-                <Input placeholder="Enter template name" />
-              </Form.Item>
-            </Col>
-            {customShow ? (
-              <>
-                <Col xs={24}>
-                  <Form.Item
-                    label="Custom API"
-                    name="url"
-                    rules={[
-                      { required: true, message: 'Please enter custom API' },
-                      { pattern: /^https?:\/\/.+/, message: 'Please enter a valid URL' }
-                    ]}
-                  >
-                    <TextArea rows={4} placeholder="Enter custom API URL" />
-                  </Form.Item>
-                </Col>
-                <Col xs={24}>
-                  <div style={{ fontSize: '12px', color: '#888' }}>
-                    <strong>Note:</strong> Use system variables for dynamic content
-                  </div>
-                </Col>
-              </>
-            ) : (
-              <Col xs={24}>
-                <Form.Item label="Variables">
-                  <div
-                  className='border-secondary rounded-5'
-                    style={{
-                      padding: badges?.length > 0 ? '8px' : '0',
-                    }}
-                  >
-                    {badges?.map((badge, index) => (
-                      <BadgeItem key={index} badge={badge} index={index} />
-                    ))}
-                    <Select
-                      style={{ width: '100%', marginTop: badges?.length > 0 ? 8 : 0 }}
-                      placeholder="Type or select variable"
-                      showSearch
-                      allowClear
-                      onChange={handleSelectChange}
-                      value={null}
+              {customShow ? (
+                <>
+                  <Col xs={24}>
+                    <Form.Item
+                      label="Custom API"
+                      name="url"
+                      rules={[
+                        { required: true, message: 'Please enter custom API' },
+                        { pattern: /^https?:\/\/.+/, message: 'Please enter a valid URL' }
+                      ]}
                     >
-                      {options.map((option) => (
-                        <Option key={option.value} value={option.value}>
-                          {option.label}
-                        </Option>
+                      <TextArea rows={4} placeholder="Enter custom API URL" />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24}>
+                    <div style={{ fontSize: '12px', color: '#888' }}>
+                      <strong>Note:</strong> Use system variables for dynamic content
+                    </div>
+                  </Col>
+                </>
+              ) : (
+                <Col xs={24}>
+                  <Form.Item label="Variables">
+                    <div
+                      className='border-secondary rounded-5'
+                      style={{
+                        padding: badges?.length > 0 ? '8px' : '0',
+                      }}
+                    >
+                      {badges?.map((badge, index) => (
+                        <BadgeItem key={index} badge={badge} index={index} />
                       ))}
-                    </Select>
-                  </div>
-                </Form.Item>
-              </Col>
-            )}
-          </Row>
-        </Form>
-      </Modal>
-
-      {/* Preview Modal */}
-      <Modal
-        title="API Preview"
-        open={showPreview}
-        onCancel={handleClosePreview}
-        footer={[
-          <Button key="send" type="primary" onClick={HandleSendMessage}>
-            Send Message
-          </Button>,
-        ]}
-        width={800}
-      >
-        <Form form={previewForm} layout="vertical">
-          <Row gutter={[16, 16]}>
-            <Col xs={24}>
-              <Form.Item label="Preview">
-                <Tag>
-                  <div
-                    dangerouslySetInnerHTML={{ __html: formattedApi }}
-                    style={{
-                      wordBreak: 'break-word',
-                      whiteSpace: 'pre-wrap',
-                      overflowY: 'auto',
-                    }}
-                  />
-                </Tag>
-              </Form.Item>
-            </Col>
-            <Col xs={24}>
-              <h5>Demo Test</h5>
-            </Col>
-            <Col xs={24}>
-              <Form.Item
-                label="Mobile Number"
-                name="number"
-                rules={[
-                  { required: true, message: 'Please enter mobile number' },
-                  {
-                    pattern: /^\d{10,12}$/,
-                    message: 'Mobile number must be 10-12 digits',
-                  },
-                ]}
-              >
-                <Input placeholder="Enter Number" />
-              </Form.Item>
-            </Col>
-            {previewData?.custom !== 1 &&
-              badges?.length > 0 &&
-              badges?.map((item, i) => (
-                <Col xs={24} md={12} key={i}>
-                  <Form.Item
-                    label={`Enter ${getByLabelText(item)}`}
-                    name={`field_${i}`}
-                    rules={[
-                      {
-                        required: true,
-                        message: `Please enter ${getByLabelText(item)}`,
-                      },
-                    ]}
-                  >
-                    <Input
-                      placeholder={`Enter ${getByLabelText(item)}`}
-                      onChange={(e) =>
-                        setDynamicFields((prev) => ({ ...prev, [item]: e.target.value }))
-                      }
-                    />
+                      <Select
+                        style={{ width: '100%', marginTop: badges?.length > 0 ? 8 : 0 }}
+                        placeholder="Type or select variable"
+                        showSearch
+                        allowClear
+                        onChange={handleSelectChange}
+                        value={null}
+                      >
+                        {options.map((option) => (
+                          <Option key={option.value} value={option.value}>
+                            {option.label}
+                          </Option>
+                        ))}
+                      </Select>
+                    </div>
                   </Form.Item>
                 </Col>
-              ))}
-          </Row>
-        </Form>
-      </Modal>
+              )}
+            </Row>
+          </Form>
+        </Modal>
 
-      <Row gutter={[16, 16]}>
-        {/* Left Column */}
-        <Col xs={24} lg={12}>
-          <Row gutter={[16, 16]}>
-            {/* WhatsApp Config Settings */}
-            <Col xs={24}>
-              <Card title="WhatsApp Config Settings">
-                <Form form={form} layout="vertical">
-                  <Row gutter={[16, 16]}>
-                    <Col xs={24}>
-                      <Form.Item
-                        label="API Key"
-                        name="api_key"
-                        rules={[
-                          { required: true, message: 'Please enter API key' },
-                          { min: 10, message: 'API key must be at least 10 characters' }
-                        ]}
-                      >
-                        <Input placeholder="Enter API Key" />
-                      </Form.Item>
-                    </Col>
-                    <Col xs={24}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                        <Button type="primary" loading={isSavingConfig} onClick={HandleConfig}>
-                          {isSavingConfig ? 'Saving...' : 'Submit'}
-                        </Button>
-                      </div>
-                    </Col>
-                  </Row>
-                </Form>
-              </Card>
-            </Col>
+        {/* Preview Modal */}
+        <Modal
+          title="API Preview"
+          open={showPreview}
+          onCancel={handleClosePreview}
+          footer={[
+            <Button key="send" type="primary" onClick={HandleSendMessage}>
+              Send Message
+            </Button>,
+          ]}
+          width={800}
+        >
+          <Form form={previewForm} layout="vertical">
+            <Row gutter={[16, 16]}>
+              <Col xs={24}>
+                <Form.Item label="Preview">
+                  <Tag>
+                    <div
+                      dangerouslySetInnerHTML={{ __html: formattedApi }}
+                      style={{
+                        wordBreak: 'break-word',
+                        whiteSpace: 'pre-wrap',
+                        overflowY: 'auto',
+                      }}
+                    />
+                  </Tag>
+                </Form.Item>
+              </Col>
+              <Col xs={24}>
+                <h5>Demo Test</h5>
+              </Col>
+              <Col xs={24}>
+                <Form.Item
+                  label="Mobile Number"
+                  name="number"
+                  rules={[
+                    { required: true, message: 'Please enter mobile number' },
+                    {
+                      pattern: /^\d{10,12}$/,
+                      message: 'Mobile number must be 10-12 digits',
+                    },
+                  ]}
+                >
+                  <Input placeholder="Enter Number" />
+                </Form.Item>
+              </Col>
+              {previewData?.custom !== 1 &&
+                badges?.length > 0 &&
+                badges?.map((item, i) => (
+                  <Col xs={24} md={12} key={i}>
+                    <Form.Item
+                      label={`Enter ${getByLabelText(item)}`}
+                      name={`field_${i}`}
+                      rules={[
+                        {
+                          required: true,
+                          message: `Please enter ${getByLabelText(item)}`,
+                        },
+                      ]}
+                    >
+                      <Input
+                        placeholder={`Enter ${getByLabelText(item)}`}
+                        onChange={(e) =>
+                          setDynamicFields((prev) => ({ ...prev, [item]: e.target.value }))
+                        }
+                      />
+                    </Form.Item>
+                  </Col>
+                ))}
+            </Row>
+          </Form>
+        </Modal>
 
-            {/* System Variables */}
-            <Col xs={24}>
-              <SytemVariables />
-            </Col>
-          </Row>
-        </Col>
+        <Row gutter={[16, 16]}>
+          {/* Left Column */}
+          <Col xs={24} lg={12}>
+            <Row gutter={[16, 16]}>
+              {/* WhatsApp Config Settings */}
+              <Col xs={24}>
+                <Card title="WhatsApp Config Settings">
+                  <Form form={form} layout="vertical">
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24}>
+                        <Form.Item
+                          label="API Key"
+                          name="api_key"
+                          rules={[
+                            { required: true, message: 'Please enter API key' },
+                            { min: 10, message: 'API key must be at least 10 characters' }
+                          ]}
+                        >
+                          <Input placeholder="Enter API Key" />
+                        </Form.Item>
+                      </Col>
+                      <Col xs={24}>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <Button type="primary" loading={isSavingConfig} onClick={HandleConfig}>
+                            {isSavingConfig ? 'Saving...' : 'Submit'}
+                          </Button>
+                        </div>
+                      </Col>
+                    </Row>
+                  </Form>
+                </Card>
+              </Col>
 
-        {/* Right Column - WhatsApp Configs Table */}
-        <Col xs={24} lg={12}>
-          <Card
-            title="WhatsApp Configs"
-            extra={
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => setShow(true)}>
-                New Config
-              </Button>
-            }
-          >
-            <Table
-              columns={columns}
-              dataSource={apisData}
-              rowKey="id"
-              loading={isLoadingApis}
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total) => `Total ${total} configs`,
-              }}
-              scroll={{ x: 600 }}
-            />
-          </Card>
-        </Col>
-      </Row>
-    </DndProvider>
+
+            </Row>
+          </Col>
+
+          {/* Right Column - WhatsApp Configs Table */}
+          <Col xs={24} lg={12}>
+            <Card
+              title="WhatsApp Configs"
+              size="small"
+              extra={
+                <Space>
+                  <Input
+                    placeholder="Search..."
+                    prefix={<SearchOutlined />}
+                    allowClear
+                    onChange={(e) => setSearchText(e.target.value)}
+                    style={{ width: 150 }}
+                    size="small"
+                  />
+                  <Button type="default" onClick={() => setIsVariablesVisible(true)} size="small">
+                    System Variables
+                  </Button>
+                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setShow(true)} size="small">
+                    New Config
+                  </Button>
+                </Space>
+              }
+            >
+              <Table
+                dataSource={apisData.filter(item =>
+                  !searchText ||
+                  item.title?.toLowerCase().includes(searchText.toLowerCase()) ||
+                  item.template_name?.toLowerCase().includes(searchText.toLowerCase())
+                )}
+                columns={columns}
+                loading={isLoadingApis}
+                size="small"
+                pagination={{
+                  pageSize: 10,
+                  showSizeChanger: true,
+                  pageSizeOptions: ['5', '10', '20', '50'],
+                  showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+                }}
+                scroll={{ x: 200 }}
+                rowKey="id"
+              />
+            </Card>
+          </Col>
+        </Row>
+      </DndProvider>
+      <SytemVariables
+        isDrawer={true}
+        open={isVariablesVisible}
+        onClose={() => setIsVariablesVisible(false)}
+      />
+    </PermissionChecker>
   );
 };
 

@@ -66,28 +66,28 @@ const CustomFieldsSettings = ({ customFieldsData, setSelectedFields, eventId }) 
     if (customFieldsData && eventId) {
       try {
         const savedData = localStorage.getItem(getStorageKey());
-        
+
         if (savedData) {
           const { selectedIds, order } = JSON.parse(savedData);
-          
+
           // Create a map for quick lookup of saved order
           const orderMap = new Map(order.map((id, index) => [id, index]));
-          
+
           // Merge saved data with current customFieldsData
           let mergedFields = customFieldsData.map(field => ({
             ...field,
             isSelected: selectedIds.includes(field.id)
           }));
-          
+
           // Sort according to saved order
           mergedFields.sort((a, b) => {
             const orderA = orderMap.has(a.id) ? orderMap.get(a.id) : Infinity;
             const orderB = orderMap.has(b.id) ? orderMap.get(b.id) : Infinity;
             return orderA - orderB;
           });
-          
+
           setFields(mergedFields);
-          
+
           // Update parent with saved selection
           const filteredFields = mergedFields
             .filter(f => f.isSelected)
@@ -104,7 +104,7 @@ const CustomFieldsSettings = ({ customFieldsData, setSelectedFields, eventId }) 
             isSelected: field.fixed === 1
           }));
           setFields(initialFields);
-          
+
           // Set initial selected fields
           const filteredFields = initialFields
             .filter(f => f.isSelected)

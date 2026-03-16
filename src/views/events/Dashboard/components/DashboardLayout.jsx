@@ -8,16 +8,21 @@ import DiscountCard from './DiscountCard';
 import { getBookingStats, getCncData, getDiscountData, getEventStats, getGatewayColumns, getGatewayData, getRevenueStats, getUserStats } from './dashboardConfig';
 import DashSkeleton from '../Admin/DashSkeleton';
 import { useDashboardData } from './useDashboardData';
-import OrganizerSummary from './OrganizerSummary';
-import { organizerSummary, organizerTickets } from './dummyData';
-import EventTicketsSummary from './EventTicketsSummary';
+import GatewayWiseSales from './GatewayWiseSales';
+import { PERMISSIONS } from 'constants/PermissionConstant';
+import usePermission from 'utils/hooks/usePermission';
+import Utils from 'utils';
+import AgentDetailedReport from 'views/events/Reports/AgentDetailedReport';
 
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
     const { isMobile } = useMyContext();
     const [showToday, setShowToday] = useState(true);
-    
-    const { bookingData, salesData, isLoading, error } = useDashboardData(userId);
- 
+
+    const canViewGateway = usePermission(PERMISSIONS.VIEW_GATEWAY);
+    const canViewUsers = usePermission(PERMISSIONS.VIEW_USER);
+
+    const { bookingData, salesData, isLoading, error, gatewayWiseSalesData, gatewayLoading, organizerSummary, organizerTickets, userStats } = useDashboardData(userId);
+
     const formatCurrency = (amount) => {
         return new Intl.NumberFormat('en-IN', {
             style: 'currency',
@@ -57,7 +62,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
             <div className="p-4">
                 <Alert
                     message="Error"
-                    description={error.message}
+                    description={Utils.getErrorMessage(error)}
                     type="error"
                     showIcon
                 />
@@ -117,22 +122,22 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 <StatSection
                     title="Revenue Overview"
                     stats={getRevenueStats(salesData)}
-                    colConfig={{ 
-                        xs: 24, 
-                        sm: 12, 
-                        md: 8, 
-                        lg: 6, 
-                        xl: 4, 
-                        style: { flex: '1 1 20%', maxWidth: isMobile ? '100%' : '20%' } 
+                    colConfig={{
+                        xs: 24,
+                        sm: 12,
+                        md: 8,
+                        lg: 6,
+                        xl: 4,
+                        style: { flex: '1 1 20%', maxWidth: window.innerWidth <= 768 ? '100%' : '20%' }
                     }}
-                    extraHeader={
-                        <Switch
-                            checked={showToday}
-                            onChange={(checked) => setShowToday(checked)}
-                            checkedChildren="Today"
-                            unCheckedChildren="Overall"
-                        />
-                    }
+                    // extraHeader={
+                    //     <Switch
+                    //         checked={showToday}
+                    //         onChange={(checked) => setShowToday(checked)}
+                    //         checkedChildren="Today"
+                    //         unCheckedChildren="Overall"
+                    //     />
+                    // }
                     isMobile={isMobile}
                 />
 
@@ -140,29 +145,47 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 <StatSection
                     title="Booking Statistics"
                     stats={getBookingStats(bookingData)}
-                    colConfig={{ xs: 24, sm: 12, lg: 6 }}
-                    containerCol={{ xs: 24, md: 12 }}
+                    colConfig={{
+                        xs: 24,
+                        sm: 12,
+                        md: 8,
+                        lg: 6,
+                        xl: 4,
+                        style: { flex: '1 1 20%', maxWidth: window.innerWidth <= 768 ? '100%' : '20%' }
+                    }}
+                    containerCol={{ xs: 24, md: 24 }}
                     isMobile={isMobile}
                 />
 
                 {/* Event Info Section */}
                 <StatSection
                     title="Events Info"
-                    stats={getEventStats(bookingData)}
+                    stats={getEventStats(bookingData?.eventinfo)}
                     colConfig={{ xs: 24, sm: 12, lg: 8 }}
-                    containerCol={{ xs: 24, md: 12 }}
+                    containerCol={{ xs: 24, md: 10 }}
                     isMobile={isMobile}
                 />
 
                 {/* User Management Section - Conditional */}
-                {showUserManagement && (
+                {canViewUsers && showUserManagement && (
                     <StatSection
                         title="User Management"
-                        stats={getUserStats(bookingData)}
+                        stats={getUserStats(userStats?.data)}
                         colConfig={{ xs: 24, sm: 12, lg: 4 }}
                         isMobile={isMobile}
                     />
                 )}
+
+                {/* Gateway Wise Sales Section */}
+                <Col xs={24}>
+                    <GatewayWiseSales
+                        gatewayData={gatewayWiseSalesData?.gatewayWise ?? []}
+                        channelData={gatewayWiseSalesData?.channelTotals ?? []}
+                        formatCurrency={formatCurrency}
+                        showToday={showToday}
+                        loading={gatewayLoading}
+                    />
+                </Col>
             </Row>
 
             <Divider />
@@ -178,13 +201,13 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                         type='area'
                     />
                 </Col>
-                {userRole==='Admin' && 
-                <Col xs={24} lg={12}>
-                    <PaymentGatewayTable
-                        data={getGatewayData(salesData.pgData)}
-                        columns={getGatewayColumns(formatCurrency)}
-                    />
-                </Col>
+                {canViewGateway &&
+                    <Col xs={24} lg={12}>
+                        <PaymentGatewayTable
+                            data={getGatewayData(salesData.pgData)}
+                            columns={getGatewayColumns(formatCurrency)}
+                        />
+                    </Col>
                 }
             </Row>
 
@@ -219,9 +242,9 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                         </Col>
                     </Row>
                 </Col>
+
             </Row>
-            <OrganizerSummary organizerSummary={organizerSummary} />
-            <EventTicketsSummary organizerTickets={organizerTickets} isLoading={isLoading} />
+            {/* <AgentDetailedReport /> */}
         </div>
     );
 };

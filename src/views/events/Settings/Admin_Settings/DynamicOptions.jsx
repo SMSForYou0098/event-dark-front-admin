@@ -25,6 +25,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import apiClient from "auth/FetchInterceptor";
 import FAQAdmin from "./AdminFAQForm";
+import Utils from "utils";
 
 const { Title, Text } = Typography;
 
@@ -69,7 +70,7 @@ const DynamicOptions = ({ type, heading }) => {
       queryClient.invalidateQueries({ queryKey: ["contactOptions", type] });
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || "Failed to add option");
+      message.error(Utils.getErrorMessage(err, "Failed to add option"));
     },
   });
 
@@ -87,7 +88,7 @@ const DynamicOptions = ({ type, heading }) => {
       queryClient.invalidateQueries({ queryKey: ["contactOptions", type] });
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || "Failed to delete option");
+      message.error(Utils.getErrorMessage(err, "Failed to delete option"));
       setDeleteModalVisible(false);
       setDeletingItem(null);
     },
@@ -110,7 +111,7 @@ const DynamicOptions = ({ type, heading }) => {
       queryClient.invalidateQueries({ queryKey: ["contactOptions", type] });
     },
     onError: (err) => {
-      message.error(err.response?.data?.message || "Failed to update option");
+      message.error(Utils.getErrorMessage(err, "Failed to update option"));
     },
   });
 

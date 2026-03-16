@@ -1,35 +1,65 @@
-import React, { memo, useState, useCallback } from "react";
+import React, { memo, useState, useCallback, useMemo } from "react";
 import { Button, Space, Modal, message } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CreditCard, AlertCircle } from "lucide-react";
 import DataTable from "../../common/DataTable";
 import api from "auth/FetchInterceptor";
+import Utils from "utils";
+import PermissionChecker from "layouts/PermissionChecker";
+import { PERMISSIONS } from "constants/PermissionConstant";
+import usePermission from "utils/hooks/usePermission";
 
 const PendingBookings = memo(() => {
   const { UserData, formatDateTime, truncateString } = useMyContext();
+  const canExportOnline = usePermission(PERMISSIONS.EXPORT_ONLINE_BOOKINGS);
   const [dateRange, setDateRange] = useState(null);
   const queryClient = useQueryClient();
 
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
   // Fetch pending bookings using TanStack Query
   const {
-    data: bookings = [],
+    data: bookingsData = { bookings: [], pagination: null },
     isLoading,
     isError,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["pendingBookings", UserData?.id, dateRange],
+    queryKey: ["pendingBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder],
     queryFn: async () => {
-      const queryParams = dateRange
-        ? `?date=${dateRange.startDate},${dateRange.endDate}`
-        : "";
-      const url = `booking/pending/${UserData?.id}${queryParams}`;
+      const params = new URLSearchParams();
 
+      // Pagination params
+      params.set("page", currentPage.toString());
+      params.set("per_page", pageSize.toString());
+
+      // Search param
+      if (searchText) {
+        params.set("search", searchText);
+      }
+
+      // Sorting params
+      if (sortField && sortOrder) {
+        params.set("sort_by", sortField);
+        params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+      }
+
+      // Date range params
+      if (dateRange) {
+        params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+      }
+
+      const url = `bookings/pending/${UserData?.id}?${params.toString()}`;
       const response = await api.get(url);
 
       if (response.status) {
-        let data = response.bookings;
+        let data = response.bookings || [];
         const filteredBookings = data.filter(
           (booking) =>
             booking.bookings &&
@@ -39,13 +69,24 @@ const PendingBookings = memo(() => {
         const normalBooking = data.filter((booking) => !booking.bookings);
         const allBookings = [...filteredBookings, ...normalBooking];
 
-        allBookings.sort((a, b) => {
-          const dateA = new Date(a.created_at);
-          const dateB = new Date(b.created_at);
-          return dateB.getTime() - dateA.getTime();
-        });
+        // Only sort on frontend if no server-side sorting
+        if (!sortField) {
+          allBookings.sort((a, b) => {
+            const dateA = new Date(a.created_at);
+            const dateB = new Date(b.created_at);
+            return dateB.getTime() - dateA.getTime();
+          });
+        }
 
-        return allBookings;
+        // Extract pagination data from response
+        const paginationData = response.pagination || {
+          current_page: currentPage,
+          per_page: pageSize,
+          total: allBookings.length,
+          last_page: 1,
+        };
+
+        return { bookings: allBookings, pagination: paginationData };
       } else {
         throw new Error(
           response?.message || "Failed to fetch pending bookings"
@@ -55,6 +96,10 @@ const PendingBookings = memo(() => {
     enabled: !!UserData?.id,
     refetchOnWindowFocus: false,
   });
+
+  // Extract bookings and pagination from query data
+  const bookings = useMemo(() => bookingsData.bookings || [], [bookingsData.bookings]);
+  const pagination = bookingsData.pagination;
 
   // Confirm payment mutation
   const confirmPaymentMutation = useMutation({
@@ -73,9 +118,7 @@ const PendingBookings = memo(() => {
       }
     },
     onError: (err) => {
-      message.error(
-        err.response?.data?.message || "Failed to confirm booking"
-      );
+      message.error(Utils.getErrorMessage(err, "Failed to confirm booking"));
     },
   });
 
@@ -103,13 +146,15 @@ const PendingBookings = memo(() => {
           },
         });
       } catch (error) {
-        message.error("Failed to process payment confirmation");
+        message.error(Utils.getErrorMessage(error, "Failed to process payment confirmation"));
       }
     },
     [bookings, confirmPaymentMutation]
   );
 
-  const handleDateRangeChange = (dates) => {
+  // Handle date range change
+  const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1); // Reset to first page on date change
     if (dates) {
       setDateRange({
         startDate: dates[0].format("YYYY-MM-DD"),
@@ -118,7 +163,28 @@ const PendingBookings = memo(() => {
     } else {
       setDateRange(null);
     }
-  };
+  }, []);
+
+  // Handle pagination change (for backend pagination)
+  const handlePaginationChange = useCallback((page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1); // Reset to first page when page size changes
+    }
+  }, [pageSize]);
+
+  // Handle search change (for backend search)
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1); // Reset to first page on search
+  }, []);
+
+  // Handle sort change (for backend sorting)
+  const handleSortChange = useCallback((field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
+  }, []);
 
   const columns = [
     {
@@ -217,16 +283,18 @@ const PendingBookings = memo(() => {
       width: 120,
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="primary"
-            size="small"
-            icon={<CreditCard size={14} />}
-            onClick={() => HandlePay(record.id)}
-            loading={confirmPaymentMutation.isPending}
-            title="Pay Now"
-          >
-            Pay Now
-          </Button>
+          <PermissionChecker permission={PERMISSIONS.CONFIRM_PENDING_BOOKING}>
+            <Button
+              type="primary"
+              size="small"
+              icon={<CreditCard size={14} />}
+              onClick={() => HandlePay(record.id)}
+              loading={confirmPaymentMutation.isPending}
+              title="Pay Now"
+            >
+              Pay Now
+            </Button>
+          </PermissionChecker>
         </Space>
       ),
     },
@@ -283,9 +351,16 @@ const PendingBookings = memo(() => {
       error={isError ? error : null}
       enableSearch={true}
       showSearch={true}
+      // Backend pagination props
+      serverSide={true}
+      pagination={pagination}
+      onPaginationChange={handlePaginationChange}
+      onSearch={handleSearchChange}
+      onSortChange={handleSortChange}
+      searchValue={searchText}
       enableExport={true}
-      exportRoute="export-pending-bookings"
-      ExportPermission={true}
+      exportRoute="booking/pending/export"
+      ExportPermission={canExportOnline}
       onRefresh={refetch}
       emptyText="No pending bookings found"
     />

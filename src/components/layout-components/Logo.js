@@ -19,7 +19,6 @@ const LogoWrapper = styled.div(() => ({
 const { useBreakpoint } = Grid;
 
 export const Logo = ({ mobileLogo }) => {
-    const {systemSetting} = useMyContext()
 	const isMobile = !utils.getBreakPoint(useBreakpoint()).includes('lg');
 
 	const navCollapsed = useSelector(state => state.theme.navCollapsed);
@@ -27,23 +26,24 @@ export const Logo = ({ mobileLogo }) => {
 
 	const getLogoWidthGutter = () => {
 		const isNavTop = navType === NAV_TYPE_TOP ? true : false
-		if(isMobile && !mobileLogo) {
+		if (isMobile && !mobileLogo) {
 			return 0
 		}
-		if(isNavTop) {
+		if (isNavTop) {
 			return 'auto'
 		}
-		if(navCollapsed) {
+		if (navCollapsed) {
 			return `${SIDE_NAV_COLLAPSED_WIDTH}px`
 		} else {
 			return `${SIDE_NAV_WIDTH}px`
 		}
 	}
 	const logoUrl = '/img/logo.webp'
+	const smallLogoUrl = '/img/logo-sm.webp'
 
 	return (
-		<LogoWrapper className={`${isMobile && !mobileLogo ? 'd-none' : 'logo'}`} style={{width: `${getLogoWidthGutter()}` , padding : navCollapsed ? '0 5px' : '0 3rem'}}>
-			<img src={logoUrl} alt={`${APP_NAME} logo`} height={navCollapsed ? 45 : 55} width={navCollapsed ? 70 : 90}/>
+		<LogoWrapper className={`${isMobile && !mobileLogo ? 'd-none' : 'logo'}`} style={{ width: `${getLogoWidthGutter()}`, padding: navCollapsed ? '0 5px' : '0 1rem' }}>
+			<img src={navCollapsed ? smallLogoUrl : logoUrl} alt={`${APP_NAME} logo`} height={navCollapsed ? 76 * 0.5 : 41 * 0.6} width={navCollapsed ? 111 * 0.5 : 328 * 0.6} />
 		</LogoWrapper>
 	)
 }

@@ -4,19 +4,44 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useEffect,
 } from "react";
-import { Row, Col, Image, Button, Modal, Space, Typography, notification, Tooltip, Select, Card, Empty } from "antd";
+import { Row, Col, Image, Button, Modal, Typography, Tooltip, Select, Card, Empty, message } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { Edit, Eye, IdCard, Trash2, Download } from "lucide-react";
-import SelectAnt from "antd/lib/select";
-import { QRCodeCanvas } from "qrcode.react";
+import { Eye, IdCard, Download } from "lucide-react";
 import DataTable from "../common/DataTable";
+import EventTicketDropdowns from "../common/EventTicketDropdowns";
 import TicketModal from "../Tickets/modals/TicketModal";
 import StickerModal from "../Tickets/modals/StickerModal";
+import Loader from "utils/Loader";
 import { useMyContext } from "Context/MyContextProvider";
 import apiClient from "auth/FetchInterceptor";
+import { API_BASE_URL } from "configs/AppConfig";
 import PermissionChecker from "layouts/PermissionChecker";
+import Utils from "utils";
 const { Text } = Typography;
+
+/** Trigger browser download from a Blob */
+function triggerBlobDownload(blob, filename) {
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+/** Get filename from download URL or event fallback */
+function getZipFilename(downloadUrl, eventLabelOrValue) {
+  try {
+    const pathname = new URL(downloadUrl).pathname;
+    const fromPath = pathname.split("/").pop();
+    if (fromPath && fromPath.endsWith(".zip")) return fromPath;
+  } catch (_) { }
+  return `attendee_images_${String(eventLabelOrValue || "event").replace(/[^\w-]/g, "_")}.zip`;
+}
 
 const Attendees = memo(() => {
   const {
@@ -24,74 +49,113 @@ const Attendees = memo(() => {
     isMobile,
     UserData,
     formatDateTime,
+    authToken,
   } = useMyContext();
 
   const [ticketData, setTicketData] = useState({});
   const [ticketModal, setTicketModal] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [attendeeType, setAttendeeType] = useState("online"); // 'offline' | 'online'
+  const [selectedTicketId, setSelectedTicketId] = useState(null);
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
   const [bgRequired, setBgRequired] = useState(false);
   const [stickerModal, setStickerModal] = useState(false);
   const [dateRange, setDateRange] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedImage, setSelectedImage] = useState("");
   const [imageModalVisible, setImageModalVisible] = useState(false);
-  const [qrDownloadData, setQrDownloadData] = useState(null);
-  const [qrModalVisible, setQrModalVisible] = useState(false);
   const [backgroundModalVisible, setBackgroundModalVisible] = useState(false);
   const [tempTicketData, setTempTicketData] = useState(null);
   const [zipLoading, setZipLoading] = useState(false);
 
-  // Fetch events list
-  const { data: events = [], isLoading: eventsLoading } = useQuery({
-    queryKey: ["attendee-events"],
-    queryFn: async () => {
-      const response = await apiClient.get("events/attendee");
-      if (response?.status) {
-        return response.data.map((event) => ({
-          label: event.name,
-          value: event.id,
-          card_url: event.card_url,
-          categoryId: event.category,
-        }));
-      }
-      return [];
-    },
-    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-  });
+  const handleEventChange = useCallback((event) => {
+    setSelectedEvent(event);
+    setSelectedTicketId(null);
+    setPage(1);
+  }, []);
 
-  // Fetch attendees for selected event
+  /** Download zip from URL via backend proxy (avoids CORS). Falls back to opening URL in new tab if proxy fails.
+   *  Backend must implement: GET attendee-download-proxy?url=<encoded_zip_url> → stream zip binary (e.g. Content-Type: application/zip). */
+  const downloadZipFromUrl = useCallback(async (downloadUrl, eventLabelOrValue) => {
+    const filename = getZipFilename(downloadUrl, eventLabelOrValue);
+    try {
+      const res = await apiClient.get("attendee-download-proxy", {
+        params: { url: downloadUrl },
+        responseType: "blob",
+      });
+      if (res?.data instanceof Blob) {
+        triggerBlobDownload(res.data, filename);
+        message.success("Download started. Attendee images zip is being downloaded.");
+        return;
+      }
+    } catch (proxyErr) {
+      console.warn("Proxy download failed, opening URL in new tab.", proxyErr);
+    }
+    window.open(downloadUrl, "_blank", "noopener,noreferrer");
+    try {
+      await navigator.clipboard.writeText(downloadUrl);
+      message.info("Download link opened in new tab. If the tab was blocked, the link was copied to your clipboard — paste it in a new tab to download.");
+    } catch (_) {
+      message.info("Download link opened in new tab. Paste the link in a new tab if the zip doesn’t download.");
+    }
+  }, []);
+
+  // Format date range for API: "YYYY-MM-DD, YYYY-MM-DD"
+  const formattedDateForApi = useMemo(() => {
+    if (!dateRange) return undefined;
+    if (Array.isArray(dateRange)) {
+      return dateRange
+        .map((d) => (typeof d === "string" ? d.slice(0, 10) : d?.format?.("YYYY-MM-DD") ?? String(d).slice(0, 10)))
+        .join(", ");
+    }
+    return dateRange;
+  }, [dateRange]);
+
+  // Fetch attendees for selected event (POST with type, ticket_id, event_id, page, per_page)
   const {
     data: attendeesData,
     isLoading: attendeesLoading,
     refetch: refetchAttendees,
   } = useQuery({
-    queryKey: ["attendees", selectedEvent?.value, dateRange, UserData?.id],
+    queryKey: ["attendees", selectedEvent?.value, attendeeType, selectedTicketId, dateRange, searchQuery, page, perPage, UserData?.id],
     queryFn: async () => {
       if (!selectedEvent?.value || !UserData?.id) return null;
 
-      const queryParams = dateRange ? `?date=${dateRange}` : "";
-      const response = await apiClient.get(
-        `attendee-list/${UserData.id}/${selectedEvent.value}${queryParams}`
-      );
+      const payload = {
+        type: attendeeType,
+        ticket_id: selectedTicketId || undefined,
+        event_id: selectedEvent.value,
+        page,
+        per_page: perPage,
+      };
+      if (formattedDateForApi) payload.date = formattedDateForApi;
+      if (searchQuery?.trim()) payload.search = searchQuery.trim();
+
+      const response = await apiClient.post("attendee-list", payload);
 
       if (response?.status) {
         return {
           attendees: response.attendees || [],
           tickets: response.tickets || [],
+          pagination: response.pagination || null,
         };
       }
-      return { attendees: [], tickets: [] };
+      return { attendees: [], tickets: [], pagination: null };
     },
-    enabled: Boolean(selectedEvent?.value && UserData?.id),
+    enabled: Boolean(selectedEvent?.value && UserData?.id && attendeeType && selectedTicketId),
     staleTime: 2 * 60 * 1000, // Cache for 2 minutes
   });
 
   const users = attendeesData?.attendees || [];
-  const attendeesCount = attendeesData?.tickets || [];
-
-  const openLightbox = useCallback((imagePath) => {
-    setSelectedImage(imagePath);
-    setImageModalVisible(true);
-  }, []);
+  const attendeesPagination = attendeesData?.pagination
+    ? {
+      current_page: attendeesData.pagination.current_page,
+      per_page: attendeesData.pagination.per_page,
+      total: attendeesData.pagination.total,
+      last_page: attendeesData.pagination.last_page,
+    }
+    : null;
 
   const handleShowIdCardModal = useCallback((ticket) => {
     setTempTicketData(ticket);
@@ -119,100 +183,84 @@ const Attendees = memo(() => {
     setTicketData(row);
   }, []);
 
-  const handleCloseStickerModal = useCallback(() => {
-    setStickerModal(false);
-  }, []);
-
-  const handleQrDownloadFromTable = useCallback((data) => {
-    setQrDownloadData(data);
-    setQrModalVisible(true);
-  }, []);
-
-  const confirmQrDownload = useCallback(() => {
-    if (!qrDownloadData) return;
-
-    const tempCanvasId = "table-qr-download-canvas";
-    const container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.top = "-9999px";
-    document.body.appendChild(container);
-
-    const qrElem = (
-      <QRCodeCanvas
-        id={tempCanvasId}
-        value={qrDownloadData.token}
-        size={180}
-        bgColor="#fff"
-        fgColor="#000"
-        level="H"
-      />
-    );
-
-    import("react-dom").then((ReactDOM) => {
-      ReactDOM.render(qrElem, container);
-
-      setTimeout(() => {
-        const canvas = document.getElementById(tempCanvasId);
-        if (canvas) {
-          const url = canvas.toDataURL("image/png");
-          const a = document.createElement("a");
-          a.href = url;
-          const safeName = qrDownloadData.Name
-            ? qrDownloadData.Name.replace(/\s+/g, "_")
-              .replace(/[^\w_]/g, "")
-              .toLowerCase()
-            : "user";
-          a.download = `${qrDownloadData.id || "user"}_${safeName}.png`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        }
-        ReactDOM.unmountComponentAtNode(container);
-        document.body.removeChild(container);
-        setQrModalVisible(false);
-        setQrDownloadData(null);
-      }, 100);
-    });
-  }, [qrDownloadData]);
-
-  // Download ZIP handler
+  // Download ZIP handler: calls attendee-download-images (supports direct blob OR async SSE job)
   const downloadZip = useCallback(async () => {
     if (!selectedEvent?.value) return;
 
     setZipLoading(true);
     try {
-      const response = await apiClient.get(`attendee_images/${selectedEvent.value}`);
-
-      const downloadUrl = response?.download_url;
-      if (!downloadUrl) {
-        throw new Error("No download URL received.");
+      const payload = {
+        type: attendeeType,
+        event_id: selectedEvent.value,
+      };
+      if (selectedTicketId != null && selectedTicketId !== "") {
+        payload.ticket_id = selectedTicketId;
       }
 
-      // Trigger direct browser download
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.setAttribute("download", `attendee_images_${selectedEvent.label}.zip`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      notification.success({
-        message: "Download Started",
-        description: "Attendee images zip is being downloaded.",
+      const response = await apiClient.post(`attendee-download-images`, payload, {
+        responseType: "blob",
       });
+
+      const contentType = response.headers?.["content-type"] || "";
+
+      // Case A: backend returned the ZIP directly as a blob
+      if (contentType.includes("application/zip") || contentType.includes("application/octet-stream")) {
+        const zipName = `attendee_images_${(selectedEvent.label || selectedEvent.value).replace(/[^\w-]/g, "_")}.zip`;
+        triggerBlobDownload(response.data, zipName);
+        setZipLoading(false);
+        message.success("Download started. Attendee images zip is being downloaded.");
+        return;
+      }
+
+      // Case B: backend returned JSON with a job_id for async processing
+      const text = await response.data.text();
+      const json = JSON.parse(text);
+
+      if (json?.download_url) {
+        // Immediate download URL – use backend proxy to avoid CORS, else open in new tab
+        await downloadZipFromUrl(json.download_url, selectedEvent?.label || selectedEvent?.value);
+        setZipLoading(false);
+        return;
+      }
+
+      if (!json?.job_id) {
+        throw new Error(json?.message || "Unexpected response from server.");
+      }
+
+      // Listen for job completion via SSE
+      const baseUrl = process.env.REACT_APP_API_ENDPOINT_URL || API_BASE_URL || "";
+      const sseUrl = `${baseUrl}attendee-zip-status/${json.job_id}?token=${authToken}`;
+      const sse = new EventSource(sseUrl);
+
+      sse.onmessage = async (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.status === "ready") {
+            sse.close();
+            await downloadZipFromUrl(data.download_url, selectedEvent?.label || selectedEvent?.value);
+            setZipLoading(false);
+          } else if (data.status === "error") {
+            sse.close();
+            setZipLoading(false);
+            message.error(data.message || "Failed to generate zip.");
+          }
+          // status === "waiting" → keep loader visible
+        } catch (parseErr) {
+          console.error("SSE parse error:", parseErr);
+        }
+      };
+
+      sse.onerror = () => {
+        sse.close();
+        setZipLoading(false);
+        message.error("Connection lost while waiting for zip. Please try again.");
+      };
     } catch (err) {
-      let msg = "Download failed.";
-      if (err.response?.data?.message) msg = err.response.data.message;
-      else if (err.message) msg = err.message;
-
-      notification.error({
-        message: "Download Error",
-        description: msg,
-      });
-    } finally {
+      console.error(err);
       setZipLoading(false);
+      message.error(Utils.getErrorMessage(err, "Download failed."));
     }
-  }, [selectedEvent]);
+  }, [selectedEvent, attendeeType, selectedTicketId, authToken, downloadZipFromUrl]);
 
   const columns = useMemo(
     () => [
@@ -226,8 +274,8 @@ const Attendees = memo(() => {
       },
       {
         title: "Name",
-        dataIndex: "Name",
-        key: "Name",
+        dataIndex: "name",
+        key: "name",
         align: "center",
       },
       {
@@ -237,48 +285,24 @@ const Attendees = memo(() => {
         align: "center",
       },
       {
-        title: "Booking Mode",
-        dataIndex: "agent_id",
-        key: "booking_mode",
+        title: "Photo",
+        dataIndex: "photo",
+        key: "photo",
         align: "center",
-        render: (agent_id, row) =>
-          agent_id ? row?.agent_user?.name : "Online",
+        width: 100,
+        render: (photo) => photo ? <Image src={photo} alt="Thumbnail" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '50%' }} /> : 'N/A',
       },
       {
         title: "Contact",
-        dataIndex: "Mo",
-        key: "Mo",
+        dataIndex: "number",
+        key: "number",
         align: "center",
       },
       {
-        title: "Ticket",
-        dataIndex: ["ticket_data", "name"],
-        key: "ticket_name",
+        title: "Booking Type",
+        dataIndex: "booking_type",
+        key: "booking_type",
         align: "center",
-      },
-      {
-        title: "Photo",
-        dataIndex: "Photo",
-        key: "Photo",
-        align: "center",
-        width: 100,
-        render: (cell) =>
-          cell ? (
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Button type="link" onClick={() => openLightbox(cell)}>
-                <Image
-                  src={cell}
-                  alt="Attendee"
-                  width={50}
-                  height={50}
-                  style={{ objectFit: "cover", borderRadius: "50%" }}
-                  preview={false}
-                />
-              </Button>
-            </div>
-          ) : (
-            <span>No Image</span>
-          ),
       },
       {
         title: "Created At",
@@ -288,37 +312,9 @@ const Attendees = memo(() => {
         render: (cell) => formatDateTime(cell),
       },
       {
-        title: "QR Code",
-        dataIndex: "qrdata",
-        key: "qrdata",
-        align: "center",
-        width: 100,
-        render: (_cell, row) =>
-          row.token ? (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                cursor: "pointer",
-              }}
-              onClick={() => handleQrDownloadFromTable(row)}
-              title="Click to download QR"
-            >
-              <QRCodeCanvas
-                value={row.token}
-                size={48}
-                bgColor="#fff"
-                fgColor="#000"
-              />
-            </div>
-          ) : (
-            <span className="text-muted">No Token</span>
-          ),
-      },
-      {
         title: "Email",
-        dataIndex: "Email",
-        key: "Email",
+        dataIndex: "email",
+        key: "email",
         align: "center",
       },
       {
@@ -360,49 +356,89 @@ const Attendees = memo(() => {
       formatDateTime,
       handleShowIdCardModal,
       handleShowStickerModal,
-      openLightbox,
-      handleQrDownloadFromTable,
     ]
   );
 
-  const handleSelectEvent = useCallback((value) => {
-    const sel = events.find((e) => e.value === value) || null;
-    setSelectedEvent(sel);
-  }, [events]);
+  // Build ticket options from selected event's tickets (from org-event API)
+  const ticketOptions = useMemo(() => {
+    const list = selectedEvent?.tickets || [];
+    if (!Array.isArray(list) || list.length === 0) return [];
+    return list.map((t) => ({
+      value: t.id,
+      label: t.name ?? `Ticket #${t.id}`,
+    }));
+  }, [selectedEvent?.tickets]);
 
-  // Event Selection Component and Download Button
+  // Default to first ticket when event has tickets and none is selected (or selected is not in list)
+  useEffect(() => {
+    if (ticketOptions.length > 0) {
+      const firstValue = ticketOptions[0].value;
+      const currentValid =
+        selectedTicketId != null &&
+        selectedTicketId !== "" &&
+        ticketOptions.some((o) => o.value === selectedTicketId);
+      if (!currentValid) {
+        setSelectedTicketId(firstValue);
+        setPage(1);
+      }
+    }
+  }, [ticketOptions, selectedTicketId]);
+
+  // Event Selection, Ticket selection (shared component), Type dropdown and Download Button
   const ExtraHeaderContent = useMemo(
     () => (
       <>
-        <Select
-         style={{width : '15rem'}}
-          placeholder="Select Events"
-          value={selectedEvent?.value}
-          onChange={handleSelectEvent}
-          loading={eventsLoading}
-          allowClear
-          showSearch
-          optionFilterProp="label"
-          options={events.map((ev) => ({
-            value: ev.value,
-            label: ev.label,
-          }))}
+        <EventTicketDropdowns
+          organizerId={UserData?.id}
+          role={UserData?.role}
+          selectedEvent={selectedEvent}
+          selectedTicketId={selectedTicketId}
+          onEventChange={handleEventChange}
+          onTicketChange={(v) => {
+            setSelectedTicketId(v ?? null);
+            setPage(1);
+          }}
         />
         {selectedEvent?.value && (
-          <PermissionChecker permission="Download Attendees">
-            <Tooltip title="Download Zip">
-              <Button
-                type="primary"
-                icon={<Download size={16} />}
-                onClick={downloadZip}
-                loading={zipLoading}
-              />
-            </Tooltip>
-          </PermissionChecker>
+          <>
+            <Select
+              style={{ width: "10rem", marginLeft: 8 }}
+              placeholder="Type"
+              value={attendeeType}
+              onChange={(v) => {
+                setAttendeeType(v);
+                setPage(1);
+              }}
+              options={[
+                { value: "online", label: "Online" },
+                { value: "offline", label: "Offline" },
+              ]}
+            />
+            <PermissionChecker permission="Download Attendees">
+              <Tooltip title="Download Zip">
+                <Button
+                  type="primary"
+                  icon={<Download size={16} />}
+                  onClick={downloadZip}
+                  disabled={zipLoading}
+                  style={{ marginLeft: 8 }}
+                />
+              </Tooltip>
+            </PermissionChecker>
+          </>
         )}
       </>
     ),
-    [selectedEvent?.value, handleSelectEvent, eventsLoading, events, downloadZip, zipLoading]
+    [
+      UserData?.id,
+      UserData?.role,
+      selectedEvent,
+      selectedTicketId,
+      handleEventChange,
+      attendeeType,
+      downloadZip,
+      zipLoading,
+    ]
   );
 
   return (
@@ -426,15 +462,32 @@ const Attendees = memo(() => {
               showDateRange
               exportRoute={
                 selectedEvent?.value
-                  ? `export-attndy/${selectedEvent.value}`
+                  ? `export-attendee`
                   : undefined
               }
+              exportPayload={{
+                event_id: selectedEvent?.value,
+                type: attendeeType,
+                ticket_id: selectedTicketId,
+                date: formattedDateForApi,
+              }}
               onDateRangeChange={(dr) => setDateRange(dr)}
               dateRange={dateRange}
               onRefresh={() => refetchAttendees()}
               extraHeaderContent={ExtraHeaderContent}
               enableExport={Boolean(selectedEvent?.value)}
               ExportPermission={Boolean(selectedEvent?.value)}
+              serverSide={Boolean(attendeesPagination)}
+              pagination={attendeesPagination}
+              onPaginationChange={(newPage, newPageSize) => {
+                setPage(newPage);
+                setPerPage(newPageSize);
+              }}
+              onSearch={(value) => {
+                setSearchQuery(value ?? "");
+                setPage(1);
+              }}
+              searchValue={searchQuery}
             />
           ) : (
             <Card title="Attendees">
@@ -522,33 +575,23 @@ const Attendees = memo(() => {
         <Text>Please choose whether you want the ticket with or without a background.</Text>
       </Modal>
 
-      {/* QR Download Confirmation Modal */}
+      {/* Zip download loader overlay – shown until SSE returns ready or error */}
       <Modal
-        title="Download QR Code"
-        open={qrModalVisible}
-        onOk={confirmQrDownload}
-        onCancel={() => {
-          setQrModalVisible(false);
-          setQrDownloadData(null);
-        }}
-        okText="Download"
-        cancelText="Cancel"
+        open={zipLoading}
+        footer={null}
+        closable={false}
+        maskClosable={false}
+        width={200}
         centered
+        styles={{ body: { padding: 24, minHeight: 120 } }}
       >
-        <Space direction="vertical" style={{ width: "100%" }} align="center">
-          <Text>Do you want to download this QR code?</Text>
-          {qrDownloadData?.token && (
-            <QRCodeCanvas
-              value={qrDownloadData.token}
-              size={180}
-              bgColor="#fff"
-              fgColor="#000"
-              level="H"
-              style={{ marginTop: 16 }}
-            />
-          )}
-        </Space>
+        <Loader width={100} height={100} />
+        <div className="text-center mt-2">
+          <Text type="secondary">Preparing zip…</Text>
+        </div>
       </Modal>
+
+      {/* QR Download Confirmation Modal */}
     </Fragment>
   );
 });

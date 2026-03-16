@@ -107,7 +107,7 @@ const AuditoriumTicketBooking = ({ layoutId, eventDetails }) => {
       setStage(data.stage);
       setSections(data.sections || []);
       setTicketCategories(data.ticketCategories || []);
-      message.success('Layout loaded successfully!');
+      // message.success('Layout loaded successfully!');
     } catch (error) {
       console.error('Error loading layout:', error);
       message.error(`Failed to load layout: ${error.message}`);
@@ -225,7 +225,7 @@ const AuditoriumTicketBooking = ({ layoutId, eventDetails }) => {
     try {
       // Make API call here
       // const response = await api.post('/bookings', bookingPayload);
-      console.log('Booking payload:', bookingPayload);
+      // console.log('Booking payload:', bookingPayload);
 
       message.success('Booking confirmed successfully!');
 

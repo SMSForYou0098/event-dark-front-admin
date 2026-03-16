@@ -1,6 +1,78 @@
 // hooks/useEventOptions.js
 import { useMutation, useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
+import { USERSITE_URL } from 'utils/consts';
+
+const slugify = (text) => text?.toString().toLowerCase()
+  .replace(/\s+/g, '-')           // Replace spaces with -
+  .replace(/[^\w-]+/g, '')       // Remove all non-word chars
+  .replace(/--+/g, '-')         // Replace multiple - with single -
+  .replace(/^-+/, '')             // Trim - from start of text
+  .replace(/-+$/, '');            // Trim - from end of text
+
+const generateEventSchema = (values, eventData) => {
+  const name = eventData?.name || values.name || '';
+  const description = eventData?.description || values.description || '';
+  const startDateRaw = eventData?.date_range || values.date_range || '';
+  let startDate = '';
+  let endDate = '';
+
+  if (startDateRaw) {
+    const dates = startDateRaw.split(',');
+    startDate = dates[0]?.trim() || '';
+    endDate = dates[1]?.trim() || '';
+
+    // Append start_time/end_time if available
+    const st = eventData?.start_time || values.start_time;
+    const et = eventData?.end_time || values.end_time;
+
+    if (startDate && st) startDate = `${startDate}T${st}:00+05:30`;
+    if (endDate && et) endDate = `${endDate}T${et}:00+05:30`;
+    else if (startDate && et) endDate = `${startDate}T${et}:00+05:30`;
+  }
+
+  const orgName = eventData?.user?.organisation || (typeof values?.user === 'object' ? values?.user?.organisation : '');
+  const cityName = eventData?.venue?.city || values.city || '';
+  const venueName = eventData?.venue?.name || values.venue_name || '';
+  const thumbnail = eventData?.event_media?.thumbnail || values.thumbnail || '';
+  const eventKey = eventData?.event_key || values.event_key;
+
+  const dynamicUrl = `${USERSITE_URL}events/${slugify(cityName)}/${slugify(orgName)}/${slugify(name)}/${eventKey}`;
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": name,
+    "url": dynamicUrl,
+    "description": description.replace(/(<([^>]+)>)/gi, ""), // Strip HTML tags
+    "startDate": startDate,
+    "endDate": endDate,
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": venueName || "Venue Name",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": cityName || "City",
+        "addressRegion": "Gujarat"
+      }
+    },
+    "organizer": {
+      "@type": "Organization",
+      "name": orgName || "Organizer",
+      "url": `${USERSITE_URL}`
+    },
+    "image": thumbnail || `${USERSITE_URL}uploads/default-event.jpg`,
+    "offers": {
+      "@type": "Offer",
+      "url": `${dynamicUrl}`,
+      "priceCurrency": "INR",
+      "availability": "https://schema.org/InStock"
+    }
+  };
+};
 export const useOrganizers = () =>
   useQuery({
     queryKey: ['organizers'],
@@ -8,7 +80,7 @@ export const useOrganizers = () =>
       const res = await api.get('organizers');
 
       if (res?.status !== true) {
-        throw new Error(res?.message || 'Failed to fetch organizers');
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch organizers'));
       }
       // Return only the array of organizers
       return Array.isArray(res?.data) ? res.data : [];
@@ -29,7 +101,7 @@ export const useVenues = () =>
       const res = await api.get(`/venues`);
 
       if (res?.status !== true) {
-        throw new Error(res?.message || 'Failed to fetch venues');
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch venues'));
       }
 
       // Return the raw list; map to Select options in the component
@@ -45,31 +117,34 @@ export const useVenues = () =>
 
 //  ---- getting all the event categorties ----
 
-  export const useEventCategories = (options = {}) =>
-    useQuery({
-      queryKey: ["event-categories"],
-      queryFn: async () => {
-        const res = await api.get("category-title"); // auth header added automatically by interceptor
+export const useEventCategories = (options = {}) =>
+  useQuery({
+    queryKey: ["event-categories"],
+    queryFn: async () => {
+      const res = await api.get("category-title"); // auth header added automatically by interceptor
 
-        // If your interceptor returns { status, categoryData }
-        const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, "Failed to fetch event categories"));
+      }
 
-        if (!rawData) throw new Error("Invalid response structure");
+      const rawData = res?.categoryData || res?.data?.categoryData || res?.data;
+      if (!rawData) throw new Error("Invalid response structure");
 
-        const transformed = Object.values(rawData).map((item) => ({
-          label: item.title,
-          value: item.id,
-        }));
+      const transformed = Object.values(rawData).map((item) => ({
+        label: item.title,
+        value: item.id,
+        attendy_required: item.attendy_required,
+      }));
 
-        return transformed;
-      },
-      staleTime: 5 * 60 * 1000, // cache for 5 minutes
-      retry: (count, err) => {
-        const status = err?.response?.status;
-        return status >= 500 && count < 2;
-      },
-      ...options, // allow custom overrides
-    });
+      return transformed;
+    },
+    staleTime: 5 * 60 * 1000, // cache for 5 minutes
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+    ...options, // allow custom overrides
+  });
 
 
 
@@ -88,15 +163,13 @@ export const useCreateEvent = (options = {}) =>
   useMutation({
     mutationFn: async (payloadOrFormData) => {
       const body = payloadOrFormData; // already FormData from the component
-      
-      
+
+
       const res = await api.post('/create-event', body, {
         headers: { /* let browser set multipart boundary; omit Content-Type */ },
       });
       if (res?.status === false) {
-        const err = new Error(res?.message || 'Failed to create event');
-        err.server = res;
-        throw err;
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create event'));
       }
       return res;
     },
@@ -113,63 +186,125 @@ export function buildEventFormData(values, isDraft = false) {
     fd.append(k, String(v));
   };
 
-  const appendSingleUpload = (key, fileList) => {
-    if (!Array.isArray(fileList) || !fileList.length) return;
-    const f = fileList[0];
-    if (!f || !f.originFileObj) return; // skip existing URL-only
-    fd.append(key, f.originFileObj, f.name || 'file');
-  };
-
-  // --- GALLERY HELPERS ---
-  const appendExistingGalleryUrls = (fileList) => {
-    if (!Array.isArray(fileList)) return;
-    fileList.forEach((f) => {
-      if (f?.url && !f.originFileObj) {
-        fd.append('existing_images[]', f.url);
-      }
-    });
-  };
-
-  const appendGalleryUploadsAsArray = (fileList) => {
-    if (!Array.isArray(fileList)) return;
-    fileList.forEach((f) => {
-      if (f?.originFileObj) {
-        fd.append('images[]', f.originFileObj, f.name || 'image');
-      }
-    });
-  };
 
   // ---------- BASIC ----------
   if (values.step === 'basic') {
-    appendIfDefined('user_id', values.org_id);
+    console.log(values, 'values');
+    // For Organizer role, use their userId; otherwise use the selected org_id from form
+    const userId = values.userRole === 'Organizer' ? values.userId : values.org_id;
+    appendIfDefined('user_id', userId);
     appendIfDefined('category', values.category);
     appendIfDefined('name', values.name);
     appendIfDefined('venue_id', values.venue_id);
     appendIfDefined('description', values.description);
+
+    // Conditionally append attendee_required from BASIC step.
+    // BasicDetails step sets this form value only when:
+    // - category title is "Registration" OR
+    // - category.attendee_required === true
+    appendIfDefined('attendee_required', values.attendee_required);
+
+    // Registration fields with notes [{id, note}] - send as stringified JSON
+    if (values.fields) {
+      fd.append('fields', JSON.stringify(values.fields));
+    }
+
+    // Terms & Conditions
+    appendIfDefined('online_ticket_terms', values.online_ticket_terms);
+    appendIfDefined('offline_ticket_terms', values.offline_ticket_terms);
   }
 
-  // ---------- CONTROLS ----------
+  // ---------- CONTROLS (now includes ticket settings from removed tickets step) ----------
   if (values.step === 'controls') {
-    appendIfDefined('scan_detail', values.scan_detail);
-    appendIfDefined('event_feature', values.event_feature ?? 0);
-    appendIfDefined('status', values.status ?? 1);
-    appendIfDefined('house_full', values.house_full ?? 0);
-    appendIfDefined('online_att_sug', values.online_att_sug ?? 0);
-    appendIfDefined('offline_att_sug', values.offline_att_sug ?? 0);
-    appendIfDefined('show_on_home', values.show_on_home ?? 0);
+    appendIfDefined('scan_detail', Number(values.scan_detail));
+    // Send boolean values directly to API
+    appendIfDefined('event_feature', values.event_feature ?? false);
+    appendIfDefined('status', values.status ?? false);
+    appendIfDefined('house_full', values.house_full ?? false);
+    appendIfDefined('online_att_sug', values.online_att_sug ?? false);
+    appendIfDefined('offline_att_sug', values.offline_att_sug ?? false);
+    appendIfDefined('show_on_home', values.show_on_home ?? false);
+    appendIfDefined('is_postponed', values.is_postponed ?? false);
+    appendIfDefined('is_cancelled', values.is_cancelled ?? false);
+    appendIfDefined('is_sold_out', values.is_sold_out ?? false);
+    // Booking control fields (default true)
+    appendIfDefined('online_booking', values.online_booking ?? true);
+    appendIfDefined('agent_booking', values.agent_booking ?? true);
+    appendIfDefined('pos_booking', values.pos_booking ?? true);
+    appendIfDefined('complimentary_booking', values.complimentary_booking ?? true);
+    appendIfDefined('sponsor_booking', values.sponsor_booking ?? true);
+    appendIfDefined('is_approval_required', values.is_approval_required ?? false);
+
+    // Convert expected_date to string format if it's a moment/dayjs object
+    if (values.expected_date) {
+      const dateStr = values.expected_date?.format ? values.expected_date.format('YYYY-MM-DD') : values.expected_date;
+      appendIfDefined('expected_date', dateStr);
+    }
 
     // storing instagram post id from url
+    // const extractInstagramId = (url) => {
+    //   if (!url) return undefined;
+    //   const match = url.match(/instagram\.com\/p\/([^/?]+)/i);
+    //   return match ? match[1] : url.trim(); // fallback if only ID is entered directly
+    // };
+
     const extractInstagramId = (url) => {
       if (!url) return undefined;
-      const match = url.match(/instagram\.com\/p\/([^/?]+)/i);
-      return match ? match[1] : url.trim(); // fallback if only ID is entered directly
-    };
 
+      const match = url.match(/\.com\/(.+)/i);
+      return match ? match[1] : url.trim();
+    };
     // Example usage:
     appendIfDefined('insta_whts_url', extractInstagramId(values.insta_whts_url));
 
     appendIfDefined('whts_note', values.whts_note);
     appendIfDefined('booking_notice', values.booking_notice);
+
+    // Ticket settings (moved from tickets step)
+    appendIfDefined('ticket_terms', values.ticket_terms);
+    appendIfDefined('multi_scan', values.multi_scan ?? false);
+    appendIfDefined('attendee_required', values.attendee_required ?? false);
+    appendIfDefined('ticket_transfer', values.ticket_transfer ?? false);
+    appendIfDefined('ticket_transfer_otp', values.ticket_transfer_otp ?? false);
+    appendIfDefined('use_preprinted_cards', values.use_preprinted_cards ?? false);
+    // Attendee fields - send as JSON array [{field_id, note}]
+    if (Array.isArray(values.attendee_fields) && values.attendee_fields.length > 0) {
+      fd.append('attendee_fields', JSON.stringify(values.attendee_fields));
+    }
+    // Multi-scan checkpoint configuration
+    appendIfDefined('scan_mode', values.scan_mode ?? false);
+    appendIfDefined('max_scan_count', values.max_scan_count);
+    if (Array.isArray(values.checkpoints) && values.checkpoints.length > 0) {
+      // Helper to convert time string to minutes for sorting
+      const timeToMinutes = (timeStr) => {
+        if (!timeStr) return Infinity; // Put items without time at the end
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+      };
+
+      // Sort checkpoints by start_time before sending to API
+      const sortedCheckpoints = [...values.checkpoints].sort((a, b) => {
+        return timeToMinutes(a.start_time) - timeToMinutes(b.start_time);
+      });
+
+      // Include id only for existing checkpoints (updates), exclude for new ones
+      const checkpointsPayload = sortedCheckpoints.map(cp => {
+        const checkpoint = {
+          label: cp.label,
+          start_time: cp.start_time,
+          end_time: cp.end_time,
+        };
+        // Include id only if it exists (for updating existing checkpoints)
+        if (cp.id) {
+          checkpoint.id = cp.id;
+        }
+        return checkpoint;
+      });
+      fd.append('checkpoints', JSON.stringify(checkpointsPayload));
+    }
+    // ticket_system: form value true = "Booking By Ticket" = API expects 0
+    // ticket_system: form value false = "Booking By Seat" = API expects 1
+    appendIfDefined('ticket_system', values.ticket_system ? 0 : 1);
   }
 
   // ---------- TIMING ----------
@@ -178,8 +313,9 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('entry_time', values.entry_time);
     appendIfDefined('start_time', values.start_time);
     appendIfDefined('end_time', values.end_time);
-    appendIfDefined('overnight_event', values.overnight_event ? 1 : 0);
+    appendIfDefined('overnight_event', values.overnight_event);
     appendIfDefined('event_type', values.event_type);
+    appendIfDefined('tba', values.tba);
   }
 
   // ---------- TICKETS ----------
@@ -188,30 +324,27 @@ export function buildEventFormData(values, isDraft = false) {
       fd.append('tickets', JSON.stringify(values.tickets));
     }
     appendIfDefined('ticket_terms', values.ticket_terms);
-    appendIfDefined('multi_scan', values.multi_scan ?? 0);
+    appendIfDefined('multi_scan', values.multi_scan ?? false);
+    // ticket_system: form value true = "Booking By Ticket" = API expects 0
     appendIfDefined('ticket_system', values.ticket_system ? 0 : 1);
   }
 
   // ---------- ARTIST ----------
   if (values.step === 'artist') {
     appendIfDefined('artist_id', values.artist_id);
+    appendIfDefined('influencer_ids', values.influencer_ids);
   }
 
   // ---------- MEDIA ----------
   if (values.step === 'media') {
-    if (Array.isArray(values.thumbnail)) appendSingleUpload('thumbnail', values.thumbnail);
-    if (Array.isArray(values.insta_thumbnail)) appendSingleUpload('insta_thumbnail', values.insta_thumbnail);
-    if (Array.isArray(values.layout_image)) appendSingleUpload('layout_image', values.layout_image);
+    // Now these are URL strings from the media gallery picker (not fileList arrays)
+    appendIfDefined('thumbnail', values.thumbnail);
+    appendIfDefined('insta_thumbnail', values.insta_thumbnail);
+    appendIfDefined('layout_image', values.layout_image);
 
-    // Gallery images
-    if (Array.isArray(values.images)) {
-      appendExistingGalleryUrls(values.images);
-      appendGalleryUploadsAsArray(values.images);
-    }
-
-    // Removed images
-    if (Array.isArray(values.remove_images)) {
-      values.remove_images.forEach((url) => fd.append('remove_images[]', url));
+    // Gallery images - join as comma-separated string (like venue_images)
+    if (Array.isArray(values.images) && values.images.length > 0) {
+      fd.append('images', values.images.join(','));
     }
 
     // Media URLs
@@ -226,16 +359,54 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('meta_tag', values.meta_tag);
     appendIfDefined('meta_keyword', values.meta_keyword);
     appendIfDefined('seo_type', 'event');
+
+    // Tracking IDs
+    appendIfDefined('google_tag_manager_id', values.google_tag_manager_id);
+    appendIfDefined('google_analytics_id', values.google_analytics_id);
+    appendIfDefined('google_ads_conversion_id', values.google_ads_conversion_id);
+    appendIfDefined('meta_pixel_id', values.meta_pixel_id);
+
+    // Schema
+    appendIfDefined('schema_enabled', values.schema_enabled ?? false);
+    if (values.schema_enabled) {
+      const existingSchema = values.schema_override_json;
+      const generatedSchema = JSON.stringify(generateEventSchema(values, values.eventData), null, 2);
+      fd.append('schema_override_json', existingSchema || generatedSchema);
+    }
   }
 
   // ---------- PUBLISH ----------
   if (values.step === 'publish') {
+    // For Organizer role, use their userId; otherwise use the selected org_id from form
+    const userId = values.userRole === 'Organizer' ? values.userId : values.org_id;
+    appendIfDefined('user_id', userId);
     appendIfDefined('status', values.status ?? 1);
+
+    // Include SEO fields
+    appendIfDefined('meta_title', values.meta_title);
+    appendIfDefined('meta_description', values.meta_description);
+    appendIfDefined('meta_tag', values.meta_tag);
+    appendIfDefined('meta_keyword', values.meta_keyword);
+    appendIfDefined('seo_type', 'event');
+
+    // Tracking IDs
+    appendIfDefined('google_tag_manager_id', values.google_tag_manager_id);
+    appendIfDefined('google_analytics_id', values.google_analytics_id);
+    appendIfDefined('google_ads_conversion_id', values.google_ads_conversion_id);
+    appendIfDefined('meta_pixel_id', values.meta_pixel_id);
+
+    // Schema
+    appendIfDefined('schema_enabled', values.schema_enabled ?? false);
+    if (values.schema_enabled) {
+      const existingSchema = values.schema_override_json;
+      const generatedSchema = JSON.stringify(generateEventSchema(values, values.eventData), null, 2);
+      fd.append('schema_override_json', existingSchema || generatedSchema);
+    }
   }
 
   // Always append the step identifier
   appendIfDefined('step', values.step || '');
-  if (isDraft) appendIfDefined('status', 0);
+  if (isDraft) appendIfDefined('status', false);
 
   return fd;
 }
@@ -246,18 +417,16 @@ export const useEventDetail = (id, step = null, options = {}) =>
     queryKey: ['event-detail', id, step], // Include step in cache key
     enabled: !!id, // Only run when ID is present
     queryFn: async () => {
-      const url = step 
-        ? `edit-event/${id}/${step}` 
+      const url = step
+        ? `edit-event/${id}/${step}`
         : `edit-detail/${id}`;
-        //     const url = step 
-        // ? `event-detail/${id}?step${step}` 
-        // : `edit-detail/${id}`;
+      //     const url = step 
+      // ? `event-detail/${id}?step${step}` 
+      // : `edit-detail/${id}`;
       const res = await api.get(url);
 
       if (!res?.status) {
-        const err = new Error(res?.message || 'Failed to fetch event details');
-        err.server = res;
-        throw err;
+        throw new Error(Utils.getErrorMessage(res, 'Failed to fetch event details'));
       }
 
       return res?.event || {}; // Return event data
@@ -284,9 +453,7 @@ export const useUpdateEvent = (options = {}) =>
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (res?.status === false) {
-        const err = new Error(res?.message || 'Failed to update event');
-        err.server = res;
-        throw err;
+        throw new Error(Utils.getErrorMessage(res, 'Failed to update event'));
       }
       return res;
     },
@@ -294,12 +461,12 @@ export const useUpdateEvent = (options = {}) =>
   });
 
 
-  export const  toUploadFileList = (raw) => {
+export const toUploadFileList = (raw) => {
   // raw can be array or JSON string; normalize to array of URLs
   let urls = [];
   if (Array.isArray(raw)) urls = raw;
   else if (typeof raw === 'string') {
-    try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) urls = parsed; } catch(e) {}
+    try { const parsed = JSON.parse(raw); if (Array.isArray(parsed)) urls = parsed; } catch (e) { }
   }
 
   // only keep up to 4 since backend expects images_1..images_4
@@ -345,11 +512,44 @@ export const useArtists = (options = {}) =>
     ...options, // allow overrides
   });
 
+// ------- event influencers api call --------
+// Fetch influencers assigned to a specific event
+export const useEventInfluencers = (eventId, enabled = true) =>
+  useQuery({
+    queryKey: ['event-influencers', eventId],
+    queryFn: async () => {
+      const res = await api.get(`event/${eventId}/influencers`);
+      const rawData = res?.influencers || res?.data?.influencers || res?.data || [];
 
-  /**
- * Optional: helper to build FormData for artist payloads with files.
- * Use only if you need to send images/files.
- */
+      return Array.isArray(rawData) ? rawData : [];
+    },
+    enabled: !!eventId && enabled, // Only fetch when eventId exists and enabled is true
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: (count, err) => {
+      const status = err?.response?.status;
+      return status >= 500 && count < 2;
+    },
+  });
+
+// ------- assign influencers to event --------
+// POST influencer_ids to assign influencers to an event
+export const useAssignEventInfluencers = (options = {}) =>
+  useMutation({
+    mutationFn: async ({ eventId, influencer_ids }) => {
+      const res = await api.post(`event/${eventId}/influencers/bulk-assign`, { influencer_ids });
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to assign influencers'));
+      }
+      return res;
+    },
+    ...options,
+  });
+
+
+/**
+* Optional: helper to build FormData for artist payloads with files.
+* Use only if you need to send images/files.
+*/
 export const buildArtistFormData = (values = {}) => {
   const fd = new FormData();
 
@@ -410,7 +610,10 @@ export const useCreateArtist = (options = {}) =>
     mutationFn: async (payload) => {
       // payload can be FormData or a plain object
       const res = await api.post('artist-store', payload);
-      return res?.data;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to create artist'));
+      }
+      return res?.data || res;
     },
     retry: (count, err) => {
       const status = err?.response?.status;
@@ -429,7 +632,10 @@ export const useUpdateArtist = (options = {}) =>
     mutationFn: async ({ id, payload }) => {
       if (!id) throw new Error('Artist ID is required');
       const res = await api.post(`artist-update/${id}`, payload);
-      return res?.data;
+      if (res?.status === false) {
+        throw new Error(Utils.getErrorMessage(res, 'Failed to update artist'));
+      }
+      return res?.data || res;
     },
     retry: (count, err) => {
       const status = err?.response?.status;

@@ -56,7 +56,7 @@ const AuditoriumTicketBooking = ({ layoutId, eventDetails }) => {
 
 
 
-      message.success('Layout loaded successfully!');
+      // message.success('Layout loaded successfully!');
     } catch (error) {
       console.error('Error loading layout:', error);
       message.error(`Failed to load layout: ${error.message}`);

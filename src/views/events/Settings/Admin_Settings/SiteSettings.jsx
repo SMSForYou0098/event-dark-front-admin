@@ -1,10 +1,14 @@
 import { EyeOutlined, DeleteOutlined, UploadOutlined } from '@ant-design/icons';
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Tabs, Input, Switch, Upload, Button, Checkbox, Modal, Form, message } from 'antd';
+import { Card, Col, Row, Tabs, Input, Switch, Upload, Button, Checkbox, Modal, Form, message, Typography } from 'antd';
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import { PictureOutlined } from '@ant-design/icons';
 import DynamicOptions from './DynamicOptions';
+import DeveloperSettings from './DeveloperSettings';
 
 const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState('');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTitle, setPreviewTitle] = useState('');
@@ -13,7 +17,7 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   const getFileList = (fieldName) => {
     const file = fileUploads[fieldName];
     if (!file) return [];
-    
+
     if (typeof file === 'string') {
       return [{
         uid: '-1',
@@ -22,7 +26,7 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
         url: file,
       }];
     }
-    
+
     if (file instanceof File) {
       return [{
         uid: '-1',
@@ -32,7 +36,7 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
         url: URL.createObjectURL(file),
       }];
     }
-    
+
     return [];
   };
 
@@ -117,41 +121,41 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
   ];
 
   const tabItems = [
-    {
-      key: 'branding',
-      label: 'Media',
-      children: (
-        <>
-          <h4 style={{ marginBottom: '16px' }}>Branding Settings</h4>
-          <Row gutter={[16, 16]}>
-            {brandingFields.map(({ field, label }) => (
-              <Col xs={24} sm={12} lg={6} key={field}>
-                <Form.Item label={label}>
-                  <Upload {...getImageUploadProps(field)}>
-                    {getFileList(field).length < 1 && (
-                      <div>
-                        <UploadOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
-                      </div>
-                    )}
-                  </Upload>
-                </Form.Item>
-              </Col>
-            ))}
+    // {
+    //   key: 'branding',
+    //   label: 'Media',
+    //   children: (
+    //     <>
+    //       <h4 style={{ marginBottom: '16px' }}>Branding Settings</h4>
+    //       <Row gutter={[16, 16]}>
+    //         {brandingFields.map(({ field, label }) => (
+    //           <Col xs={24} sm={12} lg={6} key={field}>
+    //             <Form.Item label={label}>
+    //               <Upload {...getImageUploadProps(field)}>
+    //                 {getFileList(field).length < 1 && (
+    //                   <div>
+    //                     <UploadOutlined />
+    //                     <div style={{ marginTop: 8 }}>Upload</div>
+    //                   </div>
+    //                 )}
+    //               </Upload>
+    //             </Form.Item>
+    //           </Col>
+    //         ))}
 
-            <Col xs={24} lg={12}>
-              <Form.Item 
-                label="App Name" 
-                name="app_name"
-                rules={[{ required: true, message: 'Please enter app name' }]}
-              >
-                <Input placeholder="App name" />
-              </Form.Item>
-            </Col>
-          </Row>
-        </>
-      )
-    },
+    //         <Col xs={24} lg={12}>
+    //           <Form.Item
+    //             label="App Name"
+    //             name="app_name"
+    //             rules={[{ required: true, message: 'Please enter app name' }]}
+    //           >
+    //             <Input placeholder="App name" />
+    //           </Form.Item>
+    //         </Col>
+    //       </Row>
+    //     </>
+    //   )
+    // },
     {
       key: 'contact',
       label: 'Contact Info',
@@ -181,8 +185,8 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
           <h4 style={{ marginBottom: '16px' }}>Feature Toggles</h4>
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={12}>
-              <Form.Item 
-                label="User Notification Permission" 
+              <Form.Item
+                label="User Notification Permission"
                 name="notify_req"
                 valuePropName="checked"
               >
@@ -193,8 +197,8 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
               </Form.Item>
             </Col>
             <Col xs={24} lg={12}>
-              <Form.Item 
-                label="Complimentary User Validation" 
+              <Form.Item
+                label="Complimentary User Validation"
                 name="complimentary_attendee_validation"
                 valuePropName="checked"
               >
@@ -213,81 +217,63 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
       label: 'Homepage',
       children: (
         <>
-          <h4 style={{ marginBottom: '16px' }}>Homepage Settings</h4>
+          {/* <h4 style={{ marginBottom: '16px' }}>Login Promotion</h4> */}
           <Row gutter={[16, 16]}>
-            <Col xs={24} lg={12}>
-              <Form.Item label="Home Divider Image">
-                <Upload {...getImageUploadProps('homeDivider')}>
-                  {getFileList('homeDivider').length < 1 && (
-                    <div>
-                        <UploadOutlined />
-                        <div style={{ marginTop: 8 }}>Upload</div>
+            <Col xs={12}>
+              <Form.Item
+                label="Login Promotion Image"
+                name="login_promo"
+                extra="Select an image from media gallery to use as login promotion"
+              >
+                <Button
+                  icon={<PictureOutlined />}
+                  onClick={() => setIsMediaPickerOpen(true)}
+                  type={form.getFieldValue('login_promo') ? 'default' : 'primary'}
+                >
+                  {form.getFieldValue('login_promo') ? 'Change Image' : 'Select Image'}
+                </Button>
+              </Form.Item>
+
+              <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.login_promo !== currentValues.login_promo}>
+                {({ getFieldValue }) => {
+                  const loginPromo = getFieldValue('login_promo');
+                  return loginPromo ? (
+                    <div style={{ marginTop: '10px', position: 'relative', display: 'inline-block' }}>
+                      <p style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: '8px' }}>Preview:</p>
+                      <div style={{ position: 'relative' }}>
+                        <img
+                          src={loginPromo}
+                          alt="Login Promo"
+                          style={{ maxHeight: '200px', borderRadius: '8px', border: '1px solid #303030', display: 'block' }}
+                        />
+                        <Button
+                          type="primary"
+                          danger
+                          shape="circle"
+                          icon={<DeleteOutlined />}
+                          size="small"
+                          style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 1 }}
+                          onClick={() => form.setFieldsValue({ login_promo: '' })}
+                        />
                       </div>
-                  )}
-                </Upload>
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Form.Item label="Home Divider External URL" name="home_divider_url">
-                <Input placeholder="Enter external image URL" />
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Form.Item name="external_link" valuePropName="checked">
-                <Checkbox>Use External Link</Checkbox>
-              </Form.Item>
-            </Col>
-            <Col xs={24} lg={12}>
-              <Form.Item name="new_tab" valuePropName="checked">
-                <Checkbox>Open in New Tab</Checkbox>
-              </Form.Item>
-            </Col>
-          </Row>
-        </>
-      )
-    },
-    {
-      key: 'agreement',
-      label: 'Agreement',
-      children: (
-        <>
-          <h4 style={{ marginBottom: '16px' }}>Agreement Settings</h4>
-          <Row gutter={[16, 16]}>
-            <Col xs={24} lg={12}>
-              <Form.Item label="Agreement PDF">
-                <Upload {...getPdfUploadProps('agreementPdf')}>
-                  <Button icon={<UploadOutlined />} block>
-                    Upload PDF
-                  </Button>
-                </Upload>
-                {getFileList('agreementPdf').length > 0 && (
-                  <Button
-                    type="link"
-                    icon={<EyeOutlined />}
-                    onClick={() => setShowPdfModal(true)}
-                    style={{ marginTop: 8 }}
-                  >
-                    Preview PDF
-                  </Button>
-                )}
-              </Form.Item>
-            </Col>
-
-            <Col xs={24} lg={12}>
-              <Form.Item label="E-Signature Image">
-                <Upload {...getImageUploadProps('eSignature')}>
-                  {getFileList('eSignature').length < 1 && (
-                    <div>
-                      <UploadOutlined />
-                      <div style={{ marginTop: 8 }}>Upload Signature</div>
                     </div>
-                  )}
-                </Upload>
+                  ) : null;
+                }}
               </Form.Item>
             </Col>
           </Row>
+
+          <MediaGalleryPickerModal
+            open={isMediaPickerOpen}
+            onCancel={() => setIsMediaPickerOpen(false)}
+            onSelect={(url) => {
+              form.setFieldsValue({ login_promo: url });
+              setIsMediaPickerOpen(false);
+              message.success('Image selected successfully');
+            }}
+            value={form.getFieldValue('login_promo')}
+            title="Select Login Promotion Image"
+          />
         </>
       )
     },
@@ -330,12 +316,17 @@ const SiteSettings = ({ loading, form, fileUploads, setFileUploads }) => {
     {
       label: 'FAQs',
       key: 'faq',
-      children: <DynamicOptions type={'faq'} heading={'FAQ'}/>
+      children: <DynamicOptions type={'faq'} heading={'FAQ'} />
     },
     {
       label: 'Contact Us',
       key: 'contact_us',
-      children: <DynamicOptions type={'contact_us'} heading={'Contact Us'}/>
+      children: <DynamicOptions type={'contact_us'} heading={'Contact Us'} />
+    },
+    {
+      label: '🛠 Developer',
+      key: 'developer',
+      children: <DeveloperSettings form={form} />
     }
   ];
 

@@ -1,44 +1,32 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, Row, Col, Skeleton, Typography } from 'antd';
 import { mapApiVenueToStadiumConfig } from './StadiumBuilderAdmin';
 import { useParams } from 'react-router-dom';
 import { useMyContext } from 'Context/MyContextProvider';
 import StadiumSvgViewer from './stadium builder/StadiumSvgViewer';
+import api from 'auth/FetchInterceptor';
 
 const { Title, Text } = Typography;
 
 const UsersBooking = () => {
   const { id } = useParams();
-  const [stadiumData, setStadiumData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const { api, isMobile, authToken } = useMyContext();
+  const { isMobile } = useMyContext();
 
-  const getStadiumData = async () => {
-    try {
-      setLoading(true);
-      const response = await axios.get(`${api}venue-show/${id}`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      const data = response.data?.data;
-      if (data) {
-        setStadiumData(mapApiVenueToStadiumConfig(data));
-      }
-    } catch (error) {
-      console.error('❌ Error fetching stadium data:', error?.response?.data || error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    getStadiumData();
-  }, []);
+  const { data: stadiumData, isLoading: loading } = useQuery({
+    queryKey: ['venue', id],
+    queryFn: async () => {
+      const response = await api.get(`venue-show/${id}`);
+      const data = response?.data;
+      return data ? mapApiVenueToStadiumConfig(data) : null;
+    },
+    enabled: !!id,
+  });
 
   const handleBooking = (payload) => {
     try {
     } catch (error) {
-      
+
     } finally {
 
     }

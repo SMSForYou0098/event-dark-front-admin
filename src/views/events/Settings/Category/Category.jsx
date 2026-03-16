@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+// Category.jsx
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -12,102 +13,155 @@ import {
   Table,
   Space,
   Popconfirm,
-  notification,
   Spin,
   message,
+  Image,
+  Typography
 } from "antd";
-import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
-import axios from "axios";
-import { useMyContext } from "../../../../Context/MyContextProvider";
+import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined, PictureOutlined } from "@ant-design/icons";
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import api from 'auth/FetchInterceptor';
 import AssignFields from "./AssignFields";
 import SelectedOptionView from "./SelectedOptionView";
+import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const Category = () => {
-  const { api, authToken } = useMyContext();
+  const queryClient = useQueryClient();
 
   // ========================= STATE =========================
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editRecord, setEditRecord] = useState(null);
   const [fields, setFields] = useState({ show: false, ids: [], names: [] });
-  const [submitting, setSubmitting] = useState(false);
+
+  // Media Picker State
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
 
   const [form] = Form.useForm();
 
   // ========================= FETCH CATEGORIES =========================
-  const fetchCategories = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`${api}category`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-      if (res.data.status) setData(res.data.categoryData);
-    } catch (err) {
-      notification.error({ message: "Failed to fetch categories" });
-    } finally {
-      setLoading(false);
-    }
-  }, [api, authToken]);
+  const { data: categories = [], isLoading } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const res = await api.get('category');
+      return res.categoryData || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes - prevents refetching on every render
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  // ========================= FORM SUBMIT =========================
-  const handleSubmit = useCallback(async () => {
-    try {
-      const values = await form.validateFields();
-      setSubmitting(true);
-
+  // ========================= MUTATIONS =========================
+  const saveMutation = useMutation({
+    mutationFn: async (values) => {
       const formData = new FormData();
       formData.append("title", values.title);
-      formData.append("status", values.status ? 1 : 0);
-      formData.append("attendy_required", values.attendyRequired ? 1 : 0);
-      formData.append("photo_required", values.photoRequired ? 1 : 0);
-      
+      // Send as boolean as requested
+      formData.append("status", values.status);
+      formData.append("attendy_required", values.attendyRequired);
+      formData.append("photo_required", values.photoRequired);
+
       // Handle image upload properly
-      if (values.image?.fileList?.length > 0) {
-        const file = values.image.fileList[0];
+      // Handle image upload properly
+      let fileList = [];
+      if (Array.isArray(values.image)) {
+        fileList = values.image;
+      } else if (values.image?.fileList) {
+        fileList = values.image.fileList;
+      }
+
+      if (fileList.length > 0) {
+        const file = fileList[0];
         if (file.originFileObj) {
           formData.append("image", file.originFileObj);
+        } else if (file.url) {
+          formData.append("image", file.url);
         }
       }
 
       const url = editRecord
-        ? `${api}category-update/${editRecord.id}`
-        : `${api}category-store`;
+        ? `category-update/${editRecord.id}`
+        : `category-store`;
 
-      const res = await axios.post(url, formData, {
+      const res = await api.post(url, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${authToken}`,
         },
       });
 
-      if (res.data.status) {
-        // attach fields
-        await axios.post(
-          `${api}catrgoty-fields-store`,
-          { category_id: res.data.categoryData?.id, custom_fields_id: fields.ids || [] },
-          { headers: { Authorization: `Bearer ${authToken}` } }
-        );
+      // Attach fields if successful and we have a category ID
+      if (res.status) {
+        const categoryId = res.categoryData?.id;
+        if (categoryId) {
+          await api.post(
+            `catrgoty-fields-store`,
+            { category_id: categoryId, custom_fields_id: fields.ids || [] }
+          );
+        }
+      }
+      return res;
+    },
+    onSuccess: (data) => {
+      if (data.status) {
+        message.success(data.message || "Category saved");
 
-        notification.success({ message: res.data.message || "Category saved" });
-        fetchCategories();
+        // Update cache directly instead of refetching
+        queryClient.setQueryData(['categories'], (oldData) => {
+          if (!oldData) return [data.categoryData];
+
+          // If editing, update the existing category
+          if (editRecord) {
+            return oldData.map(cat =>
+              cat.id === data.categoryData.id ? data.categoryData : cat
+            );
+          }
+          // If creating, add to beginning of list
+          return [data.categoryData, ...oldData];
+        });
+
         handleModalClose();
       } else {
-        notification.error({ message: res.data.message || "Failed to save" });
+        message.error(data.message || "Failed to save");
       }
+    },
+    onError: (err) => {
+      message.error(Utils.getErrorMessage(err));
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id) => {
+      return await api.delete(`category-destroy/${id}`);
+    },
+    onSuccess: (_, deletedId) => {
+      message.success("Category deleted successfully");
+
+      // Remove from cache directly instead of refetching
+      queryClient.setQueryData(['categories'], (oldData) => {
+        if (!oldData) return [];
+        return oldData.filter(cat => cat.id !== deletedId);
+      });
+    },
+    onError: (err) => {
+      message.error(Utils.getErrorMessage(err));
+    }
+  });
+
+  // ========================= HANDLERS =========================
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      saveMutation.mutate(values);
     } catch (err) {
       if (err?.errorFields) return; // form validation error
-      notification.error({ message: err.message || "Error saving category" });
-    } finally {
-      setSubmitting(false);
+      console.error(err);
     }
-  }, [form, api, authToken, editRecord, fields.ids, fetchCategories]);
+  };
 
-  // ========================= MODAL HANDLERS =========================
+  const handleDelete = useCallback((id) => {
+    deleteMutation.mutate(id);
+  }, [deleteMutation]);
+
   const handleModalClose = useCallback(() => {
     setModalVisible(false);
     setEditRecord(null);
@@ -122,50 +176,26 @@ const Category = () => {
     setModalVisible(true);
   }, [form]);
 
-  // ========================= DELETE =========================
-  const handleDelete = useCallback(
-    async (id) => {
-      try {
-        await axios.delete(`${api}category-destroy/${id}`, {
-          headers: { Authorization: `Bearer ${authToken}` },
-        });
-        notification.success({ message: "Category deleted successfully" });
-        fetchCategories();
-      } catch {
-        notification.error({ message: "Failed to delete category" });
-      }
-    },
-    [api, authToken, fetchCategories]
-  );
-
-  // ========================= EDIT =========================
   const handleEdit = useCallback(
     (record) => {
       setEditRecord(record);
       setModalVisible(true);
-      
+
       // Parse field IDs and set fields
       const fieldIds = record?.catrgotyhas_field?.custom_fields_id
         ?.split(",")
         ?.map(Number);
-      
+
       setFields({
         ids: fieldIds || [],
         names: record?.fields || [],
         show: false,
       });
 
-      // Set form values including image if exists
-      const formValues = {
-        title: record.title,
-        attendyRequired: record.attendy_required === 1,
-        photoRequired: record.photo_required === 1,
-        status: record.status === 1,
-      };
-
-      // If editing and there's an existing image, create a file list array
+      // Prepare image file list
+      let imageFileList = [];
       if (record.image) {
-        formValues.image = [
+        imageFileList = [
           {
             uid: '-1',
             name: 'image.png',
@@ -175,10 +205,32 @@ const Category = () => {
         ];
       }
 
-      form.setFieldsValue(formValues);
+      // Set form values
+      form.setFieldsValue({
+        title: record.title,
+        attendyRequired: record.attendy_required,
+        photoRequired: record.photo_required,
+        status: record.status,
+        image: imageFileList,
+      });
     },
     [form]
   );
+
+  // Handle media selection from picker
+  const handleMediaSelect = (url) => {
+    if (!url) return;
+
+    const newFile = {
+      uid: `gallery-${Date.now()}`,
+      name: 'gallery-image.jpg',
+      status: 'done',
+      url: url,
+    };
+
+    form.setFieldsValue({ image: [newFile] });
+    setMediaPickerOpen(false);
+  };
 
   // ========================= TABLE COLUMNS =========================
   const columns = useMemo(
@@ -198,7 +250,18 @@ const Category = () => {
         dataIndex: "attendy_required",
         align: "center",
         render: (val) =>
-          val === 1 ? (
+          val ? (
+            <CheckOutlined style={{ color: "green" }} />
+          ) : (
+            <CloseOutlined style={{ color: "red" }} />
+          ),
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        align: "center",
+        render: (val) =>
+          val ? (
             <CheckOutlined style={{ color: "green" }} />
           ) : (
             <CloseOutlined style={{ color: "red" }} />
@@ -225,7 +288,8 @@ const Category = () => {
         ),
       },
     ],
-    [handleEdit, handleDelete]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // Empty deps - handlers are stable due to useCallback
   );
 
   // ========================= UPLOAD NORMALIZATION =========================
@@ -238,157 +302,202 @@ const Category = () => {
 
   // ========================= RENDER =========================
   return (
-    <Card 
-      title="Categories" 
-      extra={
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={handleModalOpen}
-        >
-          Add New Category
-        </Button>
-      }
-    >
-      <Spin spinning={loading}>
-        <Table
-          rowKey="id"
-          dataSource={data}
-          columns={columns}
-          pagination={{ pageSize: 10 }}
-        />
-      </Spin>
-
-      <Modal
-        open={modalVisible}
-        title={editRecord ? "Edit Category" : "New Category"}
-        onCancel={handleModalClose}
-        onOk={handleSubmit}
-        okText="Save"
-        width={600}
-        confirmLoading={submitting}
-        destroyOnClose
-      >
-        <Form
-          form={form}
-          layout="vertical"
-          initialValues={{
-            status: true,
-            attendyRequired: false,
-            photoRequired: false,
-          }}
-        >
-          <Form.Item
-            label="Title"
-            name="title"
-            rules={[{ required: true, message: "Title is required" }]}
+    <PermissionChecker role="Admin">
+      <Card
+        title="Categories"
+        extra={
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleModalOpen}
           >
-            <Input placeholder="Enter category title" />
-          </Form.Item>
+            Add New Category
+          </Button>
+        }
+      >
+        <Spin spinning={isLoading}>
+          <Table
+            rowKey="id"
+            dataSource={categories}
+            columns={columns}
+            pagination={{ pageSize: 10 }}
+          />
+        </Spin>
 
-          <Row gutter={16}>
-            <Col span={8}>
-              <Form.Item
-                label="Image (282 × 260 px)"
-                name="image"
-                valuePropName="fileList"
-                getValueFromEvent={normFile}
-                rules={[
-                  {
-                    required: !editRecord,
-                    message: 'Please upload image'
-                  }
-                ]}
-              >
-                <Upload
-                  listType="picture-card"
-                  maxCount={1}
-                  beforeUpload={(file) => {
-                    const isImage = file.type.startsWith('image/');
-                    if (!isImage) {
-                      message.error('You can only upload image files!');
-                      return Upload.LIST_IGNORE;
-                    }
-                    const isLt5M = file.size / 1024 / 1024 < 5;
-                    if (!isLt5M) {
-                      message.error('Image must be smaller than 5MB!');
-                      return Upload.LIST_IGNORE;
-                    }
-                    return false; // Prevent auto upload
-                  }}
+        <Modal
+          open={modalVisible}
+          title={editRecord ? "Edit Category" : "New Category"}
+          onCancel={handleModalClose}
+          onOk={handleSubmit}
+          okText="Save"
+          width={600}
+          confirmLoading={saveMutation.isPending}
+          destroyOnClose
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={{
+              status: true,
+              attendyRequired: false,
+              photoRequired: false,
+            }}
+          >
+            <Form.Item
+              label="Title"
+              name="title"
+              rules={[{ required: true, message: "Title is required" }]}
+            >
+              <Input placeholder="Enter category title" />
+            </Form.Item>
+
+            <Row gutter={16}>
+              <Col span={8}>
+                <Form.Item
+                  label="Image (282 × 260 px)"
+                  name="image"
+                  valuePropName="fileList"
+                  getValueFromEvent={normFile}
+                // rules={[
+                //   {
+                //     // required: !editRecord,
+                //     message: 'Please upload image'
+                //   }
+                // ]}
                 >
-                  <div>
-                    <PlusOutlined />
-                    <div style={{ marginTop: 8 }}>Upload</div>
-                  </div>
-                </Upload>
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item 
-                label="Attendee Required" 
-                name="attendyRequired" 
-                valuePropName="checked"
-              >
-                <Switch
-                  onChange={(checked) =>
-                    checked &&
-                    setFields((prev) => ({
-                      ...prev,
-                      show: true,
-                    }))
-                  }
-                />
-              </Form.Item>
-            </Col>
-            <Col span={8}>
-              <Form.Item 
-                label="Status" 
-                name="status" 
-                valuePropName="checked"
-              >
-                <Switch />
-              </Form.Item>
-            </Col>
-          </Row>
+                  <Form.Item shouldUpdate={(prev, curr) => prev.image !== curr.image} noStyle>
+                    {({ getFieldValue, setFieldsValue }) => {
+                      const fileList = getFieldValue('image') || [];
+                      const file = fileList[0];
+                      const imageUrl = file?.url || (file?.originFileObj ? URL.createObjectURL(file.originFileObj) : null);
 
-          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.attendyRequired !== curr.attendyRequired}>
-            {({ getFieldValue }) =>
-              getFieldValue("attendyRequired") && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <strong>Attendee Fields:</strong>
-                    <Button
-                      size="small"
-                      icon={<EditOutlined />}
-                      onClick={() => setFields((prev) => ({ ...prev, show: true }))}
-                    >
-                      Edit Fields
-                    </Button>
-                  </div>
-                  <Row gutter={[8, 8]}>
-                    {fields.names?.map((field, i) => (
-                      <Col span={8} key={i}>
-                        <SelectedOptionView item={field.field_name} />
-                      </Col>
-                    ))}
-                  </Row>
-                </div>
-              )
-            }
-          </Form.Item>
-        </Form>
-      </Modal>
+                      return (
+                        <Card
+                          size="small"
+                          style={{
+                            border: imageUrl ? '2px solid #52c41a' : '1px dashed #d9d9d9',
+                            textAlign: 'center',
+                            height: '100%',
+                            minHeight: 120,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center'
+                          }}
+                          styles={{ body: { padding: 8 } }}
+                        >
+                          {imageUrl ? (
+                            <>
+                              <Image
+                                src={imageUrl}
+                                alt="Category"
+                                style={{ maxHeight: 80, objectFit: 'contain' }}
+                                className="rounded mb-2"
+                              />
+                              <Space size="small">
+                                <Button
+                                  size="small"
+                                  icon={<PictureOutlined />}
+                                  onClick={() => setMediaPickerOpen(true)}
+                                />
+                                <Button
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={() => setFieldsValue({ image: [] })}
+                                />
+                              </Space>
+                            </>
+                          ) : (
+                            <div
+                              onClick={() => setMediaPickerOpen(true)}
+                              style={{ cursor: 'pointer', padding: '10px 0' }}
+                            >
+                              <PlusOutlined style={{ fontSize: 24, color: '#999' }} />
+                              <div style={{ marginTop: 8, fontSize: 12 }}>Select</div>
+                            </div>
+                          )}
+                        </Card>
+                      );
+                    }}
+                  </Form.Item>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  label="Attendee Required"
+                  name="attendyRequired"
+                  valuePropName="checked"
+                >
+                  <Switch
+                    onChange={(checked) =>
+                      checked &&
+                      setFields((prev) => ({
+                        ...prev,
+                        show: true,
+                      }))
+                    }
+                  />
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item
+                  label="Status"
+                  name="status"
+                  valuePropName="checked"
+                >
+                  <Switch />
+                </Form.Item>
+              </Col>
+            </Row>
 
-      <AssignFields
-        editState={!!editRecord}
-        showFields={fields.show}
-        onClose={() => setFields((prev) => ({ ...prev, show: false }))}
-        onFieldsChange={(ids) => setFields((prev) => ({ ...prev, ids }))}
-        selectedIds={fields.ids}
-        onFieldsNameChange={(names) => setFields((prev) => ({ ...prev, names }))}
-      />
-    </Card>
+            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.attendyRequired !== curr.attendyRequired}>
+              {({ getFieldValue }) =>
+                getFieldValue("attendyRequired") && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <strong>Attendee Fields:</strong>
+                      <Button
+                        size="small"
+                        icon={<EditOutlined />}
+                        onClick={() => setFields((prev) => ({ ...prev, show: true }))}
+                      >
+                        Edit Fields
+                      </Button>
+                    </div>
+                    <Row gutter={[8, 8]}>
+                      {fields.names?.map((field, i) => (
+                        <Col span={8} key={i}>
+                          <SelectedOptionView item={field.field_name} />
+                        </Col>
+                      ))}
+                    </Row>
+                  </div>
+                )
+              }
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Media Picker Modal */}
+        <MediaGalleryPickerModal
+          open={mediaPickerOpen}
+          onCancel={() => setMediaPickerOpen(false)}
+          onSelect={handleMediaSelect}
+          multiple={false}
+          title="Select Category Image"
+          dimensionValidation={{ width: 282, height: 260, strict: false }}
+        />
+
+        <AssignFields
+          editState={!!editRecord}
+          showFields={fields.show}
+          onClose={() => setFields((prev) => ({ ...prev, show: false }))}
+          onFieldsChange={(ids) => setFields((prev) => ({ ...prev, ids }))}
+          selectedIds={fields.ids}
+          onFieldsNameChange={(names) => setFields((prev) => ({ ...prev, names }))}
+        />
+      </Card>
+    </PermissionChecker>
   );
 };
 

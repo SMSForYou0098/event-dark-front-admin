@@ -35,7 +35,7 @@ const SendTicketsModal = ({ show, handleClose, bookingData }) => {
   const HandleCheckUser = async (number) => {
     setCheckingUser(true);
     try {
-      const url = `${api}user-form-number/${number}`;
+      const url = `${api}user-from-number/${number}`;
       const response = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${authToken}`,

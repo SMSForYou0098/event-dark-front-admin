@@ -30,7 +30,7 @@ const TicketSelectionStep = ({
       <BookingTickets
         event={event}
         selectedTickets={selectedTickets}
-        setSelectedTickets={setSelectedTickets}y
+        setSelectedTickets={setSelectedTickets} y
         getCurrencySymbol={getCurrencySymbol}
         type={'agent'}
       />

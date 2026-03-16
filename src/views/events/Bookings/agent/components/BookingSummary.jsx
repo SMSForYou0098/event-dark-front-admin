@@ -13,8 +13,25 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
     setCurrentStep(0);
   };
 
-  // Ensure response is an array
-  const bookings = Array.isArray(response) ? response : [];
+  // Helper to flatten nested bookings (recursive)
+  const flattenBookings = (data) => {
+    let allBookings = [];
+    if (!Array.isArray(data)) return allBookings;
+
+    data.forEach((item) => {
+      if (item.bookings && Array.isArray(item.bookings) && item.bookings.length > 0) {
+        allBookings = [...allBookings, ...flattenBookings(item.bookings)];
+      } else {
+        allBookings.push(item);
+      }
+    });
+
+    return allBookings;
+  };
+
+  // Ensure response is an array and flatten it
+  const rawBookings = Array.isArray(response) ? response : [];
+  const bookings = flattenBookings(rawBookings);
 
   if (bookings.length === 0) {
     return (
@@ -315,8 +332,8 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
                                 }}
                               >
                                 <Space>
-                                  {attendee.Photo ? (
-                                    <Avatar src={attendee.Photo} size={48} shape="square" />
+                                  {attendee?.photo ? (
+                                    <Avatar src={attendee?.photo} size={48} shape="square" />
                                   ) : (
                                     <Avatar
                                       icon={<UserOutlined />}
@@ -327,16 +344,16 @@ const BookingSummary = ({ setCurrentStep, response, setResponse }) => {
                                   )}
                                   <div>
                                     <Text strong style={{ display: 'block' }}>
-                                      {attendee.Name || 'N/A'}
+                                      {attendee?.name || 'N/A'}
                                     </Text>
                                     {/* {attendee.seatName && (
                                       <Text type="secondary" style={{ fontSize: 11, display: 'block' }}>
                                         🎫 {attendee.seatName}
                                       </Text>
                                     )} */}
-                                    {attendee.Mo && (
+                                    {attendee?.number && (
                                       <Text type="secondary" style={{ fontSize: 12, display: 'block' }}>
-                                        📱 {attendee.Mo}
+                                        📱 {attendee?.number}
                                       </Text>
                                     )}
                                   </div>

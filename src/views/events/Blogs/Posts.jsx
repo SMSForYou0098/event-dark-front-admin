@@ -1,70 +1,57 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Button, Space, Image, Tag, message, Modal } from 'antd';
+import PermissionChecker from 'layouts/PermissionChecker';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 import { EditOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import axios from 'axios';
-import { useMyContext } from '../../../Context/MyContextProvider';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
+import usePermission from 'utils/hooks/usePermission';
 import DataTable from '../common/DataTable';
 import dayjs from 'dayjs';
+import api from 'auth/FetchInterceptor';
+import Utils from 'utils';
 
 const Posts = () => {
-  const { authToken, api } = useMyContext();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const canView = usePermission('View Blog Post');
 
-  const getData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await axios.get(`${api}blog-list`, {
-        headers: { Authorization: `Bearer ${authToken}` },
-      });
-
-      if (response.data?.status && Array.isArray(response.data.data)) {
-        setPosts(response.data.data);
-      } else {
-        setError({ message: 'Invalid response format.' });
+  const { data: posts = [], isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['blog-posts'],
+    queryFn: async () => {
+      const response = await api.get('blog-list');
+      if (response?.status === false) {
+        throw new Error(Utils.getErrorMessage(response, 'Failed to fetch blogs'));
       }
-    } catch (err) {
-      console.error(err);
-      setError({ 
-        message: err.response?.data?.message || 'Failed to fetch blog posts.' 
-      });
-      message.error(err.response?.data?.message || 'Failed to fetch blog posts.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      return response.data || [];
+    },
+    enabled: canView,
+  });
 
-  const handleDelete = async (id) => {
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.delete(`blog-destroy/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
+      message.success('The blog post has been deleted.');
+    },
+    onError: (error) => {
+      message.error(Utils.getErrorMessage(error, 'Failed to delete the post.'));
+    },
+  });
+
+  const handleDelete = (id) => {
     Modal.confirm({
       title: 'Are you sure?',
       content: 'This action will permanently delete the blog post.',
       okText: 'Yes, delete it!',
       cancelText: 'Cancel',
-      onOk: async () => {
-        try {
-          await axios.delete(`${api}blog-destroy/${id}`, {
-            headers: { Authorization: `Bearer ${authToken}` },
-          });
-
-          const updated = posts.filter((post) => post.id !== id);
-          setPosts(updated);
-          message.success('The blog post has been deleted.');
-        } catch (err) {
-          console.error(err);
-          message.error('Failed to delete the post.');
-        }
-      },
+      onOk: () => deleteMutation.mutate(id),
     });
   };
-
-  useEffect(() => {
-    getData();
-  }, []);
 
   const columns = [
     {
@@ -105,8 +92,8 @@ const Posts = () => {
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={status === 1 ? 'green' : 'orange'}>
-          {status === 1 ? 'Published' : 'Draft'}
+        <Tag color={status === true ? 'green' : 'orange'}>
+          {status === true ? 'Published' : 'Draft'}
         </Tag>
       ),
     },
@@ -123,18 +110,22 @@ const Posts = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="primary"
-            icon={<EditOutlined />}
-            onClick={() => navigate(`update/${record.id}`)}
-            size="small"
-          />
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => handleDelete(record.id)}
-            size="small"
-          />
+          <PermissionChecker permission={PERMISSIONS.EDIT_BLOG_POST}>
+            <Button
+              type="primary"
+              icon={<EditOutlined />}
+              onClick={() => navigate(`update/${record.id}`)}
+              size="small"
+            />
+          </PermissionChecker>
+          <PermissionChecker permission={PERMISSIONS.DELETE_BLOG_POST}>
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => handleDelete(record.id)}
+              size="small"
+            />
+          </PermissionChecker>
         </Space>
       ),
     },
@@ -149,18 +140,20 @@ const Posts = () => {
         loading={loading}
         error={error}
         showRefresh={true}
-        onRefresh={getData}
+        onRefresh={refetch}
         showSearch={true}
         enableSearch={true}
         emptyText="No blog posts found"
         extraHeaderContent={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => navigate('new')}
-          >
-            Create Post
-          </Button>
+          <PermissionChecker permission={PERMISSIONS.CREATE_BLOG_POST}>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => navigate('new')}
+            >
+              Create Post
+            </Button>
+          </PermissionChecker>
         }
         tableProps={{
           rowKey: 'id',

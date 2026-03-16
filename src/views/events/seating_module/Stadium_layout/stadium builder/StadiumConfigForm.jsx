@@ -54,14 +54,14 @@ const StadiumConfigForm = ({
   const [currentModal, setCurrentModal] = useState(null);
   const [currentIndices, setCurrentIndices] = useState({});
   const { isMobile, ErrorAlert } = useMyContext();
-  
+
   const [form] = Form.useForm();
   const [selectedVenue, setSelectedVenue] = useState(null);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [selectedTicketType, setSelectedTicketType] = useState(null);
   const [showTicketAssignModal, setShowTicketAssignModal] = useState(false);
   const [ticketAssignTarget, setTicketAssignTarget] = useState(null);
-  const navigate=useNavigate();
+  const navigate = useNavigate();
 
   // Dummy ticket types - will be replaced with real data from selectedEvent
   const DUMMY_TICKET_TYPES = [
@@ -71,7 +71,7 @@ const StadiumConfigForm = ({
     { id: 4, name: 'Corporate Box', price: 10000, color: '#722ed1' },
     { id: 5, name: 'Student', price: 300, color: '#13c2c2' },
   ];
-  
+
   // Show all ticket types from the event (for now, using DUMMY_TICKET_TYPES)
   // In production, this would filter based on selectedEvent.ticketTypes
   const availableTicketTypes = selectedEvent ? DUMMY_TICKET_TYPES : [];
@@ -157,7 +157,7 @@ const StadiumConfigForm = ({
   };
 
   const { stadiumCapacity, stands: standsWithCapacity } = calculateCapacities();
-  
+
   useEffect(() => {
     setConfig((prev) => ({ ...prev, stadiumCapacity }));
   }, [stadiumCapacity, setConfig]);
@@ -410,13 +410,13 @@ const StadiumConfigForm = ({
     } = assignment;
     const { indices } = ticketAssignTarget;
     const mode = assignmentLevelValue || assignmentMode || 'override';
-    
+
     // Get the ticket type to use its default price if custom price not provided
     const ticketType = availableTicketTypes.find(t => t.id === ticketTypeId);
     const finalPrice = price || ticketType?.price || 0;
-    
+
     const updated = JSON.parse(JSON.stringify(stands)); // Deep clone
-    
+
     const applyTicket = (target) => {
       target.ticketTypeId = ticketTypeId;
       target.price = finalPrice;
@@ -453,7 +453,7 @@ const StadiumConfigForm = ({
         });
       }
     };
-    
+
     // Apply assignment based on level
     if (level === 'stand' && indices.standIndex !== undefined) {
       const stand = updated[indices.standIndex];
@@ -506,7 +506,7 @@ const StadiumConfigForm = ({
         });
       }
     }
-    
+
     setConfig({ ...config, stands: updated });
   };
 
@@ -593,13 +593,13 @@ const StadiumConfigForm = ({
       width: isMobile ? 80 : 100,
       align: 'center',
       render: (capacity) => (
-        <Badge 
-          count={capacity ?? 0} 
-          showZero 
-          style={{ 
+        <Badge
+          count={capacity ?? 0}
+          showZero
+          style={{
             backgroundColor: 'var(--primary-color)',
             color: 'var(--text-white)'
-          }} 
+          }}
         />
       ),
     },
@@ -668,10 +668,10 @@ const StadiumConfigForm = ({
               <span className={`text-white font-weight-semibold ${isMobile ? 'font-size-base' : 'font-size-lg'}`}>
                 {mode === "edit" ? "Edit Stadium" : "Create Stadium"}
               </span>
-              <Tag 
+              <Tag
                 icon={<TrophyOutlined />}
                 color="gold"
-                style={{ 
+                style={{
                   fontSize: isMobile ? 12 : 14,
                   padding: '4px 12px',
                   borderRadius: 16,
@@ -704,12 +704,12 @@ const StadiumConfigForm = ({
         confirmLoading={loading}
         footer={[
           <div key="footer" className={`d-flex ${isMobile ? 'flex-column' : 'flex-row'} justify-content-end gap-2 w-100`}>
-            <Button 
-              key="cancel" 
-              onClick={onHide} 
+            <Button
+              key="cancel"
+              onClick={onHide}
               size={isMobile ? "middle" : "large"}
               className={`font-weight-medium ${isMobile ? 'w-100' : ''}`}
-              style={{ 
+              style={{
                 minWidth: isMobile ? 'auto' : 120,
               }}
             >
@@ -760,7 +760,7 @@ const StadiumConfigForm = ({
             className="mb-3"
           >
             <Select
-              placeholder="Select Venue"
+              placeholder=""
               loading={venueLoading}
               onChange={handleVenueChange}
               options={venues.map((v) => ({
@@ -791,8 +791,8 @@ const StadiumConfigForm = ({
 
           {/* Venue Details */}
           {selectedVenue && (
-            <Card 
-              size="small" 
+            <Card
+              size="small"
               title={<span className="text-white font-weight-medium">Venue Details</span>}
               className="mb-4"
               style={{
@@ -892,10 +892,10 @@ const StadiumConfigForm = ({
             <div className="d-flex justify-content-between align-items-center flex-wrap" style={{ gap: '0.75rem' }}>
               <Title level={5} className="m-0 text-white font-weight-semibold">Stands Overview</Title>
               <div className="d-flex gap-2 flex-wrap">
-                <Tag 
+                <Tag
                   icon={<TeamOutlined />}
                   color="processing"
-                  style={{ 
+                  style={{
                     fontSize: 13,
                     padding: '4px 12px',
                     borderRadius: 12,
@@ -905,10 +905,10 @@ const StadiumConfigForm = ({
                 >
                   Total Stands: {stands.length}
                 </Tag>
-                <Tag 
+                <Tag
                   icon={<UsergroupAddOutlined />}
                   color="success"
-                  style={{ 
+                  style={{
                     fontSize: 13,
                     padding: '4px 12px',
                     borderRadius: 12,

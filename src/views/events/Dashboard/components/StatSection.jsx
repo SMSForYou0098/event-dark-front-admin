@@ -4,13 +4,20 @@ import DataCard from '../Admin/DataCard';
 
 const { Title } = Typography;
 
-const StatSection = ({ 
-    title, 
-    stats, 
-    colConfig, 
-    extraHeader, 
+const StatSection = ({
+    title,
+    stats,
+    colConfig = {
+        xs: 24,
+        sm: 12,
+        md: 8,
+        lg: 6,
+        xl: 4,
+        style: { flex: '1 1 20%', maxWidth: window.innerWidth <= 768 ? '100%' : '20%' }
+    },
+    extraHeader,
     containerCol = { xs: 24, md: 24 },
-    isMobile = false 
+    isMobile = false
 }) => {
     const renderCard = (stat, index) => (
         <DataCard data={stat} value={stat.value} key={`card-${index}`} />
@@ -42,8 +49,8 @@ const StatSection = ({
         <Col {...containerCol}>
             <Row gutter={[16, 16]}>
                 <Col span={24}>
-                    <Title 
-                        level={4} 
+                    <Title
+                        level={4}
                         className={extraHeader ? 'd-flex justify-content-between mb-3' : 'mt-0 mb-3'}
                     >
                         {title}

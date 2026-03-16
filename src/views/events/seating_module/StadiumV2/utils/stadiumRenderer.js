@@ -209,7 +209,7 @@ const calculateSectionGeometry = (section, { cx, cy, innerRadius, outerRadius, s
   
   // Debug: ensure rows are preserved
   if (sectionIndex === 0) {
-    console.log('calculateSectionGeometry:', section.name, 'rows:', section.rows?.length, 'has rows:', !!section.rows);
+    // console.log('calculateSectionGeometry:', section.name, 'rows:', section.rows?.length, 'has rows:', !!section.rows);
   }
   
   return {

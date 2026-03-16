@@ -8,7 +8,6 @@ import {
     message,
     Divider,
     Tooltip,
-    Spin,
     Image,
 } from 'antd';
 import {
@@ -29,7 +28,6 @@ import BasicDetailsStep from './components/BasicDetails';
 import EventControlsStep from './components/EventControls';
 import TimingStep from './components/Timing';
 import TicketsStep from './components/Tickets';
-import LocationStep from './components/LocationStep';
 import MediaStep from './components/MediaStep';
 import SEOStep from './components/SEOStep';
 import PublishStep from './components/PublishStep';
@@ -40,31 +38,35 @@ import {
     useCreateEvent,
     useUpdateEvent,
     useEventDetail,
-    toUploadFileList,
+    useAssignEventInfluencers,
 } from './hooks/useEventOptions';
 import { useMyContext } from 'Context/MyContextProvider';
+import usePermission from 'utils/hooks/usePermission';
+import Utils from 'utils';
 
 const { Step } = Steps;
 const { Title } = Typography;
 
-// Step name mapping for API queries
+// Step name mapping for API queries (tickets step removed)
 const STEP_NAMES = {
     0: 'basic',
     1: 'controls',
     2: 'timing',
-    3: 'tickets',
+    3: 'media',
     4: 'artist',
-    5: 'media',
-    6: 'seo',
-    7: 'publish',
+    5: 'seo',
+    6: 'publish',
 };
 
 const EventStepperForm = () => {
     const navigate = useNavigate();
-    const { loader } = useMyContext()
+    const { loader, UserData, userRole } = useMyContext();
     const location = useLocation();
     const { id } = useParams();
     const isEdit = !!id;
+
+    const canCreate = usePermission('Create Event');
+    const canEdit = usePermission('Edit Event');
 
     const [current, setCurrent] = useState(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -75,6 +77,7 @@ const EventStepperForm = () => {
     const [layouts, setLayouts] = useState([]);
     const [eventLayoutId, setEventLayoutId] = useState(null)
     const [embedCode, setEmbedCode] = useState('');
+    const [componentLoader, setComponentLoader] = useState(false)
 
     // Sync step from location state
     useEffect(() => {
@@ -92,15 +95,37 @@ const EventStepperForm = () => {
         { enabled: isEdit }
     );
 
+    // Watch form name so title updates when basic step data is loaded
+    const formEventName = Form.useWatch('name', form);
+
     // Populate form with event details based on current step
     useEffect(() => {
         if (!isEdit || !detail) return;
 
-        const controls = detail?.event_controls ?? {};
+        // API may return controls under event_controls or flat on the event object
+        const controls = detail?.event_controls ?? detail ?? {};
         const event_galleries = detail?.event_media ?? {};
         const event_seo = detail?.event_seo ?? {};
 
         const patch = {};
+        const toBool = (v) => v === true || v === 1 || v === '1';
+
+        // Always set org_id if available (needed for ContentSelect components in all steps)
+        if (detail?.user_id) {
+            patch.org_id = String(detail.user_id);
+        }
+
+        patch.org_id = String(detail.venue_id);
+
+        if (detail?.venue !== undefined && detail?.venue?.layouts) {
+            setLayouts(detail.venue.layouts);
+        } else if (detail?.layout !== undefined) {
+            setLayouts(detail.layout);
+        }
+
+        if (detail?.event_has_layout !== undefined) {
+            setEventLayoutId(detail.event_has_layout?.layout_id ?? null);
+        }
 
         // Step 0: Basic Details
         if (current === 0) {
@@ -113,27 +138,97 @@ const EventStepperForm = () => {
                 city: detail?.city,
                 venue_id: detail?.venue_id,
                 description: detail?.description,
+                event_fields: detail?.event_fields || [], // For registration fields
+                // Terms & Conditions
+                online_ticket_terms: detail?.online_ticket_terms || undefined,
+                offline_ticket_terms: detail?.offline_ticket_terms || undefined,
+                attendee_required: detail?.attendee_required || false,
             });
         }
 
-        // Step 1: Event Controls
+        // Step 1: Event Controls (now includes ticket settings from removed tickets step)
         if (current === 1) {
+            // Helper to convert API values (could be boolean, number, or string) to boolean
+
+            // Parse expected_date if it exists (from controls object)
+            let expectedDateValue = undefined;
+
+            if (controls?.expected_date) {
+                const parsed = dayjs(controls.expected_date);
+                expectedDateValue = parsed.isValid() ? parsed : undefined;
+            }
+
+            // Handle scan_detail - convert boolean/number to number for Select
+            let scanDetailValue = 2; // default
+            if (controls?.scan_detail !== undefined && controls?.scan_detail !== null) {
+                // If it's a boolean, convert: true -> 2, false -> 0
+                if (typeof controls.scan_detail === 'boolean') {
+                    scanDetailValue = controls.scan_detail ? 2 : 0;
+                } else {
+                    scanDetailValue = Number(controls.scan_detail);
+                }
+            }
+
+            // Ticket settings (moved from tickets step)
+            // ticket_system: 1 from API means "Booking By Seat", 0 means "Booking By Ticket"
+            const ticketSystemValue = Number(controls?.ticket_system) || 0;
+            const finalTicketSystem = ticketSystemValue === 0; // true = Booking By Ticket (when API returns 0)
+            const finalBookingBySeat = ticketSystemValue === 1; // true = Booking By Seat (when API returns 1)
+
             Object.assign(patch, {
-                scan_detail: controls?.scan_detail ?? '2',
-                event_feature: Number(controls?.event_feature) || 0,
-                status: Number(controls?.status) || 0,
-                house_full: Number(controls?.house_full) || 0,
-                online_att_sug: Number(controls?.online_att_sug) || 0,
-                offline_att_sug: Number(controls?.offline_att_sug) || 0,
-                show_on_home: Number(controls?.show_on_home) || 0,
+                scan_detail: scanDetailValue,
+                event_feature: toBool(controls?.event_feature),
+                status: toBool(controls?.status),
+                house_full: toBool(controls?.house_full),
+                online_att_sug: toBool(controls?.online_att_sug),
+                offline_att_sug: toBool(controls?.offline_att_sug),
+                show_on_home: toBool(controls?.show_on_home),
+                expected_date: expectedDateValue,
+                is_sold_out: toBool(controls?.is_sold_out),
+                is_postponed: toBool(controls?.is_postponed),
+                is_cancelled: toBool(controls?.is_cancelled),
+                // Booking control fields (default true if not set)
+                online_booking: controls?.online_booking !== undefined ? toBool(controls.online_booking) : true,
+                agent_booking: controls?.agent_booking !== undefined ? toBool(controls.agent_booking) : true,
+                pos_booking: controls?.pos_booking !== undefined ? toBool(controls.pos_booking) : true,
+                complimentary_booking: controls?.complimentary_booking !== undefined ? toBool(controls.complimentary_booking) : true,
+                sponsor_booking: controls?.sponsor_booking !== undefined ? toBool(controls.sponsor_booking) : true,
+                is_approval_required: toBool(controls?.is_approval_required),
 
                 // storing instagram post id from url
-                insta_whts_url: detail?.insta_whts_url
-                    ? `https://www.instagram.com/p/${detail.insta_whts_url}/`
-                    : undefined,
+                insta_whts_url: detail?.insta_whts_url || '',
                 whts_note: detail?.whts_note || undefined,
                 booking_notice: detail?.booking_notice || undefined,
+                attendee_required: toBool(controls?.attendee_required),
+                ticket_transfer: toBool(controls?.ticket_transfer),
+                ticket_transfer_otp: toBool(controls?.ticket_transfer_otp),
+                use_preprinted_cards: toBool(controls?.use_preprinted_cards),
+                // Ticket settings (moved from tickets step)
+                multi_scan: toBool(controls?.multi_scan),
+                scan_mode: toBool(controls?.scan_mode),
+                max_scan_count: controls?.max_scan_count ? Number(controls.max_scan_count) : 1,
+                category: detail?.category,  // Use 'category' to match BasicDetails Form.Item
+                checkpoints: (() => {
+                    // Checkpoints come from scan_checkpoints at event level, not controls
+                    const scanCheckpoints = detail?.scan_checkpoints;
+                    if (!Array.isArray(scanCheckpoints) || scanCheckpoints.length === 0) {
+                        return [];
+                    }
+                    // Map API format to form format (convert HH:mm:ss to HH:mm)
+                    // Include id for existing checkpoints so it can be sent in update payload
+                    return scanCheckpoints.map(cp => ({
+                        id: cp.id, // Preserve id for updates
+                        label: cp.label || '',
+                        start_time: cp.start_time ? cp.start_time.substring(0, 5) : null, // "03:00:00" -> "03:00"
+                        end_time: cp.end_time ? cp.end_time.substring(0, 5) : null,
+                    }));
+                })(),
+                ticket_system: finalTicketSystem,
+                bookingBySeat: finalBookingBySeat,
+                ticket_terms: detail?.ticket_terms || undefined,
             });
+
+            // Set layouts and layout ID for seat booking management
         }
 
         // Step 2: Timing & Location
@@ -145,6 +240,7 @@ const EventStepperForm = () => {
                 end_time: detail?.end_time,
                 event_type: detail?.event_type,
                 overnight_event: Number(controls?.overnight_event) || 0,
+                tba: detail?.date_range ? false : true,
                 // map_code: detail?.map_code || undefined,
                 // address: detail?.address || undefined,
             });
@@ -157,77 +253,57 @@ const EventStepperForm = () => {
             }
         }
 
-        // Step 3: Tickets
+        // Step 3: Media (swapped with Artist)
         if (current === 3) {
-            const ticketSystem = Number(controls?.ticket_system) || 0;
-            // If both are 0 from backend, default to ticket_system = 1
-            const finalTicketSystem = ticketSystem === 0 ? 1 : 0;
-            const finalBookingBySeat = ticketSystem === 1 ? 1 : 0;
-            Object.assign(patch, {
-                multi_scan: Number(controls?.multi_scan) || 0,
-                ticket_system: finalTicketSystem,
-                bookingBySeat: finalBookingBySeat,
-                ticket_terms: detail?.ticket_terms || undefined,
-            });
-            setEventLayoutId(detail?.event_has_layout?.layout_id)
-            setLayouts(detail?.layout)
-            if (Array.isArray(detail?.tickets) && detail.tickets.length) {
-                setTickets(detail.tickets.map((t, idx) => ({ key: String(idx + 1), ...t })));
+            // Now using URL strings directly (for MediaGalleryPicker)
+            patch.thumbnail = event_galleries?.thumbnail || null;
+            patch.insta_thumbnail = event_galleries?.insta_thumbnail || null;
+            patch.layout_image = event_galleries?.layout_image || null;
+
+            // Gallery images - handle JSON string or array
+            if (event_galleries?.images) {
+                let imagesArray = event_galleries.images;
+                // If it's a JSON string, parse it
+                if (typeof imagesArray === 'string') {
+                    try {
+                        imagesArray = JSON.parse(imagesArray);
+                    } catch (e) {
+                        // If parsing fails, try splitting by comma (fallback)
+                        imagesArray = imagesArray.split(',').map(url => url.trim());
+                    }
+                }
+                patch.images = Array.isArray(imagesArray) ? imagesArray : [];
             }
+
+            patch.youtube_url = event_galleries?.youtube_url;
+            patch.instagram_media_url = event_galleries?.insta_url; // Api returns insta_url, form expects instagram_media_url
         }
 
-        // Step 4: Artist
+        // Step 4: Artist (swapped with Media)
         if (current === 4) {
             Object.assign(patch, {
                 artist_id: detail?.artist_id
                     ? detail.artist_id.split(',').map((id) => Number(id.trim()))
                     : [],
+                // Need to set is_approval_required here too since form patching is per-step
+                is_approval_required: toBool(controls?.is_approval_required),
             });
         }
 
-        // Step 5: Media
-        if (current === 5) {
-            if (event_galleries?.thumbnail) {
-                patch.thumbnail = [{
-                    uid: 'existing-thumb',
-                    name: 'current-thumbnail.jpg',
-                    status: 'done',
-                    url: event_galleries.thumbnail,
-                }];
-            }
-
-            if (event_galleries.images) {
-                patch.images = toUploadFileList(event_galleries.images);
-            }
-
-            if (event_galleries?.insta_thumb) {
-                patch.insta_thumb = [{
-                    uid: 'ig-thumb',
-                    name: 'instagram-thumb.jpg',
-                    status: 'done',
-                    url: event_galleries.insta_thumb,
-                }];
-            }
-
-            if (event_galleries?.layout_image) {
-                patch.layout_image = [{
-                    uid: 'arena-layout',
-                    name: 'arena-layout.jpg',
-                    status: 'done',
-                    url: event_galleries.layout_image,
-                }];
-            }
-        }
-
-        // Step 6: SEO
-        if (current === 6) {
+        // Step 5: SEO (was step 6, tickets step removed)
+        if (current === 5 || current === 6) {
             Object.assign(patch, {
                 meta_tag: event_seo?.meta_tag,
                 meta_keyword: event_seo?.meta_keyword,
                 meta_title: event_seo?.meta_title,
                 meta_description: event_seo?.meta_description,
+                schema_enabled: toBool(event_seo?.schema_enabled),
+                schema_override_json: event_seo?.schema_override_json,
             });
         }
+
+        // Step 6: Publish (was step 7, tickets step removed)
+        // No specific form fields to set for publish step
 
         // Only update form if we have data for this step
         if (Object.keys(patch).length > 0) {
@@ -235,33 +311,52 @@ const EventStepperForm = () => {
         }
     }, [isEdit, detail, form, current]);
 
-    // Mutations
+
+
+
     const { mutateAsync: createEvent, isPending: creating } = useCreateEvent({
         onSuccess: (res) => {
-            message.success(res?.message || 'Event created successfully!');
-            const eventId = res?.event?.event_key || res?.data?.event_key || res?.event_key;
-            // refetchDetail();
-            if (eventId) {
-                setTimeout(() => {
-                    navigate(`/events/update/${eventId}`, { state: { step: 1 } });
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                }, 500);
+            if (res?.status) {
+                message.success(res?.message || 'Event created successfully!');
+                const eventId = res?.event?.event_key || res?.data?.event_key || res?.event_key;
+                if (eventId) {
+                    setTimeout(() => {
+                        navigate(`/events/update/${eventId}`, { state: { step: 1 } });
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }, 500);
+                } else {
+                    message.error('Event created but ID not found. Please refresh.');
+                }
             } else {
-                message.error('Event created but ID not found. Please refresh.');
+                message.error(Utils.getErrorMessage(res, 'Failed to create event'));
             }
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to create event');
+            message.error(Utils.getErrorMessage(error, 'Failed to create event'));
         },
     });
 
     const { mutateAsync: updateEvent, isPending: updating } = useUpdateEvent({
-        onSuccess: (res) => {
-            message.success(res?.message || 'Event updated successfully!');
-            refetchDetail();
+        onSuccess: (res, variables) => {
+            if (res?.status) {
+                message.success(res?.message || 'Event updated successfully!');
+                return refetchDetail();
+            } else {
+                message.error(Utils.getErrorMessage(res, 'Failed to update event'));
+            }
         },
         onError: (error) => {
-            message.error(error?.message || 'Failed to update event');
+            message.error(Utils.getErrorMessage(error, 'Failed to update event'));
+        },
+    });
+
+    // Assign influencers mutation
+    const { mutateAsync: assignInfluencers, isPending: assigningInfluencers } = useAssignEventInfluencers({
+        onSuccess: () => {
+            // Silent success - main update already shows success message
+        },
+        onError: (error) => {
+            message.error(Utils.getErrorMessage(error, 'Failed to assign influencers'));
         },
     });
 
@@ -284,36 +379,44 @@ const EventStepperForm = () => {
     // Memoized form data from form values + tickets
     const getFormData = useCallback(() => {
         const values = form.getFieldsValue();
-        return { ...values, tickets };
-    }, [form, tickets]);
+        return { ...values, tickets, eventData: detail };
+    }, [form, tickets, detail]);
 
+    // Save controls step — used by EventControlsStep before navigating to layout
+    const saveControlsStep = useCallback(async () => {
+        if (!id) return null;
+        await form.validateFields();
+        const formValues = getFormData();
+        const body = buildEventFormData({
+            ...formValues,
+            step: 'controls',
+            userRole,
+            userId: UserData?.id,
+        });
+        await updateEvent({ id, body });
+        const refetchResult = await refetchDetail();
+        return refetchResult?.data;
+    }, [id, form, getFormData, userRole, UserData?.id, updateEvent, refetchDetail]);
+    // Get orgId from detail or form (form is more reliable as it's set in all steps)
+    const orgId = detail?.user_id || form.getFieldValue('org_id');
     // Steps configuration
     const steps = useMemo(
         () => [
-            { title: 'Basic Details', content: <BasicDetailsStep isEdit={isEdit} form={form} />, icon: <FormOutlined /> },
-            { title: 'Event Controls', content: <EventControlsStep isEdit={isEdit} form={form} />, icon: <ControlOutlined /> },
-            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
+            { title: 'Details', content: <BasicDetailsStep isEdit={isEdit} form={form} eventFields={detail?.event_fields} />, icon: <FormOutlined /> },
             {
-                title: 'Tickets',
-                content: (
-                    <TicketsStep
-                        tickets={tickets}
-                        layouts={layouts}
-                        eventLayoutId={eventLayoutId}
-                        form={form}
-                        embedCode={embedCode}
-                        onEmbedChange={handleEmbedChange}
-                        onAddTicket={handleAddTicket}
-                        onDeleteTicket={handleDeleteTicket}
-                        eventId={detail?.event_key}
-                        eventName={detail?.name}
-                    />
-                ),
-                icon: <TagsOutlined />,
+                title: 'Controls', content: <EventControlsStep isEdit={isEdit} form={form} orgId={orgId}
+                    layouts={layouts}
+                    eventLayoutId={eventLayoutId}
+                    eventId={detail?.event_key}
+                    venue_id={detail?.venue_id}
+                    eventHasAttendee={detail?.event_has_attendee}
+                    onSaveControls={saveControlsStep}
+                />, icon: <ControlOutlined />
             },
-            { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} />, icon: <EnvironmentOutlined /> },
+            { title: 'Timing', content: <TimingStep isEdit={isEdit} form={form} />, icon: <FieldTimeOutlined /> },
             { title: 'Media', content: <MediaStep form={form} />, icon: <PictureOutlined /> },
-            { title: 'SEO', content: <SEOStep form={form} />, icon: <GlobalOutlined /> },
+            { title: 'Artist', content: <ArtistStep artistList={detail?.artists} form={form} isEdit={isEdit} eventId={detail?.event_key} id={detail?.id} />, icon: <EnvironmentOutlined /> },
+            { title: 'SEO', content: <SEOStep form={form} eventKey={id} eventData={detail} componentLoader={componentLoader} setComponentLoader={setComponentLoader} />, icon: <GlobalOutlined /> },
             { title: 'Publish', content: <PublishStep eventData={detail} formData={getFormData()} />, icon: <CheckCircleOutlined /> },
         ],
         [form, tickets, embedCode, isEdit, handleEmbedChange, handleAddTicket, handleDeleteTicket, getFormData, detail]
@@ -330,6 +433,8 @@ const EventStepperForm = () => {
                 const body = buildEventFormData({
                     ...formValues,
                     step: stepName,
+                    userRole,
+                    userId: UserData?.id,
                 });
                 await createEvent(body);
                 return; // Navigation handled in onSuccess
@@ -341,8 +446,24 @@ const EventStepperForm = () => {
                 const body = buildEventFormData({
                     ...formValues,
                     step: stepName,
+                    userRole,
+                    userId: UserData?.id,
                 });
                 await updateEvent({ id, body });
+
+                // Assign influencers when on Artist step (step 4) and is_approval_required is true
+                if (current === 4) {
+                    const isApprovalRequired = form.getFieldValue('is_approval_required');
+                    const influencerIds = form.getFieldValue('influencer_ids') || [];
+
+                    if (isApprovalRequired && influencerIds.length > 0) {
+                        await assignInfluencers({
+                            eventId: detail?.id,
+                            influencer_ids: influencerIds
+                        });
+                    }
+                }
+
                 window.scrollTo({ top: 0, behavior: 'smooth' });
                 if (current === 6) {
                     message.success('Event ready to publish!');
@@ -358,8 +479,20 @@ const EventStepperForm = () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
 
         } catch (error) {
-            console.error('Validation error:', error);
-            message.error('Please fill all required fields correctly');
+            // console.error('Validation error:', error);
+
+            const validationErrors = error?.response?.data?.errors || error?.errors;
+
+            if (validationErrors) {
+                const fields = Object.keys(validationErrors).map(field => ({
+                    name: field,
+                    errors: [validationErrors[field]]
+                }));
+                form.setFields(fields);
+                // message.error('Please check the highlighted fields.');
+            } else {
+                message.error(Utils.getErrorMessage(error, 'Please fill all required fields correctly'));
+            }
         }
     };
 
@@ -377,6 +510,8 @@ const EventStepperForm = () => {
             const body = buildEventFormData({
                 ...draftValues,
                 step: stepName,
+                userRole,
+                userId: UserData?.id,
             }, true);
 
             if (id) {
@@ -388,7 +523,7 @@ const EventStepperForm = () => {
             }
         } catch (error) {
             console.error('Save draft error:', error);
-            message.error('Failed to save draft. Please check your form.');
+            message.error(Utils.getErrorMessage(error, 'Failed to save draft. Please check your form.'));
         }
     }, [getFormData, id, updateEvent]);
 
@@ -403,11 +538,13 @@ const EventStepperForm = () => {
                 ...values,
                 status: 1,
                 step: 'publish',
+                userRole,
+                userId: UserData?.id,
             });
 
             if (id) {
                 await updateEvent({ id, body });
-                message.success('Event published successfully!');
+                // message.success('Event published successfully!');
                 setCurrent((c) => c + 1);
                 //   setTimeout(() => navigate('/app/apps/events'), 1500);
             } else {
@@ -415,7 +552,7 @@ const EventStepperForm = () => {
             }
         } catch (error) {
             console.error('Submit error:', error);
-            message.error('Please complete all required fields before submitting.');
+            message.error(Utils.getErrorMessage(error, 'Please complete all required fields before submitting.'));
         }
     };
 
@@ -448,7 +585,7 @@ const EventStepperForm = () => {
         <div>
             <Card bordered={false}>
                 <Title level={2} style={{ textAlign: 'center', marginBottom: 32 }}>
-                    {isEdit ? 'Edit Event' : 'Create New Event'}
+                    {isEdit ? `Edit Event  ${formEventName || detail?.name || detail?.event?.name || ''}` : 'Create New Event'}
                 </Title>
 
                 <Steps current={current} style={{ marginBottom: 32 }} responsive>
@@ -473,8 +610,12 @@ const EventStepperForm = () => {
                     >
                         {
                             isEdit && current !== steps.length - 1 &&
-                            <Tooltip title="Save current progress">
-                                <Button icon={<SaveOutlined />} onClick={handleSaveDraft} disabled={isLoading}>
+                            <Tooltip title={!canEdit ? "You don't have permission to edit events" : "Save current progress"}>
+                                <Button
+                                    icon={<SaveOutlined />}
+                                    onClick={handleSaveDraft}
+                                    disabled={isLoading || componentLoader || !canEdit}
+                                >
                                     Save Draft
                                 </Button>
                             </Tooltip>
@@ -482,35 +623,46 @@ const EventStepperForm = () => {
 
                         <div style={{ display: 'flex', gap: 8 }}>
                             {current > 0 && current !== steps.length - 1 && (
-                                <Button onClick={prev} size="large" disabled={isLoading}>
+                                <Button onClick={prev} size="large" disabled={isLoading || componentLoader}>
                                     Previous
                                 </Button>
                             )}
 
-                            {current < steps.length - 1 && (
+                            {current !== steps.length - 1 ? (
+                                <Tooltip title={(!isEdit && !canCreate) ? "No permission to create" : (isEdit && !canEdit) ? "No permission to edit" : ""}>
+                                    <Button
+                                        type="primary"
+                                        onClick={next}
+                                        size="large"
+                                        loading={isLoading}
+                                        disabled={isLoading || componentLoader || (isEdit ? !canEdit : !canCreate)}
+                                    >
+                                        {current === 0 && !isEdit ? 'Create & Continue' : 'Save & Continue'}
+                                    </Button>
+                                </Tooltip>
+                            ) : (
                                 <Button
-                                    type="primary"
-                                    onClick={next}
+                                    onClick={() => navigate(-1)}
                                     size="large"
-                                    loading={isLoading}
-                                    disabled={isLoading}
                                 >
-                                    {current === 0 && !isEdit ? 'Create & Continue' : 'Save & Continue'}
+                                    Back
                                 </Button>
                             )}
 
-                            {current === steps.length - 2 && (
-                                <Button
-                                    type="primary"
-                                    onClick={handleSubmit}
-                                    size="large"
-                                    loading={isLoading}
-                                    disabled={isLoading}
-                                    icon={<CheckCircleOutlined />}
-                                >
-                                    Publish Event
-                                </Button>
-                            )}
+                            {/* {current === steps.length - 2 && (
+                                <Tooltip title={!canEdit ? "No permission to edit/publish" : ""}>
+                                    <Button
+                                        type="primary"
+                                        onClick={handleSubmit}
+                                        size="large"
+                                        loading={isLoading}
+                                        disabled={isLoading || componentLoader || !canEdit}
+                                        icon={<CheckCircleOutlined />}
+                                    >
+                                        Publish Event
+                                    </Button>
+                                </Tooltip>
+                            )} */}
                             {
 
                             }

@@ -14,13 +14,13 @@ export const useSMSConfig = (userId, options = {}) =>
     queryKey: ['sms-config', userId],
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
-      
+
       const res = await api.get(`sms-api/${userId}`);
-      
+
       if (!res?.status) {
         throw new Error(res?.message || 'Failed to fetch SMS configuration');
       }
-      
+
       return {
         config: res?.config || {},
         custom: res?.custom || {},
@@ -45,13 +45,13 @@ export const useStoreSMSConfig = (options = {}) =>
     mutationFn: async ({ userId, isCustom, payload }) => {
       const url = isCustom ? `store-custom-api/${userId}` : 'store-api';
       const res = await api.post(url, payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to save SMS configuration');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -65,15 +65,15 @@ export const useCreateSMSTemplate = (options = {}) =>
   useMutation({
     mutationFn: async ({ userId, payload }) => {
       if (!userId) throw new Error('User ID is required');
-      
+
       const res = await api.post(`sms-template/${userId}`, payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to create SMS template');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -87,15 +87,15 @@ export const useUpdateSMSTemplate = (options = {}) =>
   useMutation({
     mutationFn: async ({ id, payload }) => {
       if (!id) throw new Error('Template ID is required');
-      
+
       const res = await api.post(`sms-template-update/${id}`, payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to update SMS template');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -109,15 +109,15 @@ export const useDeleteSMSTemplate = (options = {}) =>
   useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error('Template ID is required');
-      
+
       const res = await api.delete(`sms-template-delete/${id}`);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to delete SMS template');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -136,11 +136,11 @@ export const useEmailConfig = (options = {}) =>
     queryKey: ['email-config'],
     queryFn: async () => {
       const res = await api.get('email-config');
-      
+
       if (!res?.status) {
         throw new Error(res?.message || 'Failed to fetch email configuration');
       }
-      
+
       return res?.data || {};
     },
     staleTime: 5 * 60 * 1000,
@@ -159,13 +159,13 @@ export const useStoreEmailConfig = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('email-config', payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to save email configuration');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -180,9 +180,9 @@ export const useEmailTemplates = (userId, options = {}) =>
     queryKey: ['email-templates', userId],
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
-      
+
       const res = await api.get(`email-templates/${userId}`);
-      
+
       return res?.templates || [];
     },
     enabled: !!userId,
@@ -202,13 +202,13 @@ export const useCreateEmailTemplate = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('store-templates', payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to create email template');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -222,13 +222,13 @@ export const useUpdateEmailTemplate = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('update-templates', payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to update email template');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -242,15 +242,15 @@ export const useDeleteEmailTemplate = (options = {}) =>
   useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error('Template ID is required');
-      
+
       const res = await api.delete(`delete-template/${id}`);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to delete email template');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -269,11 +269,11 @@ export const useSystemVariables = (options = {}) =>
     queryKey: ['system-variables'],
     queryFn: async () => {
       const res = await api.get('system-variables');
-      
+
       if (!res?.status) {
         throw new Error(res?.message || 'Failed to fetch system variables');
       }
-      
+
       return Array.isArray(res?.data) ? res.data : [];
     },
     staleTime: 5 * 60 * 1000,
@@ -292,13 +292,13 @@ export const useCreateSystemVariable = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('system-variables-store', payload);
-      
+
       if (res?.status === false) {
         const err = new Error(res?.message || 'Failed to create system variable');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -312,15 +312,15 @@ export const useUpdateSystemVariable = (options = {}) =>
   useMutation({
     mutationFn: async ({ id, payload }) => {
       if (!id) throw new Error('Variable ID is required');
-      
+
       const res = await api.post(`system-variables-update/${id}`, payload);
-      
+
       if (res?.status === false) {
         const err = new Error(res?.message || 'Failed to update system variable');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -334,15 +334,15 @@ export const useDeleteSystemVariable = (options = {}) =>
   useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error('Variable ID is required');
-      
+
       const res = await api.delete(`system-variables-destroy/${id}`);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to delete system variable');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -361,13 +361,13 @@ export const useWhatsAppConfig = (userId, options = {}) =>
     queryKey: ['whatsapp-config', userId],
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
-      
+
       const res = await api.get(`whatsapp-config-show/${userId}`);
-      
+
       if (!res?.status) {
         throw new Error(res?.message || 'Failed to fetch WhatsApp configuration');
       }
-      
+
       return res?.data || {};
     },
     enabled: !!userId,
@@ -387,13 +387,13 @@ export const useStoreWhatsAppConfig = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('whatsapp-config-store', payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to save WhatsApp configuration');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -408,13 +408,13 @@ export const useWhatsAppApis = (userId, options = {}) =>
     queryKey: ['whatsapp-apis', userId],
     queryFn: async () => {
       if (!userId) throw new Error('User ID is required');
-      
+
       const res = await api.get(`whatsapp-api-show/${userId}`);
-      
+
       if (!res?.status) {
         throw new Error(res?.message || 'Failed to fetch WhatsApp APIs');
       }
-      
+
       return res?.data || [];
     },
     enabled: !!userId,
@@ -434,13 +434,13 @@ export const useStoreWhatsAppApi = (options = {}) =>
   useMutation({
     mutationFn: async (payload) => {
       const res = await api.post('whatsapp-api-store', payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to create WhatsApp API');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -454,15 +454,15 @@ export const useUpdateWhatsAppApi = (options = {}) =>
   useMutation({
     mutationFn: async ({ id, payload }) => {
       if (!id) throw new Error('API ID is required');
-      
+
       const res = await api.post(`whatsapp-api-update/${id}`, payload);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to update WhatsApp API');
         err.server = res;
         throw err;
       }
-      
+
       return res;
     },
     ...options,
@@ -476,15 +476,85 @@ export const useDeleteWhatsAppApi = (options = {}) =>
   useMutation({
     mutationFn: async (id) => {
       if (!id) throw new Error('API ID is required');
-      
+
       const res = await api.delete(`whatsapp-api-destroy/${id}`);
-      
+
       if (!res?.status) {
         const err = new Error(res?.message || 'Failed to delete WhatsApp API');
         err.server = res;
         throw err;
       }
-      
+
+      return res;
+    },
+    ...options,
+  });
+
+// ============================================
+// SERVER LOGS HOOKS
+// ============================================
+
+/**
+ * GET /logs/types
+ * Fetch available log types
+ */
+export const useLogTypes = (options = {}) =>
+  useQuery({
+    queryKey: ['log-types'],
+    queryFn: async () => {
+      const res = await api.get('logs/types');
+      // res is { types: [] }
+      return res?.types || res?.data?.types || [];
+    },
+    staleTime: 60 * 60 * 1000, // 1 hour
+    ...options,
+  });
+
+/**
+ * GET /logs/stats
+ * Fetch server log statistics
+ */
+export const useLogStats = (options = {}) =>
+  useQuery({
+    queryKey: ['log-stats'],
+    queryFn: async () => {
+      const res = await api.get('logs/stats');
+      return res || {};
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    ...options,
+  });
+
+/**
+ * GET /logs
+ * Fetch log entries
+ */
+export const useLogs = (params = {}, options = {}) =>
+  useQuery({
+    queryKey: ['logs', params],
+    queryFn: async () => {
+      const res = await api.get('logs', { params });
+      // res is { data: [], meta: { ... } }
+      return {
+        data: res?.data || [],
+        meta: res?.meta || {}
+      };
+    },
+    staleTime: 30 * 1000, // 30 seconds
+    ...options,
+  });
+
+/**
+ * DELETE /logs/clear
+ * Clear server logs
+ */
+export const useClearLogs = (options = {}) =>
+  useMutation({
+    mutationFn: async (params = {}) => {
+      const res = await api.delete('logs/clear', { params });
+      if (res?.status === false) {
+        throw new Error(res?.message || 'Failed to clear logs');
+      }
       return res;
     },
     ...options,

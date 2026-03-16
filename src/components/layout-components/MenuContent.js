@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Grid } from 'antd';
 import IntlMessage from '../util-components/IntlMessage';
@@ -10,6 +10,7 @@ import utils from 'utils';
 import { onMobileNavToggle } from 'store/slices/themeSlice';
 import { useMyContext } from 'Context/MyContextProvider';
 import { filterNavByAccess } from 'utils/hooks/useNavAccess';
+import { prefetchRoute } from 'utils/routePrefetch';
 
 const { useBreakpoint } = Grid;
 
@@ -42,12 +43,18 @@ const MenuItem = ({ title, icon, path }) => {
     }
   };
 
+  const handleMouseEnter = () => {
+    if (path) {
+      prefetchRoute(path);
+    }
+  };
+
   return (
-    <>
+    <span onMouseEnter={handleMouseEnter}>
       {icon && <Icon type={icon} />}
       <span>{setLocale(title)}</span>
       {path && <Link onClick={closeMobileNav} to={path} />}
-    </>
+    </span>
   );
 };
 

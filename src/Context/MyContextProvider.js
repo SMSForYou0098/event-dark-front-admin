@@ -21,9 +21,7 @@ export const MyContextProvider = ({ children }) => {
     isInitialized: false,
     loading: false
   });
-  const [smsConfig, setSmsConfig] = useState([]);
   const [currencyMaster, setCurrencyMaster] = useState([]);
-  const [UserList, setUserList] = useState([]);
   const [OrganizerList, setOrganizerList] = useState([]);
   const [amount, setAmount] = useState(0);
   const [SystemVars, setSystemVars] = useState([]);
@@ -39,22 +37,7 @@ export const MyContextProvider = ({ children }) => {
   const auth_session = useSelector((state) => state.auth.auth_session);
   const isLoggedIn = UserData && Object.keys(UserData)?.length > 0
   const userRole = UserData?.role;
-  // template list 
-  const GetEventSmsConfig = async (id) => {
-    try {
-      const res = await axios.get(`${api}sms-api/${id}`, {
-        headers: {
-          'Authorization': 'Bearer ' + authToken,
-        }
-      });
-      if (res.data.status) {
-        const configData = res.data;
-        setSmsConfig(configData?.config);
-      }
-    } catch (err) {
-      console.log(err);
-    }
-  }
+
 
   const GetUsersList = async () => {
     try {
@@ -64,30 +47,8 @@ export const MyContextProvider = ({ children }) => {
         },
       });
       if (response.data.status) {
-        let data = response.data.users;
-        let organizer = response.data?.organizers
-        setUserList(data);
-        // setOrganizerList(response?.data?.organizers || [])
-        setUserList(data);
-        // setOrganizerList(response?.data?.organizers || []);
-        const filterOrganizerList = (data, UserRole) => {
-          if (UserRole === "Admin") {
-            // Include both Admin and Organizer
-            return data.filter(
-              (item) =>
-                item.role_name &&
-                (item.role_name.toLowerCase() === "admin" ||
-                  item.role_name.toLowerCase() === "organizer")
-            );
-          } else {
-            // Only include Organizer
-            return data.filter(
-              (item) =>
-                item.role_name && item.role_name.toLowerCase() === "organizer"
-            );
-          }
-        };
-        setOrganizerList(organizer);
+        let data = response.data?.data
+        setOrganizerList(data || [])
         return data;
       } else {
         console.log('Unexpected API status:', response.data.status);
@@ -187,7 +148,7 @@ export const MyContextProvider = ({ children }) => {
         GetSystemVars()
       }
     };
-    GetSystemSetting()
+    // GetSystemSetting()
     fetchData();
     setCurrencyMaster(currencyData)
   }, []);
@@ -620,7 +581,7 @@ export const MyContextProvider = ({ children }) => {
     return `${hours12}:${minutesFormatted} ${period}`;
   };
 
-  function truncateString(str, num) {
+  function truncateString(str, num = 16) {
     if (str?.length > num) {
       return str?.slice(0, num) + '...';
     }
@@ -753,9 +714,8 @@ export const MyContextProvider = ({ children }) => {
     formatDateRange,
     UserData,
     userRole,
-    UserList,
+    // UserList,
     OrganizerList,
-    GetUsersList,
     UserPermissions,
     handleMakeReport,
     DownloadExcelFile,
@@ -770,7 +730,6 @@ export const MyContextProvider = ({ children }) => {
     AskAlert,
     handleWhatsappAlert,
     sendTickets,
-    GetEventSmsConfig,
     formateTemplateTime,
     convertTo12HourFormat,
     truncateString,

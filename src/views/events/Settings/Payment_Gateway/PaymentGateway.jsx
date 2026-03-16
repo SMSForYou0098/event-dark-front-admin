@@ -6,6 +6,7 @@ import { PAYMENT_GATEWAY_CONFIG, PAYMENT_GATEWAY_MENU } from './paymentGatewayCo
 import PaymentGatewayForm from './PaymentGatewayForm';
 import apiClient from 'auth/FetchInterceptor';
 import Loader from 'utils/Loader';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const PaymentGateway = () => {
   const { UserData } = useMyContext();
@@ -41,13 +42,13 @@ const PaymentGateway = () => {
     }
   }, [gateways]);
   // Create tab items
-  const tabItems = useMemo(() => 
+  const tabItems = useMemo(() =>
     PAYMENT_GATEWAY_MENU.map((item) => ({
       key: item.eventKey,
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <Badge
-            status={gatewayStatuses[item.eventKey] === 1 ? 'success' : 'error'}
+            status={gatewayStatuses[item.eventKey] ? 'success' : 'error'}
             dot
           />
           {item.icon && <span>{item.icon}</span>}
@@ -89,25 +90,27 @@ const PaymentGateway = () => {
   }
 
   return (
-    <Row gutter={[16, 16]}>
-      <Col span={24}>
-        <Card
-          title='Payment Gateway Settings'
-          bordered={false}
-        >
-          {isLoading ? (
-            <Loader />
-          ) : (
-            <Tabs
-              defaultActiveKey="razorpay"
-              tabPosition="top"
-              items={tabItems}
-              style={{ width: '100%' }}
-            />
-          )}
-        </Card>
-      </Col>
-    </Row>
+    <PermissionChecker role="Admin">
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <Card
+            title='Payment Gateway Settings'
+            bordered={false}
+          >
+            {isLoading ? (
+              <Loader />
+            ) : (
+              <Tabs
+                defaultActiveKey="razorpay"
+                tabPosition="top"
+                items={tabItems}
+                style={{ width: '100%' }}
+              />
+            )}
+          </Card>
+        </Col>
+      </Row>
+    </PermissionChecker>
   );
 };
 

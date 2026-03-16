@@ -23,7 +23,7 @@ const SearchResultIcon = styled.div(() => ({
   marginRight: '1rem'
 }));
 
-const SearchResultTitle = styled.div(({mode}) => ({
+const SearchResultTitle = styled.div(({ mode }) => ({
   color: mode === 'light' ? DARK_MODE.HEADING_COLOR : GRAY_SCALE.GRAY_DARK,
   fontWeight: '500'
 }));
@@ -31,13 +31,13 @@ const SearchResultTitle = styled.div(({mode}) => ({
 const getCategoryIcon = category => {
   switch (category) {
     case 'dashboards':
-      return <DashboardOutlined className="text-success"/>;
+      return <DashboardOutlined className="text-success" />;
     case 'apps':
-      return <AppstoreOutlined className="text-danger"/>;
+      return <AppstoreOutlined className="text-danger" />;
     case 'components':
-      return <AntDesignOutlined className="text-primary"/>;
+      return <AntDesignOutlined className="text-primary" />;
     case 'extra':
-      return <FileTextOutlined className="text-warning"/>;
+      return <FileTextOutlined className="text-warning" />;
     default:
       return null;
   }
@@ -64,6 +64,7 @@ const SearchInput = (props) => {
       const category = item.key?.split('-')[0] || '';
       return {
         value: item.path, // used by filterOption
+        filterBy: item.title, // custom prop to store the title for searching
         label: (
           <Link to={item.path}>
             <Flex alignItems="center" padding="7px 12px">
@@ -81,7 +82,7 @@ const SearchInput = (props) => {
         ),
       };
     })
-  , [optionList]);
+    , [optionList]);
 
   const onSelect = () => {
     setValue('');
@@ -125,9 +126,11 @@ const SearchInput = (props) => {
       onSelect={onSelect}
       onSearch={onSearch}
       value={value}
-      // filter by path; you can enhance to also check title if needed
-      filterOption={(inputValue, option) =>
-        (option?.value || '').toUpperCase().includes(inputValue.toUpperCase())
+      // Filter by both path (value) and title (filterBy)
+      filterOption={(inputValue, option) => {
+        const searchStr = `${option?.value} ${option?.filterBy}`.toUpperCase();
+        return searchStr.includes(inputValue.toUpperCase());
+      }
       }
     >
       <Input placeholder="Search..." prefix={<SearchOutlined className="mr-0" />} />
