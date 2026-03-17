@@ -13,6 +13,7 @@ import Utils from "utils";
 import { PERMISSIONS } from "constants/PermissionConstant";
 import PermissionChecker from "layouts/PermissionChecker";
 import usePermission from "utils/hooks/usePermission";
+import OrgUserDetailedReport from "views/events/Reports/OrgUserDetailedReport";
 
 const AgentPOSDashboardLayout = ({ type }) => {
   const { api, UserData, authToken, userRole } = useMyContext();
@@ -82,18 +83,18 @@ const AgentPOSDashboardLayout = ({ type }) => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="p-4">
-        <Alert
-          message="Error"
-          description={Utils.getErrorMessage(error, "Failed to load dashboard data. Please try again later.")}
-          type="error"
-          showIcon
-        />
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="p-4">
+  //       <Alert
+  //         message="Error"
+  //         description={Utils.getErrorMessage(error, "Failed to load dashboard data. Please try again later.")}
+  //         type="error"
+  //         showIcon
+  //       />
+  //     </div>
+  //   );
+  // }
 
   if (isLoading) {
     return <DashSkeleton />;
@@ -147,6 +148,8 @@ const AgentPOSDashboardLayout = ({ type }) => {
           />
         </div>
       )}
+      <OrgUserDetailedReport type={type} />
+
     </Fragment>
   );
 };

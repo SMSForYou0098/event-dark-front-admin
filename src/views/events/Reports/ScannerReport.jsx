@@ -10,6 +10,7 @@ import Utils from 'utils';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { message } from 'antd';
+import OrgUserDetailedReport from './OrgUserDetailedReport';
 const { Text } = Typography;
 const ScannerReport = () => {
   const { isMobile, UserData } = useMyContext();
@@ -197,6 +198,7 @@ const ScannerReport = () => {
           </Col>
         </Row>
       </div>
+      <OrgUserDetailedReport type="scanner" />
     </PermissionChecker>
   );
 };

@@ -22,7 +22,7 @@ const Venues = () => {
   const isAdmin = userRole === 'Admin';
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState("");
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(null);
@@ -100,10 +100,11 @@ const Venues = () => {
 
   // Handle pagination change (for backend pagination)
   const handlePaginationChange = useCallback((page, newPageSize) => {
-    setCurrentPage(page);
     if (newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setCurrentPage(1); // Reset to first page when page size changes
+    } else {
+      setCurrentPage(page);
     }
   }, [pageSize]);
 

@@ -12,7 +12,7 @@ import { ExpandDataTable } from "../common/ExpandDataTable";
 import PermissionChecker from "layouts/PermissionChecker";
 import { resendTickets } from "./agent/utils";
 
-const BookingList = memo(({ type = 'agent' }) => {
+const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
     const { UserData, formatDateTime, truncateString, isMobile, UserPermissions, userRole } = useMyContext();
 
     const [dateRange, setDateRange] = useState(null);
@@ -37,18 +37,19 @@ const BookingList = memo(({ type = 'agent' }) => {
     // Simplified configuration - dynamic based on type
     const config = useMemo(() => {
         const typeCapitalized = type.charAt(0).toUpperCase() + type.slice(1);
+        const bookingTypeCapitalized = bookingType.charAt(0).toUpperCase() + bookingType.slice(1);
         const token = (data) => data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id;
 
         return {
-            title: `${typeCapitalized}`,
-            apiUrl: `bookings/${type}/${UserData?.id}`,
+            title: `${bookingTypeCapitalized} ${typeCapitalized}`,
+            apiUrl: `bookings/${type}/${UserData?.id}/${bookingType}`,
             exportRoute: `bookings/export`,
             exportPermission: `Export ${typeCapitalized} Bookings`,
             deleteEndpoint: (data) => data.is_deleted
                 ? `restore/${type}/${token(data)}`
                 : `disable/${type}/${token(data)}`,
         };
-    }, [type, UserData?.id]);
+    }, [type, bookingType, UserData?.id]);
 
     const HandleSendTicket = useCallback(async (record) => {
         // use id if present otherwise fallback to set_id
@@ -374,7 +375,7 @@ const BookingList = memo(({ type = 'agent' }) => {
         });
 
         // Discount column
-        if (showDiscount) {
+        if (showDiscount && bookingType !== 'free') {
             columns.push({
                 title: 'Disc',
                 dataIndex: 'discount',
@@ -386,26 +387,28 @@ const BookingList = memo(({ type = 'agent' }) => {
         }
 
         // Payment Method column
-        if (showPaymentMethod) {
+        if (showPaymentMethod && bookingType !== 'free') {
             columns.push({
                 title: 'Mode',
                 dataIndex: 'payment_method',
                 key: 'payment_method',
                 align: 'center',
-                searchable: true,
+                // searchable: true,
                 width: 120,
             });
         }
 
         // Amount column (common for both)
-        columns.push({
-            title: isNested ? "Amount" : "Amt",
-            dataIndex: "total_amount",
-            key: "total_amount",
-            align: "center",
-            width: isNested ? undefined : 120,
-            render: (cell) => `₹${Number(cell).toFixed(2)}`,
-        });
+        if (bookingType !== 'free') {
+            columns.push({
+                title: isNested ? "Amount" : "Amt",
+                dataIndex: "total_amount",
+                key: "total_amount",
+                align: "center",
+                width: isNested ? undefined : 120,
+                render: (cell) => `₹${Number(cell).toFixed(2)}`,
+            });
+        }
 
         // Status column (common for both)
         columns.push({
@@ -687,7 +690,7 @@ const BookingList = memo(({ type = 'agent' }) => {
                             <Button
                                 type="primary"
                                 icon={<PlusIcon size={16} />}
-                                onClick={() => navigate(`new`)}
+                                onClick={() => navigate(`/bookings/${type}/new`)}
                             />
                         </Tooltip>
                     </PermissionChecker>

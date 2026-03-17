@@ -509,9 +509,9 @@ const DataTable = ({
             pagination={
               serverSide && pagination
                 ? {
-                  current: pagination.current_page,
-                  pageSize: pagination.per_page,
-                  total: pagination.total,
+                  current: Number(pagination.current_page) || 1,
+                  pageSize: Number(pagination.per_page) || 10,
+                  total: Number(pagination.total) || 0,
                   showTotal: (total, range) =>
                     isMobile
                       ? `${range[0]}-${range[1]}/${total}`

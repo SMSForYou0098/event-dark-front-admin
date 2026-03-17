@@ -5,11 +5,11 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ORGANIZER_ALLOWED_ROLES } from "./consts";
 
-export const OrganisationList = ({ onChange, disabled }) => {
+export const OrganisationList = ({ onChange, disabled, label = "Organization" }) => {
     const { OrganizerList } = useMyContext();
     return (
         <Form.Item
-            label="Organization"
+            label={label}
             name="org_id"
             rules={[{ required: true, message: 'Please select organization' }]}
         >

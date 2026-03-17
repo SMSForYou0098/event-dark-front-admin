@@ -12,7 +12,7 @@ import GatewayWiseSales from './GatewayWiseSales';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import usePermission from 'utils/hooks/usePermission';
 import Utils from 'utils';
-import AgentDetailedReport from 'views/events/Reports/AgentDetailedReport';
+import OrgUserDetailedReport from 'views/events/Reports/OrgUserDetailedReport';
 import PermissionChecker from 'layouts/PermissionChecker';
 
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
@@ -88,33 +88,33 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
         );
     }
     // console.log(salesData, 'salesData')
-    const bookingStatsData = {
-        series: [
-            {
-                name: salesData?.salesDataNew[0]?.name,
-                data: salesData?.salesDataNew[0]?.data
-            },
-            {
-                name: salesData?.salesDataNew[1]?.name,
-                data: salesData?.salesDataNew[1]?.data
-            }
-        ],
-        categories: getLast7DaysWeekdays()
-    };
+    // const bookingStatsData = {
+    //     series: [
+    //         {
+    //             name: salesData?.salesDataNew[0]?.name,
+    //             data: salesData?.salesDataNew[0]?.data
+    //         },
+    //         {
+    //             name: salesData?.salesDataNew[1]?.name,
+    //             data: salesData?.salesDataNew[1]?.data
+    //         }
+    //     ],
+    //     categories: getLast7DaysWeekdays()
+    // };
 
-    const concvStatsData = {
-        series: [
-            {
-                name: salesData?.convenienceFee[0]?.name,
-                data: salesData?.convenienceFee[0]?.data
-            },
-            {
-                name: salesData?.convenienceFee[1]?.name,
-                data: salesData?.convenienceFee[1]?.data
-            }
-        ],
-        categories: getLast7DaysWeekdays()
-    };
+    // const concvStatsData = {
+    //     series: [
+    //         {
+    //             name: salesData?.convenienceFee[0]?.name,
+    //             data: salesData?.convenienceFee[0]?.data
+    //         },
+    //         {
+    //             name: salesData?.convenienceFee[1]?.name,
+    //             data: salesData?.convenienceFee[1]?.data
+    //         }
+    //     ],
+    //     categories: getLast7DaysWeekdays()
+    // };
 
     return (
         <div className="container-fluid p-4 bg-light min-vh-100">
@@ -193,32 +193,13 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
 
             <Divider />
 
-            {/* Payment Gateways & Charts */}
-            <Row gutter={[16, 16]}>
-                <Col xs={24} lg={12}>
-                    <ChartWidget
-                        title="Weekly Bookings"
-                        series={bookingStatsData?.series}
-                        xAxis={bookingStatsData.categories}
-                        height={'300px'}
-                        type='area'
-                    />
-                </Col>
-                {canViewGateway &&
-                    <Col xs={24} lg={12}>
-                        <PaymentGatewayTable
-                            data={getGatewayData(salesData.pgData)}
-                            columns={getGatewayColumns(formatCurrency)}
-                        />
-                    </Col>
-                }
-            </Row>
 
-            <Divider />
+
+            {/* <Divider /> */}
 
             {/* Convenience Fee & Discounts */}
             <Row gutter={[16, 16]}>
-                <PermissionChecker role='Admin'>
+                {/* <PermissionChecker role='Admin'>
                     <Col xs={24} lg={12}>
                         <ChartWidget
                             type='area'
@@ -228,12 +209,15 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                             height={'300px'}
                         />
                     </Col>
-                </PermissionChecker>
+                </PermissionChecker> */}
+                <Col xs={24} lg={12}>
+                    <OrgUserDetailedReport />
+                </Col>
                 <Col xs={24} lg={12}>
                     <Row gutter={[16, 16]}>
                         <Col xs={24} lg={12}>
                             <DiscountCard
-                                title="Discounts"
+                                title=""
                                 data={getDiscountData(salesData)}
                                 formatCurrency={formatCurrency}
                             />
@@ -248,8 +232,28 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                     </Row>
                 </Col>
 
+
             </Row>
-            <AgentDetailedReport />
+            {/* Payment Gateways & Charts */}
+            <Row gutter={[16, 16]}>
+                {/* <Col xs={24} lg={12}>
+                    <ChartWidget
+                        title="Weekly Bookings"
+                        series={bookingStatsData?.series}
+                        xAxis={bookingStatsData.categories}
+                        height={'300px'}
+                        type='area'
+                    />
+                </Col> */}
+                {canViewGateway &&
+                    <Col xs={24} lg={12}>
+                        <PaymentGatewayTable
+                            data={getGatewayData(salesData.pgData)}
+                            columns={getGatewayColumns(formatCurrency)}
+                        />
+                    </Col>
+                }
+            </Row>
         </div>
     );
 };

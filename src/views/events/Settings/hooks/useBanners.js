@@ -135,6 +135,12 @@ export const useUpdateBanner = (options = {}) =>
     mutationFn: async ({ id, formData }) => {
       if (!id) throw new Error('Banner ID is required');
 
+      // Ensure empty strings are passed if missing, to clear values on the server
+      if (formData instanceof FormData) {
+        if (!formData.get('external_url')) formData.set('external_url', '');
+        if (!formData.get('media_url')) formData.set('media_url', '');
+      }
+
       // FormData should be passed directly
       const res = await api.post(`banner-update/${id}`, formData, {
         headers: {

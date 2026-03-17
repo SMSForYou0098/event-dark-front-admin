@@ -7,6 +7,7 @@ import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { message } from 'antd';
 import DataTable from '../common/DataTable';
+import OrgUserDetailedReport from './OrgUserDetailedReport';
 
 const AgentReports = memo(() => {
   const { UserData, UserPermissions } = useMyContext();
@@ -196,6 +197,7 @@ const AgentReports = memo(() => {
         emptyText="No agent reports found"
 
       />
+      <OrgUserDetailedReport type="agent" />
     </PermissionChecker>
   );
 });

@@ -8,7 +8,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 
 const { Text } = Typography;
 
-const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selectedTickets, type, allowMultiple = true }) => {
+const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selectedTickets, type, allowMultiple = false }) => {
   const { isMobile } = useMyContext();
 
   // Reset selected tickets when event changes
@@ -87,9 +87,9 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
 
   // per-row helper used for styling / pointer-events (keeps existing sold_out logic)
   const rowIsDisabled = (record) => {
-    const soldOut = toBool(record?.sold_out);
-    const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
-    const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
+    const soldOut = (record?.sold_out);
+    const isAgentNotAllowed = soldOut && type === 'agent' && (record?.allow_agent);
+    const isPosNotAllowed = soldOut && type === 'pos' && (record?.allow_pos);
     return isAgentNotAllowed || isPosNotAllowed || record?.booking_not_open;
   };
 

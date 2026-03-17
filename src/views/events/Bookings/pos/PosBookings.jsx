@@ -29,7 +29,7 @@ import usePermission from "utils/hooks/usePermission";
 const { confirm } = Modal;
 const { Text } = Typography;
 
-const PosBooking = memo(() => {
+const PosBooking = memo(({ bookingType = 'free' }) => {
   const navigate = useNavigate();
   const { api, UserData, formatDateTime, authToken } = useMyContext();
   const queryClient = useQueryClient();
@@ -61,7 +61,7 @@ const PosBooking = memo(() => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['pos-bookings', UserData?.id, formattedDateRange, currentPage, pageSize, searchText, sortField, sortOrder],
+    queryKey: ['pos-bookings', UserData?.id, formattedDateRange, currentPage, pageSize, searchText, sortField, sortOrder, bookingType],
     queryFn: async () => {
       const params = new URLSearchParams();
 
@@ -86,7 +86,7 @@ const PosBooking = memo(() => {
       }
 
       // const url = `${api}bookings/pos/${UserData?.id}?${params.toString()}`;
-      const url = `${api}pos-bookings?${params.toString()}`;
+      const url = `${api}bookings/pos/${UserData?.id}/${bookingType}?${params.toString()}`;
 
       try {
         const response = await axios.get(url, {
@@ -354,29 +354,31 @@ const PosBooking = memo(() => {
         align: 'center',
         sorter: (a, b) => a.quantity - b.quantity,
       },
-      {
-        title: 'Disc',
-        dataIndex: 'discount',
-        key: 'discount',
-        width: 100,
-        align: 'center',
-        render: (discount) => (
-          <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
-        ),
-        sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
-      },
-      {
-        title: 'T Amt',
-        dataIndex: 'total_amount',
-        key: 'total_amount',
-        align: 'center',
-        render: (totalAmount) => (
-          <Text strong style={{ color: '#52c41a' }}>
-            ₹{Number(totalAmount || 0).toFixed(2)}
-          </Text>
-        ),
-        sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
-      },
+      ...(bookingType !== 'free' ? [
+        {
+          title: 'Disc',
+          dataIndex: 'discount',
+          key: 'discount',
+          width: 100,
+          align: 'center',
+          render: (discount) => (
+            <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
+          ),
+          sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
+        },
+        {
+          title: 'T Amt',
+          dataIndex: 'total_amount',
+          key: 'total_amount',
+          align: 'center',
+          render: (totalAmount) => (
+            <Text strong style={{ color: '#52c41a' }}>
+              ₹{Number(totalAmount || 0).toFixed(2)}
+            </Text>
+          ),
+          sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
+        },
+      ] : []),
       // {
       //   title: 'Status',
       //   dataIndex: 'status',
@@ -485,7 +487,8 @@ const PosBooking = memo(() => {
     handlePrintBooking,
     handleToggleStatus,
     toggleStatusMutation.isPending,
-    canViewContact
+    canViewContact,
+    bookingType
   ]);
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -529,7 +532,7 @@ const PosBooking = memo(() => {
       )}
 
       <ExpandDataTable
-        title={"POS"}
+        title={`${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)} POS`}
         emptyText={`No POS bookings found`}
         onRefresh={refetch}
         innerColumns={expandedRowColumns}
@@ -545,7 +548,7 @@ const PosBooking = memo(() => {
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => navigate('new')}
+                onClick={() => navigate('/bookings/pos/new')}
               />
             </Tooltip>
           </PermissionChecker>

@@ -5,7 +5,7 @@ import { PERMISSIONS } from 'constants/PermissionConstant';
 
 const dashboarSubmenuNav = [
   {
-    key: 'dashboard',
+    key: 'dashboard-main',
     path: 'dashboard',
     title: 'Dashboard',
     icon: DashboardOutlined,
@@ -106,10 +106,25 @@ const partnersClientsSubmenu = [
     submenu: [
       {
         key: 'sponsor-manage',
-        path: 'bookings/sponsor',
         title: 'Manage',
         breadcrumb: false,
-        permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS]
+        permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
+        submenu: [
+          {
+            key: 'sponsor-paid',
+            path: 'bookings/sponsor/paid',
+            title: 'Paid',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS]
+          },
+          {
+            key: 'sponsor-free',
+            path: 'bookings/sponsor/free',
+            title: 'Free',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS]
+          }
+        ]
       },
       {
         key: 'sponsor-new',
@@ -179,11 +194,28 @@ const bookingsSubmenu = [
     submenu: [
       {
         key: 'online-new',
-        path: 'bookings/online',
         title: 'Confirmed',
         breadcrumb: false,
         icon: ShoppingOutlined,
         permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+        submenu: [
+          {
+            key: 'online-paid',
+            path: 'bookings/online/paid',
+            title: 'Paid',
+            breadcrumb: false,
+            icon: DollarOutlined,
+            permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+          },
+          {
+            key: 'online-free',
+            path: 'bookings/online/free',
+            title: 'Free',
+            breadcrumb: false,
+            icon: CheckOutlined,
+            permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+          }
+        ]
       },
       {
         key: 'pending-booking',
@@ -222,10 +254,25 @@ const bookingsSubmenu = [
     submenu: [
       {
         key: 'agent-manage',
-        path: 'bookings/agent',
         title: 'Manage',
         breadcrumb: false,
-        permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS]
+        permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+        submenu: [
+          {
+            key: 'agent-paid',
+            path: 'bookings/agent/paid',
+            title: 'Paid',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS]
+          },
+          {
+            key: 'agent-free',
+            path: 'bookings/agent/free',
+            title: 'Free',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS]
+          }
+        ]
       },
       {
         key: 'agent-new',
@@ -246,10 +293,25 @@ const bookingsSubmenu = [
     submenu: [
       {
         key: 'pos-manage',
-        path: 'bookings/pos',
         title: 'Manage',
         breadcrumb: false,
-        permissions: [PERMISSIONS.VIEW_POS_BOOKINGS]
+        permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+        submenu: [
+          {
+            key: 'pos-paid',
+            path: 'bookings/pos/paid',
+            title: 'Paid',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS]
+          },
+          {
+            key: 'pos-free',
+            path: 'bookings/pos/free',
+            title: 'Free',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS]
+          }
+        ]
       },
       {
         key: 'pos-new',

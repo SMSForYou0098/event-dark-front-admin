@@ -7,6 +7,7 @@ import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { message } from 'antd';
 import DataTable from '../common/DataTable';
+import OrgUserDetailedReport from './OrgUserDetailedReport';
 
 const PosReports = memo(() => {
   const { UserData, UserPermissions } = useMyContext();
@@ -184,6 +185,7 @@ const PosReports = memo(() => {
         onRefresh={refetch}
         emptyText="No POS reports found"
       />
+      <OrgUserDetailedReport type="pos" />
     </PermissionChecker>
   );
 });

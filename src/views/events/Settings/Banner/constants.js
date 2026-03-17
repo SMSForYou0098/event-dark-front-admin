@@ -21,18 +21,18 @@ export const TEXT_FIELDS = [
   //   span: { xs: 24, md: 12 },
   //   placeholder: 'Enter button link',
   // },
-  // {
-  //   name: 'external_url',
-  //   label: 'External URL',
-  //   span: { xs: 24, md: 12 },
-  //   rules: [
-  //     {
-  //       type: 'url',
-  //       message: 'Please enter a valid URL',
-  //     },
-  //   ],
-  //   placeholder: 'https://example.com',
-  // },
+  {
+    name: 'external_url',
+    label: 'External URL',
+    span: { xs: 24, md: 12 },
+    rules: [
+      {
+        type: 'url',
+        message: 'Please enter a valid URL',
+      },
+    ],
+    placeholder: 'https://example.com',
+  },
   {
     name: 'media_url',
     label: 'Media URL (YouTube/Social)',

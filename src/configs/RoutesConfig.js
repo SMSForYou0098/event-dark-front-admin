@@ -12,6 +12,8 @@ import AgentPOSDashboardLayout from 'views/events/Dashboard/components/AgentPOSD
 import UserEditGuard from 'routes/UserEditGuard'
 import EventList from 'views/events/event/list'
 
+const OnlineBookings = React.lazy(() => import('views/events/Bookings/Online_Bookings/OnlineBookings'));
+
 // ==================== PUBLIC ROUTES ====================
 export const publicRoutes = [
     // Authentication Routes
@@ -86,7 +88,7 @@ export const protectedRoutes = [
         }
     },
     {
-        key: 'dashboard',
+        key: 'gateway',
         path: `/dashboard/gateway`,
         component: React.lazy(() => import('views/events/Dashboard/Gateway/GatewayReport')),
         meta: {
@@ -426,10 +428,34 @@ export const protectedRoutes = [
     {
         key: 'online-bookings',
         path: `/bookings/online`,
-        component: React.lazy(() => import('views/events/Bookings/Online_Bookings/OnlineBookings')),
+        component: OnlineBookings,
         meta: {
             permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
             //roles: ['admin', 'organizer'],
+        }
+    },
+    {
+        key: 'paid-bookings',
+        path: `/bookings/online/paid`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <OnlineBookings {...props} type="paid" />
+            </React.Suspense>
+        ),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+        }
+    },
+    {
+        key: 'free-bookings',
+        path: `/bookings/online/free`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <OnlineBookings {...props} type="free" />
+            </React.Suspense>
+        ),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
         }
     },
     // Pending Bookings
@@ -464,6 +490,30 @@ export const protectedRoutes = [
             //roles: ['admin', 'organizer', 'agent'],
         }
     },
+    {
+        key: 'agent-bookings-paid',
+        path: `/bookings/agent/paid`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} type="agent" bookingType="paid" />
+            </React.Suspense>
+        ),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+        }
+    },
+    {
+        key: 'agent-bookings-free',
+        path: `/bookings/agent/free`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} type="agent" bookingType="free" />
+            </React.Suspense>
+        ),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+        }
+    },
     // Sponsor Bookings
     {
         key: 'sponsor-bookings',
@@ -476,6 +526,30 @@ export const protectedRoutes = [
         meta: {
             permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
             //roles: ['admin', 'organizer', 'sponsor'],
+        }
+    },
+    {
+        key: 'sponsor-bookings-paid',
+        path: `/bookings/sponsor/paid`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} type="sponsor" bookingType="paid" />
+            </React.Suspense>
+        ),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
+        }
+    },
+    {
+        key: 'sponsor-bookings-free',
+        path: `/bookings/sponsor/free`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <BookingList {...props} type="sponsor" bookingType="free" />
+            </React.Suspense>
+        ),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
         }
     },
     // Complimentary Bookings
@@ -561,6 +635,30 @@ export const protectedRoutes = [
         ),
         meta: {
             //roles: ['admin', 'organizer', 'pos'],
+            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+        }
+    },
+    {
+        key: 'pos-bookings-paid',
+        path: `/bookings/pos/paid`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <PosBooking {...props} isPos={true} bookingType="paid" />
+            </React.Suspense>
+        ),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+        }
+    },
+    {
+        key: 'pos-bookings-free',
+        path: `/bookings/pos/free`,
+        component: (props) => (
+            <React.Suspense fallback={<div>Loading...</div>}>
+                <PosBooking {...props} isPos={true} bookingType="free" />
+            </React.Suspense>
+        ),
+        meta: {
             permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
         }
     },

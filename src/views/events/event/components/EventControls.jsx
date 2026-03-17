@@ -61,14 +61,49 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
 
   // Initialize selected fields from eventHasAttendee when editing
   useEffect(() => {
-    if (eventHasAttendee && eventHasAttendee.length > 0 && categoryDetails?.fields) {
+    if (eventHasAttendee && eventHasAttendee.length > 0) {
       // Extract field IDs from event_has_attendee
       const existingFieldIds = eventHasAttendee.map(item => item.field_id);
 
-      // Match with category fields to get full field data
-      const existingFieldsData = categoryDetails.fields.filter(field =>
-        existingFieldIds.includes(field.id)
-      );
+      // Match with category fields or use data directly from eventHasAttendee
+      const existingFieldsData = eventHasAttendee.map(item => {
+        // 1. Check if the item has a joined custom_field object (new structure)
+        if (item.custom_field) {
+          return {
+            ...item.custom_field,
+            id: item.custom_field.id || item.field_id,
+            lable: item.custom_field.lable || item.custom_field.label || item.custom_field.field_name,
+            field_name: item.custom_field.field_name || item.custom_field.name
+          };
+        }
+
+        // 2. Check if the item has a joined field object (older structure)
+        if (item.field) {
+          return {
+            ...item.field,
+            id: item.field.id || item.field_id,
+            lable: item.field.lable || item.field.label || item.field.field_name,
+            field_name: item.field.field_name || item.field.name
+          };
+        }
+
+        // 3. Check if the item has flat properties (name/label)
+        if (item.lable || item.label || item.field_name || item.name) {
+          return {
+            id: item.field_id,
+            lable: item.lable || item.label || item.field_name || item.name,
+            field_name: item.field_name || item.name,
+            field_type: item.field_type || item.type
+          };
+        }
+
+        // 4. Fallback to category fields if available
+        if (categoryDetails?.fields) {
+          return categoryDetails.fields.find(field => field.id === item.field_id);
+        }
+
+        return null;
+      }).filter(Boolean);
 
       setSelectedFieldIds(existingFieldIds);
       setSelectedFieldsData(existingFieldsData);

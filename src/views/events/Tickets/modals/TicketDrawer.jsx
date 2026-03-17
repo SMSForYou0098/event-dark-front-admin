@@ -23,6 +23,9 @@ import { fetchTicketBgBlobUrl } from '../utils/fetchTicketBg';
  * - showPrintButton: boolean - whether to show print button
  * - showTicketDetails: boolean - whether to show ticket details on canvas
  */
+const YOUTUBE_GUIDE_URL = "https://youtube.com/shorts/2zaqjAvL-NA";
+const INSTAGRAM_GUIDE_URL = "https://www.instagram.com/reel/DV-wf8BgkIa/?igsh=ZWpmaDd2Z3Q4Zms4";
+
 const TicketDrawer = ({
     show,
     handleCloseModal,
@@ -169,7 +172,7 @@ const TicketDrawer = ({
             <div className="d-flex justify-content-center align-items-center gap-4 pt-2 border-top">
 
                 <a
-                    href="https://www.youtube.com/@Get-Your-Ticket"
+                    href={YOUTUBE_GUIDE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-decoration-none text-white d-flex align-items-center gap-2"
@@ -179,7 +182,7 @@ const TicketDrawer = ({
                 </a>
 
                 <a
-                    href="https://www.instagram.com/getyourticket.in"
+                    href={INSTAGRAM_GUIDE_URL}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-decoration-none text-white d-flex align-items-center gap-2"

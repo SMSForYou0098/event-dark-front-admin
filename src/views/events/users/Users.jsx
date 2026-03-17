@@ -27,7 +27,6 @@ import { useDispatch } from "react-redux";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { persistor } from "store";
 import PermissionChecker from "layouts/PermissionChecker";
-import { APP_PREFIX_PATH } from "configs/AppConfig";
 import usePermission from "utils/hooks/usePermission";
 import { roles } from "./constants";
 import Utils from "utils";
@@ -51,7 +50,7 @@ const Users = () => {
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
   const [searchText, setSearchText] = useState("");
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(null);
@@ -259,10 +258,11 @@ const Users = () => {
 
   // Handle pagination change (for backend pagination)
   const handlePaginationChange = useCallback((page, newPageSize) => {
-    setCurrentPage(page);
     if (newPageSize !== pageSize) {
       setPageSize(newPageSize);
       setCurrentPage(1); // Reset to first page when page size changes
+    } else {
+      setCurrentPage(page);
     }
   }, [pageSize]);
 

@@ -28,7 +28,7 @@ const GatewayWiseSales = ({ gatewayData = [], channelData = [], formatCurrency, 
         <Row gutter={[16, 16]}>
             {/* Payment Gateway Summary rendered as cards */}
             <Col xs={24}>
-                <div style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: 16 }}>
+                <div style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', }}>
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <Title level={5} style={{ margin: 0 }}>Payment Gateway Wise Sales</Title>
                     </div>
@@ -81,7 +81,7 @@ const GatewayWiseSales = ({ gatewayData = [], channelData = [], formatCurrency, 
 
             {/* Channel Summary rendered as cards */}
             <Col xs={24}>
-                <div style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: 16, }}>
+                <div style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', }}>
                     <div className="d-flex justify-content-between align-items-center mb-3">
                         <Title level={5} style={{ margin: 0 }}>Channel Wise Sales</Title>
                     </div>

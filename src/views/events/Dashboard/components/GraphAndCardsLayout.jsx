@@ -19,13 +19,13 @@ const GraphAndCardsLayout = ({
   isAgent,
   sale,
 }) => {
-    const paymentStats = isAgent 
-    ? getAgentPaymentStats(sale) 
+  const paymentStats = isAgent
+    ? getAgentPaymentStats(sale)
     : getPOSPaymentStats(sale);
   return (
     <>
-    {/* Cards Section 1 */}
-      <Col xs={24} lg={16}>
+      {/* Cards Section 1 */}
+      <Col xs={24} >
         <Row gutter={[ROW_GUTTER]}>
           <Col xs={24} lg={24}>
             <Row gutter={[16, 16]}>
@@ -40,14 +40,14 @@ const GraphAndCardsLayout = ({
                 </Col>
               ))}
               {paymentStats.map((card, i) => (
-                   <PaymentStatsCard key={i} {...card} />
+                <PaymentStatsCard key={i} {...card} />
               ))}
             </Row>
           </Col>
         </Row>
       </Col>
       {/* Graph Section */}
-      <Col xs={24} lg={8}>
+      {/* <Col xs={24} lg={8}>
         <Card
           title={graphTitle}
           bordered={false}
@@ -80,7 +80,7 @@ const GraphAndCardsLayout = ({
             height={280}
           />
         </Card>
-      </Col>
+      </Col> */}
     </>
   );
 };
