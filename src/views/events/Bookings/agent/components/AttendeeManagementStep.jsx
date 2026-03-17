@@ -24,7 +24,6 @@ const AttendeeManagementStep = forwardRef(({
 
   // ✅ Get all selected attendee IDs across all tickets
 
-  console.log("categoryFields", categoryFields);
   const getAllSelectedAttendeeIds = useCallback(() => {
     const allIds = [];
     Object.values(ticketAttendees).forEach(attendees => {
@@ -193,7 +192,7 @@ const AttendeeManagementStep = forwardRef(({
   const validateAttendees = useCallback(() => {
     // Collect the required fields from categoryFields
     const requiredFields = (categoryFields || [])
-      .filter(f => Number(f.field_required) === 1)
+      .filter(f => Number(f.field_required) === true)
       .map(f => ({
         name: f.field_name,                // e.g., "Name", "Email", "Mo", "Photo", "hobby"
         type: (f.field_type || "").toLowerCase(), // e.g., "text", "email", "number", "file", "checkbox"
@@ -356,7 +355,6 @@ const AttendeeManagementStep = forwardRef(({
             const currentCount = getAttendeeCountForTicket(ticket.id);
             const currentTicketAttendees = ticketAttendees[ticket.id] || [];
             const isComplete = currentCount === requiredCount;
-            console.log("currentTicketAttendees", currentTicketAttendees);
             return (
               <Card
                 key={ticket.id}

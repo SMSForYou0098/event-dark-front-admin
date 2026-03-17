@@ -1,204 +1,184 @@
-import React, { useMemo } from 'react';
-import { Card, Row, Col, Statistic, Tag, Typography } from 'antd';
-import { ExpandDataTable } from 'views/events/common/ExpandDataTable';
-import { UserOutlined, CalendarOutlined } from '@ant-design/icons';
-import Flex from 'components/shared-components/Flex';
-
-const { Title, Text } = Typography;
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import api from 'auth/FetchInterceptor';
+import { Spin, Card, Form, Row, Col } from 'antd';
+import { OrganisationList } from 'utils/CommonInputs';
+import { useMyContext } from 'Context/MyContextProvider';
+import { ExpandDataTable } from '../common/ExpandDataTable';
 
 const AgentDetailedReport = () => {
-    // Mock data based on user provided JSON, now as an array
-    const reportDataArray = [
-        {
-            "event_id": "EVT001",
-            "event_name": "Cricket Match 2026",
-            "agent": {
-                "agent_id": "AG001",
-                "agent_name": "Raj Patel"
-            },
-            "summary": {
-                "total_tickets": 700,
-                "ticket_types": [
-                    { "name": "gold", "quantity": 250 },
-                    { "name": "silver", "quantity": 450 }
-                ]
-            },
-            "last_7_days": [
-                {
-                    "id": "1",
-                    "is_set": true,
-                    "date": "2026-03-08",
-                    "total": 80,
-                    "bookings": [
-                        { "id": "1-1", "name": "gold", "quantity": 30 },
-                        { "id": "1-2", "name": "silver", "quantity": 50 }
-                    ]
-                },
-                {
-                    "id": "2",
-                    "is_set": true,
-                    "date": "2026-03-09",
-                    "total": 95,
-                    "bookings": [
-                        { "id": "2-1", "name": "gold", "quantity": 35 },
-                        { "id": "2-2", "name": "silver", "quantity": 60 }
-                    ]
-                },
-                {
-                    "id": "3",
-                    "is_set": true,
-                    "date": "2026-03-10",
-                    "total": 120,
-                    "bookings": [
-                        { "id": "3-1", "name": "gold", "quantity": 45 },
-                        { "id": "3-2", "name": "silver", "quantity": 75 }
-                    ]
-                },
-                {
-                    "id": "4",
-                    "is_set": true,
-                    "date": "2026-03-11",
-                    "total": 110,
-                    "bookings": [
-                        { "id": "4-1", "name": "gold", "quantity": 40 },
-                        { "id": "4-2", "name": "silver", "quantity": 70 }
-                    ]
-                },
-                {
-                    "id": "5",
-                    "is_set": true,
-                    "date": "2026-03-12",
-                    "total": 140,
-                    "bookings": [
-                        { "id": "5-1", "name": "gold", "quantity": 55 },
-                        { "id": "5-2", "name": "silver", "quantity": 85 }
-                    ]
-                },
-                {
-                    "id": "6",
-                    "is_set": true,
-                    "date": "2026-03-13",
-                    "total": 90,
-                    "bookings": [
-                        { "id": "6-1", "name": "gold", "quantity": 25 },
-                        { "id": "6-2", "name": "silver", "quantity": 65 }
-                    ]
-                },
-                {
-                    "id": "7",
-                    "is_set": true,
-                    "date": "2026-03-14",
-                    "total": 65,
-                    "bookings": [
-                        { "id": "7-1", "name": "gold", "quantity": 20 },
-                        { "id": "7-2", "name": "silver", "quantity": 45 }
-                    ]
+    const { UserData, userRole } = useMyContext();
+    const [form] = Form.useForm();
+    const [orgId, setOrgId] = useState(null);
+    const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+    const [agentDailyReports, setAgentDailyReports] = useState({});
+    const [expansionLoading, setExpansionLoading] = useState({});
+
+    // Initialize orgId from UserData if not set and user is an Organizer
+    useEffect(() => {
+        if (!orgId && UserData?.id && userRole === 'Organizer') {
+            setOrgId(UserData.id);
+            form.setFieldsValue({ org_id: String(UserData.id) });
+        }
+    }, [UserData, userRole, orgId, form]);
+
+    // Calling the org/agent-stats API using TanStack Query
+    const { data: statsData, isLoading, isError, error } = useQuery({
+        queryKey: ['orgAgentStats', orgId],
+        queryFn: async () => {
+            if (!orgId) return null;
+            const response = await api.get(`org/agent-stats?organizer_id=${orgId}`);
+            return response;
+        },
+        enabled: !!orgId
+    });
+
+    const handleOrgChange = (value) => {
+        setOrgId(value);
+        setExpandedRowKeys([]);
+        setAgentDailyReports({});
+    };
+
+    const handleExpandUpdate = async (expanded, record) => {
+        const agentId = record.agent_id;
+
+        if (expanded) {
+            setExpandedRowKeys(prev => [...prev, agentId]);
+
+            // Only fetch if not already loaded
+            if (!agentDailyReports[agentId]) {
+                setExpansionLoading(prev => ({ ...prev, [agentId]: true }));
+                try {
+                    const response = await api.get(`agent/daily-report/${agentId}`);
+                    setAgentDailyReports(prev => ({ ...prev, [agentId]: response }));
+                } catch (err) {
+                    console.error("Error fetching agent daily report:", err);
+                } finally {
+                    setExpansionLoading(prev => ({ ...prev, [agentId]: false }));
                 }
-            ]
+            }
+        } else {
+            setExpandedRowKeys(prev => prev.filter(key => key !== agentId));
+        }
+    };
+
+    const columns = [
+        {
+            title: 'Agent ID',
+            dataIndex: 'agent_id',
+            key: 'agent_id',
+            width: 100,
+        },
+        {
+            title: 'Agent Name',
+            dataIndex: 'agent_name',
+            key: 'agent_name',
+            sorter: (a, b) => a.agent_name.localeCompare(b.agent_name),
+        },
+        {
+            title: 'Total Bookings',
+            dataIndex: 'total_bookings',
+            key: 'total_bookings',
+            align: 'center',
+            sorter: (a, b) => a.total_bookings - b.total_bookings,
+        },
+        {
+            title: 'Total Sales',
+            dataIndex: 'total_sales',
+            key: 'total_sales',
+            align: 'right',
+            render: (val) => `₹${Number(val || 0).toLocaleString()}`,
+            sorter: (a, b) => a.total_sales - b.total_sales,
         }
     ];
 
-    const columns = useMemo(() => [
+    const innerColumns = [
         {
             title: 'Date',
             dataIndex: 'date',
             key: 'date',
             render: (date) => (
-                <span>
-                    <CalendarOutlined className="mr-2 text-primary" />
+                <span className="text-muted">
+                    <i className="anticon anticon-calendar mr-2" />
                     {date}
                 </span>
             )
         },
         {
-            title: 'Total Tickets',
-            dataIndex: 'total',
-            key: 'total',
-            render: (total) => <Tag color="blue">{total} Tickets</Tag>
-        }
-    ], []);
-
-    const innerColumns = useMemo(() => [
-        {
-            title: 'Ticket Type',
-            dataIndex: 'name',
-            key: 'name',
-            render: (name) => <span style={{ textTransform: 'capitalize' }}>{name}</span>
+            title: 'Daily Bookings',
+            dataIndex: 'total_bookings',
+            key: 'total_bookings',
+            align: 'center',
+            render: (val) => <div className="text-info font-weight-bold">{val}</div>
         },
         {
-            title: 'Quantity',
-            dataIndex: 'quantity',
-            key: 'quantity',
-            render: (qty) => <strong>{qty}</strong>
+            title: 'Daily Sales',
+            dataIndex: 'total_sales',
+            key: 'total_sales',
+            align: 'right',
+            render: (val) => <span className="text-success">₹{Number(val || 0).toLocaleString()}</span>
         }
-    ], []);
+    ];
+
+    const processedData = useMemo(() => {
+        const rawData = Array.isArray(statsData) ? statsData : (statsData?.data || []);
+
+        return rawData.map(item => ({
+            ...item,
+            id: item.agent_id,
+            set_id: item.agent_id,
+            is_set: true, // Mark as expandable for the component
+            bookings: agentDailyReports[item.agent_id]?.data?.days || [],
+            loading: expansionLoading[item.agent_id]
+        }));
+    }, [statsData, agentDailyReports, expansionLoading]);
 
     return (
-        <div className="container-fluid">
-            {reportDataArray.map((reportData, index) => (
-                <div key={`${reportData.event_id}-${reportData.agent.agent_id}-${index}`} style={{ marginBottom: '40px' }}>
-                    <Flex justifyContent="space-between" alignItems="center" className="mb-4">
-                        <div>
-                            <Title level={4} className="mb-0">{reportData.event_name}</Title>
-                            <Text type="secondary">Event ID: {reportData.event_id}</Text>
-                        </div>
-                        <Card size="small" className="mb-0">
-                            <Flex alignItems="center" gap={10}>
-                                <UserOutlined style={{ fontSize: '20px', color: 'var(--primary-color)' }} />
-                                <div>
-                                    <div className="font-weight-bold">{reportData.agent.agent_name}</div>
-                                    <div className="font-size-sm text-muted">Agent ID: {reportData.agent.agent_id}</div>
-                                </div>
-                            </Flex>
-                        </Card>
-                    </Flex>
-
-                    <Row gutter={16} className="mb-4">
-                        <Col xs={24} sm={8}>
-                            <Card style={{ background: 'linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)' }}>
-                                <Statistic
-                                    title={<span style={{ color: '#8c8c8c' }}>Total Tickets Booked</span>}
-                                    value={reportData.summary.total_tickets}
-                                    // prefix={<TicketOutlined />}
-                                    valueStyle={{ color: '#fff' }}
-                                />
-                            </Card>
+        <div className="p-4">
+            <Card className="mb-4">
+                <Form form={form} layout="vertical">
+                    <Row gutter={16} align="bottom">
+                        <Col xs={24} sm={12} md={8}>
+                            <OrganisationList onChange={handleOrgChange} />
                         </Col>
-                        {reportData.summary.ticket_types.map((type, tIndex) => (
-                            <Col xs={24} sm={8} key={tIndex}>
-                                <Card style={{ background: 'linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 100%)' }}>
-                                    <Statistic
-                                        title={<span style={{ color: '#8c8c8c' }}>{type.name.toUpperCase()} Tickets</span>}
-                                        value={type.quantity}
-                                        // prefix={<TicketOutlined style={{ color: type.name === 'gold' ? '#FFD700' : '#C0C0C0' }} />}
-                                        valueStyle={{ color: '#fff' }}
-                                    />
-                                </Card>
+                        {orgId && (
+                            <Col>
+                                <div className="mb-4">
+                                    <strong>Organizer ID:</strong> {orgId}
+                                </div>
                             </Col>
-                        ))}
+                        )}
                     </Row>
+                </Form>
+            </Card>
 
-                    <ExpandDataTable
-                        title="Daily Booking Breakdown (Last 7 Days)"
-                        columns={columns}
-                        innerColumns={innerColumns}
-                        data={reportData.last_7_days}
-                        loading={false}
-                        showSearch={false}
-                        tableProps={{
-                            pagination: false,
-                            size: 'middle'
-                        }}
-                    />
+            <ExpandDataTable
+                title="Agent Detailed Report"
+                columns={columns}
+                innerColumns={innerColumns}
+                data={processedData}
+                loading={isLoading}
+                showSearch={true}
+                showReportSwitch={false}
+                expandedRowKeys={expandedRowKeys}
+                onExpand={handleExpandUpdate}
+                tableProps={{
+                    scroll: { x: 1200 }
+                }}
+            />
 
-                    {/* Add a divider if it's not the last report */}
-                    {index < reportDataArray.length - 1 && (
-                        <div style={{ height: '2px', backgroundColor: 'var(--border-color)', margin: '40px 0', opacity: 0.5 }} />
-                    )}
-                </div>
-            ))}
+            {isError && (
+                <Card className="m-3">
+                    <div className="text-danger">
+                        Error fetching agent stats: {error?.message || 'Unknown error'}
+                    </div>
+                </Card>
+            )}
         </div>
     );
 };
 
+
 export default AgentDetailedReport;
+
+

@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { 
-  Modal, 
-  Form, 
-  Input, 
-  Select, 
-  Switch, 
-  Button, 
-  Space, 
-  Tag, 
+import {
+  Modal,
+  Form,
+  Input,
+  Select,
+  Switch,
+  Button,
+  Space,
+  Tag,
   Alert,
   Row,
   Col,
@@ -52,11 +52,11 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
       form.setFieldsValue({
         label: editData?.field_name,
         fieldType: editData?.field_type,
-        required: editData?.field_required === 1,
+        required: editData?.field_required === true,
         fixed: editData?.fixed === 1,
       });
       setFieldType(editData?.field_type);
-      
+
       if (editData?.field_options) {
         try {
           const parsedOptions = JSON.parse(editData.field_options);
@@ -126,8 +126,8 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
         payload.id = editData.id;
       }
 
-      const apiUrl = editState 
-        ? `${api}field-update/${editData.id}` 
+      const apiUrl = editState
+        ? `${api}field-update/${editData.id}`
         : `${api}field-store`;
 
       await axios.post(apiUrl, payload, {
@@ -169,7 +169,7 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
             <Input placeholder="Your field preview" />
           </Form.Item>
         );
-      
+
       case 'select':
         return (
           <Form.Item label="Field Preview">
@@ -180,12 +180,12 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
             </Select>
           </Form.Item>
         );
-      
+
       case 'multiselect':
         return (
           <Form.Item label="Field Preview">
-            <Select 
-              mode="multiple" 
+            <Select
+              mode="multiple"
               placeholder="Select multiple options"
             >
               {options.map((opt, i) => (
@@ -194,35 +194,35 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
             </Select>
           </Form.Item>
         );
-      
+
       case 'textarea':
         return (
           <Form.Item label="Field Preview">
             <TextArea rows={4} placeholder="Your field preview" />
           </Form.Item>
         );
-      
+
       case 'number':
         return (
           <Form.Item label="Field Preview">
             <Input type="number" placeholder="Enter a number" />
           </Form.Item>
         );
-      
+
       case 'date':
         return (
           <Form.Item label="Field Preview">
             <Input type="date" />
           </Form.Item>
         );
-      
+
       case 'switch':
         return (
           <Form.Item label="Field Preview">
             <Switch />
           </Form.Item>
         );
-      
+
       case 'checkbox':
       case 'radio':
         return (
@@ -234,7 +234,7 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
             </Space>
           </Form.Item>
         );
-      
+
       default:
         return null;
     }

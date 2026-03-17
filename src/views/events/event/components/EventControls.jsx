@@ -680,7 +680,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                       // Clear checkpoints if multi-scan is disabled
                       if (!checked) {
                         form.setFieldsValue({
-                          scan_mode: false,
+                          checkpoint_mode: false,
                           checkpoints: [],
                         });
                       }
@@ -698,7 +698,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                     <>
                       <Col xs={24} sm={12} lg={6}>
                         <Form.Item
-                          name="scan_mode"
+                          name="checkpoint_mode"
                           label="Checkpoint Mode"
                           tooltip="Enable sequential checkpoint validation with time slots"
                           valuePropName="checked"
@@ -724,10 +724,10 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                         </Form.Item>
                       </Col>
 
-                      {/* Scan Count - only show when multi_scan is ON but scan_mode is OFF */}
-                      <Form.Item noStyle shouldUpdate={(prev, curr) => prev.scan_mode !== curr.scan_mode}>
+                      {/* Scan Count - only show when multi_scan is ON but checkpoint_mode is OFF */}
+                      <Form.Item noStyle shouldUpdate={(prev, curr) => prev.checkpoint_mode !== curr.checkpoint_mode}>
                         {({ getFieldValue: gfv }) => {
-                          const isSequential = toBoolean(gfv('scan_mode'));
+                          const isSequential = toBoolean(gfv('checkpoint_mode'));
 
                           return !isSequential ? (
                             <Col xs={24} sm={12} lg={6}>
@@ -752,10 +752,10 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
                         }}
                       </Form.Item>
 
-                      {/* Checkpoint Count - only show when scan_mode is ON */}
-                      {/* <Form.Item noStyle shouldUpdate={(prev, curr) => prev.scan_mode !== curr.scan_mode || prev.checkpoints !== curr.checkpoints}>
+                      {/* Checkpoint Count - only show when checkpoint_mode is ON */}
+                      {/* <Form.Item noStyle shouldUpdate={(prev, curr) => prev.checkpoint_mode !== curr.checkpoint_mode || prev.checkpoints !== curr.checkpoints}>
                         {({ getFieldValue: gfv }) => {
-                          const isSequential = toBoolean(gfv('scan_mode'));
+                          const isSequential = toBoolean(gfv('checkpoint_mode'));
                           const checkpoints = gfv('checkpoints') || [];
 
                           return isSequential ? (
@@ -777,17 +777,17 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               </Form.Item>
             </Row>
 
-            {/* Checkpoint List - only show when both multi_scan AND scan_mode are ON */}
+            {/* Checkpoint List - only show when both multi_scan AND checkpoint_mode are ON */}
             {/* </Card> */}
 
           </Card>
           <Form.Item noStyle shouldUpdate={(prev, curr) =>
             prev.multi_scan !== curr.multi_scan ||
-            prev.scan_mode !== curr.scan_mode
+            prev.checkpoint_mode !== curr.checkpoint_mode
           }>
             {({ getFieldValue }) => {
               const isMultiScanEnabled = toBoolean(getFieldValue('multi_scan'));
-              const isSequential = toBoolean(getFieldValue('scan_mode'));
+              const isSequential = toBoolean(getFieldValue('checkpoint_mode'));
 
               return isMultiScanEnabled && isSequential ? (
                 <MultiScanCheckpoints form={form} />

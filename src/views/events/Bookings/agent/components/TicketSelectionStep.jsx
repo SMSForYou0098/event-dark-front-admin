@@ -11,7 +11,8 @@ const TicketSelectionStep = ({
   selectedTickets,
   setSelectedTickets,
   getCurrencySymbol,
-  onNext
+  onNext,
+  allowMultiple = false
 }) => {
   const { formatDateRange } = useMyContext();
   return (
@@ -30,9 +31,10 @@ const TicketSelectionStep = ({
       <BookingTickets
         event={event}
         selectedTickets={selectedTickets}
-        setSelectedTickets={setSelectedTickets} y
+        setSelectedTickets={setSelectedTickets}
         getCurrencySymbol={getCurrencySymbol}
         type={'agent'}
+        allowMultiple={allowMultiple}
       />
     </Card>
   );

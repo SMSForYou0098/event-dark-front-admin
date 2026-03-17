@@ -12,8 +12,6 @@ import {
   PrinterOutlined,
   ExclamationCircleOutlined,
   PlusOutlined,
-  ClockCircleOutlined,
-  CheckOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -33,7 +31,7 @@ const { Text } = Typography;
 
 const PosBooking = memo(() => {
   const navigate = useNavigate();
-  const { api, UserData, formatDateTime, authToken, UserPermissions, userRole } = useMyContext();
+  const { api, UserData, formatDateTime, authToken } = useMyContext();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState(null);
   const [showPrintModel, setShowPrintModel] = useState(false);
@@ -87,7 +85,8 @@ const PosBooking = memo(() => {
         params.set("date", formattedDateRange);
       }
 
-      const url = `${api}bookings/pos/${UserData?.id}?${params.toString()}`;
+      // const url = `${api}bookings/pos/${UserData?.id}?${params.toString()}`;
+      const url = `${api}pos-bookings?${params.toString()}`;
 
       try {
         const response = await axios.get(url, {
@@ -318,10 +317,10 @@ const PosBooking = memo(() => {
     const baseColumns = [
       {
         title: 'Event',
-        dataIndex: ['ticket', 'event', 'name'],
+        dataIndex: ['event', 'name'],
         align: 'center',
         key: 'event',
-        sorter: (a, b) => a.ticket?.event?.name?.localeCompare(b.ticket?.event?.name),
+        sorter: (a, b) => a.event?.name?.localeCompare(b.event?.name),
       },
       {
         title: 'User',
@@ -378,25 +377,25 @@ const PosBooking = memo(() => {
         ),
         sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
       },
-      {
-        title: 'Status',
-        dataIndex: 'status',
-        key: 'status',
-        align: 'center',
-        width: 80,
-        render: (status) => (
-          <Tag color={status === "0" ? "warning" : "success"}>
-            {status === "0" ? <ClockCircleOutlined className="m-0" /> : <CheckOutlined className="m-0" />}
-          </Tag>
-          //   {status === "0" ? "Unchecked" : "Checked"}
-          // </Tag>
-        ),
-        filters: [
-          { text: 'Unchecked', value: '0' },
-          { text: 'Checked', value: '1' },
-        ],
-        onFilter: (value, record) => record.status === value,
-      },
+      // {
+      //   title: 'Status',
+      //   dataIndex: 'status',
+      //   key: 'status',
+      //   align: 'center',
+      //   width: 80,
+      //   render: (status) => (
+      //     <Tag color={status === "0" ? "warning" : "success"}>
+      //       {status === "0" ? <ClockCircleOutlined className="m-0" /> : <CheckOutlined className="m-0" />}
+      //     </Tag>
+      //     //   {status === "0" ? "Unchecked" : "Checked"}
+      //     // </Tag>
+      //   ),
+      //   filters: [
+      //     { text: 'Unchecked', value: '0' },
+      //     { text: 'Checked', value: '1' },
+      //   ],
+      //   onFilter: (value, record) => record.status === value,
+      // },
 
       {
         title: 'Customer',
@@ -415,10 +414,9 @@ const PosBooking = memo(() => {
       },
       {
         title: 'Organizer',
-        dataIndex: 'reporting_user_name',
+        dataIndex: ['event', 'user', 'organisation'],
         key: 'organizer',
         align: 'center',
-        sorter: (a, b) => a.reporting_user_name?.localeCompare(b.reporting_user_name),
       },
 
       {
@@ -477,7 +475,7 @@ const PosBooking = memo(() => {
         key: 'contact',
         width: 120,
         align: 'center',
-        fixed: 'right',
+        // fixed: 'right',
       });
     }
 

@@ -89,11 +89,14 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         // Add these new fields
         convenienceFeeType: 'percentage',
         convenienceFee: '',
+        organisationCommissionType: 'percentage',
+        organisationCommission: '',
     });
 
     // UI state
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [convenienceFeeType, setConvenienceFeeType] = useState('percentage');
+    const [organisationCommissionType, setOrganisationCommissionType] = useState('percentage');
 
     // OTP verification state (for own profile edit)
     const [otpModalVisible, setOtpModalVisible] = useState(false);
@@ -421,6 +424,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 setConvenienceFeeType(formData.convenienceFeeType);
             }
 
+            // Set organisation commission type state
+            if (formData.organisationCommissionType) {
+                setOrganisationCommissionType(formData.organisationCommissionType);
+            }
+
             // Store original email and phone for OTP verification check
             originalEmail.current = formData.email || fetchedData.data.email;
             originalNumber.current = formData.number || fetchedData.data.number;
@@ -690,6 +698,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             roleName: values.roleName ?? formState.roleName,
             convenienceFeeType: values.convenienceFeeType ?? formState.convenienceFeeType,
             convenienceFee: values.convenienceFee ?? formState.convenienceFee,
+            organisationCommissionType: values.organisationCommissionType ?? formState.organisationCommissionType,
+            organisationCommission: values.organisationCommission ?? formState.organisationCommission,
             reportingUser: reportingUserId,
             userTickets,
         };
@@ -1142,59 +1152,113 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                             <Input placeholder="PAN Number" />
                                         </Form.Item>
                                     </Col>
+
                                     {
                                         userRole === 'Admin' && formState.roleName === 'Organizer' && (
 
-                                            <Col xs={24} md={12}>
-                                                <Form.Item label="Convenience Fee" required={false}>
-                                                    <Space.Compact className='w-100 mb-2'>
-                                                        <Form.Item name="convenienceFeeType" noStyle>
-                                                            <Select
-                                                                style={{ width: 180 }}
-                                                                aria-label="Select fee type"
-                                                                onChange={(val) => setConvenienceFeeType(val)}
-                                                            >
-                                                                <Select.Option value="fixed">Fixed</Select.Option>
-                                                                <Select.Option value="percentage">Percentage</Select.Option>
-                                                            </Select>
-                                                        </Form.Item>
-                                                        <Form.Item
-                                                            name="convenienceFee"
-                                                            noStyle
-                                                            dependencies={["convenienceFeeType"]}
-                                                            rules={[
-                                                                ({ getFieldValue }) => ({
-                                                                    validator(_, value) {
-                                                                        if (value === undefined || value === null || value === '') {
+                                            <>
+                                                <Col xs={24} md={12}>
+                                                    <Form.Item label="Convenience Fee" required={false}>
+                                                        <Space.Compact className='w-100 mb-2'>
+                                                            <Form.Item name="convenienceFeeType" noStyle>
+                                                                <Select
+                                                                    style={{ width: 180 }}
+                                                                    aria-label="Select fee type"
+                                                                    onChange={(val) => setConvenienceFeeType(val)}
+                                                                >
+                                                                    <Select.Option value="fixed">Fixed</Select.Option>
+                                                                    <Select.Option value="percentage">Percentage</Select.Option>
+                                                                </Select>
+                                                            </Form.Item>
+                                                            <Form.Item
+                                                                name="convenienceFee"
+                                                                noStyle
+                                                                dependencies={["convenienceFeeType"]}
+                                                                rules={[
+                                                                    ({ getFieldValue }) => ({
+                                                                        validator(_, value) {
+                                                                            if (value === undefined || value === null || value === '') {
+                                                                                return Promise.resolve();
+                                                                            }
+                                                                            const num = Number(value);
+                                                                            if (Number.isNaN(num)) {
+                                                                                return Promise.reject(new Error('Enter a valid number'));
+                                                                            }
+                                                                            if (num < 0) {
+                                                                                return Promise.reject(new Error('Value cannot be negative'));
+                                                                            }
+                                                                            const type = getFieldValue('convenienceFeeType') || convenienceFeeType;
+                                                                            if (type === 'percentage' && num > 100) {
+                                                                                return Promise.reject(new Error('Percentage cannot exceed 100'));
+                                                                            }
                                                                             return Promise.resolve();
                                                                         }
-                                                                        const num = Number(value);
-                                                                        if (Number.isNaN(num)) {
-                                                                            return Promise.reject(new Error('Enter a valid number'));
+                                                                    })
+                                                                ]}
+                                                            >
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    step="0.01"
+                                                                    placeholder={convenienceFeeType === 'percentage' ? '0 - 100' : 'Amount'}
+                                                                    aria-label="Convenience fee value"
+                                                                />
+                                                            </Form.Item>
+                                                        </Space.Compact>
+                                                    </Form.Item>
+                                                </Col>
+
+                                                <Col xs={24} md={12}>
+                                                    <Form.Item label="Organisation Commission" required={false}>
+                                                        <Space.Compact className='w-100 mb-2'>
+                                                            <Form.Item name="organisationCommissionType" noStyle>
+                                                                <Select
+                                                                    style={{ width: 180 }}
+                                                                    aria-label="Select commission type"
+                                                                    onChange={(val) => setOrganisationCommissionType(val)}
+                                                                >
+                                                                    <Select.Option value="fixed">Fixed</Select.Option>
+                                                                    <Select.Option value="percentage">Percentage</Select.Option>
+                                                                </Select>
+                                                            </Form.Item>
+                                                            <Form.Item
+                                                                name="organisationCommission"
+                                                                noStyle
+                                                                dependencies={["organisationCommissionType"]}
+                                                                rules={[
+                                                                    ({ getFieldValue }) => ({
+                                                                        validator(_, value) {
+                                                                            if (value === undefined || value === null || value === '') {
+                                                                                return Promise.resolve();
+                                                                            }
+                                                                            const num = Number(value);
+                                                                            if (Number.isNaN(num)) {
+                                                                                return Promise.reject(new Error('Enter a valid number'));
+                                                                            }
+                                                                            if (num < 0) {
+                                                                                return Promise.reject(new Error('Value cannot be negative'));
+                                                                            }
+                                                                            const type = getFieldValue('organisationCommissionType') || organisationCommissionType;
+                                                                            if (type === 'percentage' && num > 100) {
+                                                                                return Promise.reject(new Error('Percentage cannot exceed 100'));
+                                                                            }
+                                                                            return Promise.resolve();
                                                                         }
-                                                                        if (num < 0) {
-                                                                            return Promise.reject(new Error('Value cannot be negative'));
-                                                                        }
-                                                                        const type = getFieldValue('convenienceFeeType') || convenienceFeeType;
-                                                                        if (type === 'percentage' && num > 100) {
-                                                                            return Promise.reject(new Error('Percentage cannot exceed 100'));
-                                                                        }
-                                                                        return Promise.resolve();
-                                                                    }
-                                                                })
-                                                            ]}
-                                                        >
-                                                            <Input
-                                                                type="number"
-                                                                min={0}
-                                                                step="0.01"
-                                                                placeholder={convenienceFeeType === 'percentage' ? '0 - 100' : 'Amount'}
-                                                                aria-label="Convenience fee value"
-                                                            />
-                                                        </Form.Item>
-                                                    </Space.Compact>
-                                                </Form.Item>
-                                            </Col>
+                                                                    })
+                                                                ]}
+                                                            >
+                                                                <Input
+                                                                    type="number"
+                                                                    min={0}
+                                                                    step="0.01"
+                                                                    placeholder={organisationCommissionType === 'percentage' ? '0 - 100' : 'Amount'}
+                                                                    aria-label="Organisation commission value"
+                                                                />
+                                                            </Form.Item>
+                                                        </Space.Compact>
+                                                    </Form.Item>
+                                                </Col>
+                                            </>
                                         )
                                     }
                                 </>

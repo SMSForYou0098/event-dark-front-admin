@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   Modal,
+  Drawer,
   Form,
   Input,
   Select,
@@ -47,7 +48,7 @@ const AttendeesField = ({
   const [isSaving, setIsSaving] = useState(false); // ✅ NEW: Loading state
 
   // ✅ Import mutation hook
-  const { UserData } = useMyContext();
+  const { UserData, isMobile } = useMyContext();
   const storeAttendeesMutation = useStoreAttendees();
 
   // Reset state when modal opens/closes
@@ -172,7 +173,7 @@ const AttendeesField = ({
 
   const renderField = useCallback((field) => {
     const { field_name, lable, field_type, field_options = null, field_required } = field;
-    const required = field_required === 1;
+    const required = field_required === true;
 
     // Base rules for all fields
     const baseRules = required && field_type !== 'file'
@@ -580,23 +581,23 @@ const AttendeesField = ({
   }, [apiData]);
 
 
-  return (
-    <Modal
-      title={
-        <span>
-          {editingIndex !== null ? "Edit Attendee Details" : "Add Attendee Details"}
-          <Text type="secondary" style={{ fontSize: '14px', marginLeft: 8 }}>
-            * Required fields
-          </Text>
-        </span>
-      }
-      open={showModal}
-      onCancel={handleCloseModal}
-      width={1200}
-      footer={[
+  const commonProps = {
+    title: (
+      <span>
+        {editingIndex !== null ? "Edit Attendee Details" : "Add Attendee Details"}
+        <Text type="secondary" style={{ fontSize: '14px', marginLeft: 8 }}>
+          * Required fields
+        </Text>
+      </span>
+    ),
+    open: showModal,
+    destroyOnClose: true,
+    maskClosable: false,
+    footer: (
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
         <Button key="cancel" onClick={handleCloseModal} disabled={isSaving}>
           Cancel
-        </Button>,
+        </Button>
         <Button
           key="submit"
           type="primary"
@@ -604,31 +605,55 @@ const AttendeesField = ({
           loading={isSaving || Object.values(uploadingFiles).some(uploading => uploading)}
         >
           {editingIndex !== null ? 'Update Attendee' : 'Save Attendee'}
-        </Button>,
-      ]}
-      maskClosable={false}
-      destroyOnClose
+        </Button>
+      </div>
+    )
+  };
+
+  const formContent = (
+    <Form
+      form={form}
+      layout="vertical"
+      scrollToFirstError
+      requiredMark="optional"
     >
-      <Form
-        form={form}
-        layout="vertical"
-        scrollToFirstError
-        requiredMark="optional"
+      <Row gutter={[16, 0]}>
+        {sortedApiData.map((field, fieldIndex) => (
+          <Col
+            xs={24}
+            sm={field.field_type === 'textarea' ? 24 : 12}
+            md={field.field_type === 'textarea' ? 24 : 12}
+            lg={field.field_type === 'textarea' ? 24 : 12}
+            key={field.id || fieldIndex}
+          >
+            {renderField(field)}
+          </Col>
+        ))}
+      </Row>
+    </Form>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer
+        {...commonProps}
+        onClose={handleCloseModal}
+        placement="bottom"
+        height="90vh"
+        contentWrapperStyle={{ borderRadius: '20px 20px 0 0', overflow: 'hidden' }}
       >
-        <Row gutter={[16, 0]}>
-          {sortedApiData.map((field, fieldIndex) => (
-            <Col
-              xs={24}
-              sm={field.field_type === 'textarea' ? 24 : 12}
-              md={field.field_type === 'textarea' ? 24 : 12}
-              lg={field.field_type === 'textarea' ? 24 : 12}
-              key={field.id || fieldIndex}
-            >
-              {renderField(field)}
-            </Col>
-          ))}
-        </Row>
-      </Form>
+        {formContent}
+      </Drawer>
+    );
+  }
+
+  return (
+    <Modal
+      {...commonProps}
+      onCancel={handleCloseModal}
+      width={1000}
+    >
+      {formContent}
     </Modal>
   );
 };

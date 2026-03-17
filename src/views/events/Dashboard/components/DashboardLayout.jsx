@@ -13,6 +13,7 @@ import { PERMISSIONS } from 'constants/PermissionConstant';
 import usePermission from 'utils/hooks/usePermission';
 import Utils from 'utils';
 import AgentDetailedReport from 'views/events/Reports/AgentDetailedReport';
+import PermissionChecker from 'layouts/PermissionChecker';
 
 const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
     const { isMobile } = useMyContext();
@@ -177,15 +178,17 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 )}
 
                 {/* Gateway Wise Sales Section */}
-                <Col xs={24}>
-                    <GatewayWiseSales
-                        gatewayData={gatewayWiseSalesData?.gatewayWise ?? []}
-                        channelData={gatewayWiseSalesData?.channelTotals ?? []}
-                        formatCurrency={formatCurrency}
-                        showToday={showToday}
-                        loading={gatewayLoading}
-                    />
-                </Col>
+                <PermissionChecker role='Admin'>
+                    <Col xs={24}>
+                        <GatewayWiseSales
+                            gatewayData={gatewayWiseSalesData?.gatewayWise ?? []}
+                            channelData={gatewayWiseSalesData?.channelTotals ?? []}
+                            formatCurrency={formatCurrency}
+                            showToday={showToday}
+                            loading={gatewayLoading}
+                        />
+                    </Col>
+                </PermissionChecker>
             </Row>
 
             <Divider />
@@ -215,15 +218,17 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
 
             {/* Convenience Fee & Discounts */}
             <Row gutter={[16, 16]}>
-                <Col xs={24} lg={12}>
-                    <ChartWidget
-                        type='area'
-                        title="Weekly Convenience Fee"
-                        series={concvStatsData?.series}
-                        xAxis={concvStatsData.categories}
-                        height={'300px'}
-                    />
-                </Col>
+                <PermissionChecker role='Admin'>
+                    <Col xs={24} lg={12}>
+                        <ChartWidget
+                            type='area'
+                            title="Weekly Convenience Fee"
+                            series={concvStatsData?.series}
+                            xAxis={concvStatsData.categories}
+                            height={'300px'}
+                        />
+                    </Col>
+                </PermissionChecker>
                 <Col xs={24} lg={12}>
                     <Row gutter={[16, 16]}>
                         <Col xs={24} lg={12}>
@@ -244,7 +249,7 @@ const DashboardLayout = ({ userId, showUserManagement = true, userRole }) => {
                 </Col>
 
             </Row>
-            {/* <AgentDetailedReport /> */}
+            <AgentDetailedReport />
         </div>
     );
 };

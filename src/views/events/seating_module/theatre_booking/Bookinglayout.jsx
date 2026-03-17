@@ -8,7 +8,7 @@ import useBooking from './components/Usebooking';
 import BookingSeatCanvas from './components/Bookingseatcanvas';
 import { useMyContext } from 'Context/MyContextProvider';
 const BookingLayout = forwardRef((props, ref) => {
-    const { layoutId, eventId, setSelectedTkts } = props;
+    const { layoutId, eventId, setSelectedTkts, allowMultiple = false } = props;
     const stageRef = useRef(null);
     const { UserData } = useMyContext();
 
@@ -24,7 +24,8 @@ const BookingLayout = forwardRef((props, ref) => {
     } = useBooking({
         maxSeats: 10,
         holdDuration: 600, // 10 minutes
-        autoHoldTimeout: true
+        autoHoldTimeout: true,
+        allowMultiple: allowMultiple
     });
 
     // Expose methods to parent via ref

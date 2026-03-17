@@ -31,7 +31,7 @@ import SeatingModuleSummary from './components/SeatingModuleSummary';
 import EventSeatsListener from '../components/EventSeatsListener';
 import Utils from 'utils';
 
-const NewAgentBooking = memo(({ type }) => {
+const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
   const {
     UserData,
     isMobile,
@@ -46,6 +46,24 @@ const NewAgentBooking = memo(({ type }) => {
   const [categoryId, setCategoryId] = useState(null);
   const [event, setEvent] = useState([]);
   const [selectedTickets, setSelectedTickets] = useState([]);
+
+  // Wrapper to enforce single ticket type selection for agents
+  const handleSetSelectedTickets = useCallback((val) => {
+    setSelectedTickets(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      if (!allowMultiple && Array.isArray(next) && next.length > 1) {
+        // Find which ticket was just changed or added
+        const latest = next.find(t => {
+          const pt = prev.find(p => p.id === t.id);
+          return !pt || pt.quantity !== t.quantity;
+        });
+        // Keep only the latest changed ticket
+        return latest ? [latest] : [next[next.length - 1]];
+      }
+      return next;
+    });
+  }, [allowMultiple]);
+
   const [discount, setDiscount] = useState(0);
   const [ticketCurrency, setTicketCurrency] = useState('₹');
 
@@ -557,10 +575,9 @@ const NewAgentBooking = memo(({ type }) => {
   const isLoading =
     corporateBookingMutation.isPending ||
     agentBookingMutation.isPending ||
-    // masterBookingMutation.isPending ||
     createUserMutation.isPending ||
-    createUserMutation.isPending ||
-    updateUserMutation.isPending;
+    updateUserMutation.isPending ||
+    isSubmitting;
 
 
   const attendeeStepRef = useRef(null);
@@ -747,9 +764,10 @@ const NewAgentBooking = memo(({ type }) => {
                     <BookingLayout
                       ref={bookingLayoutRef}
                       eventId={event?.id}
-                      setSelectedTkts={setSelectedTickets}
+                      setSelectedTkts={handleSetSelectedTickets}
                       layoutId={event?.layout_id}
                       onNext={goToNextStep}
+                      allowMultiple={allowMultiple}
                     />
                   </Col>
                 ) : event?.event_controls?.use_preprinted_cards ? (
@@ -760,7 +778,7 @@ const NewAgentBooking = memo(({ type }) => {
                           event={event}
                           tickets={tickets}
                           selectedTickets={selectedTickets}
-                          setSelectedTickets={setSelectedTickets}
+                          setSelectedTickets={handleSetSelectedTickets}
                           onTokenSelect={setSelectedCardToken}
                           onNext={goToNextStep}
                           usedTokens={usedTokens}
@@ -773,10 +791,11 @@ const NewAgentBooking = memo(({ type }) => {
                     <TicketSelectionStep
                       event={event}
                       selectedTickets={selectedTickets}
-                      setSelectedTickets={setSelectedTickets}
+                      setSelectedTickets={handleSetSelectedTickets}
                       getCurrencySymbol={getCurrencySymbol}
                       formatDateRange={formatDateRange}
                       onNext={goToNextStep}
+                      allowMultiple={allowMultiple}
                     />
                   </Col>
                 )}

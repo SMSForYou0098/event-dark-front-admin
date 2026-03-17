@@ -387,172 +387,13 @@ const EventList = ({ isJunk = false }) => {
           ? (a, b) => new Date(a.deleted_at) - new Date(b.deleted_at)
           : (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
-      {
-        title: 'Action',
-        key: 'action',
-        align: 'center',
-        fixed: 'right',
-        render: (_, row) => {
-          if (isJunk) {
-            // Only restore action in Action column for junk
-            return (
-              <Tooltip title="Restore Event">
-                <Button
-                  type="default"
-                  icon={<UndoOutlined />}
-                  onClick={() => handleRestoreEvent(row)}
-                  loading={restoreMutation.isPending}
-                />
-              </Tooltip>
-            );
-          }
-          const actions = [
-            {
-              tooltip: 'View Event',
-              isButton: true,
-              onClick: () => handleViewEvent(row),
-              type: 'primary',
-              icon: <EyeOutlined />,
-              external: true,
-              permission: null,
-            },
-            {
-              tooltip: 'Manage Tickets',
-              to: `ticket/${row?.event_key}/${createSlug(row?.name)}`,
-              type: 'default',
-              icon: <Ticket size={16} />,
-              permission: hasTicketPermission,
-            },
-            {
-              tooltip: 'Edit Event',
-              to: `update/${row?.event_key}`,
-              type: 'default',
-              icon: <EditOutlined />,
-              permission: hasEditPermission,
-            },
-            // Delete moved to separate column
-          ];
 
-          const filteredActions = actions.filter(
-            (action) => action.permission === null || action.permission === true
-          );
-
-          const renderAction = (action, index) => {
-            const content = action.isButton ? (
-              <Button
-                type={action.type}
-                danger={action.danger}
-                icon={action.icon}
-                onClick={action.onClick}
-                loading={deleteMutation.isPending && action.danger}
-              />
-            ) : (
-              <Link to={action.to} target={action.external ? '_blank' : '_self'}>
-                <Button type={action.type} icon={action.icon} />
-              </Link>
-            );
-
-            return (
-              <Tooltip key={index} title={action.tooltip}>
-                {content}
-              </Tooltip>
-            );
-          };
-
-          const visibleActions = filteredActions.slice(0, 4);
-          const moreActions = filteredActions.slice(4);
-
-          return (
-            <>
-              {/* Mobile: All actions in dropdown */}
-              <Dropdown
-                menu={{
-                  items: filteredActions.map((action, index) => {
-                    if (action.isButton) {
-                      return {
-                        key: index,
-                        label: action.tooltip,
-                        icon: action.icon,
-                        danger: action.danger,
-                        onClick: action.onClick,
-                      };
-                    } else {
-                      return {
-                        key: index,
-                        label: (
-                          <Link
-                            to={action.to}
-                            target={action.external ? '_blank' : '_self'}
-                            className="text-decoration-none"
-                          >
-                            {action.tooltip}
-                          </Link>
-                        ),
-                        icon: action.icon,
-                      };
-                    }
-                  }),
-                }}
-                trigger={['click']}
-                placement="bottomRight"
-                className="d-block d-md-none"
-              >
-                <Button type="default" icon={<MoreOutlined />} />
-              </Dropdown>
-
-              {/* Desktop: First 4 actions inline + More dropdown */}
-              <Space size="small" className="d-none d-md-flex">
-                {visibleActions.map((action, index) => renderAction(action, index))}
-
-                {moreActions.length > 0 && (
-                  <Dropdown
-                    menu={{
-                      items: moreActions.map((action, index) => {
-                        if (action.isButton) {
-                          return {
-                            key: index,
-                            label: action.tooltip,
-                            icon: action.icon,
-                            danger: action.danger,
-                            onClick: action.onClick,
-                          };
-                        } else {
-                          return {
-                            key: index,
-                            label: (
-                              <Link
-                                to={action.to}
-                                target={action.external ? '_blank' : '_self'}
-                                className="text-decoration-none"
-                              >
-                                {action.tooltip}
-                              </Link>
-                            ),
-                            icon: action.icon,
-                          };
-                        }
-                      }),
-                    }}
-                    trigger={['click']}
-                    placement="bottomRight"
-                  >
-                    <Tooltip title="More Actions">
-                      <Button type="default" icon={<MoreOutlined />} />
-                    </Tooltip>
-                  </Dropdown>
-                )}
-              </Space>
-            </>
-          );
-        },
-      },
       // Separate Delete column for junk events
       ...(isJunk ? [{
         title: 'Delete',
         key: 'delete',
         align: 'center',
         width: 80,
-        fixed: 'right',
         render: (_, row) => (
           <PermissionChecker permission="Delete Event Permanently">
             <Tooltip title="Delete Permanently">
@@ -571,7 +412,6 @@ const EventList = ({ isJunk = false }) => {
         key: 'delete',
         align: 'center',
         width: 80,
-        fixed: 'right',
         render: (_, row) => (
           <PermissionChecker permission="Delete Event">
             <Tooltip title="Delete Event">
@@ -586,6 +426,85 @@ const EventList = ({ isJunk = false }) => {
           </PermissionChecker>
         ),
       }]),
+      {
+        title: 'Action',
+        key: 'action',
+        align: 'center',
+        fixed: 'right',
+        width: 130,
+        render: (_, row) => {
+          if (isJunk) {
+            // Only restore action in Action column for junk
+            return (
+              <Tooltip title="Restore Event">
+                <Button
+                  type="default"
+                  icon={<UndoOutlined />}
+                  onClick={() => handleRestoreEvent(row)}
+                  loading={restoreMutation.isPending}
+                />
+              </Tooltip>
+            );
+          }
+
+          const actions = [
+            {
+              tooltip: 'View Event',
+              isButton: true,
+              onClick: () => handleViewEvent(row),
+              type: 'primary',
+              icon: <EyeOutlined />,
+              external: true,
+              permission: !isMobile,
+            },
+            {
+              tooltip: 'Manage Tickets',
+              to: `ticket/${row?.event_key}/${createSlug(row?.name)}`,
+              type: 'default',
+              icon: <Ticket size={16} />,
+              permission: hasTicketPermission,
+            },
+            {
+              tooltip: 'Edit Event',
+              to: `update/${row?.event_key}`,
+              type: 'default',
+              icon: <EditOutlined />,
+              permission: hasEditPermission,
+            },
+          ];
+
+          const filteredActions = actions.filter(
+            (action) => action.permission === null || action.permission === true
+          );
+
+          return (
+            <Space size="small">
+              {filteredActions.map((action, index) => {
+                const content = action.isButton ? (
+                  <Button
+                    type={action.type}
+                    danger={action.danger}
+                    icon={action.icon}
+                    onClick={action.onClick}
+                    loading={deleteMutation.isPending && action.danger}
+                    size="small"
+                  />
+                ) : (
+                  <Link to={action.to} target={action.external ? '_blank' : '_self'}>
+                    <Button type={action.type} icon={action.icon} size="small" />
+                  </Link>
+                );
+
+                return (
+                  <Tooltip key={index} title={action.tooltip}>
+                    {content}
+                  </Tooltip>
+                );
+              })}
+            </Space>
+          );
+        },
+      },
     ],
     [
       formatDateRange,

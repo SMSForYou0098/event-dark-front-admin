@@ -40,11 +40,16 @@ export const ExpandDataTable = ({
   onSearch,
   onSortChange,
   searchValue = "",
+  // Expansion props
+  onExpand: externalOnExpand,
+  expandedRowKeys: externalExpandedRowKeys,
   // Custom stats component props
   statsComponent: StatsComponent = null,
   showReportSwitch = true,
 }) => {
-  const [expandedRowKeys, setExpandedRowKeys] = useState([]);
+  const [internalExpandedRowKeys, setInternalExpandedRowKeys] = useState([]);
+  const expandedRowKeys = externalExpandedRowKeys || internalExpandedRowKeys;
+
   const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const [filteredData, setFilteredData] = useState(data);
@@ -96,11 +101,40 @@ export const ExpandDataTable = ({
     };
   }, [debouncedServerSearch]);
 
+  const handleExpand = useCallback((expanded, record) => {
+    if (externalOnExpand) {
+      externalOnExpand(expanded, record);
+      return;
+    }
+
+    const key = (record.is_set === true && record.set_id) ? record.set_id : record.id;
+    setInternalExpandedRowKeys((prevKeys) =>
+      expanded ? [...prevKeys, key] : prevKeys.filter((k) => k !== key)
+    );
+  }, [externalOnExpand]);
+
   // Expandable row render
   const expandedRowRender = useCallback((record) => {
+    if (record.loading) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <Spin tip="Loading details..." />
+        </div>
+      );
+    }
 
-    if (!record.bookings || !Array.isArray(record.bookings) || record.bookings.length === 0 || record.is_set === false) {
+    // Only return null if the row is explicitly marked as not expandable
+    if (record.is_set === false) {
       return null;
+    }
+
+    // Show message if no bookings (daily reports) found
+    if (!record.bookings || !Array.isArray(record.bookings) || record.bookings.length === 0) {
+      return (
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          <span className="text-muted">No reports found for this period.</span>
+        </div>
+      );
     }
 
     return (
@@ -109,7 +143,7 @@ export const ExpandDataTable = ({
           columns={innerColumns}
           dataSource={record.bookings}
           pagination={false}
-          rowKey={(booking) => booking.id}
+          rowKey={(booking) => booking.id || booking.date || Math.random()}
           size="small"
           bordered
           showHeader={true}
@@ -118,13 +152,6 @@ export const ExpandDataTable = ({
       </div>
     );
   }, [innerColumns]);
-
-  const handleExpand = useCallback((expanded, record) => {
-    const key = record.is_set === true ? record.set_id : record.id;
-    setExpandedRowKeys((prevKeys) =>
-      expanded ? [...prevKeys, key] : prevKeys.filter((k) => k !== key)
-    );
-  }, []);
 
   // Global search handler - supports both client and server side
   const handleGlobalSearch = (value) => {
@@ -488,6 +515,7 @@ export const ExpandDataTable = ({
                 rowExpandable: (record) => record.is_set === true,
                 expandedRowKeys,
                 onExpand: handleExpand,
+                ...(tableProps?.expandable || {})
               }}
               pagination={
                 serverSide && pagination

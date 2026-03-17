@@ -200,7 +200,7 @@ export const MyContextProvider = ({ children }) => {
     }
   };
 
-  const formatDateTime = (dateTime) => {
+  const formatDateTime = (dateTime, showSeconds = false) => {
     const date = new Date(dateTime);
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -211,7 +211,9 @@ export const MyContextProvider = ({ children }) => {
     const ampm = hours >= 12 ? 'PM' : 'AM';
     hours = hours % 12;
     hours = hours ? hours : 12; // the hour '0' should be '12'
-    const strTime = `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`;
+    const strTime = showSeconds
+      ? `${String(hours).padStart(2, '0')}:${minutes}:${seconds} ${ampm}`
+      : `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
 
     return `${day}-${month}-${year} | ${strTime}`;
   };

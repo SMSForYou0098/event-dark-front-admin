@@ -315,7 +315,7 @@ const AttendeeFields = () => {
               rowKey="id"
               columns={columns}
               dataSource={sortedFields}
-              loading={isLoading && !isFetching} // Only show loading on initial load
+              loading={isLoading || isFetching}
               pagination={false}
               locale={{
                 emptyText: 'No fields found',

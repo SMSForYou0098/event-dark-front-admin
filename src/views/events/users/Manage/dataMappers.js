@@ -71,6 +71,8 @@ export const mapApiToForm = (apiData) => {
         brandName: user.brandName || '',
         convenienceFeeType: user.convenience_fee_type || 'percentage',
         convenienceFee: user.convenience_fee || '',
+        organisationCommissionType: user.organisation_commission_type || 'percentage',
+        organisationCommission: user.organisation_commission || '',
 
         // Email verification
         email_verified_at: user.email_verified_at || null,
@@ -149,6 +151,8 @@ export const mapFormToApi = (formData) => {
         brandName: formData.brandName,
         convenience_fee_type: formData.convenienceFeeType,
         convenience_fee: formData.convenienceFee ? Number(formData.convenienceFee) : null,
+        organisation_commission_type: formData.organisationCommissionType,
+        organisation_commission: formData.organisationCommission ? Number(formData.organisationCommission) : null,
 
         // Email verification (only for Admin creating Organizer)
         verification_required: formData.verifiedEmail

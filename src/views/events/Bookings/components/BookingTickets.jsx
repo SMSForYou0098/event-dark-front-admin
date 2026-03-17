@@ -8,7 +8,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 
 const { Text } = Typography;
 
-const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selectedTickets, type }) => {
+const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selectedTickets, type, allowMultiple = true }) => {
   const { isMobile } = useMyContext();
 
   // Reset selected tickets when event changes
@@ -40,7 +40,6 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
 
   const getTicketCount = useCallback((quantity, category, price, id) => {
     setSelectedTickets(prevTickets => {
-      const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
       const priceDetails = calculateTicketPrice(price, quantity, event?.tax_data);
 
       const ticketData = {
@@ -49,6 +48,17 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
         quantity,
         ...priceDetails,
       };
+
+      // If multiple categories are not allowed and this is a new type (quantity > 0)
+      if (!allowMultiple && quantity > 0) {
+        const existingTicket = prevTickets.find(ticket => ticket.id === id);
+        if (!existingTicket) {
+          // Replace all existing selections with just this new one
+          return [ticketData];
+        }
+      }
+
+      const existingIndex = prevTickets.findIndex(ticket => ticket.id === id);
 
       // Remove if quantity is 0
       if (quantity === 0) {
@@ -67,7 +77,7 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       // Add new ticket
       return [...prevTickets, ticketData];
     });
-  }, [setSelectedTickets, event?.tax_data]);
+  }, [setSelectedTickets, event?.tax_data, allowMultiple]);
 
   if (!event || event?.length === 0) {
     return (

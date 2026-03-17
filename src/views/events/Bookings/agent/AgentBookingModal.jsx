@@ -218,14 +218,6 @@ const AgentBookingModal = (props) => {
 
   // Render content based on state
   const renderContent = () => {
-    if (loading) {
-      return (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}>
-          <Image src={loader} width={150} preview={false} />
-        </div>
-      );
-    }
-
     if (confirm) {
       return (
         <div style={{ textAlign: 'center', padding: '20px 0' }}>
@@ -269,6 +261,7 @@ const AgentBookingModal = (props) => {
         initialValues={{
           method: 'UPI'
         }}
+        disabled={loading || disabled}
       >
         {bookingError && (
           <Alert
@@ -522,7 +515,7 @@ const AgentBookingModal = (props) => {
               )}
 
               {/* Ticket Notification Info */}
-              <Col span={24}>
+              {/* <Col span={24}>
 
                 <Alert
                   message={
@@ -539,7 +532,7 @@ const AgentBookingModal = (props) => {
                   showIcon={false}
                   style={{ textAlign: 'center' }}
                 />
-              </Col>
+              </Col> */}
 
               {/* Payment Method */}
               <Col span={12}>
@@ -583,10 +576,10 @@ const AgentBookingModal = (props) => {
                     htmlType="submit"
                     size="large"
                     block
-                    loading={loading || disabled}
-                    icon={loading && <LoadingOutlined />}
+                    loading={loading}
+                    disabled={loading || disabled}
                   >
-                    {loading ? 'Sending Tickets' : 'Submit'}
+                    {loading ? 'Processing...' : 'Submit'}
                   </Button>
                 </Form.Item>
               </Col>

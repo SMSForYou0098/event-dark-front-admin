@@ -189,7 +189,6 @@ export function buildEventFormData(values, isDraft = false) {
 
   // ---------- BASIC ----------
   if (values.step === 'basic') {
-    console.log(values, 'values');
     // For Organizer role, use their userId; otherwise use the selected org_id from form
     const userId = values.userRole === 'Organizer' ? values.userId : values.org_id;
     appendIfDefined('user_id', userId);
@@ -272,7 +271,7 @@ export function buildEventFormData(values, isDraft = false) {
       fd.append('attendee_fields', JSON.stringify(values.attendee_fields));
     }
     // Multi-scan checkpoint configuration
-    appendIfDefined('scan_mode', values.scan_mode ?? false);
+    appendIfDefined('checkpoint_mode', values.checkpoint_mode ?? false);
     appendIfDefined('max_scan_count', values.max_scan_count);
     if (Array.isArray(values.checkpoints) && values.checkpoints.length > 0) {
       // Helper to convert time string to minutes for sorting

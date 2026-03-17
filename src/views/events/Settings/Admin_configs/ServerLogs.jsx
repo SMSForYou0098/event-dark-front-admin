@@ -21,8 +21,10 @@ import {
     InfoCircleOutlined,
     WarningOutlined,
     ExclamationCircleOutlined,
-    DatabaseOutlined
+    DatabaseOutlined,
+    EyeOutlined
 } from '@ant-design/icons';
+import { Drawer, DatePicker as AntDatePicker } from 'antd';
 import DataTable from 'views/events/common/DataTable';
 import {
     useLogTypes,
@@ -35,12 +37,27 @@ import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const { RangePicker } = AntDatePicker;
+
+const STATIC_LOG_TYPES = [
+    'app',
+    'queue-critical',
+    'queue-high',
+    'queue-normal',
+    'octane',
+    'reverb',
+    'swoole'
+];
 
 const ServerLogs = () => {
     const [selectedType, setSelectedType] = useState('app');
+    const [dateRange, setDateRange] = useState(null);
 
     // Hooks
-    const { data: logTypes = [], isLoading: loadingTypes } = useLogTypes();
+    // const { data: logTypes = [], isLoading: loadingTypes } = useLogTypes();
+    const logTypes = STATIC_LOG_TYPES;
+    const loadingTypes = false;
+
     const { data: stats = {}, isLoading: loadingStats, refetch: refetchStats } = useLogStats();
 
     // Pagination state
@@ -55,8 +72,38 @@ const ServerLogs = () => {
     const { data: logsData = { data: [], meta: {} }, isLoading: loadingLogs, refetch: refetchLogs } = useLogs({
         type: selectedType,
         page: currentPage,
-        per_page: pageSize
+        per_page: pageSize,
+        date: dateRange ? `${dateRange[0].format('YYYY-MM-DD')},${dateRange[1].format('YYYY-MM-DD')}` : undefined
     });
+
+    const [contextDrawerVisible, setContextDrawerVisible] = useState(false);
+    const [selectedLogContext, setSelectedLogContext] = useState(null);
+
+    const parseNestedJson = (data) => {
+        if (typeof data !== 'string') {
+            if (data && typeof data === 'object') {
+                const newData = Array.isArray(data) ? [] : {};
+                for (const key in data) {
+                    newData[key] = parseNestedJson(data[key]);
+                }
+                return newData;
+            }
+            return data;
+        }
+
+        try {
+            const parsed = JSON.parse(data);
+            return parseNestedJson(parsed);
+        } catch (e) {
+            return data;
+        }
+    };
+
+    const showContext = (context) => {
+        const parsedContext = parseNestedJson(context);
+        setSelectedLogContext(parsedContext);
+        setContextDrawerVisible(true);
+    };
 
     const logEntries = logsData.data || [];
     const logMeta = logsData.meta || {};
@@ -128,8 +175,11 @@ const ServerLogs = () => {
             dataIndex: 'timestamp',
             key: 'timestamp',
             width: 180,
-            render: (text) => text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : 'N/A',
-            sorter: (a, b) => new Date(a.timestamp) - new Date(b.timestamp),
+            render: (text, record) => {
+                const time = text || record.created_at;
+                return time ? dayjs(time).format('YYYY-MM-DD HH:mm:ss') : 'N/A';
+            },
+            sorter: (a, b) => new Date(a.timestamp || a.created_at) - new Date(b.timestamp || b.created_at),
         },
         {
             title: 'Level',
@@ -171,6 +221,20 @@ const ServerLogs = () => {
                 </Tooltip>
             ),
         },
+        {
+            title: 'Action',
+            key: 'action',
+            width: 80,
+            render: (_, record) => (
+                <Tooltip title="View Context">
+                    <Button
+                        type="text"
+                        icon={<EyeOutlined />}
+                        onClick={() => showContext(record.context || record.stack)}
+                    />
+                </Tooltip>
+            ),
+        },
     ];
 
     return (
@@ -188,10 +252,14 @@ const ServerLogs = () => {
                         onChange={setSelectedType}
                         loading={loadingTypes}
                     >
-                        {Array.isArray(logTypes) ? logTypes.map(type => (
+                        {logTypes.map(type => (
                             <Option key={type} value={type}>{type.toUpperCase()}</Option>
-                        )) : null}
+                        ))}
                     </Select>
+                    <RangePicker
+                        onChange={(dates) => setDateRange(dates)}
+                        style={{ width: 250 }}
+                    />
                     <Button
                         icon={<SyncOutlined spin={loadingLogs} />}
                         onClick={handleRefresh}
@@ -230,26 +298,39 @@ const ServerLogs = () => {
                 tableProps={{
                     size: 'small',
                     pagination: false,
-                    expandable: {
-                        expandedRowRender: (record) => (
-                            <Card size="small" className="bg-light">
-                                <Text strong>Context / Stack Trace:</Text>
-                                <pre style={{
-                                    marginTop: '10px',
-                                    whiteSpace: 'pre-wrap',
-                                    wordBreak: 'break-all',
-                                    fontSize: '12px',
-                                    maxHeight: '400px',
-                                    overflowY: 'auto',
-                                    fontFamily: 'monospace'
-                                }}>
-                                    {record.stack || record.context || 'No additional details available'}
-                                </pre>
-                            </Card>
-                        ),
-                    }
                 }}
             />
+
+            <Drawer
+                title="Log Context Details"
+                placement="right"
+                width={600}
+                onClose={() => setContextDrawerVisible(false)}
+                open={contextDrawerVisible}
+            >
+                {selectedLogContext ? (
+                    <div style={{
+                        background: '#141414',
+                        padding: '20px',
+                        borderRadius: '8px',
+                        overflow: 'auto',
+                        border: '1px solid #303030',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
+                    }}>
+                        <pre style={{
+                            color: '#52c41a',
+                            margin: 0,
+                            fontFamily: '"SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace',
+                            fontSize: '12px',
+                            lineHeight: '1.5'
+                        }}>
+                            {JSON.stringify(selectedLogContext, null, 2)}
+                        </pre>
+                    </div>
+                ) : (
+                    <Text italic>No additional context details available for this log entry.</Text>
+                )}
+            </Drawer>
         </div>
     );
 };

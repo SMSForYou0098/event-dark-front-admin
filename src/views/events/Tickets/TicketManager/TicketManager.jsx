@@ -595,7 +595,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                             initialValues={{ currency: 'INR', status: true, taxes: 'Inclusive' }}
                         >
                             <Row gutter={16}>
-                                <Col xs={24} md={12}>
+                                <Col xs={24} md={6}>
                                     <Form.Item label="Ticket Title" name="ticket_title" rules={[{ required: true }]}>
                                         <Input />
                                     </Form.Item>
@@ -661,7 +661,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                                 <InputNumber style={{ width: '100%' }} min={1} />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} md={8}>
+                                        <Col xs={24} md={6}>
                                             <Form.Item
                                                 label="Ticket Selection Limit"
                                                 name="selection_limit"
@@ -686,7 +686,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                                 <InputNumber style={{ width: '100%' }} min={1} />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} md={8}>
+                                        <Col xs={24} md={6}>
                                             <Form.Item
                                                 label="Booking Limit Per User"
                                                 name="booking_per_customer"
@@ -723,7 +723,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     </>
                                 )}
                                 {
-                                    usePreprintedCards && !editMode && <Col xs={24} md={8}>
+                                    usePreprintedCards && !editMode && <Col xs={24} md={6}>
                                         <Form.Item
                                             label="Booking Limit Per User"
                                             name="booking_per_customer"
@@ -759,13 +759,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     </Col>
                                 }
 
-                                <Col xs={24}>
-                                    <Form.Item label="Description" name="ticket_description">
-                                        <TextArea rows={2} />
-                                    </Form.Item>
-                                </Col>
-
-                                <Col xs={24} md={8}>
+                                <Col xs={24} md={6}>
                                     <Form.Item label="Tax Type" name="taxes" rules={[{ required: true }]}>
                                         <Select options={TAX_TYPES} />
                                     </Form.Item>
@@ -775,14 +769,22 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         <Select mode="multiple" options={areas} />
                                     </Form.Item>
                                 </Col> */}
-                                <Col xs={24} md={8}>
+                                <Col xs={24} md={6}>
                                     <Form.Item label="Promocodes" name="promocode_codes">
                                         <Select mode="multiple" options={promocodes} />
                                     </Form.Item>
                                 </Col>
 
+
+                                <Col xs={24} md={12}>
+                                    <Form.Item label="Description" name="ticket_description">
+                                        <TextArea rows={3} />
+                                    </Form.Item>
+                                </Col>
+
+
                                 {/* Ticket Background Image Section */}
-                                <Col xs={24} md={8}>
+                                <Col xs={24} md={6}>
                                     <Form.Item label="Ticket Background Image">
                                         <Card size="small" style={{ textAlign: 'center', borderColor: selectedMediaUrl ? '#1890ff' : '#d9d9d9' }}>
                                             {selectedMediaUrl ? (
@@ -803,9 +805,8 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                         </Card>
                                     </Form.Item>
                                 </Col>
-
                                 {/* Fallback Ticket Selection */}
-                                <Col xs={24} md={16}>
+                                <Col xs={24} md={6}>
                                     <Form.Item label="Or Select Fallback Image">
                                         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', opacity: selectedMediaUrl ? 0.5 : 1, transition: '0.3s' }}>
                                             {fallbackTickets.map((ticket) => (
@@ -845,13 +846,22 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 </Col>
 
                                 <Col xs={24}>
-                                    <Space size="large" wrap>
-                                        {switchesConfig.map(config => (
-                                            <Form.Item key={config.name} label={config.label} name={config.name} valuePropName="checked" style={{ marginBottom: 0 }}>
-                                                <Switch onChange={config.onChange} />
-                                            </Form.Item>
-                                        ))}
-                                    </Space>
+                                    <Card size="small">
+                                        <div className="d-flex flex-wrap justify-content-evenly align-items-start gap-3 py-2">
+                                            {switchesConfig.map(config => (
+                                                <Form.Item
+                                                    key={config.name}
+                                                    label={config.label}
+                                                    name={config.name}
+                                                    valuePropName="checked"
+                                                    className="mb-0 d-flex flex-column align-items-center"
+                                                    style={{ minWidth: '80px' }}
+                                                >
+                                                    <Switch onChange={config.onChange} />
+                                                </Form.Item>
+                                            ))}
+                                        </div>
+                                    </Card>
                                 </Col>
 
                                 <Col xs={24} className='py-2' ref={saleSectionRef} hidden={!saleEnabled}>

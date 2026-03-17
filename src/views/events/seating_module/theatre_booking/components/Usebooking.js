@@ -19,7 +19,8 @@ const useBooking = (options = {}) => {
     maxSeats = 10,
     holdDuration = 600, // 10 minutes in seconds
     autoHoldTimeout = true,
-    event = null // Event data with tax_data
+    event = null, // Event data with tax_data
+    allowMultiple = true
   } = options;
 
   // State
@@ -75,18 +76,18 @@ const useBooking = (options = {}) => {
       prevSections.map(section =>
         section.id === sectionId
           ? {
-              ...section,
-              rows: section.rows.map(row =>
-                row.id === rowId
-                  ? {
-                      ...row,
-                      seats: row.seats.map(seat =>
-                        seat.id === seatId ? { ...seat, status } : seat
-                      )
-                    }
-                  : row
-              )
-            }
+            ...section,
+            rows: section.rows.map(row =>
+              row.id === rowId
+                ? {
+                  ...row,
+                  seats: row.seats.map(seat =>
+                    seat.id === seatId ? { ...seat, status } : seat
+                  )
+                }
+                : row
+            )
+          }
           : section
       )
     );
@@ -212,7 +213,19 @@ const useBooking = (options = {}) => {
 
         let newSelectedSeats;
 
-        if (existingTicketIndex !== -1) {
+        // If multiple categories are not allowed and we're picking a new category
+        if (!allowMultiple && existingTicketIndex === -1 && prevSelectedSeats.length > 0) {
+          // Deselect all existing seats from their sections
+          prevSelectedSeats.forEach(ticket => {
+            ticket.seats?.forEach(s => {
+              updateSeatStatus(s.section_id, s.row_id, s.seat_id, 'available');
+            });
+          });
+          // Reset the selection to empty before adding the new seat
+          prevSelectedSeats = [];
+        }
+
+        if (existingTicketIndex !== -1 && prevSelectedSeats.length > 0) {
           // Ticket already exists - add seat to its seats array
           const existingTicket = prevSelectedSeats[existingTicketIndex];
           const newQuantity = existingTicket.quantity + 1;
@@ -267,7 +280,7 @@ const useBooking = (options = {}) => {
         return newSelectedSeats;
       }
     });
-  }, [sections, maxSeats, event, updateSeatStatus]);
+  }, [sections, maxSeats, event, updateSeatStatus, allowMultiple]);
 
   /**
    * Shows a single updating message for seat selection
@@ -432,7 +445,7 @@ const useBooking = (options = {}) => {
 
     // Ensure all seatIds are strings for comparison
     const seatIdsStr = seatIds.map(id => String(id).trim());
-    
+
     setSections(prevSections =>
       prevSections.map(section => ({
         ...section,
@@ -453,7 +466,7 @@ const useBooking = (options = {}) => {
     setSelectedSeats(prevSelectedSeats => {
       return prevSelectedSeats.map(ticket => {
         const updatedSeats = ticket.seats?.filter(s => !seatIdsStr.includes(String(s.seat_id).trim())) || [];
-        
+
         if (updatedSeats.length === 0) {
           return null;
         }
@@ -480,7 +493,7 @@ const useBooking = (options = {}) => {
    */
   const markSelectedSeatsAsBooked = useCallback(() => {
     // Get all seat IDs from selected tickets
-    const allSeatIds = selectedSeats.flatMap(ticket => 
+    const allSeatIds = selectedSeats.flatMap(ticket =>
       ticket.seats?.map(s => s.seat_id) || []
     );
 

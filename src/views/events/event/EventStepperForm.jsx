@@ -205,7 +205,7 @@ const EventStepperForm = () => {
                 use_preprinted_cards: toBool(controls?.use_preprinted_cards),
                 // Ticket settings (moved from tickets step)
                 multi_scan: toBool(controls?.multi_scan),
-                scan_mode: toBool(controls?.scan_mode),
+                checkpoint_mode: toBool(controls?.checkpoint_mode),
                 max_scan_count: controls?.max_scan_count ? Number(controls.max_scan_count) : 1,
                 category: detail?.category,  // Use 'category' to match BasicDetails Form.Item
                 checkpoints: (() => {
