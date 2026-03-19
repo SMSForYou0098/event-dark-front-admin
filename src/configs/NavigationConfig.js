@@ -115,14 +115,16 @@ const partnersClientsSubmenu = [
             path: 'bookings/sponsor/paid',
             title: 'Paid',
             breadcrumb: false,
-            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS]
+            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
+            icon: DollarOutlined,
           },
           {
             key: 'sponsor-free',
             path: 'bookings/sponsor/free',
             title: 'Free',
             breadcrumb: false,
-            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS]
+            permissions: [PERMISSIONS.VIEW_SPONSOR_BOOKINGS],
+            icon: CheckOutlined,
           }
         ]
       },
@@ -263,14 +265,16 @@ const bookingsSubmenu = [
             path: 'bookings/agent/paid',
             title: 'Paid',
             breadcrumb: false,
-            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS]
+            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+            icon: DollarOutlined,
           },
           {
             key: 'agent-free',
             path: 'bookings/agent/free',
             title: 'Free',
             breadcrumb: false,
-            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS]
+            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+            icon: CheckOutlined,
           }
         ]
       },
@@ -302,14 +306,16 @@ const bookingsSubmenu = [
             path: 'bookings/pos/paid',
             title: 'Paid',
             breadcrumb: false,
-            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS]
+            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+            icon: DollarOutlined,
           },
           {
             key: 'pos-free',
             path: 'bookings/pos/free',
             title: 'Free',
             breadcrumb: false,
-            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS]
+            permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+            icon: CheckOutlined,
           }
         ]
       },

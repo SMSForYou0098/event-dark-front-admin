@@ -30,6 +30,7 @@ import BookingLayout from 'views/events/seating_module/theatre_booking/Bookingla
 import SeatingModuleSummary from './components/SeatingModuleSummary';
 import EventSeatsListener from '../components/EventSeatsListener';
 import Utils from 'utils';
+import ResponsiveImageModal from 'components/shared-components/ResponsiveImageModal';
 
 const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
   const {
@@ -107,6 +108,7 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
 
   const [usedTokens, setUsedTokens] = useState([]);
   const [bookingError, setBookingError] = useState(null);
+  const [soldOutModalVisible, setSoldOutModalVisible] = useState(false);
 
   // Queries
   const { data: categoryDataResponse } = useCategoryDetail(categoryId, { enabled: !!categoryId });
@@ -114,6 +116,8 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
     enabled: !!eventID && !!event?.event_controls?.attendee_required && !categoryDataResponse?.categoryData?.attendy_required
   });
 
+
+  console.log('www', event);
 
   // Effect to update attendee requirements and fields
   useEffect(() => {
@@ -140,14 +144,29 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
   const bookingLayoutRef = useRef(null);
 
   // Custom hooks
-  const { data: existingAttendees = [], refetch: refetchAttendees } = useUserAttendees({
+  const [attendeeSearch, setAttendeeSearch] = useState('');
+
+  const {
+    data: attendeesData,
+    refetch: refetchAttendees,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isAttendeesLoading
+  } = useUserAttendees({
     userId: UserData?.id,
     categoryId,
     eventId: eventID,
     isCorporate,
     isAgent,
-    enabled: isAttendeeRequire && !!categoryId && !!UserData?.id,
+    enabled: isAttendeeRequire && !!categoryId && !!UserData?.id && !event?.event_controls?.offline_att_sug,
+    search: attendeeSearch
   });
+
+  const existingAttendees = useMemo(() => {
+    if (!attendeesData?.pages) return [];
+    return attendeesData.pages.flatMap(page => page.attendees || []);
+  }, [attendeesData]);
 
   const checkEmailMutation = useCheckEmail();
   const createUserMutation = useCreateUser({
@@ -318,7 +337,8 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
               break;
 
             case "TICKETS_SOLD_OUT":
-              message.error(response.message || "Tickets are sold out.");
+              setShowPrintModel(false);
+              setSoldOutModalVisible(true);
               break;
 
             default:
@@ -372,8 +392,13 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
           }
         } else {
           const errMsg = Utils.getErrorMessage(error, 'Booking failed');
-          message.error(errMsg);
-          setBookingError(errMsg);
+          if (errMsg && errMsg.toLowerCase().includes('sold out')) {
+            setShowPrintModel(false);
+            setSoldOutModalVisible(true);
+          } else {
+            message.error(errMsg);
+            setBookingError(errMsg);
+          }
         }
 
         // ✅ Reset booking state on error
@@ -422,6 +447,7 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
     // ✅ Validate attendees
     if (isAttendeeRequire) {
       const validation = attendeeStepRef.current?.validateAttendees?.();
+      // console.log('vvv', validation)
       if (!validation?.valid) {
         message.error(validation?.message || 'Please complete attendees');
         return;
@@ -708,6 +734,13 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
 
   return (
     <Fragment>
+      <ResponsiveImageModal
+        isOpen={soldOutModalVisible}
+        onClose={() => setSoldOutModalVisible(false)}
+        alwaysModal={true}
+        imageUrl="/img/error_imgs/ticket-soldout.webp"
+        width={400}
+      />
       {/* WebSocket listener for real-time seat updates */}
       {seatingModule && eventID && (
         <EventSeatsListener
@@ -816,6 +849,13 @@ const NewAgentBooking = memo(({ type, allowMultiple = false }) => {
                   onBack={goToPreviousStep}
                   ticketAttendees={ticketAttendees}
                   setTicketAttendees={setTicketAttendees}
+                  event={event}
+                  fetchNextPage={fetchNextPage}
+                  hasNextPage={hasNextPage}
+                  isFetchingNextPage={isFetchingNextPage}
+                  isLoading={isAttendeesLoading}
+                  attendeeSearch={attendeeSearch}
+                  setAttendeeSearch={setAttendeeSearch}
                 />
               </Col>
             )}

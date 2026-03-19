@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import {
     Modal,
     Button,
@@ -39,6 +40,32 @@ const RolePermission = ({ isUser = false }) => {
     const [searchText, setSearchText] = useState('');
     const permissionType = isUser ? 'user' : 'role';
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
+    // Mutations
+    const savePermissionsMutation = useMutation({
+        mutationFn: async (payload) => {
+            const response = await axios.post(
+                `${api}${permissionType}-permission/${id}`,
+                payload,
+                {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    },
+                }
+            );
+            return response.data;
+        },
+        onSuccess: (data, variables) => {
+            message.success(data?.message || 'Permission Assigned Successfully');
+            setInitialExistPermission(variables.permission_id);
+            scrollToTop();
+        },
+        onError: (error) => {
+            console.error('Error assigning permissions:', error);
+            message.error(Utils.getErrorMessage(error));
+        }
+    });
 
     // Modal state
     const [open, setOpen] = useState(false);
@@ -137,7 +164,7 @@ const RolePermission = ({ isUser = false }) => {
         }
     };
 
-    const handleSave = useCallback(async () => {
+    const handleSave = useCallback(() => {
         const uniquePermissions = [...new Set(existPermission)];
 
         if (uniquePermissions.length === 0) {
@@ -145,30 +172,11 @@ const RolePermission = ({ isUser = false }) => {
             return;
         }
 
-        try {
-            setConfirmLoading(true);
-            axios.post(`${api}${permissionType}-permission/${id}`,
-                {
-                    id,
-                    permission_id: uniquePermissions,
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${authToken}`,
-                    },
-                }
-            );
-            message.success('Permission Assigned Successfully');
-            setInitialExistPermission(uniquePermissions);
-            scrollToTop();
-        } catch (error) {
-            console.error('Error assigning permissions:', error);
-            message.error(Utils.getErrorMessage(error));
-        } finally {
-            setConfirmLoading(false);
-        }
-    }, [api, id, authToken, existPermission]);
-
+        savePermissionsMutation.mutate({
+            id,
+            permission_id: uniquePermissions,
+        });
+    }, [existPermission, id, savePermissionsMutation]);
     const handleDiscard = useCallback(() => {
         if (hasChanges) {
             Modal.confirm({
@@ -346,7 +354,7 @@ const RolePermission = ({ isUser = false }) => {
                 className='border-0'
                 icon={<SaveOutlined />}
                 onClick={handleSave}
-                loading={confirmLoading}
+                loading={confirmLoading || savePermissionsMutation.isPending}
                 disabled={!hasChanges}
             >
                 Save Changes

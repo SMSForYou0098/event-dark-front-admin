@@ -13,7 +13,13 @@ const AttendeeManagementStep = forwardRef(({
   ticketAttendees,
   setTicketAttendees,
   eventName,
-
+  event,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  isLoading,
+  attendeeSearch,
+  setAttendeeSearch
 }, ref) => {
   const [showAttendeeFieldModal, setShowAttendeeFieldModal] = useState(false);
   const [editingAttendeeIndex, setEditingAttendeeIndex] = useState(null);
@@ -337,6 +343,12 @@ const AttendeeManagementStep = forwardRef(({
           .map(a => a.id)
           .filter(id => id !== undefined && id !== null)}
         attendeeToTicketMap={attendeeToTicketMap}
+        fetchNextPage={fetchNextPage}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        isLoading={isLoading}
+        attendeeSearch={attendeeSearch}
+        setAttendeeSearch={setAttendeeSearch}
       />
       <Card
         bordered={false}
@@ -376,14 +388,16 @@ const AttendeeManagementStep = forwardRef(({
                         >
                           Add
                         </Button>
-                        <Button
-                          size="small"
-                          icon={<TeamOutlined />}
-                          onClick={() => handleShowSuggestions(ticket?.id)}
-                        // disabled={eventID}
-                        >
-                          Select
-                        </Button>
+                        {!event?.event_controls?.offline_att_sug && (
+                          <Button
+                            size="small"
+                            icon={<TeamOutlined />}
+                            onClick={() => handleShowSuggestions(ticket?.id)}
+                          // disabled={eventID}
+                          >
+                            Select
+                          </Button>
+                        )}
                       </Space.Compact>
                     )}
 

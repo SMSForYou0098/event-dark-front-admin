@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useMemo, useRef } from "react";
+import React, { memo, useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   Button,
   Tag,
@@ -40,6 +40,10 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
 
   const canViewContact = usePermission(PERMISSIONS.VIEW_CONTACT_NUMBER);
   const canExportPos = usePermission(PERMISSIONS.EXPORT_POS_REPORTS);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [bookingType]);
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -86,7 +90,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
       }
 
       // const url = `${api}bookings/pos/${UserData?.id}?${params.toString()}`;
-      const url = `${api}bookings/pos/${UserData?.id}/${bookingType}?${params.toString()}`;
+      const url = `${api}pos-bookings/${bookingType}?${params.toString()}`;
 
       try {
         const response = await axios.get(url, {

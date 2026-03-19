@@ -20,6 +20,7 @@ export const PERMISSIONS = {
     VIEW_ATTENDEES: "View Attendees",
     DOWNLOAD_ATTENDEES: "Download Attendees",
     VIEW_LOGIN_HISTORY: "View Login History",
+    VIEW_USERNAME: "View Username",
 
     // Bookings
     VIEW_ONLINE_BOOKINGS: "View Online Bookings",

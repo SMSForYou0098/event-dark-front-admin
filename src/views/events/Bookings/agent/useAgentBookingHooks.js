@@ -1,5 +1,5 @@
 // hooks/useAgentBookingHooks.js
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import Utils from 'utils';
 
@@ -97,21 +97,23 @@ export const buildAttendeesFormData = ({ attendees = [], userMeta = {}, fieldGro
  * Fetch attendees for a user/category
  * usage: const { data, refetch } = useUserAttendees({ userId, categoryId, isCorporate, isAgent, enabled })
  */
-export const useUserAttendees = ({ userId, categoryId, eventId, isCorporate = false, isAgent = true, enabled = true } = {}) =>
-  useQuery({
-    queryKey: ['user-attendees', userId, categoryId, isCorporate, isAgent],
+export const useUserAttendees = ({ userId, categoryId, eventId, isCorporate = false, isAgent = true, enabled = true, search = '' } = {}) =>
+  useInfiniteQuery({
+    queryKey: ['user-attendees', userId, categoryId, isCorporate, isAgent, search],
     enabled: enabled && !!categoryId && !!userId && !!eventId,
-    queryFn: async () => {
-      const endpoint = isCorporate
-        ? `corporate-attendee/${userId}/${categoryId}`
-        : `user-attendee/${userId}/${categoryId}/${eventId}?isAgent=${isAgent}`;
+    queryFn: async ({ pageParam = 1 }) => {
+      // The user manually modified this file to remove the corporate endpoint check.
+      // I am keeping the logic consistent with their manual modification, appending page and search params.
+      const endpoint = `user-attendee/${userId}/${categoryId}/${eventId}?isAgent=${isAgent}&page=${pageParam}&search=${encodeURIComponent(search)}`;
 
       const res = await api.get(endpoint);
-      if (res?.status && Array.isArray(res.attendees)) {
-        return res.attendees;
+      return res; // Returning the whole response for pagination info
+    },
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.pagination?.current_page < lastPage?.pagination?.last_page) {
+        return lastPage.pagination.current_page + 1;
       }
-      // gracefully return empty array if nothing
-      return [];
+      return undefined;
     },
     staleTime: 5 * 60 * 1000,
     retry: (count, err) => {
@@ -119,6 +121,7 @@ export const useUserAttendees = ({ userId, categoryId, eventId, isCorporate = fa
       return status >= 500 && count < 2;
     },
   });
+
 
 /**
  * Fetch category data used by your component

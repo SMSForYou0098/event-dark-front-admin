@@ -1,4 +1,4 @@
-import React, { memo, Fragment, useState, useCallback, useMemo, useRef } from "react";
+import React, { memo, Fragment, useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
 import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal } from 'antd';
 import { MoreOutlined, QuestionCircleOutlined, LoadingOutlined, CloseOutlined, CheckOutlined, BlockOutlined } from '@ant-design/icons';
@@ -11,6 +11,7 @@ import { downloadTickets } from "../Tickets/ticketUtils";
 import { ExpandDataTable } from "../common/ExpandDataTable";
 import PermissionChecker from "layouts/PermissionChecker";
 import { resendTickets } from "./agent/utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
 
 const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
     const { UserData, formatDateTime, truncateString, isMobile, UserPermissions, userRole } = useMyContext();
@@ -51,6 +52,10 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
         };
     }, [type, bookingType, UserData?.id]);
 
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [bookingType, type]);
+
     const HandleSendTicket = useCallback(async (record) => {
         // use id if present otherwise fallback to set_id
         const rowId = record?.id ?? record?.set_id;
@@ -72,7 +77,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
         error,
         refetch,
     } = useQuery({
-        queryKey: ['bookings', type, dateRange, UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
+        queryKey: ['bookings', type, bookingType, dateRange, UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
         queryFn: async () => {
             const params = new URLSearchParams();
 
@@ -284,22 +289,25 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
 
         // User column
         if (showUser) {
-            columns.push({
-                title: "User",
-                key: "user_name",
-                align: "center",
-                width: 150,
-                dataIndex: ["bookings", 0, "user", "name"],
-                render: (_, record) => {
-                    const name = getUserName(record);
-                    return (
-                        <Tooltip title={name}>
-                            <span>{truncateString(name)}</span>
-                        </Tooltip>
-                    );
-                },
-                sorter: (a, b) => getUserName(a).localeCompare(getUserName(b)),
-            });
+            const canViewUser = userRole === 'Admin' || UserPermissions?.includes(`${PERMISSIONS.VIEW_USERNAME}`);
+            if (canViewUser) {
+                columns.push({
+                    title: "User",
+                    key: "user_name",
+                    align: "center",
+                    width: 150,
+                    dataIndex: ["bookings", 0, "user", "name"],
+                    render: (_, record) => {
+                        const name = getUserName(record);
+                        return (
+                            <Tooltip title={name}>
+                                <span>{truncateString(name)}</span>
+                            </Tooltip>
+                        );
+                    },
+                    sorter: (a, b) => getUserName(a).localeCompare(getUserName(b)),
+                });
+            }
         }
 
         // Organizer column
@@ -328,7 +336,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
 
         // Number/Contact column - Only show if Admin or has 'View Contact Number' permission
         if (showNumber) {
-            const canViewContact = userRole === 'Admin' || UserPermissions?.includes('View Contact Number');
+            const canViewContact = userRole === 'Admin' || UserPermissions?.includes(`${PERMISSIONS.VIEW_USER_NUMBER}`);
             if (canViewContact) {
                 columns.push({
                     title: 'Contact',

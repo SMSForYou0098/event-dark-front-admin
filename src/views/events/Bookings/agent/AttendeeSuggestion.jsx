@@ -10,10 +10,11 @@ import {
   Space,
   Typography,
   Card,
+  Spin
 } from 'antd';
 import { UserOutlined, SearchOutlined, CheckCircleFilled, PlusOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 const { Text } = Typography;
 const { Search } = Input;
@@ -27,21 +28,44 @@ const AttendeeSuggestion = ({
   currentTicketId,
   currentTicketSelectedIds = [],
   attendeeToTicketMap = {},
-  handleOpenAttendeeModal
+  handleOpenAttendeeModal,
+  fetchNextPage,
+  hasNextPage,
+  isFetchingNextPage,
+  isLoading,
+  attendeeSearch,
+  setAttendeeSearch
 }) => {
   const { isMobile } = useMyContext();
-  const [searchText, setSearchText] = useState('');
+  const [localSearchText, setLocalSearchText] = useState(attendeeSearch || '');
+
+  // Debounce the setting of main search text
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (setAttendeeSearch) setAttendeeSearch(localSearchText);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [localSearchText, setAttendeeSearch]);
+
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    if (Math.round(scrollHeight - scrollTop) <= clientHeight + 50) {
+      if (hasNextPage && !isFetchingNextPage && fetchNextPage) {
+        fetchNextPage();
+      }
+    }
+  };
 
   const filteredAttendees = useMemo(() => {
-    if (!searchText) return attendees;
-    const search = searchText.toLowerCase();
+    if (!localSearchText) return attendees;
+    const search = localSearchText.toLowerCase();
     return attendees.filter(attendee => {
-      const name = attendee.Name?.toLowerCase() || '';
-      const email = attendee.email?.toLowerCase() || '';
-      const phone = attendee.Mo?.toString() || '';
+      const name = (attendee.Name || attendee.name || '').toLowerCase();
+      const email = (attendee.email || '').toLowerCase();
+      const phone = (attendee.Mo || attendee.number || '').toString().toLowerCase();
       return name.includes(search) || email.includes(search) || phone.includes(search);
     });
-  }, [attendees, searchText]);
+  }, [attendees, localSearchText]);
 
   const handleToggle = (attendee, isDisabled) => {
     if (isDisabled) return;
@@ -76,13 +100,20 @@ const AttendeeSuggestion = ({
         placeholder="Search by name, email, or phone"
         prefix={<SearchOutlined />}
         allowClear
-        value={searchText}
-        onChange={(e) => setSearchText(e.target.value)}
+        value={localSearchText}
+        onChange={(e) => setLocalSearchText(e.target.value)}
         size="large"
       />
 
-      <div style={{ maxHeight: isMobile ? '70vh' : '500px', overflowY: 'auto' }}>
-        {filteredAttendees.length === 0 ? (
+      <div
+        style={{ maxHeight: isMobile ? '70vh' : '500px', overflowY: 'auto' }}
+        onScroll={handleScroll}
+      >
+        {isLoading ? (
+          <div style={{ textAlign: 'center', margin: '40px 0' }}>
+            <Spin size="large" tip="Loading attendees..." />
+          </div>
+        ) : filteredAttendees.length === 0 ? (
           <div style={{ textAlign: 'center' }}>
             <Empty
               description={
@@ -179,6 +210,11 @@ const AttendeeSuggestion = ({
               );
             }}
           />
+        )}
+        {isFetchingNextPage && (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <Spin size="small" />
+          </div>
         )}
       </div>
     </Space>

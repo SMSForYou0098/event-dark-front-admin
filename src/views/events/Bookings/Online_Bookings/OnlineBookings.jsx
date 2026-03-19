@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback, useMemo } from "react";
+import React, { memo, useState, useCallback, useMemo, useEffect } from "react";
 import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
@@ -38,6 +38,10 @@ const OnlineBookings = memo(({ type }) => {
   const [showGatewayReport, setShowGatewayReport] = useState(false);
   const [refundBookingData, setRefundBookingData] = useState(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [type]);
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -363,7 +367,7 @@ const OnlineBookings = memo(({ type }) => {
       render: (_, record) =>
         record?.bookings?.[0]?.organizer || record?.organizer || "",
     },
-    ...(UserPermissions?.includes("View Username") || userRole === 'Admin'
+    ...(UserPermissions?.includes(`${PERMISSIONS.VIEW_USERNAME}`) || userRole === 'Admin'
       ? [
         {
           title: "User Name",

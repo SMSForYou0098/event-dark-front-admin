@@ -119,7 +119,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
             // Append text fields
             formData.append('name', values.name);
             formData.append('org_id', UserData?.id);
-            formData.append('address', values.address);
+            formData.append('address', values.address?.replace(/,/g, '|'));
             formData.append('city', values.city);
             formData.append('state', values.state);
             formData.append('type', values.type);
@@ -258,9 +258,21 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             <Form.Item
                                 label="Address"
                                 name="address"
-                                rules={[{ required: true, message: 'Please enter address' }]}
+                                rules={[
+                                    { required: true, message: 'Please enter address' },
+                                    {
+                                        validator: (_, value) => {
+                                            if (value && value.includes(',')) {
+                                                return Promise.reject('Avoid using commas (,), use | instead');
+                                            }
+                                            return Promise.resolve();
+                                        }
+                                    }
+                                ]}
                             >
-                                <Input.TextArea placeholder="Enter full address" />
+                                <Input.TextArea
+                                    placeholder="Enter full address (use | instead of comma)"
+                                />
                             </Form.Item>
                         </Col>
 
