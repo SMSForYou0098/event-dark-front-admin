@@ -85,12 +85,29 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
     );
   }
 
-  // per-row helper used for styling / pointer-events (keeps existing sold_out logic)
+  // per-row helper used for styling / pointer-events
   const rowIsDisabled = (record) => {
-    const soldOut = toBool(record?.sold_out);
-    const isAgentNotAllowed = soldOut && type === 'agent' && !toBool(record?.allow_agent);
-    const isPosNotAllowed = soldOut && type === 'pos' && !toBool(record?.allow_pos);
-    return isAgentNotAllowed || isPosNotAllowed || record?.booking_not_open;
+    // 1. If booking is not open, it's always disabled.
+    if (record?.booking_not_open) return true;
+
+    // 2. If it's an agent booking
+    if (type === 'agent') {
+      // If agent is allowed, they can sell no matter what (even if sold out)
+      if (toBool(record?.allow_agent)) return false;
+      // If agent is NOT allowed, they can't sell
+      return true;
+    }
+
+    // 3. If it's a POS booking
+    if (type === 'pos') {
+      // If POS is allowed, they can sell no matter what (even if sold out)
+      if (toBool(record?.allow_pos)) return false;
+      // If POS is NOT allowed, they can't sell
+      return true;
+    }
+
+    // 4. Default behavior (e.g. online booking)
+    return toBool(record?.sold_out);
   };
 
 
@@ -103,21 +120,39 @@ const BookingTickets = ({ event, getCurrencySymbol, setSelectedTickets, selected
       render: (text, record) => {
         const isBookingBlocked = rowIsDisabled(record);
         let bookingStatus = null;
-        if (rowIsDisabled(record)) {
-          if (record?.booking_not_open) {
-            bookingStatus = {
-              label: 'Booking Not Open',
-              icon: <ClockCircleOutlined />,
-              color: 'orange'
-            };
+
+        const soldOut = toBool(record?.sold_out);
+        const allowAgent = toBool(record?.allow_agent);
+        const allowPos = toBool(record?.allow_pos);
+
+        if (record?.booking_not_open) {
+          bookingStatus = {
+            label: 'Booking Not Open',
+            icon: <ClockCircleOutlined />,
+            color: 'orange'
+          };
+        } else if (type === 'agent') {
+          if (!allowAgent) {
+            if (soldOut) {
+              bookingStatus = { label: 'Sold Out', icon: <StopOutlined />, color: 'red' };
+            } else {
+              bookingStatus = { label: 'Not for Agent', icon: <StopOutlined />, color: 'red' };
+            }
           }
-          else {
-            bookingStatus = {
-              label: 'Booking Closed',
-              icon: <StopOutlined />,
-              color: 'red'
-            };
+        } else if (type === 'pos') {
+          if (!allowPos) {
+            if (soldOut) {
+              bookingStatus = { label: 'Sold Out', icon: <StopOutlined />, color: 'red' };
+            } else {
+              bookingStatus = { label: 'Not for POS', icon: <StopOutlined />, color: 'red' };
+            }
           }
+        } else if (soldOut) {
+          bookingStatus = {
+            label: 'Sold Out',
+            icon: <StopOutlined />,
+            color: 'red'
+          };
         }
 
         return (
