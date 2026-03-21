@@ -542,7 +542,17 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     return (
         <>
             <DataTable
-                title={showEventName ? `${eventName} - Tickets` : 'Tickets'}
+                title={
+                    showEventName ? (
+                        <Tooltip title={eventName}>
+                            <span>
+                                {eventName?.length > 20 ? `${eventName.substring(0, 20)}...` : eventName}
+                            </span>
+                        </Tooltip>
+                    ) : (
+                        'Tickets'
+                    )
+                }
                 data={tickets}
                 columns={columns}
                 loading={ticketsLoading}

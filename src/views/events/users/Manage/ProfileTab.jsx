@@ -13,7 +13,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import Utils from 'utils';
 import { ORGANIZER_ALLOWED_ROLES } from '../constants';
-import { RoleSelect } from 'utils/CommonInputs';
+import { RoleSelect, OrganisationList } from 'utils/CommonInputs';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../../components/shared-components/SignatureInput';
 import { useGetAllOrganizerAgreements } from '../../Agreement/Organizer/useOrganizerAgreement';
 import OtpVerificationModal from 'components/shared-components/OtpVerificationModal';
@@ -79,7 +79,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         bankBranch: '',
         bankNumber: '',
         orgGstNumber: '',
-        orgPanNumber: '',
+        pan_no: '',
 
         // Security
         password: '',
@@ -1146,7 +1146,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                     <Col xs={24} md={8}>
                                         <Form.Item
                                             label="PAN Number"
-                                            name="orgPanNumber"
+                                            name="pan_no"
                                             rules={VALIDATION_RULES.PAN}
                                         >
                                             <Input placeholder="PAN Number" />
@@ -1273,21 +1273,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                             {/* Account Manager for specific roles */}
                             {showAM && userRole === 'Admin' && (
                                 <Col xs={24} md={12}>
-                                    <Form.Item
+                                    <OrganisationList
                                         label="Account Manager"
                                         name="reportingUser"
                                         rules={[requiredIf(showAM, 'Please select account manager')]}
-                                    >
-                                        <Select
-                                            showSearch
-                                            placeholder="Select organization"
-                                            options={OrganizerList?.map(org => ({
-                                                value: String(org.id),
-                                                label: `${org.organisation} (${org.name})`,
-                                            }))}
-                                            optionFilterProp="label"
-                                        />
-                                    </Form.Item>
+                                    />
                                 </Col>
                             )}
 

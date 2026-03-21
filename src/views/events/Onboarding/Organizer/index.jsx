@@ -13,7 +13,7 @@ import {
   Tooltip,
 } from 'antd';
 import { PlusSquareOutlined } from '@ant-design/icons';
-import DOMPurify from 'dompurify';
+import { replaceAgreementPlaceholders } from 'utils/agreementReplacements';
 import AgreementPdfViewer from 'components/shared-components/AgreementPdfViewer';
 import {
   useGetAllOrganizerOnboarding,
@@ -60,11 +60,7 @@ const OrganizerOnboarding = () => {
 
   // Replace placeholders in agreement content
   const processedContent = useMemo(() => {
-    if (!selectedAgreement?.content || !selectedRecord) return selectedAgreement?.content || '';
-
-    return selectedAgreement.content
-      .replace(/:C_Name/g, `<strong>${selectedRecord.name || ''}</strong>`)
-      .replace(/:ORG_Name/g, `<strong>${selectedRecord.organisation || ''}</strong>`);
+    return replaceAgreementPlaceholders(selectedAgreement?.content, selectedRecord);
   }, [selectedAgreement, selectedRecord]);
 
   // Helper function to generate signature HTML
@@ -201,6 +197,8 @@ const OrganizerOnboarding = () => {
     selectedAgreement,
   ]);
 
+  const [pdfLoading, setPdfLoading] = useState(false);
+
   const handleAgreementChange = useCallback((value) => {
     setSelectedAgreementId(value);
     setAgreementAccepted(false);
@@ -271,7 +269,7 @@ const OrganizerOnboarding = () => {
         open={approveModalVisible}
         title="Assign Organizer - Agreement"
         onCancel={handleModalClose}
-        width={1000}
+        width={'90%'}
         footer={[
           <Button key="cancel" onClick={handleModalClose}>
             Cancel
@@ -306,6 +304,7 @@ const OrganizerOnboarding = () => {
                 options={agreementOptions}
                 value={selectedAgreementId}
                 onChange={handleAgreementChange}
+                disabled={pdfLoading}
               />
             </div>
 
@@ -313,10 +312,12 @@ const OrganizerOnboarding = () => {
               <>
                 <div style={{ marginBottom: 16 }}>
                   <AgreementPdfViewer
-                    content={DOMPurify.sanitize(processedContent)}
+                    content={processedContent}
                     adminSignature={selectedAgreement}
                     organizerSignature={selectedRecord?.organizer_signature}
                     title={selectedAgreement?.title}
+                    org={selectedRecord}
+                    onLoadingChange={setPdfLoading}
                   />
                 </div>
               </>

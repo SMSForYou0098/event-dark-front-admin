@@ -8,11 +8,11 @@ import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
 // Set worker source
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 const { Text } = Typography;
 
-const AgreementPdfViewer = ({
+const AgreementPdfViewer = React.memo(({
   content,
   auto = false,
   defaultScale = 0.5,
@@ -22,13 +22,21 @@ const AgreementPdfViewer = ({
   org,
   organizerSignature,
   title = 'Agreement',
+  onLoadingChange,
 }) => {
   const [numPages, setNumPages] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(0.5);
   const [pdfUrl, setPdfUrl] = useState(null);
-
   const [loading, setLoading] = useState(true);
+
+  // Cache for PDF blobs to make switching instantaneous
+  const blobCache = React.useRef(new Map());
+
+  // Notify parent of loading state
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   useEffect(() => {
     setScale(defaultScale);
@@ -38,32 +46,67 @@ const AgreementPdfViewer = ({
   }, [defaultScale]);
 
   // Generate PDF blob URL
-  useMemo(async () => {
-    if (!content) {
+  useEffect(() => {
+    // Create a stable key for caching
+    const cacheKey = JSON.stringify({
+      content,
+      adminId: adminSignature?.id,
+      orgId: org?.id,
+      organizerSignature: !!organizerSignature,
+      title
+    });
+
+    // Instant switch if cached
+    if (blobCache.current.has(cacheKey)) {
+      setPdfUrl(blobCache.current.get(cacheKey));
       setLoading(false);
       return;
     }
 
-    try {
-      setLoading(true);
-      const blob = await pdf(
-        <AgreementPdfDocument
-          content={content}
-          org={org}
-          adminSignature={adminSignature}
-          organizerSignature={organizerSignature}
-          title={title}
-        />
-      ).toBlob();
+    const generatePdfBlob = async () => {
+      if (!content) {
+        setLoading(false);
+        return;
+      }
 
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [content, adminSignature, organizerSignature, title]);
+      try {
+        setLoading(true);
+        const blob = await pdf(
+          <AgreementPdfDocument
+            content={content}
+            org={org}
+            adminSignature={adminSignature}
+            organizerSignature={organizerSignature}
+            title={title}
+          />
+        ).toBlob();
+
+        const url = URL.createObjectURL(blob);
+        blobCache.current.set(cacheKey, url);
+        setPdfUrl(url);
+      } catch (error) {
+        console.error('Error generating PDF:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const timer = setTimeout(() => {
+      generatePdfBlob();
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [content, adminSignature, organizerSignature, title, org]);
+
+  // Cleanup cache on unmount
+  useEffect(() => {
+    return () => {
+      blobCache.current.forEach(url => URL.revokeObjectURL(url));
+      blobCache.current.clear();
+    };
+  }, []);
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
@@ -95,7 +138,7 @@ const AgreementPdfViewer = ({
     }
   };
 
-  if (loading) {
+  if (loading && !pdfUrl) {
     return (
       <div className="text-center p-5">
         <Spin size="large" />
@@ -104,16 +147,23 @@ const AgreementPdfViewer = ({
     );
   }
 
-  if (!pdfUrl) {
-    return (
-      <div className="text-center p-5">
-        <Text type="secondary">No content to display</Text>
-      </div>
-    );
-  }
-
   return (
-    <div>
+    <div style={{ opacity: loading ? 0.6 : 1, transition: 'opacity 0.2s', position: 'relative' }}>
+      {loading && pdfUrl && (
+        <div style={{
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 10,
+          background: 'rgba(255,255,255,0.7)',
+          padding: '10px 20px',
+          borderRadius: 8
+        }}>
+          <Spin size="small" tip="Updating..." />
+        </div>
+      )}
+
       {/* Controls */}
       <div className="mb-3 p-2">
         <Space
@@ -161,9 +211,9 @@ const AgreementPdfViewer = ({
 
           <Space size="middle">
             {showDownload && (
-            <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-              Download
-            </Button>
+              <Button icon={<DownloadOutlined />} onClick={handleDownload}>
+                Download
+              </Button>
             )}
             {showPrint && (
               <Button icon={<PrinterOutlined />} onClick={handlePrint}>
@@ -187,12 +237,18 @@ const AgreementPdfViewer = ({
           justifyContent: 'center',
         }}
       >
-        <Document file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess} loading={<Spin />}>
-          <Page pageNumber={pageNumber} scale={scale} />
-        </Document>
+        {!pdfUrl ? (
+          <div className="text-center p-5">
+            <Text type="secondary">No content to display</Text>
+          </div>
+        ) : (
+          <Document file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess} loading={<Spin />}>
+            <Page pageNumber={pageNumber} scale={scale} />
+          </Document>
+        )}
       </div>
     </div>
   );
-};
+});
 
 export default AgreementPdfViewer;

@@ -54,7 +54,7 @@ export const mapApiToForm = (apiData) => {
         bankBranch: user.bank_branch || '',
         bankNumber: user.bank_number || '',
         orgGstNumber: user.org_gst_no || '',
-        orgPanNumber: user.org_pan_no || '',
+        pan_no: user.pan_no || '',
 
         // Status & Security
         status: Boolean(user.status),
@@ -71,8 +71,8 @@ export const mapApiToForm = (apiData) => {
         brandName: user.brandName || '',
         convenienceFeeType: user.convenience_fee_type || 'percentage',
         convenienceFee: user.convenience_fee || '',
-        organisationCommissionType: user.organisation_commission_type || 'percentage',
-        organisationCommission: user.organisation_commission || '',
+        organisationCommissionType: user.commission_type || 'percentage',
+        organisationCommission: user.commission_rate || '',
 
         // Email verification
         email_verified_at: user.email_verified_at || null,
@@ -129,7 +129,7 @@ export const mapFormToApi = (formData) => {
 
         // Organization
         org_gst_no: formData.orgGstNumber,
-        org_pan_no: formData.orgPanNumber,
+        pan_no: formData.pan_no,
 
         // Settings
         qr_length: formData.qrLength,
@@ -151,8 +151,8 @@ export const mapFormToApi = (formData) => {
         brandName: formData.brandName,
         convenience_fee_type: formData.convenienceFeeType,
         convenience_fee: formData.convenienceFee ? Number(formData.convenienceFee) : null,
-        organisation_commission_type: formData.organisationCommissionType,
-        organisation_commission: formData.organisationCommission ? Number(formData.organisationCommission) : null,
+        commission_type: formData.organisationCommissionType,
+        commission_rate: formData.organisationCommission ? Number(formData.organisationCommission) : null,
 
         // Email verification (only for Admin creating Organizer)
         verification_required: formData.verifiedEmail

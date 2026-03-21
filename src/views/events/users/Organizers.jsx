@@ -265,7 +265,7 @@ const Organizers = () => {
       title: 'Organization',
       dataIndex: 'reportingUser',
       key: 'reportingUser',
-      render: (reportingUser) => reportingUser?.organisation || 'N/A'
+      render: (reportingUser, record) => reportingUser?.organisation || record.organisation || 'N/A'
     },
     {
       title: 'Created At',

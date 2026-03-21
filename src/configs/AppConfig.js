@@ -8,6 +8,8 @@ export const AUTHENTICATED_ENTRY = `${APP_PREFIX_PATH}dashboard`;
 export const AUTH_PREFIX_PATH = '/auth';
 export const REDIRECT_URL_KEY = 'redirect'
 export const UNAUTHENTICATED_ENTRY = '/login'
+export const TERMS_AND_CONDITIONS_URL = 'https://getyourticket.in/terms-and-conditions';
+export const PRIVACY_POLICY_URL = 'https://getyourticket.in/privacy-policy';
 
 export const THEME_CONFIG = {
 	navCollapsed: false,

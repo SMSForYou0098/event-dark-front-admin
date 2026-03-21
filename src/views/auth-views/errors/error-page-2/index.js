@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button } from "antd";
-import { APP_NAME } from 'configs/AppConfig';
+import { APP_NAME, TERMS_AND_CONDITIONS_URL, PRIVACY_POLICY_URL } from 'configs/AppConfig';
 import { Link } from 'react-router-dom'
 import Flex from 'components/shared-components/Flex'
 import { useSelector } from 'react-redux'
@@ -11,7 +11,7 @@ const ErrorTwo = () => {
 		<div className={`h-100 ${theme === 'light' ? 'bg-white' : ''}`}>
 			<div className="container-fluid d-flex flex-column justify-content-between h-100 px-md-4 pb-md-4 pt-md-1">
 				<div>
-					<img className="img-fluid" src={`/img/${theme === 'light' ? 'logo.png': 'logo-white.png'}`} alt="" />
+					<img className="img-fluid" src={`/img/${theme === 'light' ? 'logo.png' : 'logo-white.png'}`} alt="" />
 				</div>
 				<div className="container">
 					<div className="text-center mb-5">
@@ -25,9 +25,9 @@ const ErrorTwo = () => {
 				<Flex mobileFlex={false} justifyContent="space-between">
 					<span>Copyright  &copy;  {`${new Date().getFullYear()}`} <span className="font-weight-semibold">{`${APP_NAME}`}</span></span>
 					<div>
-						<a className="text-gray" href="/#" onClick={e => e.preventDefault()}>Term & Conditions</a>
+						<a className="text-gray" href={TERMS_AND_CONDITIONS_URL} target="_blank" rel="noopener noreferrer">Term & Conditions</a>
 						<span className="mx-2 text-muted"> | </span>
-						<a className="text-gray" href="/#" onClick={e => e.preventDefault()}>Privacy & Policy</a>
+						<a className="text-gray" href={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer">Privacy & Policy</a>
 					</div>
 				</Flex>
 			</div>

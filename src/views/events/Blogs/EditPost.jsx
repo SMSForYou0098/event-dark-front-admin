@@ -96,7 +96,7 @@ const EditPost = () => {
         formData.append('thumbnail', thumbnail);
       }
 
-      const response = await api.post(`blog-update/${id}`, formData, {
+      const response = await api.post(`blogs/update/${id}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

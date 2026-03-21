@@ -3,17 +3,21 @@ import { Button, Card, message, Row, Col, Space, Avatar } from 'antd';
 import { ArrowRightOutlined, BankOutlined, MailOutlined, PhoneOutlined, UserOutlined, EditOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import AgreementPdfViewer from 'components/shared-components/AgreementPdfViewer';
-import { useAgreementPreview, useUpdateUserSignature, useConfirmAgreement } from './useAgreement';
+import { useAgreementPreview, useUpdateUserSignature, useConfirmAgreement, useAgreementReplacementData } from './useAgreement';
 import { getBackgroundWithOpacity } from '../common/CustomUtil';
 import { PRIMARY } from 'utils/consts';
 import SignatureInput, { SIGNATURE_FONTS } from '../../../components/shared-components/SignatureInput';
 import { useMyContext } from 'Context/MyContextProvider';
 import Utils from 'utils';
+import { replaceAgreementPlaceholders } from 'utils/agreementReplacements';
 
 const PreviewAgreement = () => {
     const navigate = useNavigate();
     const { id, user_id } = useParams();
     const { UserData } = useMyContext();
+
+    // Fetch dynamic replacement data
+    const { data: replacementData } = useAgreementReplacementData();
 
     // Check if this is an interactive view (with user_id) or read-only view
     const isInteractiveView = !!user_id;
@@ -208,8 +212,8 @@ const PreviewAgreement = () => {
 
     // Get agreement content from API response
     const agreementContent = useMemo(() => {
-        return agreementData?.agreement?.content || '';
-    }, [agreementData]);
+        return replaceAgreementPlaceholders(agreementData?.agreement?.content, replacementData);
+    }, [agreementData, replacementData]);
 
     // Check if organizer signature is missing
     const needsOrganizerSignature = useMemo(() => {

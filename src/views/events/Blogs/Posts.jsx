@@ -20,7 +20,7 @@ const Posts = () => {
   const { data: posts = [], isLoading: loading, error, refetch } = useQuery({
     queryKey: ['blog-posts'],
     queryFn: async () => {
-      const response = await api.get('blog-list');
+      const response = await api.get('blogs/list');
       if (response?.status === false) {
         throw new Error(Utils.getErrorMessage(response, 'Failed to fetch blogs'));
       }
@@ -33,7 +33,7 @@ const Posts = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => api.delete(`blog-destroy/${id}`),
+    mutationFn: (id) => api.delete(`blogs/destroy/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['blog-posts'] });
       message.success('The blog post has been deleted.');

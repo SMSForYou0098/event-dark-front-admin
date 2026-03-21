@@ -202,7 +202,9 @@ const AgreementPdfDocument = ({ content, adminSignature, organizerSignature, tit
       .replace(/<li([^>]*)>\s*<p([^>]*)>/gi, '<li$1>')
       .replace(/<\/p>\s*<\/li>/gi, '</li>')
       // Clean up empty paragraphs
-      .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '');
+      .replace(/<p>\s*<br\s*\/?>\s*<\/p>/gi, '')
+      // Remove inline font-family from any element to prevent PDF generation crash for unknown fonts
+      .replace(/font-family:[^;"]*(;|$)/gi, '');
   };
 
   return (

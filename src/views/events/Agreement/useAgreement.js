@@ -81,3 +81,15 @@ export const useConfirmAgreement = (options = {}) => {
   });
 };
 
+// Fetch agreement replacement data
+export const useAgreementReplacementData = (options = {}) => {
+  return useQuery({
+    queryKey: ['agreement-replacement-data'],
+    queryFn: async () => {
+      const response = await api.get('agreement/replacement-data');
+      return response.data;
+    },
+    ...options
+  });
+};
+

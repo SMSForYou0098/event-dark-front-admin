@@ -5,21 +5,30 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ORGANIZER_ALLOWED_ROLES } from "./consts";
 
-export const OrganisationList = ({ onChange, disabled, label = "Organization" }) => {
-    const { OrganizerList } = useMyContext();
+export const OrganisationList = ({ onChange, disabled, label = "Organization", name = "org_id", rules }) => {
+    const { data: users = [], isLoading } = useQuery({
+        queryKey: ["users-list"],
+        queryFn: async () => {
+            const res = await apiClient.get(`users/list`);
+            return res?.data || [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
     return (
         <Form.Item
             label={label}
-            name="org_id"
-            rules={[{ required: true, message: 'Please select organization' }]}
+            name={name}
+            rules={rules || [{ required: true, message: `Please select ${label.toLowerCase()}` }]}
         >
             <Select
                 disabled={disabled}
+                loading={isLoading}
                 showSearch
-                placeholder="Select organization"
-                options={OrganizerList?.map(org => ({
+                placeholder={`Select ${label.toLowerCase()}`}
+                options={users?.map(org => ({
                     value: String(org.id),
-                    label: `${org.organisation} (${org.name})`,
+                    label: org.organisation ? `${org.organisation} (${org.name})` : org.name,
                 }))}
                 optionFilterProp="label"
                 onChange={onChange}

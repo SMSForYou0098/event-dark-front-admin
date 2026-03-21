@@ -22,7 +22,6 @@ export const MyContextProvider = ({ children }) => {
     loading: false
   });
   const [currencyMaster, setCurrencyMaster] = useState([]);
-  const [OrganizerList, setOrganizerList] = useState([]);
   const [amount, setAmount] = useState(0);
   const [SystemVars, setSystemVars] = useState([]);
   const [systemSetting, setSystemSetting] = useState();
@@ -39,24 +38,7 @@ export const MyContextProvider = ({ children }) => {
   const userRole = UserData?.role;
 
 
-  const GetUsersList = async () => {
-    try {
-      const response = await axios.get(`${api}users/list`, {
-        headers: {
-          Authorization: 'Bearer ' + authToken,
-        },
-      });
-      if (response.data.status) {
-        let data = response.data?.data
-        setOrganizerList(data || [])
-        return data;
-      } else {
-        console.log('Unexpected API status:', response.data.status);
-      }
-    } catch (error) {
-      console.error('API Error:', error);
-    }
-  }
+
 
   const GetSystemSetting = async () => {
     // Load cached data first
@@ -144,7 +126,6 @@ export const MyContextProvider = ({ children }) => {
     initializeLocationData();
     const fetchData = async () => {
       if (UserData && Object.keys(UserData)?.length > 0) {
-        await GetUsersList();
         GetSystemVars()
       }
     };
@@ -716,8 +697,6 @@ export const MyContextProvider = ({ children }) => {
     formatDateRange,
     UserData,
     userRole,
-    // UserList,
-    OrganizerList,
     UserPermissions,
     handleMakeReport,
     DownloadExcelFile,
