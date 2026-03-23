@@ -65,11 +65,7 @@ const DeveloperSettings = ({ form }) => {
             return response;
         },
         onSuccess: (res) => {
-            if (res.status) {
-                message.success(res.message || 'Cache cleared successfully');
-            } else {
-                message.error(res.message || 'Failed to clear cache');
-            }
+            message.success(res.message || 'Cache cleared successfully');
         },
         onError: (err) => {
             message.error(Utils.getErrorMessage(err, 'Failed to clear cache'));

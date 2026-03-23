@@ -5,8 +5,8 @@ export const VALIDATION_REGEX = {
     // PAN Number: 10 characters (e.g., ABCDE1234F)
     PAN: /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/,
 
-    // Mobile Number: 10-12 digits
-    MOBILE: /^\d{10,12}$/,
+    // Mobile Number: 10 digits
+    MOBILE: /^\d{10}$/,
 
     // Pincode: 6 digits
     PINCODE: /^\d{6}$/,
@@ -18,7 +18,7 @@ export const VALIDATION_REGEX = {
 export const VALIDATION_MESSAGES = {
     GST: 'Please enter a valid GST number (e.g., 22AAAAA0000A1Z5)',
     PAN: 'Please enter a valid PAN number (e.g., ABCDE1234F)',
-    MOBILE: 'Please enter a valid mobile number (10-12 digits)',
+    MOBILE: 'Please enter a valid 10-digit mobile number',
     PINCODE: 'Please enter a valid 6-digit pincode',
     IFSC: 'Please enter a valid IFSC code (e.g., SBIN0001234)',
     EMAIL: 'Please enter a valid email address',

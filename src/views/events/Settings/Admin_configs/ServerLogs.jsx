@@ -297,7 +297,6 @@ const ServerLogs = () => {
                 onPaginationChange={onPaginationChange}
                 tableProps={{
                     size: 'small',
-                    pagination: false,
                 }}
             />
 

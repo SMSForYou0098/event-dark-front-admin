@@ -137,7 +137,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     // Keeping these for backward compatibility but they won't be used for new flow
 
     // Fetch user data in edit mode
-    const { data: fetchedData, isLoading: loading } = useQuery({
+    const { data: fetchedData, isLoading: loading, refetch } = useQuery({
         queryKey: ["user", id],
         enabled: mode === "edit" && Boolean(id),
         queryFn: async () => {
@@ -191,6 +191,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             setSelectedAgreementId(null);
             setCreatedUserId(null);
             navigate(-1);
+
         },
     });
 
@@ -791,6 +792,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 navigate(-1);
             }
         }
+        refetch();
 
         return response;
     };
