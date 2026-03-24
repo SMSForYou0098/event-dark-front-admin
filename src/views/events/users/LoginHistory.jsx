@@ -15,53 +15,70 @@ const LoginHistory = () => {
   const [dateRange, setDateRange] = useState(null);
   const [logType, setLogType] = useState("self"); // 'self' or 'all'
 
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+  const [searchText, setSearchText] = useState("");
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
+
   // API function to fetch login history
   const fetchLoginHistory = async () => {
-    const queryParams = dateRange
-      ? `?date=${dateRange.startDate},${dateRange.endDate}`
-      : "";
+    const params = new URLSearchParams();
 
-    const response = await api.get(`login-history${queryParams}`);
+    // Pagination params
+    params.set("page", currentPage.toString());
+    params.set("per_page", pageSize.toString());
+
+    // Search param
+    if (searchText) {
+      params.set("search", searchText);
+    }
+
+    // Sorting params
+    if (sortField && sortOrder) {
+      params.set("sort_by", sortField);
+      params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+    }
+
+    // Date range params
+    if (dateRange) {
+      params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+    }
+
+    // History scope param (admin for self, others for all history)
+    params.set("history_scope", logType === "self" ? "admin" : "others");
+
+    const response = await api.get(`login-history?${params.toString()}`);
 
     if (!response) throw new Error("Failed to fetch login history");
 
-    // Return all data, we'll filter it based on logType in the component
     return response;
   };
 
   // TanStack Query hook
   const {
-    data: loginData = {},
+    data: loginData = { data: [], pagination: null },
     isLoading,
     isError,
     error,
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["loginHistory", dateRange],
+    queryKey: ["loginHistory", dateRange, logType, currentPage, pageSize, searchText, sortField, sortOrder],
     queryFn: fetchLoginHistory,
-    // enabled: !!authToken,
-    staleTime: 0, // always stale → always background re-fetch
-    refetchOnMount: "always", // force re-fetch on mount
-    refetchOnWindowFocus: true, // re-fetch when tab is focused
-    refetchOnReconnect: true, // re-fetch on network reconnect
-    gcTime: 5 * 60 * 1000,
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    onError: (error) => {
-      console.error("Error fetching login history:", error);
-      message.error(Utils.getErrorMessage(error));
-    },
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+    retry: 1,
   });
 
-  // Filter data based on log type (no API call needed when changing logType)
-  const loginHistory =
-    UserData?.role === "Admin" && logType === "self"
-      ? loginData.admin_history || []
-      : loginData.data || [];
+  // Final data for the table
+  const loginHistory = loginData.data || [];
+  const pagination = loginData.pagination;
 
   // Handle date range change
   const handleDateRangeChange = (dates) => {
+    setCurrentPage(1);
     if (dates) {
       setDateRange({
         startDate: dates[0].format("YYYY-MM-DD"),
@@ -75,7 +92,28 @@ const LoginHistory = () => {
   // Handle log type change
   const handleLogTypeChange = (value) => {
     setLogType(value);
-    // No API call needed since we already have all the data
+    setCurrentPage(1);
+  };
+
+  // Handle pagination change
+  const handlePaginationChange = (page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1);
+    }
+  };
+
+  // Handle search change
+  const handleSearchChange = (value) => {
+    setSearchText(value);
+    setCurrentPage(1);
+  };
+
+  // Handle sort change
+  const handleSortChange = (field, order) => {
+    setSortField(field || null);
+    setSortOrder(order || null);
   };
 
   // Define columns for the table
@@ -85,7 +123,7 @@ const LoginHistory = () => {
       key: "index",
       width: 60,
       align: "center",
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
     {
       title: "User Name",
@@ -194,6 +232,13 @@ const LoginHistory = () => {
       onRefresh={refetch}
       emptyText="No login history found"
       extraHeaderContent={extraHeaderContent}
+      // Server-side pagination props
+      serverSide={true}
+      pagination={pagination}
+      onPaginationChange={handlePaginationChange}
+      onSearch={handleSearchChange}
+      onSortChange={handleSortChange}
+      searchValue={searchText}
     />
   );
 };

@@ -7,6 +7,7 @@ import {
   Modal,
   message,
   Switch,
+  Space,
 } from "antd";
 import {
   PrinterOutlined,
@@ -31,7 +32,7 @@ const { Text } = Typography;
 
 const PosBooking = memo(({ bookingType = 'free' }) => {
   const navigate = useNavigate();
-  const { api, UserData, formatDateTime, authToken } = useMyContext();
+  const { api, UserData, formatDateTime, authToken, truncateString } = useMyContext();
   const queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState(null);
   const [showPrintModel, setShowPrintModel] = useState(false);
@@ -320,18 +321,30 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
   const columns = useMemo(() => {
     const baseColumns = [
       {
+        title: '#',
+        key: 'index',
+        align: 'center',
+        width: 20,
+        render: (_, __, index) => index + 1,
+      },
+      {
         title: 'Event',
         dataIndex: ['event', 'name'],
         align: 'center',
         key: 'event',
-        sorter: (a, b) => a.event?.name?.localeCompare(b.event?.name),
+        render: (name) => (
+          <Tooltip title={name}>
+            <span>{truncateString(name, 14)}</span>
+          </Tooltip>
+        ),
+        // sorter: (a, b) => a.event?.name?.localeCompare(b.event?.name),
       },
       {
         title: 'User',
         dataIndex: 'user_name',
         key: 'posUser',
         align: 'center',
-        sorter: (a, b) => a.user_name?.localeCompare(b.user_name),
+        // sorter: (a, b) => a.user_name?.localeCompare(b.user_name),
       },
 
       {
@@ -340,7 +353,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
         key: 'ticket',
         align: 'center',
         width: 90,
-        sorter: (a, b) => a.ticket?.name?.localeCompare(b.ticket?.name),
+        // sorter: (a, b) => a.ticket?.name?.localeCompare(b.ticket?.name),
         render: (_, record) => {
           if (record.is_set === true) {
             return <Tag color="blue">M Tkts</Tag>;
@@ -356,7 +369,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
         key: 'quantity',
         width: 80,
         align: 'center',
-        sorter: (a, b) => a.quantity - b.quantity,
+        // sorter: (a, b) => a.quantity - b.quantity,
       },
       ...(bookingType !== 'free' ? [
         {
@@ -368,7 +381,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
           render: (discount) => (
             <Text type="danger">₹{Number(discount || 0).toFixed(2)}</Text>
           ),
-          sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
+          // sorter: (a, b) => (a.discount || 0) - (b.discount || 0),
         },
         {
           title: 'T Amt',
@@ -380,7 +393,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
               ₹{Number(totalAmount || 0).toFixed(2)}
             </Text>
           ),
-          sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
+          // sorter: (a, b) => (a.total_amount || 0) - (b.total_amount || 0),
         },
       ] : []),
       // {
@@ -408,7 +421,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
         dataIndex: 'name',
         key: 'customer',
         align: 'center',
-        sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
+        // sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
       },
       {
         title: 'P Date',
@@ -416,31 +429,29 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
         key: 'purchaseDate',
         align: 'center',
         render: (date) => formatDateTime?.(date) || date,
-        sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+        // sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
       {
         title: 'Organizer',
-        dataIndex: ['event', 'user', 'organisation'],
         key: 'organizer',
         align: 'center',
+        render: (_, record) => {
+          const organisation = record?.event?.user?.organisation || record?.bookings?.[0]?.event?.user?.organisation || 'N/A';
+          return (
+            <Tooltip title={organisation}>
+              <span>{truncateString(organisation, 11)}</span>
+            </Tooltip>
+          );
+        },
       },
 
       {
-        title: 'Status',
-        dataIndex: 'is_deleted',
-        key: 'ticketStatus',
+        title: 'Scan',
+        dataIndex: 'is_scaned',
+        key: 'scanStatus',
         align: 'center',
-        fixed: 'right',
-        width: 120,
-        render: (isDeleted, record) => (
-          <Switch
-            checked={!isDeleted}
-            onChange={() => handleToggleStatus(record)}
-            checkedChildren="Active"
-            unCheckedChildren="Disabled"
-            loading={toggleStatusMutation.isPending}
-            disabled={record.status === "1"}
-          />
+        render: (isScanned) => (
+          isScanned ? <Tag color="green">Scanned</Tag> : <Tag>Pending</Tag>
         ),
       },
       {
@@ -448,28 +459,31 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
         key: 'action',
         align: 'center',
         fixed: 'right',
-        width: 80,
+        width: 150,
         render: (_, record) => {
-          const isDisabled = record.is_deleted === true || record.status === "1";
+          const isDeleted = record.is_deleted;
+          const isDisabled = isDeleted === true || record.status === "1";
 
           return (
-            <Tooltip title="Print Ticket">
-              <Button
+            <Space>
+              <Switch
+                checked={!isDeleted}
+                onChange={() => handleToggleStatus(record)}
                 size="small"
-                icon={<PrinterOutlined />}
-                onClick={() => handlePrintBooking(record)}
-                disabled={isDisabled}
+                loading={toggleStatusMutation.isPending}
+                disabled={record.status === "1"}
               />
-            </Tooltip>
+              <Tooltip title="Print Ticket">
+                <Button
+                  size="small"
+                  icon={<PrinterOutlined />}
+                  onClick={() => handlePrintBooking(record)}
+                  disabled={isDisabled}
+                />
+              </Tooltip>
+            </Space>
           );
         },
-      },
-      {
-        title: '#',
-        key: 'index',
-        align: 'center',
-        width: 20,
-        render: (_, __, index) => index + 1,
       },
     ];
 

@@ -24,6 +24,7 @@ const PermissionChecker = ({
   // --- 1️⃣ Get user info from context ---
   const { UserPermissions, userRole } = useMyContext();
 
+
   // --- 2️⃣ Normalize helper ---
   const toArray = (val) =>
     Array.isArray(val) ? val : val != null ? [val] : [];

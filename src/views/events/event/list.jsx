@@ -24,7 +24,7 @@ import Utils from 'utils';
 
 const EventList = ({ isJunk = false }) => {
   const navigate = useNavigate();
-  const { UserData, formatDateTime, isMobile, createSlug } = useMyContext();
+  const { UserData, formatDateTime, isMobile, createSlug, truncateString } = useMyContext();
   const [dateRange, setDateRange] = useState(null);
   const queryClient = useQueryClient();
 
@@ -332,7 +332,12 @@ const EventList = ({ isJunk = false }) => {
         key: 'name',
         align: 'center',
         searchable: true,
-        sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
+        render: (name) => (
+          <Tooltip title={name}>
+            <span>{truncateString(name, 14)}</span>
+          </Tooltip>
+        ),
+        // sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
       },
       {
         title: 'Category',
@@ -349,7 +354,12 @@ const EventList = ({ isJunk = false }) => {
         key: 'organisation',
         align: 'center',
         searchable: true,
-        sorter: (a, b) => (a.user?.organisation || '').localeCompare(b.user?.organisation || ''),
+        render: (organisation) => (
+          <Tooltip title={organisation}>
+            <span>{truncateString(organisation, 11)}</span>
+          </Tooltip>
+        ),
+        // sorter: (a, b) => (a.user?.organisation || '').localeCompare(b.user?.organisation || ''),
       },
       {
         title: 'Event Dates',
@@ -357,18 +367,18 @@ const EventList = ({ isJunk = false }) => {
         key: 'date_range',
         align: 'center',
         render: (text) => formatDateRange(text),
-        sorter: (a, b) => {
-          const dateA = new Date(a.date_range?.split(',')[0]);
-          const dateB = new Date(b.date_range?.split(',')[0]);
-          return dateA - dateB;
-        },
+        // sorter: (a, b) => {
+        //   const dateA = new Date(a.date_range?.split(',')[0]);
+        //   const dateB = new Date(b.date_range?.split(',')[0]);
+        //   return dateA - dateB;
+        // },
       },
       {
         title: 'Ticket Type',
         dataIndex: 'event_type',
         key: 'event_type',
         align: 'center',
-        sorter: (a, b) => (a.event_type || '').localeCompare(b.event_type || ''),
+        // sorter: (a, b) => (a.event_type || '').localeCompare(b.event_type || ''),
       },
       ...(!isJunk ? [{
         title: 'Status',
@@ -376,7 +386,7 @@ const EventList = ({ isJunk = false }) => {
         key: 'event_status',
         align: 'center',
         render: (text) => getStatusBadge(text),
-        sorter: (a, b) => (a.event_status || 0) - (b.event_status || 0),
+        // sorter: (a, b) => (a.event_status || 0) - (b.event_status || 0),
       }] : []),
       {
         title: isJunk ? 'Deleted At' : 'Created At',
@@ -384,9 +394,9 @@ const EventList = ({ isJunk = false }) => {
         key: isJunk ? 'deleted_at' : 'created_at',
         align: 'center',
         render: (text) => formatDateTime(text),
-        sorter: isJunk
-          ? (a, b) => new Date(a.deleted_at) - new Date(b.deleted_at)
-          : (a, b) => new Date(a.created_at) - new Date(b.created_at),
+        // sorter: isJunk
+        //   ? (a, b) => new Date(a.deleted_at) - new Date(b.deleted_at)
+        //   : (a, b) => new Date(a.created_at) - new Date(b.created_at),
       },
 
       // Separate Delete column for junk events

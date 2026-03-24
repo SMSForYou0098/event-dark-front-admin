@@ -1490,7 +1490,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                     )}
 
                     {/* Address */}
-                    {!showRoleGate && <AddressCard />}
+                    {!showRoleGate && ['Admin', 'Organizer'].includes(formState.roleName) && <AddressCard />}
 
                     {/* Banking Details (Admin + Organizer role) */}
                     {formState.roleName === 'Organizer' && <BankingDetailsCard />}

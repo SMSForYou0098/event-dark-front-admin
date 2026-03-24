@@ -319,6 +319,11 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
                 align: 'center',
                 searchable: true,
                 width: 150,
+                render: (organizer) => (
+                    <Tooltip title={organizer}>
+                        <span>{truncateString(organizer, 11)}</span>
+                    </Tooltip>
+                ),
             });
         }
 

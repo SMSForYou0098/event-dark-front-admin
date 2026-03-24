@@ -1,6 +1,6 @@
 // EventControlsStep.jsx
 import React, { useState, useCallback, useEffect } from 'react';
-import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty } from 'antd';
+import { Form, Select, Switch, Card, Row, Col, Space, DatePicker, Modal, Button, List, Tag, Typography, InputNumber, Empty, Input } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { CONSTANTS } from './CONSTANTS';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
@@ -309,18 +309,46 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
         </Col>
 
         <Col xs={24} sm={12} lg={12}>
-          <ContentSelect
-            form={form}
-            fieldName="insta_whts_url" // form will store only the id
-            contentList={contentList}
-            contentType="note"
-            loading={contentLoading}
-            customOrgId={orgId}
-            extra="Please enter the Instagram post ID (not the full URL)."
+          <Form.Item
+            name="insta_whts_url"
             label="Instagram URL"
-            placeholder="Select Instagram URL"
-          // rules={[{ required: false }, { type: "url", message: "Please enter a valid URL" }]}
-          />
+            initialValue=""
+            getValueFromEvent={(e) => {
+              const value = e.target.value;
+              if (value && value.includes('instagram.com/')) {
+                const parts = value.split('instagram.com/');
+                // Extract part after .com/ and remove any query params or trailing slashes
+                return parts[1].split('?')[0].replace(/\/$/, "");
+              }
+              return value;
+            }}
+            extra={
+              <Form.Item noStyle shouldUpdate={(prev, curr) => prev.insta_whts_url !== curr.insta_whts_url}>
+                {({ getFieldValue }) => {
+                  const val = getFieldValue('insta_whts_url');
+                  return (
+                    <div style={{ marginTop: 4 }}>
+                      <Text type="secondary" style={{ fontSize: '12px', display: 'block' }}>
+                        Enter the post ID or username (part after instagram.com/).
+                      </Text>
+                      {val && (
+                        <Text type="success" style={{ fontSize: '12px' }}>
+                          Preview: <a href={`https://www.instagram.com/${val}`} target="_blank" rel="noreferrer" style={{ color: '#52c41a' }}>
+                            https://www.instagram.com/{val}
+                          </a>
+                        </Text>
+                      )}
+                    </div>
+                  );
+                }}
+              </Form.Item>
+            }
+          >
+            <Input
+              addonBefore="https://www.instagram.com/"
+              placeholder="e.g. reels/C12345/ or username"
+            />
+          </Form.Item>
         </Col>
 
         <Col xs={24} sm={12} lg={12}>

@@ -282,7 +282,7 @@ const TicketDrawer = ({
     const drawerFooter = showTicket ? (
         <div className="p-2">
             <div className="text-center text-secondary small mb-3">
-                <p className="mb-0">No physical ticket needed! Download your Ticket & enjoy unlimited fun.</p>
+                <p className="mb-0">No physical ticket needed—download yours and enjoy unlimited fun!</p>
             </div>
             <Row justify="center">
                 <Col xs={24} sm={16} className="d-flex justify-content-center gap-2">

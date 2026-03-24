@@ -140,6 +140,14 @@ const PublishStep = ({ eventData, formData }) => {
               <Text type="secondary" className="d-block mb-1">Venue</Text>
               <Text>{eventData.venue?.city || 'N/A'}</Text>
             </Col>
+            <Col xs={24} sm={12}>
+              <Text type="secondary" className="d-block mb-1">Instagram URL</Text>
+              {eventData?.insta_whts_url ? (
+                <a href={`https://www.instagram.com/${eventData.insta_whts_url}`} target="_blank" rel="noreferrer" style={{ color: '#1677ff' }}>
+                  https://www.instagram.com/{eventData.insta_whts_url}
+                </a>
+              ) : <Text>Not Set</Text>}
+            </Col>
           </Row>
 
           <Divider className="my-2" />

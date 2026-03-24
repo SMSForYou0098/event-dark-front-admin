@@ -332,7 +332,7 @@ const OnlineBookings = memo(({ type }) => {
       title: "#",
       dataIndex: "id",
       key: "index",
-      width: 60,
+      width: 100,
       align: "center",
       render: (_, __, index) => index + 1,
     },
@@ -348,15 +348,15 @@ const OnlineBookings = memo(({ type }) => {
 
         return (
           <Tooltip title={eventName}>
-            <span>{truncateString(eventName, 25)}</span>
+            <span>{truncateString(eventName, 14)}</span>
           </Tooltip>
         );
       },
-      sorter: (a, b) => {
-        const nameA = a?.bookings?.[0]?.event_name || a?.event_name || "";
-        const nameB = b?.bookings?.[0]?.event_name || b?.event_name || "";
-        return nameA.localeCompare(nameB);
-      },
+      // sorter: (a, b) => {
+      //   const nameA = a?.bookings?.[0]?.event_name || a?.event_name || "";
+      //   const nameB = b?.bookings?.[0]?.event_name || b?.event_name || "";
+      //   return nameA.localeCompare(nameB);
+      // },
     },
     {
       title: "Org Name",
@@ -364,8 +364,14 @@ const OnlineBookings = memo(({ type }) => {
       key: "organizer",
       align: "center",
       // searchable: true,
-      render: (_, record) =>
-        record?.bookings?.[0]?.organizer || record?.organizer || "",
+      render: (_, record) => {
+        const orgName = record?.bookings?.[0]?.organizer || record?.organizer || "";
+        return (
+          <Tooltip title={orgName}>
+            <span>{truncateString(orgName, 11)}</span>
+          </Tooltip>
+        );
+      },
     },
     ...(UserPermissions?.includes(`${PERMISSIONS.VIEW_USERNAME}`) || userRole === 'Admin'
       ? [
@@ -507,7 +513,7 @@ const OnlineBookings = memo(({ type }) => {
       key: "created_at",
       align: "center",
       render: (date) => formatDateTime(date),
-      sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
+      // sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
     },
     ...((UserPermissions?.includes("Initiate Refund") || userRole?.toLowerCase() === 'admin') && type !== 'free'
       ? [
@@ -651,7 +657,7 @@ const OnlineBookings = memo(({ type }) => {
       )}
 
       <DataTable
-        title={<span style={{ fontSize: 14 }}>{type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Online'} Bookings</span>}
+        title={<span style={{ fontSize: 14 }}>{type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Online'} </span>}
         data={bookings}
         columns={columns}
         showDateRange={true}
@@ -686,7 +692,10 @@ const OnlineBookings = memo(({ type }) => {
         searchValue={searchText}
         // Export functionality
         enableExport={true}
-        exportRoute="export-onlineBooking"
+        exportRoute="bookings/export"
+        exportPayload={{
+          type: 'online'
+        }}
         ExportPermission={canExportOnline}
         onRefresh={refetch}
         emptyText="No bookings found"

@@ -338,10 +338,18 @@ export const ExpandDataTable = ({
       const link = document.createElement("a");
       link.href = url;
 
-      const contentDisposition = response.headers["content-disposition"];
-      const fileName =
-        contentDisposition?.split("filename=")[1]?.replace(/"/g, "") ||
-        `${title.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      const contentDisposition = response.headers["content-disposition"] || response.headers["Content-Disposition"];
+
+      let fileName = "export.xlsx";
+      if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/);
+        if (fileNameMatch?.[1]) {
+          fileName = fileNameMatch[1];
+        }
+      } else {
+        const safeTitle = typeof title === "string" ? title : "Export";
+        fileName = `${safeTitle.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      }
 
       link.setAttribute("download", fileName);
       document.body.appendChild(link);
@@ -494,6 +502,7 @@ export const ExpandDataTable = ({
           {/* Table Section */}
           <div>
             <Table
+              className="expand-compact-table"
               columns={enhancedColumns}
               dataSource={serverSide ? data : filteredData}
               rowKey={(record) => {

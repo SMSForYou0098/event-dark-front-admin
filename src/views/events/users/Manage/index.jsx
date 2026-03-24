@@ -63,7 +63,7 @@ const ManageUser = ({ mode = "edit" }) => {
         </span>
       ),
       children: <ProfileTab setSelectedRole={setSelectedRole} setUserNumber={setUserNumber} mode={mode} id={id} />,
-      permission: PERMISSIONS.UPDATE_USER,
+      permission: [PERMISSIONS.EDIT_USER, PERMISSIONS.EDIT_PROFILE],
     },
     {
       key: "2",
@@ -111,13 +111,12 @@ const ManageUser = ({ mode = "edit" }) => {
   ];
 
   // helper to check permission (admins bypass permissions)
-  const hasPermission = (
-    (permission) => {
-      if (!permission) return true;
-      if (userRole === 'Admin') return true;
-      return Array.isArray(UserPermissions) && UserPermissions.includes(permission);
-    }
-  );
+  const hasPermission = (permission) => {
+    if (!permission) return true;
+    if (userRole === 'Admin') return true;
+    const requiredPermissions = Array.isArray(permission) ? permission : [permission];
+    return requiredPermissions.some(p => UserPermissions?.includes(p));
+  };
 
   // Filter tabs based on conditions and permissions
   const tabItems = allTabItems.filter(

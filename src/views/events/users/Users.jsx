@@ -30,6 +30,7 @@ import PermissionChecker from "layouts/PermissionChecker";
 import usePermission from "utils/hooks/usePermission";
 import { roles } from "./constants";
 import Utils from "utils";
+import { PERMISSIONS } from "constants/PermissionConstant";
 
 const Users = () => {
   const navigate = useNavigate();
@@ -61,9 +62,9 @@ const Users = () => {
     userId: null,
   });
 
-  const canUpdate = usePermission("Update User");
-  const canDelete = usePermission("Delete User");
-  const canImpersonate = usePermission("Impersonet");
+  const canUpdate = usePermission([PERMISSIONS.UPDATE_USER, PERMISSIONS.EDIT_USER]);
+  const canDelete = usePermission(PERMISSIONS.DELETE_USER);
+  const canImpersonate = usePermission(PERMISSIONS.IMPERSONATE);
 
   // Fetch users data
   const fetchUsers = async () => {
@@ -298,10 +299,6 @@ const Users = () => {
     refetchUsers();
   };
 
-  // Custom tooltip component
-  const CustomTooltip = ({ text, children }) => {
-    return <span title={text}>{children}</span>;
-  };
 
   // Columns definition
   const columns = [
@@ -320,7 +317,7 @@ const Users = () => {
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
     },
-    ...(UserPermissions?.includes("View User Number") || userRole === "Admin"
+    ...(UserPermissions?.includes(PERMISSIONS.VIEW_USER_NUMBER) || userRole === "Admin"
       ? [
         {
           title: "Contact",
@@ -331,74 +328,76 @@ const Users = () => {
             const contactStr = cell?.toString() || "";
             const masked =
               contactStr.length > 5 ? "**" + contactStr.slice(5) : "**";
-            return <CustomTooltip text={contactStr}>{masked}</CustomTooltip>;
+            return <Tooltip title={contactStr}><span>{masked}</span></Tooltip>;
           },
         },
       ]
       : []),
-    ...(userRole === "Admin" || UserPermissions?.includes("View User Email")
+    ...(userRole === "Admin" || UserPermissions?.includes(PERMISSIONS.VIEW_USER_EMAIL)
       ? [
         {
           title: "Email",
           dataIndex: "email",
           key: "email",
+          align: "center",
           searchable: true,
           render: (email) => {
             if (!email) return "N/A";
             const firstChar = email.charAt(0);
             const lastChar = email.charAt(email.length - 1);
             const maskedEmail = `${firstChar}...${lastChar}`;
-            return <CustomTooltip text={email}>{maskedEmail}</CustomTooltip>;
+            return <Tooltip title={email}><span>{maskedEmail}</span></Tooltip>;
           },
         },
       ]
       : []),
     {
-      title: "Authentication",
+      title: "Auth",
       dataIndex: "authentication",
       key: "authentication",
+      align: "center",
       render: (cell) => (parseInt(cell) === 1 ? "Password" : "OTP"),
       searchable: false,
     },
-    {
-      title: 'Role',
-      dataIndex: 'role_name',
-      key: 'role_name',
-      render: (role, record) => {
-        const roleColors = {
-          'User': 'red',
-          'Admin': 'magenta',
-          'Organizer': 'blue',
-          'POS': 'green',
-          'Agent': 'cyan',
-          'Scanner': 'purple',
-          'Support-Executive': 'orange',
-          'Shop-Keeper': 'gold',
-          'Box-Office-Manager': 'geekblue',
-          'Sponsor': 'volcano',
-          'Sub Admin': 'red',
-          'Accreditation': 'lime'
-        };
+    // {
+    //   title: 'Role',
+    //   dataIndex: 'role_name',
+    //   key: 'role_name',
+    //   render: (role, record) => {
+    //     const roleColors = {
+    //       'User': 'red',
+    //       'Admin': 'magenta',
+    //       'Organizer': 'blue',
+    //       'POS': 'green',
+    //       'Agent': 'cyan',
+    //       'Scanner': 'purple',
+    //       'Support-Executive': 'orange',
+    //       'Shop-Keeper': 'gold',
+    //       'Box-Office-Manager': 'geekblue',
+    //       'Sponsor': 'volcano',
+    //       'Sub Admin': 'red',
+    //       'Accreditation': 'lime'
+    //     };
 
-        const roleColor = roleColors[record.role_name] || 'default';
+    //     const roleColor = roleColors[record.role_name] || 'default';
 
-        return (
-          <span>
-            {Array.isArray(role) ? (
-              role.map((roleName, index) => (
-                <Tag color={roleColors[roleName] || 'default'} key={index}>
-                  {roleName}
-                </Tag>
-              ))
-            ) : (
-              <Tag color={roleColor}>
-                {record.role_name || 'N/A'}
-              </Tag>
-            )}
-          </span>
-        );
-      }
-    },
+    //     return (
+    //       <span>
+    //         {Array.isArray(role) ? (
+    //           role.map((roleName, index) => (
+    //             <Tag color={roleColors[roleName] || 'default'} key={index}>
+    //               {roleName}
+    //             </Tag>
+    //           ))
+    //         ) : (
+    //           <Tag color={roleColor}>
+    //             {record.role_name || 'N/A'}
+    //           </Tag>
+    //         )}
+    //       </span>
+    //     );
+    //   }
+    // },
     // {
     //   title: 'Tags',
     //   render: tags => (
@@ -408,34 +407,35 @@ const Users = () => {
     //       </Tag>
     //     </span>
     //   )
-    // },
-    ...(userRole === "Admin"
-      ? [
-        {
-          title: "Organisation",
-          dataIndex: "organisation",
-          key: "organisation",
-          searchable: true,
-          render: (org) => org || "N/A",
-        },
-      ]
-      : []),
-    ...(userRole === "Admin" || userRole === "Organizer"
-      ? [
-        {
-          title: "Reporting User",
-          dataIndex: "reporting_user",
-          key: "reporting_user",
-          searchable: true,
-          render: (user) => user || "N/A",
-        },
-      ]
-      : []),
+    // // },
+    // ...(userRole === "Admin"
+    //   ? [
+    //     {
+    //       title: "Organisation",
+    //       dataIndex: "organisation",
+    //       key: "organisation",
+    //       searchable: true,
+    //       render: (org) => org || "N/A",
+    //     },
+    //   ]
+    //   : []),
+    // ...(userRole === "Admin" || userRole === "Organizer"
+    //   ? [
+    //     {
+    //       title: "Reporting User",
+    //       dataIndex: "reporting_user",
+    //       key: "reporting_user",
+    //       searchable: true,
+    //       render: (user) => user || "N/A",
+    //     },
+    //   ]
+    //   : []),
     ...(userRole === "Admin"
       ? [
         {
           title: "Approval Status",
           dataIndex: "activity_status",
+          align: "center",
           key: "activity_status",
           render: (status) => {
             return (
@@ -452,12 +452,44 @@ const Users = () => {
       dataIndex: "created_at",
       key: "created_at",
       width: "12%",
+      align: "center",
       sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
       render: (cell) => formatDateTime(cell),
       searchable: false,
     },
+    // Delete column
+    ...(canDelete || userRole === "Admin"
+      ? [
+        {
+          title: "Delete",
+          key: "delete",
+          // fixed: "right",
+          width: 80,
+          align: "center",
+          render: (_, record) => {
+            const isDisabled = record?.is_deleted || record?.status === "1";
+
+            return (
+              <PermissionChecker permission={PERMISSIONS.DELETE_USER}>
+                <Tooltip title="Delete User">
+                  <Button
+                    size="small"
+                    type="default"
+                    danger={true}
+                    icon={<Trash2 size={14} />}
+                    onClick={() => handleDelete(record.id)}
+                    disabled={isDisabled || mutationLoading}
+                    loading={deleteUserMutation.isPending}
+                  />
+                </Tooltip>
+              </PermissionChecker>
+            );
+          }
+        }
+      ]
+      : []),
     // Actions column
-    ...(canUpdate || canDelete || canImpersonate || userRole === "Admin"
+    ...(canUpdate || canImpersonate || userRole === "Admin"
       ? [
         {
           title: "Actions",
@@ -469,23 +501,15 @@ const Users = () => {
 
             const actions = [
               {
-                permission: "Update User",
+                permission: [PERMISSIONS.EDIT_USER, PERMISSIONS.EDIT_PROFILE],
                 tooltip: "Manage User",
                 icon: <Settings size={14} />,
                 onClick: () => handleAssignCredit(record.id),
                 type: "default",
               },
+
               {
-                permission: "Delete User",
-                tooltip: "Delete User",
-                icon: <Trash2 size={14} />,
-                onClick: () => handleDelete(record.id),
-                type: "default",
-                danger: true,
-                loading: deleteUserMutation.isPending,
-              },
-              {
-                permission: "Impersonet",
+                permission: PERMISSIONS.IMPERSONATE,
                 tooltip: `Login as ${record.name}`,
                 icon: <LogIn size={14} />,
                 onClick: () => handleImpersonate(record.id),
@@ -498,7 +522,11 @@ const Users = () => {
               <div className="action-btn">
                 <Space>
                   {actions.map((action, index) => (
-                    <PermissionChecker key={index} permission={action.permission}>
+                    <PermissionChecker
+                      key={index}
+                      permission={action.permission}
+                      matchType="OR"
+                    >
                       <Tooltip title={action.tooltip}>
                         <Button
                           size="small"
@@ -595,7 +623,7 @@ const Users = () => {
       </Modal>
 
       <DataTable
-        title="Users Management"
+        title="Users"
         data={formatUserData(users)}
         columns={columns}
         // Display controls
@@ -617,14 +645,14 @@ const Users = () => {
         // Export functionality
         enableExport={true}
         exportRoute={"export-users"}
-        ExportPermission={userRole === "Admin" || UserPermissions?.includes("Export Users")}
+        ExportPermission={userRole === "Admin" || UserPermissions?.includes(PERMISSIONS.EXPORT_USERS)}
         // Loading states
         loading={usersLoading || mutationLoading}
         error={usersError}
         // Refresh handler
         onRefresh={handleRefresh}
         extraHeaderContent={
-          <PermissionChecker permission="Add User">
+          <PermissionChecker permission={PERMISSIONS.ADD_USER}>
             <Tooltip title={"Add User"}>
               <Button
                 type="primary"

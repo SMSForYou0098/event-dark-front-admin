@@ -12,6 +12,7 @@ import { persistor } from 'store';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { withAccess } from '../common/withAccess';
 import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 
 const Organizers = () => {
   const {
@@ -21,7 +22,8 @@ const Organizers = () => {
     auth_session,
     session_id,
     loader,
-    userRole
+    userRole,
+    truncateString
   } = useMyContext();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -31,6 +33,10 @@ const Organizers = () => {
   const [selectedRole, setSelectedRole] = useState(userRole === 'Admin' ? 'Organizer' : 'POS');
   const [mutationLoading, setMutationLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
+
+  // Backend pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
   // Fetch roles
   const { data: roles = [] } = useQuery({
     queryKey: ["roles"],
@@ -54,28 +60,31 @@ const Organizers = () => {
     if (searchText) {
       params.set("search", searchText);
     }
+    // Pagination params
+    params.set("page", currentPage.toString());
+    params.set("per_page", pageSize.toString());
+
     const url = `users-by-role/${selectedRole}?${params.toString()}`;
     // const url = `users-by-role/${selectedRole}`;
     const response = await api.get(url);
     if (!response.status) {
       throw new Error(response.message || 'Failed to fetch organizers');
     }
-    return response.data || [];
+    return response || { data: [], pagination: null };
   };
 
   const {
-    data: organizers = [],
+    data: organizersData = { data: [], pagination: null },
     isLoading: organizersLoading,
     error: organizersError,
     refetch: refetchOrganizers
   } = useQuery({
-    queryKey: ['organizers', { dateRange, selectedRole, searchText }],
+    queryKey: ['organizers', { dateRange, selectedRole, searchText, currentPage, pageSize }],
     queryFn: fetchOrganizers,
     enabled: !!authToken && !!apiUrl,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 30 * 60 * 1000, // 30 minutes
     refetchOnMount: "ifStale",
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
     onError: (err) => {
       setError(Utils.getErrorMessage(err));
@@ -134,19 +143,32 @@ const Organizers = () => {
   };
 
   const handleDateRangeChange = useCallback((dates) => {
+    setCurrentPage(1);
     setDateRange(dates ? {
       startDate: dates[0].format('YYYY-MM-DD'),
       endDate: dates[1].format('YYYY-MM-DD')
     } : null);
   }, []);
 
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value);
+    setCurrentPage(1);
+  }, []);
+
+  const handlePaginationChange = (page, newPageSize) => {
+    setCurrentPage(page);
+    if (newPageSize !== pageSize) {
+      setPageSize(newPageSize);
+      setCurrentPage(1);
+    }
+  };
+
   const handleRefresh = () => {
     refetchOrganizers();
   };
 
-  const handleSearchChange = useCallback((value) => {
-    setSearchText(value);
-  }, []);
+  const organizers = organizersData?.data || [];
+  const pagination = organizersData?.pagination;
 
   const formatOrganizerData = (organizers) => {
     return organizers.map(organizer => ({
@@ -226,7 +248,7 @@ const Organizers = () => {
       dataIndex: 'id',
       width: '50px',
       key: 'id',
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
       searchable: false,
     },
     {
@@ -259,13 +281,22 @@ const Organizers = () => {
       dataIndex: 'number',
       key: 'number',
       searchable: true,
+      align: 'center',
       render: (number) => number || 'N/A'
     },
     {
       title: 'Organization',
       dataIndex: 'reportingUser',
       key: 'reportingUser',
-      render: (reportingUser, record) => reportingUser?.organisation || record.organisation || 'N/A'
+      align: 'center',
+      render: (reportingUser, record) => {
+        const orgName = reportingUser?.organisation || record.organisation || 'N/A';
+        return (
+          <Tooltip title={orgName}>
+            <span>{truncateString(orgName, 11)}</span>
+          </Tooltip>
+        );
+      }
     },
     {
       title: 'Created At',
@@ -285,12 +316,11 @@ const Organizers = () => {
     title: 'Actions',
     key: 'actions',
     fixed: 'right',
-    width: '150px',
+    width: '100px',
     align: 'center',
     render: (_, record) => (
       <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-        <PermissionChecker permission="Impersonet">
-          {/* <Tooltip title="Impersonate User"> */}
+        <PermissionChecker permission={PERMISSIONS.IMPERSONATE}>
           <Button
             type="primary"
             icon={<LogIn size={14} />}
@@ -299,10 +329,9 @@ const Organizers = () => {
             disabled={mutationLoading || record?.status === "0" || record?.status === 0}
             size="small"
           />
-          {/* </Tooltip> */}
         </PermissionChecker>
 
-        <PermissionChecker permission="Update User">
+        <PermissionChecker permission={[PERMISSIONS.UPDATE_USER, PERMISSIONS.EDIT_USER]}>
           <Tooltip title="Edit User">
             <Button
               type="default"
@@ -313,20 +342,29 @@ const Organizers = () => {
             />
           </Tooltip>
         </PermissionChecker>
-
-        <PermissionChecker permission="Delete User">
-          <Tooltip title="Delete User">
-            <Button
-              type="default"
-              icon={<Trash2 size={14} />}
-              onClick={() => handleDelete(record.id)}
-              size="small"
-              disabled={mutationLoading}
-            />
-          </Tooltip>
-        </PermissionChecker>
-
       </div>
+    ),
+  });
+
+  actionColumns.push({
+    title: 'Delete',
+    key: 'delete',
+    // fixed: 'right',
+    width: '80px',
+    align: 'center',
+    render: (_, record) => (
+      <PermissionChecker permission={PERMISSIONS.DELETE_USER}>
+        <Tooltip title="Delete User">
+          <Button
+            type="default"
+            icon={<Trash2 size={14} />}
+            onClick={() => handleDelete(record.id)}
+            size="small"
+            danger
+            disabled={mutationLoading}
+          />
+        </Tooltip>
+      </PermissionChecker>
     ),
   });
 
@@ -337,7 +375,7 @@ const Organizers = () => {
       {renderMutationLoader()}
 
       <DataTable
-        title={`${selectedRole} Management`}
+        title={`${selectedRole}`}
         data={formatOrganizerData(organizers)}
         columns={columns}
         showDateRange={true}
@@ -352,7 +390,10 @@ const Organizers = () => {
             <Select
               placeholder="Select Role"
               value={selectedRole}
-              onChange={(value) => setSelectedRole(value)}
+              onChange={(value) => {
+                setSelectedRole(value);
+                setCurrentPage(1);
+              }}
               style={{ minWidth: 150 }}
             >
               {roles
@@ -366,7 +407,7 @@ const Organizers = () => {
                   </Select.Option>
                 ))}
             </Select>
-            <PermissionChecker permission="Add User">
+            <PermissionChecker permission={PERMISSIONS.ADD_USER}>
               <Tooltip title={`Add ${selectedRole}`}>
                 <Button
                   type="primary"
@@ -387,6 +428,8 @@ const Organizers = () => {
         onRefresh={handleRefresh}
         onSearch={handleSearchChange}
         searchValue={searchText}
+        pagination={pagination}
+        onPaginationChange={handlePaginationChange}
         tableProps={{
           scroll: { x: 1200 },
           size: "middle",
