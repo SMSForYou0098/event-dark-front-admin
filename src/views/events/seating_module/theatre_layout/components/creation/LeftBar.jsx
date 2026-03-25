@@ -90,15 +90,7 @@ const LeftBar = (props) => {
                         }}
                     >
 
-                        {/* Standing Section Info */}
-                        {section.type === 'Standing' && (
-                            <div className="px-2 py-1 mb-1">
-                                <Space>
-                                    <span>🎫</span>
-                                    <span>Tickets: {section.totalTickets || 0}</span>
-                                </Space>
-                            </div>
-                        )}
+
 
                         {/* Rows (only for non-standing sections) */}
                         {section.type !== 'Standing' && section.rows.map(row => (

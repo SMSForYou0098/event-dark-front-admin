@@ -1,7 +1,8 @@
 // BookingLayout.jsx - IMPROVED VERSION WITH CUSTOM HOOK
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Card, Row, Col, message, Modal } from 'antd';
+import { Card, Row, Col, message, Modal, Space, Button, Drawer } from 'antd';
 import { FaClock } from 'react-icons/fa';
+import { PlusOutlined, MinusOutlined } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';
 import Loader from 'utils/Loader';
 import useBooking from './components/Usebooking';
@@ -10,7 +11,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 const BookingLayout = forwardRef((props, ref) => {
     const { layoutId, eventId, setSelectedTkts, allowMultiple = false } = props;
     const stageRef = useRef(null);
-    const { UserData } = useMyContext();
+    const { UserData, isMobile } = useMyContext();
 
     // Custom booking hook
     const {
@@ -19,8 +20,10 @@ const BookingLayout = forwardRef((props, ref) => {
         sections,
         setSections,
         handleSeatClick,
+        handleStandingTickets,
         markSelectedSeatsAsBooked,
         updateSeatsByIds,
+        maxSeats
     } = useBooking({
         maxSeats: 10,
         holdDuration: 600, // 10 minutes
@@ -133,6 +136,11 @@ const BookingLayout = forwardRef((props, ref) => {
     const [stage, setStage] = useState(null);
     const [canvasScale, setCanvasScale] = useState(1);
     const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
+
+    // Standing Section Modal State
+    const [isStandingModalVisible, setIsStandingModalVisible] = useState(false);
+    const [selectedStandingSection, setSelectedStandingSection] = useState(null);
+    const [standingQuantity, setStandingQuantity] = useState(0);
 
     const handleRemoveSeat = () => {
         setSelectedSeats([]);
@@ -272,6 +280,29 @@ const BookingLayout = forwardRef((props, ref) => {
         stageInst.batchDraw();
     };
 
+    const handleStandingSectionClick = (section) => {
+        setSelectedStandingSection(section);
+        const ticketId = section.ticket?.id;
+        if (!ticketId) {
+            message.error("This section has no ticket assigned.");
+            return;
+        }
+
+        const existingTicket = selectedSeats.find(t => t.id === ticketId);
+        let qty = 0;
+        if (existingTicket) {
+            qty = existingTicket.standingQuantities?.[section.id] || 0;
+        }
+        setStandingQuantity(qty);
+        setIsStandingModalVisible(true);
+    };
+
+    const handleConfirmStandingTickets = () => {
+        if (!selectedStandingSection) return;
+        handleStandingTickets(selectedStandingSection, standingQuantity);
+        setIsStandingModalVisible(false);
+    };
+
     if (isLoading) {
         return (
             <Loader />
@@ -290,6 +321,7 @@ const BookingLayout = forwardRef((props, ref) => {
                             sections={sections}
                             selectedSeats={selectedSeats}
                             onSeatClick={handleSeatClick}
+                            onStandingSectionClick={handleStandingSectionClick}
                             handleWheel={handleWheel}
                             setStagePosition={setStagePosition}
                             layoutId={layoutId}
@@ -311,6 +343,92 @@ const BookingLayout = forwardRef((props, ref) => {
                     </Col> */}
             </Row>
 
+            {isMobile ? (
+                <Drawer
+                    title={`Select Quantity for ${selectedStandingSection?.name || 'Standing Area'}`}
+                    placement="bottom"
+                    onClose={() => setIsStandingModalVisible(false)}
+                    open={isStandingModalVisible}
+                    height="auto"
+                >
+                    <div className="d-flex flex-column align-items-center justify-content-center py-2">
+                        <div style={{ marginBottom: 16, color: '#888' }}>
+                            {selectedStandingSection?.ticket?.name} (₹{selectedStandingSection?.ticket?.price})
+                        </div>
+                        <Space size="large" align="center">
+                            <Button
+                                shape="circle"
+                                icon={<MinusOutlined />}
+                                onClick={() => setStandingQuantity(Math.max(0, standingQuantity - 1))}
+                                disabled={standingQuantity <= 0}
+                            />
+                            <div style={{ fontSize: 24, fontWeight: 'bold', minWidth: 40, textAlign: 'center' }}>
+                                {standingQuantity}
+                            </div>
+                            <Button
+                                shape="circle"
+                                icon={<PlusOutlined />}
+                                onClick={() => {
+                                    const ticketLimit = selectedStandingSection?.ticket?.selection_limit ? parseInt(selectedStandingSection.ticket.selection_limit) : maxSeats;
+                                    setStandingQuantity(Math.min(ticketLimit, standingQuantity + 1));
+                                }}
+                                disabled={standingQuantity >= (selectedStandingSection?.ticket?.selection_limit ? parseInt(selectedStandingSection.ticket.selection_limit) : maxSeats)}
+                            />
+                        </Space>
+                        <div style={{ marginTop: 16, color: '#888', fontSize: 13, textAlign: 'center' }}>
+                            Maximum {selectedStandingSection?.ticket?.selection_limit || maxSeats} tickets allowed for this category
+                        </div>
+                        <Button
+                            type="primary"
+                            block
+                            size="large"
+                            style={{ marginTop: 24 }}
+                            onClick={handleConfirmStandingTickets}
+                        >
+                            Confirm Selection
+                        </Button>
+                    </div>
+                </Drawer>
+            ) : (
+                <Modal
+                    title={`Select Quantity for ${selectedStandingSection?.name || 'Standing Area'}`}
+                    open={isStandingModalVisible}
+                    onOk={handleConfirmStandingTickets}
+                    onCancel={() => setIsStandingModalVisible(false)}
+                    okText="Confirm"
+                    centered
+                    destroyOnClose
+                >
+                    <div className="d-flex flex-column align-items-center justify-content-center py-4">
+                        <div style={{ marginBottom: 16, color: '#888' }}>
+                            {selectedStandingSection?.ticket?.name} (₹{selectedStandingSection?.ticket?.price})
+                        </div>
+                        <Space size="large" align="center">
+                            <Button
+                                shape="circle"
+                                icon={<MinusOutlined />}
+                                onClick={() => setStandingQuantity(Math.max(0, standingQuantity - 1))}
+                                disabled={standingQuantity <= 0}
+                            />
+                            <div style={{ fontSize: 24, fontWeight: 'bold', minWidth: 40, textAlign: 'center' }}>
+                                {standingQuantity}
+                            </div>
+                            <Button
+                                shape="circle"
+                                icon={<PlusOutlined />}
+                                onClick={() => {
+                                    const ticketLimit = selectedStandingSection?.ticket?.selection_limit ? parseInt(selectedStandingSection.ticket.selection_limit) : maxSeats;
+                                    setStandingQuantity(Math.min(ticketLimit, standingQuantity + 1));
+                                }}
+                                disabled={standingQuantity >= (selectedStandingSection?.ticket?.selection_limit ? parseInt(selectedStandingSection.ticket.selection_limit) : maxSeats)}
+                            />
+                        </Space>
+                        <div style={{ marginTop: 16, color: '#888', fontSize: 13, textAlign: 'center' }}>
+                            Maximum {selectedStandingSection?.ticket?.selection_limit || maxSeats} tickets allowed for this category
+                        </div>
+                    </div>
+                </Modal>
+            )}
         </div>
     );
 });

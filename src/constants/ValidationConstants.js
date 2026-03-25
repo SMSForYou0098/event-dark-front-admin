@@ -13,6 +13,12 @@ export const VALIDATION_REGEX = {
 
     // IFSC Code: 11 characters (e.g., SBIN0001234)
     IFSC: /^[A-Z]{4}0[A-Z0-9]{6}$/,
+
+    // Name: Only letters and spaces
+    NAME: /^[a-zA-Z\s]+$/,
+
+    // Mobile: 10-12 digits
+    MOBILE_LONG: /^\d{10,12}$/,
 };
 
 export const VALIDATION_MESSAGES = {
@@ -22,6 +28,8 @@ export const VALIDATION_MESSAGES = {
     PINCODE: 'Please enter a valid 6-digit pincode',
     IFSC: 'Please enter a valid IFSC code (e.g., SBIN0001234)',
     EMAIL: 'Please enter a valid email address',
+    NAME: 'Name must contain only letters and spaces',
+    MOBILE_LONG: 'Please enter a valid 10-12 digit mobile number',
     REQUIRED: (field) => `Please enter ${field}`,
 };
 
@@ -50,7 +58,12 @@ export const VALIDATION_RULES = {
         { type: 'email', message: VALIDATION_MESSAGES.EMAIL }
     ],
     NAME: [
-        { required: true, message: VALIDATION_MESSAGES.REQUIRED('name') }
+        { required: true, message: VALIDATION_MESSAGES.REQUIRED('name') },
+        { pattern: VALIDATION_REGEX.NAME, message: VALIDATION_MESSAGES.NAME }
+    ],
+    MOBILE_LONG: [
+        { required: true, message: VALIDATION_MESSAGES.REQUIRED('mobile number') },
+        { pattern: VALIDATION_REGEX.MOBILE_LONG, message: VALIDATION_MESSAGES.MOBILE_LONG }
     ],
     PINCODE: [
         { pattern: VALIDATION_REGEX.PINCODE, message: VALIDATION_MESSAGES.PINCODE }

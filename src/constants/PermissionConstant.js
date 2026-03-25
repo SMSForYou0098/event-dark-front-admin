@@ -104,6 +104,7 @@ export const PERMISSIONS = {
     // Operations & Support
     VIEW_BOX_OFFICE: "View Box Office",
     VIEW_USER_INQUIRIES: "View User Inquiries",
+    VIEW_APPROVE_REVIEWS: "View Approve Reviews",
     EXPORT_CONTACT_APPLICATIONS: "Export Contact Applications",
     VIEW_ROLES: "View Roles",
     VIEW_PERMISSIONS: "View Permissions",

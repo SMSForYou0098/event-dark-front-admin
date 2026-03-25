@@ -446,15 +446,7 @@ const CenterCanvas = (props) => {
                     fontStyle="bold"
                     align="center"
                   />
-                  <Text
-                    x={20}
-                    y={section.height / 2 + 5}
-                    width={section.width - 40}
-                    text={`Tickets: ${section.totalTickets || 0}`}
-                    fontSize={14}
-                    fill="#CCCCCC"
-                    align="center"
-                  />
+
                 </Group>
               )}
 

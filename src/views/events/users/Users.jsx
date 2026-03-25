@@ -430,23 +430,23 @@ const Users = () => {
     //     },
     //   ]
     //   : []),
-    ...(userRole === "Admin"
-      ? [
-        {
-          title: "Approval Status",
-          dataIndex: "activity_status",
-          align: "center",
-          key: "activity_status",
-          render: (status) => {
-            return (
-              <Tag color={status ? "green" : "orange"}>
-                {status ? "Approved" : "Pending"}
-              </Tag>
-            );
-          },
-        },
-      ]
-      : []),
+    // ...(userRole === "Admin"
+    //   ? [
+    //     {
+    //       title: "Approval Status",
+    //       dataIndex: "activity_status",
+    //       align: "center",
+    //       key: "activity_status",
+    //       render: (status) => {
+    //         return (
+    //           <Tag color={status ? "green" : "orange"}>
+    //             {status ? "Approved" : "Pending"}
+    //           </Tag>
+    //         );
+    //       },
+    //     },
+    //   ]
+    //   : []),
     {
       title: "Created At",
       dataIndex: "created_at",

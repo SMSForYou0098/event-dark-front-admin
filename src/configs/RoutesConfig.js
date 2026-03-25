@@ -762,6 +762,15 @@ export const protectedRoutes = [
             permissions: [PERMISSIONS.VIEW_USER_INQUIRIES],
         }
     },
+    {
+        key: 'approve-reviews',
+        path: `/approve-reviews`,
+        component: React.lazy(() => import('views/events/ApproveReviews/index')),
+        meta: {
+            roles: ['admin'],
+            permissions: [PERMISSIONS.VIEW_APPROVE_REVIEWS],
+        }
+    },
 
     // ==================== VENUES & ARTISTS ====================
     {

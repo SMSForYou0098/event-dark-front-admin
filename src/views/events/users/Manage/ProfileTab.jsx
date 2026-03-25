@@ -139,7 +139,12 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
     // Fetch user data in edit mode
     const { data: fetchedData, isLoading: loading, refetch } = useQuery({
         queryKey: ["user", id],
-        enabled: mode === "edit" && Boolean(id),
+        enabled:
+            mode === "edit" &&
+            id &&
+            id !== "new" &&
+            id !== "null" &&
+            id !== "undefined",
         queryFn: async () => {
             const res = await apiClient.get(`edit-user/${id}`);
             if (!res?.status) {
@@ -791,8 +796,22 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             if (mode === "create") {
                 navigate(-1);
             }
+        } else {
+            // ✅ Handle validation errors from backend
+            if (response.data?.errors) {
+                const errorFields = Object.keys(response.data.errors).map(field => ({
+                    name: field,
+                    errors: response.data.errors[field]
+                }));
+                form.setFields(errorFields);
+                message.error(response.data.message || 'Validation failed. Please check the fields.');
+            } else {
+                message.error(response.data?.message || `Failed to ${mode === "create" ? "create" : "update"} user`);
+            }
         }
-        refetch();
+        if (mode === "edit") {
+            refetch();
+        }
 
         return response;
     };

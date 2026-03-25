@@ -50,6 +50,8 @@ const RightPanel = (props) => {
   const [numberOfGaps, setNumberOfGaps] = React.useState(1); // NEW: Number of gaps to add
   const [previousRowId, setPreviousRowId] = React.useState(null); // Track previous row ID
 
+  console.log('isAssignMode', isAssignMode)
+
   // Helper function to extract first gap information from a row
   const extractFirstGapFromRow = React.useCallback((row) => {
     if (!row?.seats || row.seats.length === 0) return null;
@@ -228,75 +230,71 @@ const RightPanel = (props) => {
         {/* Section Editor */}
         {selectedType === 'section' && selectedElement && (
           <Form layout="vertical" className="editor-form">
-            <Form.Item label="Section Name">
-              <Input
-                value={selectedElement.name}
-                onChange={(e) => {
-                  updateSection(selectedElement.id, { name: e.target.value });
-                  setSelectedElement({ ...selectedElement, name: e.target.value });
-                }}
-              />
-            </Form.Item>
-
-            <Form.Item label="Section Type">
-              <Select
-                value={selectedElement.type}
-                onChange={(value) => {
-                  updateSection(selectedElement.id, { type: value });
-                  setSelectedElement({ ...selectedElement, type: value });
-                }}
-                options={[
-                  { value: 'Regular', label: 'Regular' },
-                  { value: 'Balcony', label: 'Balcony' },
-                  { value: 'VIP', label: 'VIP' },
-                  { value: 'Lower', label: 'Lower' },
-                  { value: 'Upper', label: 'Upper' },
-                  { value: 'Standing', label: 'Standing' }
-                ]}
-              />
-            </Form.Item>
-
-            <Form.Item label="Width">
-              <InputNumber
-                value={selectedElement.width}
-                onChange={(value) => {
-                  updateSection(selectedElement.id, { width: value });
-                  setSelectedElement({ ...selectedElement, width: value });
-                }}
-                className="w-100"
-              />
-            </Form.Item>
-
-            <Form.Item label="Height">
-              <InputNumber
-                value={selectedElement.height}
-                onChange={(value) => {
-                  updateSection(selectedElement.id, { height: value });
-                  setSelectedElement({ ...selectedElement, height: value });
-                }}
-                className="w-100"
-              />
-            </Form.Item>
-
-            {selectedElement.type === 'Standing' ? (
+            {
+              !isAssignMode &&
               <>
-                <Form.Item label="Total Tickets">
-                  <InputNumber
-                    min={1}
-                    value={selectedElement.totalTickets || 0}
-                    onChange={(value) => {
-                      updateSection(selectedElement.id, { totalTickets: value });
-                      setSelectedElement({ ...selectedElement, totalTickets: value });
+
+                <Form.Item label="Section Name">
+                  <Input
+                    value={selectedElement.name}
+                    onChange={(e) => {
+                      updateSection(selectedElement.id, { name: e.target.value });
+                      setSelectedElement({ ...selectedElement, name: e.target.value });
                     }}
-                    className="w-100"
-                    placeholder="Enter total tickets"
                   />
                 </Form.Item>
+
+                <Form.Item label="Section Type">
+                  <Select
+                    value={selectedElement.type}
+                    onChange={(value) => {
+                      updateSection(selectedElement.id, { type: value });
+                      setSelectedElement({ ...selectedElement, type: value });
+                    }}
+                    options={[
+                      { value: 'Regular', label: 'Regular' },
+                      { value: 'Balcony', label: 'Balcony' },
+                      { value: 'VIP', label: 'VIP' },
+                      { value: 'Lower', label: 'Lower' },
+                      { value: 'Upper', label: 'Upper' },
+                      { value: 'Standing', label: 'Standing' }
+                    ]}
+                  />
+                </Form.Item>
+
+                <Form.Item label="Width">
+                  <InputNumber
+                    value={selectedElement.width}
+                    onChange={(value) => {
+                      updateSection(selectedElement.id, { width: value });
+                      setSelectedElement({ ...selectedElement, width: value });
+                    }}
+                    className="w-100"
+                  />
+                </Form.Item>
+
+                <Form.Item label="Height">
+                  <InputNumber
+                    value={selectedElement.height}
+                    onChange={(value) => {
+                      updateSection(selectedElement.id, { height: value });
+                      setSelectedElement({ ...selectedElement, height: value });
+                    }}
+                    className="w-100"
+                  />
+                </Form.Item>
+              </>
+
+
+            }
+            {selectedElement.type === 'Standing' ? (
+              <>
+
 
                 {isAssignMode && ticketCategories?.length > 0 && (
                   <Form.Item label="Assign Ticket Category">
                     <Select
-                      value={selectedElement.ticketCategory}
+                      value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : undefined}
                       onChange={(value) => {
                         updateSection(selectedElement.id, { ticketCategory: value });
                         setSelectedElement({ ...selectedElement, ticketCategory: value });
@@ -310,7 +308,7 @@ const RightPanel = (props) => {
                       }
                     >
                       {ticketCategories?.map(cat => (
-                        <Option key={cat.id} value={cat.id}>
+                        <Option key={cat.id} value={String(cat.id)}>
                           {cat.name} (₹{cat.price})
                         </Option>
                       ))}
@@ -320,7 +318,7 @@ const RightPanel = (props) => {
 
                 <div className="p-3 bg-light rounded">
                   <div className="mb-1"><Text strong>Type:</Text> Standing</div>
-                  <div className="mb-2"><Text strong>Total Tickets:</Text> {selectedElement.totalTickets || 0}</div>
+
                   <Text type="secondary" className="d-block">
                     <strong>💡 Tip:</strong> Standing sections have tickets only — no rows or seats.
                   </Text>
@@ -328,15 +326,17 @@ const RightPanel = (props) => {
               </>
             ) : (
               <>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  block
-                  onClick={() => addRowToSection(selectedElement.id)}
-                  className="mb-3"
-                >
-                  Add Row
-                </Button>
+                {!isAssignMode && (
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    block
+                    onClick={() => addRowToSection(selectedElement.id)}
+                    className="mb-3"
+                  >
+                    Add Row
+                  </Button>
+                )}
 
                 <div className="p-3 bg-light rounded">
                   <div className="mb-1"><Text strong>Rows:</Text> {selectedElement.rows.length}</div>
@@ -487,52 +487,54 @@ const RightPanel = (props) => {
               </Form.Item>
             )}
 
-            <Form.Item label="Assign Ticket Category to All Seats">
-              <Select
-                value={selectedElement.ticketCategory}
-                onChange={(value) => {
-                  // Update the row's ticket category and override ALL seats (including custom ones)
-                  setSections(sections.map(section => {
-                    if (section.id === selectedElement.sectionId) {
-                      return {
-                        ...section,
-                        rows: section.rows.map(row => {
-                          if (row.id === selectedElement.id) {
-                            return {
-                              ...row,
-                              ticketCategory: value,
-                              seats: row.seats.map(seat => ({
-                                ...seat,
+            {isAssignMode && ticketCategories?.length > 0 && (
+              <Form.Item label="Assign Ticket Category to All Seats">
+                <Select
+                  value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : undefined}
+                  onChange={(value) => {
+                    // Update the row's ticket category and override ALL seats (including custom ones)
+                    setSections(sections.map(section => {
+                      if (section.id === selectedElement.sectionId) {
+                        return {
+                          ...section,
+                          rows: section.rows.map(row => {
+                            if (row.id === selectedElement.id) {
+                              return {
+                                ...row,
                                 ticketCategory: value,
-                                status: seat.status || 'available',
-                                customTicket: false // Reset custom flag
-                              }))
-                            };
-                          }
-                          return row;
-                        })
-                      };
-                    }
-                    return section;
-                  }));
+                                seats: row.seats.map(seat => ({
+                                  ...seat,
+                                  ticketCategory: value,
+                                  status: seat.status || 'available',
+                                  customTicket: false // Reset custom flag
+                                }))
+                              };
+                            }
+                            return row;
+                          })
+                        };
+                      }
+                      return section;
+                    }));
 
-                  setSelectedElement({ ...selectedElement, ticketCategory: value });
-                }}
-                placeholder="Select a ticket category"
-                allowClear
-                showSearch
-                optionFilterProp="children"
-                filterOption={(input, option) =>
-                  option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                }
-              >
-                {ticketCategories?.map(cat => (
-                  <Option key={cat.id} value={cat.id}>
-                    {cat.name} (₹{cat.price})
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+                    setSelectedElement({ ...selectedElement, ticketCategory: value });
+                  }}
+                  placeholder="Select a ticket category"
+                  allowClear
+                  showSearch
+                  optionFilterProp="children"
+                  filterOption={(input, option) =>
+                    option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                  }
+                >
+                  {ticketCategories?.map(cat => (
+                    <Option key={cat.id} value={String(cat.id)}>
+                      {cat.name} (₹{cat.price})
+                    </Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            )}
 
 
             {selectedElement.shape !== 'straight' && (
@@ -800,41 +802,45 @@ const RightPanel = (props) => {
               </Form.Item>
             )}
 
-            <Form.Item label="Ticket Category">
-              <Select
-                value={Number(selectedElement.ticketCategory)}
-                placeholder="select ticket"
-                allowClear
-                onChange={(value) => {
-                  updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, {
-                    ticketCategory: value,
-                    customTicket: true, // Mark as custom when individually assigned
-                    status: selectedElement.status || 'available' // Maintain existing status
-                  });
-                  setSelectedElement({
-                    ...selectedElement,
-                    ticketCategory: value,
-                    customTicket: true,
-                    status: selectedElement.status || 'available'
-                  });
-                }}
-              >
-                {ticketCategories?.map(cat => (
-                  <Option key={cat.id} value={cat.id}>
-                    {cat.name} (₹{cat.price})
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+            {isAssignMode && ticketCategories?.length > 0 && (
+              <>
+                <Form.Item label="Ticket Category">
+                  <Select
+                    value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : undefined}
+                    placeholder="select ticket"
+                    allowClear
+                    onChange={(value) => {
+                      updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, {
+                        ticketCategory: value,
+                        customTicket: true, // Mark as custom when individually assigned
+                        status: selectedElement.status || 'available' // Maintain existing status
+                      });
+                      setSelectedElement({
+                        ...selectedElement,
+                        ticketCategory: value,
+                        customTicket: true,
+                        status: selectedElement.status || 'available'
+                      });
+                    }}
+                  >
+                    {ticketCategories?.map(cat => (
+                      <Option key={cat.id} value={String(cat.id)}>
+                        {cat.name} (₹{cat.price})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
 
-            {selectedElement.customTicket && (
-              <Alert
-                message="Custom ticket assigned. This will be overridden if row-level ticket is changed."
-                type="info"
-                icon={<InfoCircleOutlined />}
-                showIcon
-                className="mb-3"
-              />
+                {selectedElement.customTicket && (
+                  <Alert
+                    message="Custom ticket assigned. This will be overridden if row-level ticket is changed."
+                    type="info"
+                    icon={<InfoCircleOutlined />}
+                    showIcon
+                    className="mb-3"
+                  />
+                )}
+              </>
             )}
 
             <Form.Item label="Seat Status">

@@ -4,10 +4,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Input, message, Row, Tooltip } from 'antd';
 import api from 'auth/FetchInterceptor';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import LeftBar from './components/creation/LeftBar';
 import CenterCanvas from './components/creation/CenterCanvas';
 import RightPanel from './components/creation/RightPanel';
 import Loader from 'utils/Loader';
+import Utils from 'utils';
 import { VanueList } from 'views/events/event/components/CONSTANTS';
 
 // Helper functions to sanitize numeric values from API (strings to numbers)
@@ -41,7 +43,6 @@ const sanitizeSection = (section) => ({
   y: parseFloat(section.y) || 0,
   width: parseFloat(section.width) || 600,
   height: parseFloat(section.height) || 250,
-  totalTickets: parseInt(section.totalTickets) || 0,
   ticketCategory: section.ticketCategory || null,
   rows: section.type === 'Standing' ? [] : (section.rows?.map(sanitizeRow) || [])
 });
@@ -75,10 +76,55 @@ const AuditoriumLayoutDesigner = () => {
   const [showGrid, setShowGrid] = useState(false);
   const [nextSectionId, setNextSectionId] = useState(1);
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
-  const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [layoutName, setLayoutName] = useState('');
   const [vanueId, setVanueId] = useState(null);
+
+  const queryClient = useQueryClient();
+
+  // Mutation for saving layout or assignments
+  const saveMutation = useMutation({
+    mutationFn: async (payload) => {
+      const { isAssignMode, assignPayload, layoutPayload, layoutId } = payload;
+
+      if (isAssignMode) {
+        const response = await api.post(`event/layout/${eventId}`, assignPayload);
+        return { response, type: 'assignment' };
+      } else {
+        let response;
+        if (layoutId) {
+          // Update existing layout
+          response = await api.post(`/auditorium/layout/${layoutId}`, layoutPayload);
+        } else {
+          // Create new layout
+          response = await api.post('/auditorium/layout/save', layoutPayload);
+        }
+        return { response, type: 'layout', isUpdate: !!layoutId };
+      }
+    },
+    onSuccess: (data) => {
+      const { response, type, isUpdate } = data;
+      if (response.status) {
+        message.success(response.message || (type === 'assignment'
+          ? 'Tickets assigned successfully!'
+          : (isUpdate ? 'Layout updated successfully!' : 'Layout saved successfully!')));
+
+        if (type === 'assignment') {
+          queryClient.invalidateQueries(['eventLayout', eventId]);
+        } else {
+          queryClient.invalidateQueries(['layoutList']);
+          if (!layoutId && response.id) {
+            navigate(`/app/events/layouts/edit/${response.id}`);
+          }
+        }
+      } else {
+        message.error(Utils.getErrorMessage(response, 'Save failed'));
+      }
+    },
+    onError: (error) => {
+      message.error(Utils.getErrorMessage(error, 'Something went wrong during save'));
+    }
+  });
 
 
   // Fetch layout data if editing
@@ -335,7 +381,6 @@ const AuditoriumLayoutDesigner = () => {
       height: 250,
       rows: [],
       subSections: [],
-      totalTickets: 0,
       ticketCategory: null
     };
 
@@ -837,11 +882,10 @@ const AuditoriumLayoutDesigner = () => {
     sections.forEach(section => {
       // Handle standing sections — tickets only, no seats
       if (section.type === 'Standing') {
-        if (section.ticketCategory && section.totalTickets) {
+        if (section.ticketCategory) {
           assignments.push({
             sectionId: section.id,
             ticketId: section.ticketCategory,
-            totalTickets: section.totalTickets,
             type: 'standing',
             status: 'available'
           });
@@ -854,6 +898,7 @@ const AuditoriumLayoutDesigner = () => {
           if (seat.ticketCategory) {
             assignments.push({
               seatId: seat.id,
+              sectionId: section.id,
               ticketId: seat.ticketCategory,
               status: seat.status || 'available' // Include seat status
             });
@@ -866,77 +911,50 @@ const AuditoriumLayoutDesigner = () => {
   };
 
   // Save Layout to Backend (UPDATED WITH ASSIGNMENT MODE)
-  const saveLayout = async () => {
-    setIsSaving(true);
+  const saveLayout = () => {
+    if (isAssignMode) {
+      // ASSIGNMENT MODE: Save ticket assignments
+      const ticketAssignments = extractTicketAssignments();
 
-    try {
-      if (isAssignMode) {
-        // ASSIGNMENT MODE: Save ticket assignments
-        const ticketAssignments = extractTicketAssignments();
+      const assignPayload = {
+        layoutId: layoutId,
+        eventId: eventId,
+        ticketAssignments: ticketAssignments
+      };
 
-        const assignPayload = {
-          layoutId: layoutId,
-          eventId: eventId,
-          ticketAssignments: ticketAssignments
-        };
-
-        const response = await api.post(`event/layout/${eventId}`, assignPayload);
-
-        message.success(`Successfully assigned tickets to ${ticketAssignments.length} seats!`);
-      } else {
-        if (!vanueId || String(vanueId).trim() === '') {
-          message.error("Please Select Venue for the layout");
-          return;
-        }
-        if (!layoutName || String(layoutName).trim() === '') {
-          message.error("Please Enter Layout Name");
-          return;
-        }
-
-        // LAYOUT CREATION/EDIT MODE: Save layout structure
-        const payload = {
-          name: layoutName || `Layout ${new Date().toISOString()}`,
-          stage,
-          venue_id: vanueId,
-          sections,
-          ticketCategories,
-          metadata: {
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            totalSections: sections.length,
-            totalSeats: sections.reduce((total, section) =>
-              total + (section.type === 'Standing'
-                ? (section.totalTickets || 0)
-                : section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0))
-              , 0),
-            totalRows: sections.reduce((total, section) => total + (section.type === 'Standing' ? 0 : section.rows.length), 0),
-            totalStandingTickets: sections.reduce((total, section) =>
-              total + (section.type === 'Standing' ? (section.totalTickets || 0) : 0), 0)
-          }
-        };
-
-        let response;
-        if (layoutId) {
-          // Update existing layout
-          response = await api.post(`/auditorium/layout/${layoutId}`, payload);
-        } else {
-          // Create new layout
-          response = await api.post('/auditorium/layout/save', payload);
-        }
-
-        message.success(layoutId ? 'Layout updated successfully!' : 'Layout saved successfully!');
-        // console.log('Saved layout response:', response);
+      saveMutation.mutate({ isAssignMode: true, assignPayload });
+    } else {
+      if (!vanueId || String(vanueId).trim() === '') {
+        message.error("Please Select Venue for the layout");
+        return;
+      }
+      if (!layoutName || String(layoutName).trim() === '') {
+        message.error("Please Enter Layout Name");
+        return;
       }
 
-    } catch (error) {
-      console.error('Save error:', error);
-      message.error(
-        isAssignMode
-          ? 'Failed to save ticket assignments'
-          : `Failed to ${layoutId ? 'update' : 'save'} layout`
-      );
-    } finally {
-      setIsSaving(false);
+      // LAYOUT CREATION/EDIT MODE: Save layout structure
+      const layoutPayload = {
+        name: layoutName || `Layout ${new Date().toISOString()}`,
+        stage,
+        venue_id: vanueId,
+        sections,
+        ticketCategories,
+        metadata: {
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          totalSections: sections.length,
+          totalSeats: sections.reduce((total, section) =>
+            total + (section.type === 'Standing'
+              ? 1 // Represent standing as 1 unit in total count if quantity is handled by ticket
+              : section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0))
+            , 0),
+          totalRows: sections.reduce((total, section) => total + (section.type === 'Standing' ? 0 : section.rows.length), 0),
+          totalStandingTickets: 0 // No longer tracked at layout level
+        }
+      };
+
+      saveMutation.mutate({ isAssignMode: false, layoutPayload, layoutId });
     }
   };
 
@@ -1054,7 +1072,7 @@ const AuditoriumLayoutDesigner = () => {
           <Button
             type="primary"
             icon={<SaveOutlined />}
-            loading={isSaving}
+            loading={saveMutation.isPending}
             onClick={saveLayout}
             style={{ background: "#52c41a", borderColor: "#52c41a" }}
           >

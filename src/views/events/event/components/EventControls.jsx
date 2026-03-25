@@ -453,7 +453,7 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       </Card>
 
       {/* Group 2: Event Status */}
-      <Card size="small" title="Event Status" style={{ marginBottom: 16 }}>
+      <Card size="small" title="Event Settings" style={{ marginBottom: 16 }}>
         <Row gutter={ROW_GUTTER}>
           {[
             {
@@ -506,6 +506,16 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               name: "use_preprinted_cards",
               label: "Use Preprinted Cards",
               tooltip: "Enable use of preprinted cards for this event",
+            },
+            {
+              name: "refund",
+              label: "Refund",
+              tooltip: "Allow refunds for this event",
+            },
+            {
+              name: "rating",
+              label: "Rating",
+              tooltip: "Allow users to rate this event",
             },
           ]
             .filter((f) => {

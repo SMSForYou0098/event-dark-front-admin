@@ -194,6 +194,8 @@ const EventStepperForm = () => {
                 complimentary_booking: controls?.complimentary_booking !== undefined ? toBool(controls.complimentary_booking) : true,
                 sponsor_booking: controls?.sponsor_booking !== undefined ? toBool(controls.sponsor_booking) : true,
                 is_approval_required: toBool(controls?.is_approval_required),
+                refund: toBool(controls?.refund),
+                rating: toBool(controls?.rating),
 
                 // storing instagram post id from url
                 insta_whts_url: detail?.insta_whts_url || '',

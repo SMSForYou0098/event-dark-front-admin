@@ -10,7 +10,7 @@ import Utils from 'utils';
 const { Text } = Typography;
 
 // ===================== PASSWORD & OTP MODAL =====================
-const PasswordModal = ({ open, onClose, onSuccess, loading }) => {
+const PasswordModal = ({ open, onClose, onSuccess, loading, bookingData }) => {
     const [step, setStep] = useState('password'); // 'password' | 'otp'
     const [password, setPassword] = useState('');
     const [otp, setOtp] = useState('');
@@ -20,7 +20,7 @@ const PasswordModal = ({ open, onClose, onSuccess, loading }) => {
     // Step 1: Send password to get OTP
     const authenticatePasswordMutation = useMutation({
         mutationFn: async (password) => {
-            const response = await api.post('refunds/password/otp', { password });
+            const response = await api.post('refunds/password/otp', { password, booking_id: bookingData?.id, is_master: bookingData?.is_master });
             return response;
         },
         onSuccess: (data) => {
@@ -42,7 +42,9 @@ const PasswordModal = ({ open, onClose, onSuccess, loading }) => {
         mutationFn: async ({ otp, password }) => {
             const response = await api.post('refunds/password/authenticate', {
                 password,
-                otp
+                otp,
+                booking_id: bookingData?.id,
+                is_master: bookingData?.is_master
             });
             return response;
         },
@@ -379,6 +381,7 @@ const RefundModal = ({ bookingData, onClose, onRefundComplete }) => {
                 open={isOpen && step === 'password'}
                 onClose={handleClose}
                 onSuccess={handlePasswordSuccess}
+                bookingData={bookingData}
             />
 
             {/* Step 2: Refund Entry */}

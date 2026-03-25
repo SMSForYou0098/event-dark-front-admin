@@ -405,7 +405,7 @@ const OnlineBookings = memo(({ type }) => {
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
     },
-    ...(type !== 'free' ? [
+    ...(type !== 'free' && userRole === 'Admin' ? [
       {
         title: "Mode",
         dataIndex: "payment_method",
@@ -431,9 +431,21 @@ const OnlineBookings = memo(({ type }) => {
           return gateway.toUpperCase() || "-";
         },
       },
+    ] : type !== 'free' ? [
+      {
+        title: "Mode",
+        dataIndex: "payment_method",
+        key: "payment_method",
+        align: "center",
+        render: (_, record) =>
+          record?.bookings?.[0]?.payment_log?.mode ||
+          record?.payment_log?.mode ||
+          record?.payment_method ||
+          "",
+      },
     ] : []),
 
-    ...(type !== 'free' ? [
+    ...(type !== 'free' && userRole === 'Admin' ? [
       {
         title: "Tran ID",
         dataIndex: "payment_id",

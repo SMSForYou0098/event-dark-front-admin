@@ -504,6 +504,16 @@ const salesOperationsSubmenu = [
     roles: ["Admin"],
     permissions: [PERMISSIONS.VIEW_USER_INQUIRIES]
   },
+  {
+    key: 'approve-reviews',
+    path: 'approve-reviews',
+    title: 'Approve Reviews',
+    icon: CheckOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin"],
+    permissions: [PERMISSIONS.VIEW_APPROVE_REVIEWS]
+  },
 ];
 
 const salesOperationsNav = {

@@ -14,10 +14,16 @@ const OtpInput = ({
   placeholder = '000000',
 }) => {
   const handleChange = (valOrEvent) => {
-    if (Input.OTP) {
-      onChange?.(valOrEvent);
-    } else {
-      onChange?.(valOrEvent?.target?.value || '');
+    // Determine the raw value based on whether it's from Input.OTP or a regular Input event
+    const rawVal = Input.OTP ? valOrEvent : (valOrEvent?.target?.value || '');
+
+    // Filter to allow only digits (0-9)
+    const filteredVal = rawVal.replace(/\D/g, '');
+
+    // Only trigger onChange if the value is different from original (prevents unnecessary re-renders)
+    // and satisfies the length restriction
+    if (filteredVal.length <= length) {
+      onChange?.(filteredVal);
     }
   };
 
@@ -28,6 +34,8 @@ const OtpInput = ({
         value={value}
         onChange={handleChange}
         onKeyDown={onKeyDown}
+        pattern="[0-9]*"
+        inputMode="numeric"
         style={{ marginBottom: 16, ...style }}
       />
     );

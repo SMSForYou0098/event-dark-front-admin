@@ -429,57 +429,129 @@ const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave,
         const nextSeat = nextProps.row.seats[index];
         if (!nextSeat) return false;
         return prevProps.selectedSeatIds.has(prevSeat.id) === nextProps.selectedSeatIds.has(nextSeat.id) &&
-               prevSeat.status === nextSeat.status;
+            prevSeat.status === nextSeat.status;
     });
 });
 
 Row.displayName = 'Row';
 
-const Section = memo(({ section, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave }) => {
+const Section = memo(({ section, selectedSeatIds, selectedSeats, onSeatClick, onStandingSectionClick, onSeatHover, onSeatLeave }) => {
+    let selectedCount = 0;
+    if (section.type === 'Standing') {
+        const ticketId = section.ticket?.id;
+        if (ticketId && selectedSeats) {
+            const existingTicket = selectedSeats.find(t => t.id === ticketId);
+            selectedCount = existingTicket?.standingQuantities?.[section.id] || 0;
+        }
+    }
+    const isStandingSelected = selectedCount > 0;
+
     return (
         <Group x={section.x} y={section.y}>
-            <Text
-                x={0}
-                y={12}
-                width={section.width}
-                text={section.name}
-                fontSize={14}
-                fill={THEME.textPrimary}
-                fontStyle="bold"
-                align="center"
-                listening={false}
-                perfectDrawEnabled={false}
-            />
-
-            {section.rows.map(row => (
-                <Row
-                    key={row.id}
-                    row={row}
-                    selectedSeatIds={selectedSeatIds}
-                    onSeatClick={onSeatClick}
-                    onSeatHover={onSeatHover}
-                    onSeatLeave={onSeatLeave}
-                    sectionId={section.id}
-                />
-            ))}
+            {section.type === 'Standing' ? (
+                <Group
+                    onClick={(e) => {
+                        e.cancelBubble = true;
+                        if (onStandingSectionClick) onStandingSectionClick(section);
+                    }}
+                    onTap={(e) => {
+                        e.cancelBubble = true;
+                        if (onStandingSectionClick) onStandingSectionClick(section);
+                    }}
+                    onMouseEnter={(e) => {
+                        const container = e.target.getStage().container();
+                        container.style.cursor = 'pointer';
+                    }}
+                    onMouseLeave={(e) => {
+                        const container = e.target.getStage().container();
+                        container.style.cursor = 'default';
+                    }}
+                >
+                    <Rect
+                        x={20}
+                        y={40}
+                        width={section.width - 40}
+                        height={section.height - 60}
+                        fill={isStandingSelected ? "rgba(181, 21, 21, 0.4)" : "rgba(181, 21, 21, 0.15)"}
+                        stroke={THEME.primary}
+                        strokeWidth={isStandingSelected ? 2 : 1}
+                        dash={isStandingSelected ? [] : [6, 4]}
+                        cornerRadius={8}
+                    />
+                    <Text
+                        x={0}
+                        y={12}
+                        width={section.width}
+                        text={section.name}
+                        fontSize={14}
+                        fill={THEME.textPrimary}
+                        fontStyle="bold"
+                        align="center"
+                        listening={false}
+                        perfectDrawEnabled={false}
+                    />
+                    <Text
+                        x={20}
+                        y={section.height / 2 - 10}
+                        width={section.width - 40}
+                        text={isStandingSelected ? `🎫 ${selectedCount} SELECTED` : `🎫 STANDING AREA`}
+                        fontSize={16}
+                        fill={THEME.textPrimary}
+                        fontStyle="bold"
+                        align="center"
+                        listening={false}
+                        perfectDrawEnabled={false}
+                    />
+                </Group>
+            ) : (
+                <>
+                    <Text
+                        x={0}
+                        y={12}
+                        width={section.width}
+                        text={section.name}
+                        fontSize={14}
+                        fill={THEME.textPrimary}
+                        fontStyle="bold"
+                        align="center"
+                        listening={false}
+                        perfectDrawEnabled={false}
+                    />
+                    {section.rows.map(row => (
+                        <Row
+                            key={row.id}
+                            row={row}
+                            selectedSeatIds={selectedSeatIds}
+                            onSeatClick={onSeatClick}
+                            onSeatHover={onSeatHover}
+                            onSeatLeave={onSeatLeave}
+                            sectionId={section.id}
+                        />
+                    ))}
+                </>
+            )}
         </Group>
     );
 }, (prevProps, nextProps) => {
     // If section reference changed, always re-render (new data)
     if (prevProps.section !== nextProps.section) return false;
-    
+
     // If section is same reference, check if selection changed
     if (prevProps.selectedSeatIds !== nextProps.selectedSeatIds) {
         // Check if any seat selection actually changed
         for (const row of prevProps.section.rows || []) {
             for (const seat of row.seats || []) {
-            if (prevProps.selectedSeatIds.has(seat.id) !== nextProps.selectedSeatIds.has(seat.id)) {
+                if (prevProps.selectedSeatIds.has(seat.id) !== nextProps.selectedSeatIds.has(seat.id)) {
                     return false; // Selection changed, re-render
+                }
             }
         }
     }
+
+    if (prevProps.selectedSeats !== nextProps.selectedSeats) {
+        if (nextProps.section.type === 'Standing') return false;
     }
-    
+
     // Note: We can't detect seat status changes if section reference is same
     // But since we create new objects in setSections, reference should change
     // If status changes, section reference will be different, so we return false above
@@ -595,6 +667,7 @@ const BookingSeatCanvas = ({
     sections,
     selectedSeats,
     onSeatClick,
+    onStandingSectionClick,
     handleWheel: externalHandleWheel,
     setStagePosition: externalSetStagePosition,
     primaryColor = PRIMARY,
@@ -1213,7 +1286,9 @@ const BookingSeatCanvas = ({
                                 key={section.id}
                                 section={section}
                                 selectedSeatIds={selectedSeatIds}
+                                selectedSeats={selectedSeats}
                                 onSeatClick={handleSeatClick}
+                                onStandingSectionClick={onStandingSectionClick}
                                 onSeatHover={handleSeatHover}
                                 onSeatLeave={handleSeatLeave}
                             />

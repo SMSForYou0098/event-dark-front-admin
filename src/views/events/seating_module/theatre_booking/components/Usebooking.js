@@ -159,9 +159,15 @@ const useBooking = (options = {}) => {
         return newSelectedSeats;
       } else {
         // Check max seats limit
-        if (isMaxSeatsReached(currentTotalSeats, maxSeats)) {
+        const ticketLimit = seat.ticket?.selection_limit ? parseInt(seat.ticket.selection_limit) : maxSeats;
+
+        // Find existing ticket to check category specific limit (optional but good practice)
+        const existingTicketIndex = prevSelectedSeats.findIndex(t => t.id === ticketId);
+        const currentTicketQuantity = existingTicketIndex !== -1 ? prevSelectedSeats[existingTicketIndex].quantity : 0;
+
+        if (isMaxSeatsReached(currentTicketQuantity, ticketLimit)) {
           message.warning({
-            content: `Maximum ${maxSeats} seats allowed`,
+            content: `Maximum ${ticketLimit} tickets allowed for ${seat.ticket?.name || 'this category'}`,
             key: 'max-seats-warning'
           });
           return prevSelectedSeats;
@@ -281,6 +287,135 @@ const useBooking = (options = {}) => {
       }
     });
   }, [sections, maxSeats, event, updateSeatStatus, allowMultiple]);
+
+  /**
+     * Handle ticket quantity selection for Standing area sections (which don't have individual seats)
+     * Replaces existing virtual seats for the section with the new targetQuantity
+     */
+  const handleStandingTickets = useCallback((section, targetQuantity) => {
+    if (!section.ticket) {
+      message.error("No ticket assigned to this standing section.");
+      return;
+    }
+
+    const ticketId = section.ticket.id;
+
+    setSelectedSeats(prevSelectedSeats => {
+      const currentTotalSeats = prevSelectedSeats.reduce((sum, t) => sum + (t.quantity || 0), 0);
+      const existingTicketIndex = prevSelectedSeats.findIndex(t => t.id === ticketId);
+      let currentSectionQty = 0;
+      let currentTicketQty = 0;
+
+      if (existingTicketIndex !== -1) {
+        currentTicketQty = prevSelectedSeats[existingTicketIndex].quantity || 0;
+        currentSectionQty = prevSelectedSeats[existingTicketIndex].seats?.filter(s => String(s.section_id) === String(section.id)).length || 0;
+      }
+
+      const diff = targetQuantity - currentSectionQty;
+      const ticketLimit = section.ticket?.selection_limit ? parseInt(section.ticket.selection_limit) : maxSeats;
+
+      if (diff > 0 && isMaxSeatsReached(currentTicketQty + diff - 1, ticketLimit)) {
+        message.warning({
+          content: `Maximum ${ticketLimit} tickets allowed for ${section.ticket?.name || 'this category'}`,
+          key: 'max-seats-warning'
+        });
+        return prevSelectedSeats;
+      }
+
+      // Get ticket price and calculate taxes
+      const basePrice = parseFloat(section.ticket.price || 0);
+      const unitBaseAmount = +(basePrice).toFixed(2);
+      const taxData = event?.tax_data;
+      const convenienceFeeValue = Number(taxData?.convenience_fee || 0);
+      const convenienceFeeType = taxData?.type || "flat";
+
+      let unitConvenienceFee = 0;
+      if (convenienceFeeType === "percentage") {
+        unitConvenienceFee = +(unitBaseAmount * (convenienceFeeValue / 100)).toFixed(2);
+      } else {
+        unitConvenienceFee = +convenienceFeeValue.toFixed(2);
+      }
+
+      const unitCentralGST = +(unitConvenienceFee * 0.09).toFixed(2);
+      const unitStateGST = +(unitConvenienceFee * 0.09).toFixed(2);
+      const unitTotalTax = +(unitCentralGST + unitStateGST).toFixed(2);
+      const unitFinalAmount = +(unitBaseAmount + unitConvenienceFee + unitTotalTax).toFixed(2);
+
+      let newSelectedSeats = [...prevSelectedSeats];
+
+      // Handle allowMultiple restriction
+      if (!allowMultiple && existingTicketIndex === -1 && prevSelectedSeats.length > 0) {
+        prevSelectedSeats.forEach(ticket => {
+          ticket.seats?.forEach(s => {
+            if (s.row_id) updateSeatStatus(s.section_id, s.row_id, s.seat_id, 'available');
+          });
+        });
+        newSelectedSeats = [];
+      }
+
+      const targetTicketIndex = newSelectedSeats.findIndex(t => t.id === ticketId);
+      let existingTicket = targetTicketIndex !== -1 ? newSelectedSeats[targetTicketIndex] : null;
+
+      if (!existingTicket) {
+        if (targetQuantity === 0) return newSelectedSeats;
+
+        existingTicket = {
+          id: ticketId,
+          category: section.ticket.name || 'General',
+          ticket_id: ticketId,
+          ticket: section.ticket,
+          quantity: 0,
+          seats: [],
+          standingQuantities: {},
+          price: unitBaseAmount,
+          baseAmount: unitBaseAmount,
+          centralGST: unitCentralGST,
+          stateGST: unitStateGST,
+          totalTax: unitTotalTax,
+          convenienceFee: unitConvenienceFee,
+          finalAmount: unitFinalAmount,
+        };
+        newSelectedSeats.push(existingTicket);
+      }
+
+      // Track standing quantity on the ticket instead of fake seats
+      const newStandingQuantities = {
+        ...(existingTicket.standingQuantities || {}),
+        [section.id]: targetQuantity
+      };
+
+      if (targetQuantity === 0) {
+        delete newStandingQuantities[section.id];
+      }
+
+      const otherSeats = existingTicket.seats || [];
+      const standingTotal = Object.values(newStandingQuantities).reduce((a, b) => a + b, 0);
+      const newQuantity = otherSeats.length + standingTotal;
+
+      if (newQuantity === 0) {
+        newSelectedSeats = newSelectedSeats.filter(t => t.id !== ticketId);
+      } else {
+        const updatedTicketIndex = newSelectedSeats.findIndex(t => t.id === ticketId);
+        newSelectedSeats[updatedTicketIndex] = {
+          ...existingTicket,
+          quantity: newQuantity,
+          seats: otherSeats, // Contains ONLY real seats, NO fake strings
+          standingQuantities: newStandingQuantities,
+          totalBaseAmount: +Math.max(0, existingTicket.baseAmount * newQuantity).toFixed(2),
+          totalCentralGST: +Math.max(0, existingTicket.centralGST * newQuantity).toFixed(2),
+          totalStateGST: +Math.max(0, existingTicket.stateGST * newQuantity).toFixed(2),
+          totalTaxTotal: +Math.max(0, existingTicket.totalTax * newQuantity).toFixed(2),
+          totalConvenienceFee: +Math.max(0, existingTicket.convenienceFee * newQuantity).toFixed(2),
+          totalFinalAmount: +Math.max(0, existingTicket.finalAmount * newQuantity).toFixed(2),
+        };
+      }
+
+      const newTotalSeats = currentTotalSeats + diff;
+      showSeatSelectionMessage(newTotalSeats);
+
+      return newSelectedSeats;
+    });
+  }, [maxSeats, event, updateSeatStatus, allowMultiple]);
 
   /**
    * Shows a single updating message for seat selection
@@ -519,6 +654,7 @@ const useBooking = (options = {}) => {
 
     // Methods
     handleSeatClick,
+    handleStandingTickets,
     handleRemoveSeat,
     handleClearSelection,
     getTotalAmount,

@@ -6,6 +6,7 @@ import Flex from 'components/shared-components/Flex';
 import { Button } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import FormActionButtons from './FormActionButtons';
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 
 /**
  * Basic Information Card Component
@@ -72,7 +73,7 @@ const BasicInfoCard = ({
                     <Form.Item
                         label="Name"
                         name="name"
-                        rules={[{ required: true, message: 'Please enter name' }]}
+                        rules={VALIDATION_RULES.NAME}
                     >
                         <Input placeholder="Enter name" />
                     </Form.Item>
@@ -82,10 +83,7 @@ const BasicInfoCard = ({
                     <Form.Item
                         label="Mobile Number"
                         name="number"
-                        rules={[
-                            { required: true, message: 'Please enter mobile number' },
-                            { pattern: /^\d{10,12}$/, message: 'Must be 10-12 digits' }
-                        ]}
+                        rules={VALIDATION_RULES.MOBILE_LONG}
                     >
                         <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} />
                     </Form.Item>
@@ -95,10 +93,7 @@ const BasicInfoCard = ({
                     <Form.Item
                         label="Email"
                         name="email"
-                        rules={[
-                            { required: true, message: 'Please enter email' },
-                            { type: 'email', message: 'Please enter valid email' }
-                        ]}
+                        rules={VALIDATION_RULES.EMAIL}
                     >
                         <Input placeholder="Enter email" />
                     </Form.Item>
