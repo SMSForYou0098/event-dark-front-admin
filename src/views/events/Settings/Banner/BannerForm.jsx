@@ -269,7 +269,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
           name: 'gallery-image',
           status: 'done',
           url: url,
-          isGalleryImage: true, // Flag to identify gallery-selected images
+          isGalleryImage: true,
         }
       }));
     }
@@ -645,8 +645,13 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         }}
         onSelect={handleMediaSelect}
         multiple={false}
-        title={`Select ${currentImageField === 'bannerImage' ? 'Banner' : currentImageField === 'smImage' ? 'Small' : 'Medium'} Image`}
+        title={`Select ${currentImageField === 'bannerImage' ? 'Banner (1980*450)' : currentImageField === 'smImage' ? 'Small (1980*700)' : 'Medium (1980*700)'} Image`}
         value={getImageUrl(currentImageField)}
+        dimensionValidation={{
+          width: 1980,
+          height: currentImageField === 'bannerImage' ? 450 : 700,
+          strict: true
+        }}
       />
     </>
   );

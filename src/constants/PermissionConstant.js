@@ -64,6 +64,7 @@ export const PERMISSIONS = {
     EXPORT_VENUES: "Export Venues",
 
     VIEW_LAYOUTS: "View Layouts",
+    VIEW_STALL_LAYOUTS: "View Stall Layouts",
 
     VIEW_ARTISTS: "View Artists",
     CREATE_ARTIST: "Create Artist",

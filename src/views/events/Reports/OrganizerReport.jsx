@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Card, Spin, Typography, Select, Row, Col, Empty, Space } from 'antd';
+import { Card, Spin, Typography, Select, Row, Col, Empty, Space, Form } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import OrganizerService from 'services/OrganizerService';
-import { useMyContext } from 'Context/MyContextProvider';
+import { OrganisationList } from 'utils/CommonInputs';
 import OrganizerSummary from '../Dashboard/components/OrganizerSummary';
 import EventTicketDropdowns from '../common/EventTicketDropdowns';
 import { TeamOutlined, BarChartOutlined, CalendarOutlined } from '@ant-design/icons';
@@ -13,15 +13,8 @@ import PermissionChecker from 'layouts/PermissionChecker';
 const { Title, Text } = Typography;
 
 const OrganizerReport = () => {
-    const { OrganizerList } = useMyContext();
     const [selectedOrganizer, setSelectedOrganizer] = useState(null);
     const [selectedEvent, setSelectedEvent] = useState(null);
-
-    // Organizer options for dropdown
-    const organizerOptions = OrganizerList?.map(org => ({
-        value: String(org.id),
-        label: `${org.organisation} (${org.name})`,
-    })) || [];
 
     // Fetch organizer report data using the new service
     const {
@@ -62,20 +55,21 @@ const OrganizerReport = () => {
                         <Col xs={24} lg={16}>
                             <Row gutter={[12, 12]}>
                                 <Col xs={24} sm={12}>
-                                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                                        <Text strong style={{ fontSize: 12 }}>Select Organizer *</Text>
-                                        <Select
-                                            showSearch
-                                            allowClear
-                                            placeholder="Choose an organizer"
-                                            options={organizerOptions}
-                                            optionFilterProp="label"
+                                    <Form layout="vertical">
+                                        <OrganisationList
+                                            label={<Text strong style={{ fontSize: 12 }}>Select Organizer</Text>}
+                                            name="organizer"
                                             onChange={handleOrganizerChange}
                                             value={selectedOrganizer}
-                                            style={{ width: '100%' }}
-                                            size="medium"
+                                            selectProps={{
+                                                allowClear: true,
+                                                size: "medium",
+                                            }}
+                                            formItemProps={{
+                                                style: { marginBottom: 0 }
+                                            }}
                                         />
-                                    </Space>
+                                    </Form>
                                 </Col>
                                 <Col xs={24} sm={12}>
                                     <Space direction="vertical" size={4} style={{ width: '100%' }}>

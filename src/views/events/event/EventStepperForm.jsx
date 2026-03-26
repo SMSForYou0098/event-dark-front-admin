@@ -196,6 +196,7 @@ const EventStepperForm = () => {
                 is_approval_required: toBool(controls?.is_approval_required),
                 refund: toBool(controls?.refund),
                 rating: toBool(controls?.rating),
+                stall_layout: toBool(controls?.stall_layout),
 
                 // storing instagram post id from url
                 insta_whts_url: detail?.insta_whts_url || '',
@@ -410,6 +411,7 @@ const EventStepperForm = () => {
                     layouts={layouts}
                     eventLayoutId={eventLayoutId}
                     eventId={detail?.event_key}
+                    id={detail?.id}
                     venue_id={detail?.venue_id}
                     eventHasAttendee={detail?.event_has_attendee}
                     onSaveControls={saveControlsStep}

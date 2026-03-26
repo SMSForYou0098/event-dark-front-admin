@@ -18,8 +18,7 @@ const { Text } = Typography;
 const toBoolean = (v) => v === true || v === 1 || v === '1';
 const toBooleanValue = (checked) => Boolean(checked);
 
-const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee, onSaveControls }) => {
-
+const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee, onSaveControls }) => {
 
   const { userRole } = useMyContext();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
@@ -453,7 +452,27 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
       </Card>
 
       {/* Group 2: Event Status */}
-      <Card size="small" title="Event Settings" style={{ marginBottom: 16 }}>
+      <Card
+        size="small"
+        title="Event Settings"
+        style={{ marginBottom: 16 }}
+        extra={
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.stall_layout !== curr.stall_layout}>
+            {({ getFieldValue }) => {
+              const isStallLayoutEnabled = toBoolean(getFieldValue('stall_layout'));
+              return isStallLayoutEnabled ? (
+                <Button
+                  type="primary"
+                  size="small"
+                  onClick={() => navigate(`/exhibition-layout/new?eventId=${id}`)}
+                >
+                  Stall Layout
+                </Button>
+              ) : null;
+            }}
+          </Form.Item>
+        }
+      >
         <Row gutter={ROW_GUTTER}>
           {[
             {
@@ -516,6 +535,11 @@ const EventControlsStep = ({ form, orgId, contentList, contentLoading, layouts, 
               name: "rating",
               label: "Rating",
               tooltip: "Allow users to rate this event",
+            },
+            {
+              name: "stall_layout",
+              label: "Stall Layout",
+              tooltip: "Enable or disable stall layout for this event",
             },
           ]
             .filter((f) => {

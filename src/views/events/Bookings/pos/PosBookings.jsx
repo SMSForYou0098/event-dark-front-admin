@@ -471,7 +471,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
                 onChange={() => handleToggleStatus(record)}
                 size="small"
                 loading={toggleStatusMutation.isPending}
-                disabled={record.status === "1"}
+                disabled={record.status === true}
               />
               <Tooltip title="Print Ticket">
                 <Button

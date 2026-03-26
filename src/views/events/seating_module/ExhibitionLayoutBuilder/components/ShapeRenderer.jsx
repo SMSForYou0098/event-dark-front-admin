@@ -1,0 +1,220 @@
+import React from 'react';
+import {
+  Rect,
+  Circle,
+  Text,
+  Line,
+  RegularPolygon,
+} from 'react-konva';
+
+const ShapeRenderer = ({
+  element,
+  isSelected,
+  isEditingText,
+  snapToGrid,
+  snapEnabled,
+  onSelect,
+  onChange,
+  onStartTextEdit,
+  registerNode,
+}) => {
+  const style = element.style || {};
+  const isEditable = element.entityType !== 'walkway' || element.type === 'line';
+
+  const handleSelect = (evt) => {
+    const isShift = evt?.evt?.shiftKey;
+    onSelect(element.id, isShift);
+  };
+
+  const handleDragEnd = (evt) => {
+    const x = evt.target.x();
+    const y = evt.target.y();
+
+    onChange(element.id, {
+      x: snapToGrid(x, snapEnabled),
+      y: snapToGrid(y, snapEnabled),
+    });
+  };
+
+  const commonProps = {
+    ref: (node) => registerNode(element.id, node),
+    id: element.id,
+    x: element.x,
+    y: element.y,
+    rotation: element.rotation || 0,
+    draggable: isEditable,
+    onClick: handleSelect,
+    onTap: handleSelect,
+    onDragEnd: isEditable ? handleDragEnd : undefined,
+    stroke: style.stroke,
+    strokeWidth: style.strokeWidth || 1,
+    listening: true,
+    shadowColor: isSelected ? '#1677ff' : undefined,
+    shadowBlur: isSelected ? 8 : 0,
+    shadowOpacity: isSelected ? 0.4 : 0,
+  };
+
+  const getCenteredLabelPosition = () => {
+    if (element.type === 'circle') {
+      const radius = element.radius || 50;
+      return { x: element.x, y: element.y };
+    }
+
+    if (element.type === 'polygon') {
+      return { x: element.x, y: element.y };
+    }
+
+    if (element.type === 'line') {
+      const points = element.points || [0, 0, 120, 0];
+      return {
+        x: element.x + (points[0] + points[2]) / 2,
+        y: element.y + (points[1] + points[3]) / 2,
+      };
+    }
+
+    return {
+      x: element.x + (element.width || 0) / 2,
+      y: element.y + (element.height || 0) / 2,
+    };
+  };
+
+  const shouldShowEntityLabel = element.type !== 'text' && element.display?.showLabel;
+  const entityLabel = element.meta?.name || '';
+  const centeredLabel = getCenteredLabelPosition();
+
+  if (element.type === 'rect' || element.type === 'square') {
+    return (
+      <>
+        <Rect
+          {...commonProps}
+          width={element.width}
+          height={element.height}
+          fill={style.fill}
+        />
+        {shouldShowEntityLabel && !!entityLabel && (
+          <Text
+            x={centeredLabel.x}
+            y={centeredLabel.y}
+            // offsetX={0}
+            // offsetY={0}
+            text={entityLabel}
+            fontSize={14}
+            fill="#000"
+            align="center"
+            verticalAlign="middle"
+            width={Math.max((element.width || 120) - 8, 40)}
+            offsetX={Math.max((element.width || 120) - 8, 40) / 2}
+            offsetY={7}
+            listening={false}
+            wrap="none"
+            ellipsis
+          />
+        )}
+      </>
+    );
+  }
+
+  if (element.type === 'circle') {
+    return (
+      <>
+        <Circle
+          {...commonProps}
+          radius={element.radius || 50}
+          fill={style.fill}
+        />
+        {shouldShowEntityLabel && !!entityLabel && (
+          <Text
+            x={centeredLabel.x}
+            y={centeredLabel.y}
+            text={entityLabel}
+            fontSize={14}
+            fill="#000"
+            align="center"
+            verticalAlign="middle"
+            width={Math.max((element.radius || 50) * 2 - 8, 40)}
+            offsetX={Math.max((element.radius || 50) * 2 - 8, 40) / 2}
+            offsetY={7}
+            listening={false}
+            wrap="none"
+            ellipsis
+          />
+        )}
+      </>
+    );
+  }
+
+  if (element.type === 'line') {
+    return (
+      <>
+        <Line
+          {...commonProps}
+          points={element.points || [0, 0, 120, 0]}
+          hitStrokeWidth={12}
+          lineCap="round"
+          lineJoin="round"
+        />
+        {shouldShowEntityLabel && !!entityLabel && (
+          <Text
+            x={centeredLabel.x}
+            y={centeredLabel.y - 16}
+            text={entityLabel}
+            fontSize={13}
+            fill="#000"
+            align="center"
+            width={Math.max((element.points?.[2] || 120), 40)}
+            offsetX={Math.max((element.points?.[2] || 120), 40) / 2}
+            listening={false}
+            wrap="none"
+            ellipsis
+          />
+        )}
+      </>
+    );
+  }
+
+  if (element.type === 'polygon') {
+    return (
+      <>
+        <RegularPolygon
+          {...commonProps}
+          sides={element.sides || 5}
+          radius={element.radius || 55}
+          fill={style.fill}
+        />
+        {shouldShowEntityLabel && !!entityLabel && (
+          <Text
+            x={centeredLabel.x}
+            y={centeredLabel.y}
+            text={entityLabel}
+            fontSize={14}
+            fill="#000"
+            align="center"
+            verticalAlign="middle"
+            width={Math.max((element.radius || 55) * 2 - 8, 40)}
+            offsetX={Math.max((element.radius || 55) * 2 - 8, 40) / 2}
+            offsetY={7}
+            listening={false}
+            wrap="none"
+            ellipsis
+          />
+        )}
+      </>
+    );
+  }
+
+  return (
+    <Text
+      {...commonProps}
+      text={element.text || element.name || 'Label'}
+      fontSize={element.fontSize || 20}
+      fill={style.fill || '#202020'}
+      width={Math.max(element.width || 100, 80)}
+      wrap="none"
+      visible={!isEditingText}
+      onDblClick={() => onStartTextEdit?.(element.id)}
+      onDblTap={() => onStartTextEdit?.(element.id)}
+    />
+  );
+};
+
+export default ShapeRenderer;

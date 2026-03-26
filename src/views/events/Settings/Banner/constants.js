@@ -70,7 +70,7 @@ export const TEXTAREA_FIELDS = [
 export const IMAGE_FIELDS = [
   {
     name: 'images',
-    label: 'Banner Image',
+    label: 'Banner Image (1980*450)',
     span: { xs: 12, md: 8 },
     stateKey: 'bannerImage',
     uploadText: '',
@@ -78,14 +78,14 @@ export const IMAGE_FIELDS = [
   },
   {
     name: 'sm_image',
-    label: 'Small Image',
+    label: 'Small Image (1980*700)',
     span: { xs: 12, md: 8 },
     stateKey: 'smImage',
     uploadText: '',
   },
   {
     name: 'md_image',
-    label: 'Medium Image',
+    label: 'Medium Image (1980*700)',
     span: { xs: 12, md: 8 },
     stateKey: 'mdImage',
     uploadText: '',

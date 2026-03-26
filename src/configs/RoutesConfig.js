@@ -1,4 +1,4 @@
-﻿import React from 'react'
+import React from 'react'
 import { PERMISSIONS } from 'constants/PermissionConstant'
 import { AUTH_PREFIX_PATH } from 'configs/AppConfig'
 import BookingList from 'views/events/Bookings/BookingList'
@@ -242,6 +242,30 @@ export const protectedRoutes = [
         component: React.lazy(() => import('views/events/seating_module/theatre_layout/Auditoriumticketbooking')),
         meta: {
             // permissions: [PERMISSIONS.VIEW_DASHBOARD],
+        }
+    },
+    {
+        key: 'exhibition-layout',
+        path: `/exhibition-layout`,
+        component: React.lazy(() => import('views/events/seating_module/ExhibitionLayoutBuilder/ExhibitionLayoutList')),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_STALL_LAYOUTS],
+        }
+    },
+    {
+        key: 'exhibition-layout-new',
+        path: `/exhibition-layout/new`,
+        component: React.lazy(() => import('views/events/seating_module/ExhibitionLayoutBuilder/LayoutBuilder')),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_STALL_LAYOUTS],
+        }
+    },
+    {
+        key: 'exhibition-layout-edit',
+        path: `/exhibition-layout/:id`,
+        component: React.lazy(() => import('views/events/seating_module/ExhibitionLayoutBuilder/LayoutBuilder')),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_STALL_LAYOUTS],
         }
     },
     {

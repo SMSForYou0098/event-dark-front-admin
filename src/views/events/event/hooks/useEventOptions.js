@@ -235,6 +235,7 @@ export function buildEventFormData(values, isDraft = false) {
     appendIfDefined('is_approval_required', values.is_approval_required ?? false);
     appendIfDefined('refund', values.refund ?? false);
     appendIfDefined('rating', values.rating ?? false);
+    appendIfDefined('stall_layout', values.stall_layout ?? false);
 
     // Convert expected_date to string format if it's a moment/dayjs object
     if (values.expected_date) {

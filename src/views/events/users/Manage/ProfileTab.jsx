@@ -2,7 +2,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Alert, Button, Card, Col, Form, Input, message, Modal, Radio, Row, Select, Space, Spin, Switch, Tag, Typography } from 'antd';
 import PermissionChecker from 'layouts/PermissionChecker';
 import React, { useEffect, useRef, useMemo, useState, useCallback } from 'react';
-import apiClient from "auth/FetchInterceptor";
+import apiClient, { api } from "auth/FetchInterceptor";
 import { useMyContext } from 'Context/MyContextProvider';
 import { CircleCheckBig, CircleX, Key, ScrollText } from 'lucide-react';
 import { mapApiToForm, mapFormToApi } from './dataMappers';
@@ -34,7 +34,7 @@ import { useApproveOrganizerOnboarding } from 'views/events/Onboarding/Organizer
 const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNumber }) => {
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { OrganizerList, userRole, UserData, api, authToken } = useMyContext();
+    const { OrganizerList, userRole, UserData, authToken } = useMyContext();
     const [form] = Form.useForm();
     const location = useLocation();
     const editOtherUser = !['Admin', 'Organizer'].includes(userRole) || id === UserData.id;
@@ -406,7 +406,6 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         }
 
         const selectedEventObjects = allEvents.filter(e => formState.events.includes(e.value));
-        console.log(selectedEventObjects, "selectedEventObjects");
         return selectedEventObjects.map(event => ({
             label: event.label,
             options: (event.tickets || []).map(ticket => ({
@@ -713,7 +712,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         // Get signature data
         const signatureData = await getSignatureData();
 
-        const url = mode === "create" ? `${api}create-user` : `${api}update-user/${id}`;
+        const url = mode === "create" ? `/create-user` : `/update-user/${id}`;
         let response;
 
         // If signature exists, use FormData; otherwise use JSON
@@ -756,7 +755,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 formData.append('signature_image', signatureData.file);
             }
 
-            response = await axios.post(url, formData, {
+            response = await api.post(url, formData, {
                 headers: {
                     'Authorization': 'Bearer ' + authToken,
                     'Content-Type': 'multipart/form-data',
@@ -771,24 +770,24 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 apiData.session_id = sessionId;
             }
 
-            response = await axios.post(url, apiData, {
+            response = await api.post(url, apiData, {
                 headers: {
                     'Authorization': 'Bearer ' + authToken,
                 }
             });
         }
 
-        if (response.data?.status) {
+        if (response?.status) {
             // If creating verified organizer, show agreement modal with user ID
-            if (isVerifiedOrganizer && response.data?.user?.id) {
+            if (isVerifiedOrganizer && response.user?.id) {
                 message.success('User created! Please select an agreement.');
-                setCreatedUserId(response.data.user.id);
+                setCreatedUserId(response.user.id);
                 setAgreementModalVisible(true);
                 return response; // Return early, don't navigate
             }
 
             if (id === UserData?.id) {
-                dispatch(updateUser(response.data.user));
+                dispatch(updateUser(response.user));
                 navigate(-1);
             }
             message.success(`User ${mode === "create" ? "created" : "updated"}`);
@@ -798,15 +797,15 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
             }
         } else {
             // ✅ Handle validation errors from backend
-            if (response.data?.errors) {
-                const errorFields = Object.keys(response.data.errors).map(field => ({
+            if (response?.errors) {
+                const errorFields = Object.keys(response.errors).map(field => ({
                     name: field,
-                    errors: response.data.errors[field]
+                    errors: response.errors[field]
                 }));
                 form.setFields(errorFields);
-                message.error(response.data.message || 'Validation failed. Please check the fields.');
+                message.error(response.message || 'Validation failed. Please check the fields.');
             } else {
-                message.error(response.data?.message || `Failed to ${mode === "create" ? "create" : "update"} user`);
+                message.error(response.message || `Failed to ${mode === "create" ? "create" : "update"} user`);
             }
         }
         if (mode === "edit") {

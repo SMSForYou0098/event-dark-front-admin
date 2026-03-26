@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ORGANIZER_ALLOWED_ROLES } from "./consts";
 
-export const OrganisationList = ({ onChange, disabled, label = "Organization", name = "org_id", rules }) => {
+export const OrganisationList = ({ onChange, disabled, label = "Organization", name = "org_id", rules, value, selectProps = {}, formItemProps = {} }) => {
     const { data: users = [], isLoading } = useQuery({
         queryKey: ["users-list"],
         queryFn: async () => {
@@ -15,23 +15,28 @@ export const OrganisationList = ({ onChange, disabled, label = "Organization", n
         staleTime: 5 * 60 * 1000,
     });
 
+    const labelText = typeof label === 'string' ? label.toLowerCase() : 'organization';
+
     return (
         <Form.Item
             label={label}
             name={name}
-            rules={rules || [{ required: true, message: `Please select ${label.toLowerCase()}` }]}
+            rules={rules || [{ required: true, message: `Please select ${labelText}` }]}
+            {...formItemProps}
         >
             <Select
                 disabled={disabled}
                 loading={isLoading}
                 showSearch
-                placeholder={`Select ${label.toLowerCase()}`}
+                placeholder={`Select ${labelText}`}
                 options={users?.map(org => ({
                     value: String(org.id),
                     label: org.organisation ? `${org.organisation} (${org.name})` : org.name,
                 }))}
                 optionFilterProp="label"
                 onChange={onChange}
+                value={value}
+                {...selectProps}
             />
         </Form.Item>
     )

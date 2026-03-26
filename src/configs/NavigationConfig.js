@@ -385,6 +385,16 @@ const eventManagementSubmenu = [
     permissions: [PERMISSIONS.VIEW_LAYOUTS]
   },
   {
+    key: 'exhibition-layout',
+    path: 'exhibition-layout',
+    title: 'Exhibition Layout',
+    icon: LayoutOutlined,
+    breadcrumb: false,
+    submenu: [],
+    roles: ["Admin", "Organizers"],
+    permissions: [PERMISSIONS.VIEW_STALL_LAYOUTS]
+  },
+  {
     key: 'artists',
     path: 'artist',
     title: 'Artist',
