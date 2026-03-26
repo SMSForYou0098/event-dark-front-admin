@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button, Space, message, Tooltip, Tag, Popconfirm } from 'antd';
-import { PlusOutlined, SettingOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, SettingOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import api from 'auth/FetchInterceptor';
 import DataTable from 'views/events/common/DataTable';
@@ -74,6 +74,13 @@ const ExhibitionLayoutList = () => {
             fixed: 'right',
             render: (_, record) => (
                 <Space size="small">
+                    <Tooltip title="User View">
+                        <Button
+                            icon={<EyeOutlined />}
+                            size="small"
+                            onClick={() => navigate(`/exhibition-layout/${record.id}/view`)}
+                        />
+                    </Tooltip>
                     <Tooltip title="Manage Layout">
                         <Button
                             icon={<SettingOutlined />}

@@ -269,6 +269,14 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'exhibition-layout-user-view',
+        path: `/exhibition-layout/:id/view`,
+        component: React.lazy(() => import('views/events/seating_module/ExhibitionLayoutBuilder/ExhibitionLayoutUserView')),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_STALL_LAYOUTS],
+        }
+    },
+    {
         key: 'dashboard-org',
         path: `/dashboard/org`,
         component: React.lazy(() => import('views/events/Dashboard/Organizer/dashabord')),
