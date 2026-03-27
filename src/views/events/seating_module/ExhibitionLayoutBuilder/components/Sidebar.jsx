@@ -47,6 +47,23 @@ const rowStyle = {
   gap: 8,
 };
 
+const getReadableTextColor = (hexColor) => {
+  if (!hexColor || typeof hexColor !== 'string') return '#000000';
+  const clean = hexColor.replace('#', '').trim();
+  const normalized = clean.length === 3
+    ? clean.split('').map((char) => char + char).join('')
+    : clean;
+  if (normalized.length !== 6) return '#000000';
+
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if ([r, g, b].some((val) => Number.isNaN(val))) return '#000000';
+
+  const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+  return luminance < 150 ? '#ffffff' : '#000000';
+};
+
 const Sidebar = ({
   defaults,
   onDefaultChange,
@@ -74,6 +91,7 @@ const Sidebar = ({
 }) => {
   const styleDefaults = defaults.style || {};
   const metaDefaults = defaults.meta || {};
+  const resolvedFontColor = styleDefaults.textColor || getReadableTextColor(styleDefaults.fill || '#cfcfcf');
 
   const syncDefaults = (changed) => {
     onDefaultChange(changed);
@@ -175,6 +193,16 @@ const Sidebar = ({
           </div>
         </div>
 
+        <div>
+          <span style={labelStyle}>Font Color</span>
+          <input
+            type="color"
+            value={resolvedFontColor}
+            onChange={(evt) => syncDefaults({ style: { ...styleDefaults, textColor: evt.target.value } })}
+            style={{ width: '100%', height: 28, border: '1px solid #333', borderRadius: 4, padding: 0, cursor: 'pointer', background: 'none' }}
+          />
+        </div>
+
         {/* Name + Border Width side by side */}
         <div style={{ ...rowStyle, gridTemplateColumns: '1fr 80px' }}>
           <div>
@@ -248,8 +276,8 @@ const Sidebar = ({
         {/* Save / Export */}
         <Button type="primary" block size="small" onClick={onSave} loading={loading}>Save Layout</Button>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          <Button block size="small" onClick={onExportJson}>Export JSON</Button>
-          <Button block size="small" onClick={onImportJson}>Import JSON</Button>
+          <Button block size="small" onClick={onExportJson}>Export</Button>
+          <Button block size="small" onClick={onImportJson}>Import</Button>
         </div>
         <Button block size="small" onClick={onExportImage}>Export Image</Button>
 

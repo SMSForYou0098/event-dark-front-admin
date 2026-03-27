@@ -32,6 +32,7 @@ const normalizeStyle = (element = {}, fallback = {}) => ({
   fill: element.style?.fill ?? element.fill ?? fallback.fill ?? '#cfcfcf',
   stroke: element.style?.stroke ?? element.stroke ?? fallback.stroke ?? '#1f1f1f',
   strokeWidth: Number(element.style?.strokeWidth ?? element.strokeWidth ?? fallback.strokeWidth ?? 1),
+  textColor: element.style?.textColor ?? element.textColor ?? fallback.textColor,
 });
 
 const normalizeMeta = (element = {}, entityType = ENTITY_TYPES.STALL, fallback = {}) => {
@@ -352,6 +353,7 @@ const presentReducer = (present, action) => {
       if (action.payload.fill !== undefined) styleUpdates.fill = action.payload.fill;
       if (action.payload.stroke !== undefined) styleUpdates.stroke = action.payload.stroke;
       if (action.payload.strokeWidth !== undefined) styleUpdates.strokeWidth = action.payload.strokeWidth;
+      if (action.payload.textColor !== undefined) styleUpdates.textColor = action.payload.textColor;
 
       const metaUpdates = {};
       if (action.payload.meta) {

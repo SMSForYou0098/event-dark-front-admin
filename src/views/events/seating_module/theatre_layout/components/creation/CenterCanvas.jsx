@@ -426,20 +426,17 @@ const CenterCanvas = (props) => {
               {section.type === 'Standing' && (
                 <Group>
                   <Rect
-                    x={20}
-                    y={40}
-                    width={section.width - 40}
-                    height={section.height - 60}
+                    x={4}
+                    y={34}
+                    width={Math.max(section.width - 8, 0)}
+                    height={Math.max(section.height - 38, 0)}
                     fill="rgba(181, 21, 21, 0.15)"
-                    stroke="#b51515"
-                    strokeWidth={1}
-                    dash={[6, 4]}
                     cornerRadius={8}
                   />
                   <Text
-                    x={20}
+                    x={4}
                     y={section.height / 2 - 20}
-                    width={section.width - 40}
+                    width={Math.max(section.width - 8, 0)}
                     text={`🎫 STANDING AREA`}
                     fontSize={16}
                     fill="#FFFFFF"

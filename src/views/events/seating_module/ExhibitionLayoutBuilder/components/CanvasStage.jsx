@@ -381,6 +381,7 @@ const CanvasStage = ({
     border: '1px solid #1677ff',
     borderRadius: 4,
     background: '#fff',
+    color: editingElement.style?.textColor || editingElement.style?.fill || '#202020',
     outline: 'none',
     zIndex: 20,
   } : null;

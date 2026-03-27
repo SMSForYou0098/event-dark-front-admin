@@ -14,7 +14,25 @@ const getElementStyle = (element = {}) => ({
   fill: element?.style?.fill ?? element?.fill ?? '#cfcfcf',
   stroke: element?.style?.stroke ?? element?.stroke ?? '#1f1f1f',
   strokeWidth: Number(element?.style?.strokeWidth ?? element?.strokeWidth ?? 1),
+  textColor: element?.style?.textColor ?? element?.textColor ?? '#000000',
 });
+
+const getReadableTextColor = (hexColor) => {
+  if (!hexColor || typeof hexColor !== 'string') return '#000000';
+  const clean = hexColor.replace('#', '').trim();
+  const normalized = clean.length === 3
+    ? clean.split('').map((char) => char + char).join('')
+    : clean;
+  if (normalized.length !== 6) return '#000000';
+
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if ([r, g, b].some((val) => Number.isNaN(val))) return '#000000';
+
+  const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+  return luminance < 150 ? '#ffffff' : '#000000';
+};
 
 const isStallElement = (element = {}) => element?.entityType === 'stall';
 
@@ -153,6 +171,7 @@ const ExhibitionLayoutUserView = () => {
     const style = getElementStyle(element);
     const label = getLabelText(element);
     const showLabel = element?.type !== 'text' && element?.display?.showLabel !== false;
+    const labelColor = style.textColor || getReadableTextColor(style.fill);
     const commonProps = {
       key: element.id,
       id: element.id,
@@ -178,7 +197,7 @@ const ExhibitionLayoutUserView = () => {
               y={Number(element.y || 0) + (height / 2) - 7}
               text={label}
               fontSize={14}
-              fill="#000"
+              fill={labelColor}
               align="center"
               width={Math.max(width - 8, 40)}
               listening={false}
@@ -201,7 +220,7 @@ const ExhibitionLayoutUserView = () => {
               y={Number(element.y || 0) - 7}
               text={label}
               fontSize={14}
-              fill="#000"
+              fill={labelColor}
               align="center"
               width={Math.max(radius * 2, 40)}
               listening={false}
@@ -224,7 +243,7 @@ const ExhibitionLayoutUserView = () => {
               y={Number(element.y || 0) - 16}
               text={label}
               fontSize={13}
-              fill="#000"
+              fill={labelColor}
               align="center"
               width={Math.max(Number(points?.[2] || 120), 40)}
               listening={false}
@@ -252,7 +271,7 @@ const ExhibitionLayoutUserView = () => {
               y={Number(element.y || 0) - 7}
               text={label}
               fontSize={14}
-              fill="#000"
+              fill={labelColor}
               align="center"
               width={Math.max(radius * 2, 40)}
               listening={false}
@@ -269,7 +288,7 @@ const ExhibitionLayoutUserView = () => {
         {...commonProps}
         text={element.text || element.name || 'Label'}
         fontSize={Number(element.fontSize || 20)}
-        fill={style.fill || '#202020'}
+        fill={style.textColor || style.fill || '#202020'}
         width={Math.max(Number(element.width || 100), 80)}
         wrap="none"
       />

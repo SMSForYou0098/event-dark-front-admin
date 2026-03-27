@@ -895,7 +895,8 @@ const AuditoriumLayoutDesigner = () => {
 
       section.rows.forEach(row => {
         row.seats.forEach(seat => {
-          if (seat.ticketCategory) {
+          // Never send visual gap placeholders as ticket assignments
+          if (seat.type !== 'blank' && seat.ticketCategory) {
             assignments.push({
               seatId: seat.id,
               sectionId: section.id,

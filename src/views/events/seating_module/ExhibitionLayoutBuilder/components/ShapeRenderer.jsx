@@ -7,6 +7,23 @@ import {
   RegularPolygon,
 } from 'react-konva';
 
+const getReadableTextColor = (hexColor) => {
+  if (!hexColor || typeof hexColor !== 'string') return '#000000';
+  const clean = hexColor.replace('#', '').trim();
+  const normalized = clean.length === 3
+    ? clean.split('').map((char) => char + char).join('')
+    : clean;
+  if (normalized.length !== 6) return '#000000';
+
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if ([r, g, b].some((val) => Number.isNaN(val))) return '#000000';
+
+  const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+  return luminance < 150 ? '#ffffff' : '#000000';
+};
+
 const ShapeRenderer = ({
   element,
   isSelected,
@@ -81,6 +98,7 @@ const ShapeRenderer = ({
   const shouldShowEntityLabel = element.type !== 'text' && element.display?.showLabel;
   const entityLabel = element.meta?.name || '';
   const centeredLabel = getCenteredLabelPosition();
+  const labelColor = style.textColor || getReadableTextColor(style.fill);
 
   if (element.type === 'rect' || element.type === 'square') {
     return (
@@ -99,7 +117,7 @@ const ShapeRenderer = ({
             // offsetY={0}
             text={entityLabel}
             fontSize={14}
-            fill="#000"
+            fill={labelColor}
             align="center"
             verticalAlign="middle"
             width={Math.max((element.width || 120) - 8, 40)}
@@ -128,7 +146,7 @@ const ShapeRenderer = ({
             y={centeredLabel.y}
             text={entityLabel}
             fontSize={14}
-            fill="#000"
+            fill={labelColor}
             align="center"
             verticalAlign="middle"
             width={Math.max((element.radius || 50) * 2 - 8, 40)}
@@ -159,7 +177,7 @@ const ShapeRenderer = ({
             y={centeredLabel.y - 16}
             text={entityLabel}
             fontSize={13}
-            fill="#000"
+            fill={labelColor}
             align="center"
             width={Math.max((element.points?.[2] || 120), 40)}
             offsetX={Math.max((element.points?.[2] || 120), 40) / 2}
@@ -187,7 +205,7 @@ const ShapeRenderer = ({
             y={centeredLabel.y}
             text={entityLabel}
             fontSize={14}
-            fill="#000"
+            fill={labelColor}
             align="center"
             verticalAlign="middle"
             width={Math.max((element.radius || 55) * 2 - 8, 40)}
@@ -207,7 +225,7 @@ const ShapeRenderer = ({
       {...commonProps}
       text={element.text || element.name || 'Label'}
       fontSize={element.fontSize || 20}
-      fill={style.fill || '#202020'}
+      fill={style.textColor || style.fill || '#202020'}
       width={Math.max(element.width || 100, 80)}
       wrap="none"
       visible={!isEditingText}

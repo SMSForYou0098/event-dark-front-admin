@@ -42,6 +42,23 @@ const grid2 = {
   gap: 8,
 };
 
+const getReadableTextColor = (hexColor) => {
+  if (!hexColor || typeof hexColor !== 'string') return '#000000';
+  const clean = hexColor.replace('#', '').trim();
+  const normalized = clean.length === 3
+    ? clean.split('').map((char) => char + char).join('')
+    : clean;
+  if (normalized.length !== 6) return '#000000';
+
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  if ([r, g, b].some((val) => Number.isNaN(val))) return '#000000';
+
+  const luminance = (0.299 * r) + (0.587 * g) + (0.114 * b);
+  return luminance < 150 ? '#ffffff' : '#000000';
+};
+
 const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }) => {
   const [form] = Form.useForm();
 
@@ -67,6 +84,7 @@ const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }
       fill: style.fill || '#cfcfcf',
       stroke: style.stroke || '#1f1f1f',
       strokeWidth: Number(style.strokeWidth || 1),
+      textColor: style.textColor,
       rotation: Number(selected.rotation || 0),
       name: meta.name || '',
       price: Number(meta.price || 0),
@@ -91,11 +109,12 @@ const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }
       if (values[field] !== undefined) updates[field] = values[field];
     });
 
-    if (values.fill !== undefined || values.stroke !== undefined || values.strokeWidth !== undefined) {
+    if (values.fill !== undefined || values.stroke !== undefined || values.strokeWidth !== undefined || values.textColor !== undefined) {
       updates.style = { ...(updates.style || {}) };
       if (values.fill !== undefined) updates.style.fill = values.fill;
       if (values.stroke !== undefined) updates.style.stroke = values.stroke;
       if (values.strokeWidth !== undefined) updates.style.strokeWidth = values.strokeWidth;
+      if (values.textColor !== undefined) updates.style.textColor = values.textColor;
     }
 
     if (values.name !== undefined || values.price !== undefined || values.bookable !== undefined) {
@@ -124,6 +143,8 @@ const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }
 
   const selectedEntityType = form.getFieldValue('entityType') || selected?.entityType || 'stall';
   const isLabelEntity = selectedEntityType === 'label' || selected?.type === 'text';
+  const resolvedFontColor = form.getFieldValue('textColor')
+    || getReadableTextColor(form.getFieldValue('fill') || '#cfcfcf');
 
   return (
     <Card
@@ -211,6 +232,16 @@ const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }
                 style={{ width: '100%', height: 28, border: '1px solid #333', borderRadius: 4, padding: 0, cursor: 'pointer', background: 'none' }}
               />
             </div>
+          </div>
+
+          <div style={{ marginTop: 8 }}>
+            <span style={labelStyle}>Font Color</span>
+            <input
+              type="color"
+              value={resolvedFontColor}
+              onChange={(evt) => handleValuesChange({ textColor: evt.target.value })}
+              style={{ width: '100%', height: 28, border: '1px solid #333', borderRadius: 4, padding: 0, cursor: 'pointer', background: 'none' }}
+            />
           </div>
 
           {/* Border Width */}

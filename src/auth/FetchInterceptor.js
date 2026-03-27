@@ -85,7 +85,7 @@ api.interceptors.response.use(
   },
   (error) => {
     const status = error?.response?.status;
-    const url = error?.config?.url;
+    // const url = error?.config?.url;
 
     // Defensive: if no response (network error / CORS / timeout)
     if (!error?.response) {
@@ -119,16 +119,17 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    const serverMsg = Utils.getErrorMessage(error);
+
     // Specific status messaging (404/500/508 etc)
     if (status === 404) {
       // message.error(`Resource not found: ${url}`);
     } else if (status === 500) {
-      message.error('Server Error: Something went wrong on server.');
+      message.error(serverMsg || 'Server Error: Something went wrong on server.');
     } else if (status === 408 || status === 508) {
-      message.error('Request Timeout: Request timed out.');
+      message.error(serverMsg || 'Request Timeout: Request timed out.');
     } else {
       // Generic fallback: prefer server-supplied message if present
-      const serverMsg = Utils.getErrorMessage(error);
       message.error(serverMsg);
     }
 

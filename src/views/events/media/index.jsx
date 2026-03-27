@@ -193,7 +193,7 @@ const MediaGallery = () => {
             setFolderModalOpen(false);
             setEditingFolder(null);
         } catch (error) {
-            message.error(Utils.getErrorMessage(error));
+            // Error toast is already shown by FetchInterceptor.
         }
     };
 

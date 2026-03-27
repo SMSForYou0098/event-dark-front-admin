@@ -468,14 +468,11 @@ const Section = memo(({ section, selectedSeatIds, selectedSeats, onSeatClick, on
                     }}
                 >
                     <Rect
-                        x={20}
-                        y={40}
-                        width={section.width - 40}
-                        height={section.height - 60}
+                        x={4}
+                        y={34}
+                        width={Math.max(section.width - 8, 0)}
+                        height={Math.max(section.height - 38, 0)}
                         fill={isStandingSelected ? "rgba(181, 21, 21, 0.4)" : "rgba(181, 21, 21, 0.15)"}
-                        stroke={THEME.primary}
-                        strokeWidth={isStandingSelected ? 2 : 1}
-                        dash={isStandingSelected ? [] : [6, 4]}
                         cornerRadius={8}
                     />
                     <Text
@@ -491,9 +488,9 @@ const Section = memo(({ section, selectedSeatIds, selectedSeats, onSeatClick, on
                         perfectDrawEnabled={false}
                     />
                     <Text
-                        x={20}
+                        x={4}
                         y={section.height / 2 - 10}
-                        width={section.width - 40}
+                        width={Math.max(section.width - 8, 0)}
                         text={isStandingSelected ? `🎫 ${selectedCount} SELECTED` : `🎫 STANDING AREA`}
                         fontSize={16}
                         fill={THEME.textPrimary}

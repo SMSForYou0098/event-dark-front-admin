@@ -81,10 +81,8 @@ export const useCreateCategory = () => {
                 message.error(res?.message || 'Failed to create folder');
             }
         },
-        onError: (error) => {
-            console.error('Create category error:', error);
-            message.error('Failed to create folder');
-        },
+        // Error toast is handled globally by FetchInterceptor.
+        onError: () => {},
     });
 };
 

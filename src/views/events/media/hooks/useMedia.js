@@ -98,14 +98,14 @@ export const useBulkUploadMedia = () => {
         },
         onSuccess: (res) => {
             if (res?.status) {
-                message.success('Files uploaded successfully');
+                //message.success('Files uploaded successfully');
                 queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
             } else {
                 message.error(res?.message || 'Failed to upload files');
             }
         },
         onError: (error) => {
-            console.error('Bulk upload error:', error);
+            //console.error('Bulk upload error:', error);
             message.error('Failed to upload files');
         },
     });
