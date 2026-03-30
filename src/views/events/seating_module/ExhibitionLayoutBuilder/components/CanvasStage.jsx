@@ -11,8 +11,12 @@ const CanvasStage = ({
   elements,
   selectedIds,
   onSelect,
+  onSetSelection,
   onClearSelection,
   onDropShape,
+  onAddElements,
+  onGroupSelected,
+  onUngroupSelected,
   onElementsUpdate,
   snapToGrid,
   snapEnabled,
@@ -30,7 +34,12 @@ const CanvasStage = ({
   const [stagePosition, setStagePosition] = useState({ x: 0, y: 0 });
   const [editingId, setEditingId] = useState(null);
   const [editingValue, setEditingValue] = useState('');
+  const [dragGuides, setDragGuides] = useState(null);
+  const [rotationHint, setRotationHint] = useState(null);
   const stageTransformRef = useRef({ scale: 1, position: { x: 0, y: 0 } });
+  const clipboardRef = useRef([]);
+  const pasteCountRef = useRef(0);
+  const groupDragRef = useRef(null);
 
   const elementById = useMemo(() => {
     const map = {};
@@ -44,6 +53,15 @@ const CanvasStage = ({
     () => selectedIds.map((id) => elementById[id]).filter(Boolean),
     [selectedIds, elementById]
   );
+  const elementIdsByGroup = useMemo(() => {
+    const map = {};
+    elements.forEach((element) => {
+      if (!element.groupId) return;
+      if (!map[element.groupId]) map[element.groupId] = [];
+      map[element.groupId].push(element.id);
+    });
+    return map;
+  }, [elements]);
 
   const isSingleLineSelected = selectedElements.length === 1 && selectedElements[0]?.type === 'line';
 
@@ -72,7 +90,7 @@ const CanvasStage = ({
 
     transformerRef.current.nodes(nodes);
     transformerRef.current.getLayer()?.batchDraw();
-  }, [selectedIds, elements]);
+  }, [selectedIds, elements, elementById]);
 
   useEffect(() => {
     if (!editingId) return;
@@ -281,6 +299,283 @@ const CanvasStage = ({
     setStagePosition(nextPosition);
   };
 
+  const createClientId = () => `temp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+
+  const getElementBounds = (element) => {
+    if (!element) return null;
+    if (element.type === 'rect' || element.type === 'square' || element.type === 'text') {
+      const width = Number(element.width || 0);
+      const height = Number(element.height || 0);
+      return {
+        left: Number(element.x || 0),
+        top: Number(element.y || 0),
+        right: Number(element.x || 0) + width,
+        bottom: Number(element.y || 0) + height,
+      };
+    }
+    if (element.type === 'circle') {
+      const radius = Number(element.radius || 0);
+      return {
+        left: Number(element.x || 0) - radius,
+        top: Number(element.y || 0) - radius,
+        right: Number(element.x || 0) + radius,
+        bottom: Number(element.y || 0) + radius,
+      };
+    }
+    if (element.type === 'polygon') {
+      const radius = Number(element.radius || 0);
+      return {
+        left: Number(element.x || 0) - radius,
+        top: Number(element.y || 0) - radius,
+        right: Number(element.x || 0) + radius,
+        bottom: Number(element.y || 0) + radius,
+      };
+    }
+    if (element.type === 'line') {
+      const points = element.points || [0, 0, 120, 0];
+      const x1 = Number(element.x || 0) + Number(points[0] || 0);
+      const y1 = Number(element.y || 0) + Number(points[1] || 0);
+      const x2 = Number(element.x || 0) + Number(points[2] || 0);
+      const y2 = Number(element.y || 0) + Number(points[3] || 0);
+      return {
+        left: Math.min(x1, x2),
+        top: Math.min(y1, y2),
+        right: Math.max(x1, x2),
+        bottom: Math.max(y1, y2),
+      };
+    }
+    return null;
+  };
+
+  const updateGuidesForElement = (draggingId, nextPosition) => {
+    const draggingElement = elementById[draggingId];
+    if (!draggingElement) return;
+
+    const shiftedElement = { ...draggingElement, ...nextPosition };
+    const bounds = getElementBounds(shiftedElement);
+    if (!bounds) return;
+
+    const candidatesX = [bounds.left, (bounds.left + bounds.right) / 2, bounds.right];
+    const candidatesY = [bounds.top, (bounds.top + bounds.bottom) / 2, bounds.bottom];
+
+    const threshold = 6;
+    let matchX = null;
+    let matchY = null;
+
+    elements.forEach((element) => {
+      if (element.id === draggingId) return;
+      const targetBounds = getElementBounds(element);
+      if (!targetBounds) return;
+      const targetsX = [targetBounds.left, (targetBounds.left + targetBounds.right) / 2, targetBounds.right];
+      const targetsY = [targetBounds.top, (targetBounds.top + targetBounds.bottom) / 2, targetBounds.bottom];
+
+      candidatesX.forEach((candidateX) => {
+        targetsX.forEach((targetX) => {
+          const distance = Math.abs(candidateX - targetX);
+          if (distance <= threshold && (!matchX || distance < matchX.distance)) {
+            matchX = { value: targetX, distance };
+          }
+        });
+      });
+
+      candidatesY.forEach((candidateY) => {
+        targetsY.forEach((targetY) => {
+          const distance = Math.abs(candidateY - targetY);
+          if (distance <= threshold && (!matchY || distance < matchY.distance)) {
+            matchY = { value: targetY, distance };
+          }
+        });
+      });
+    });
+
+    if (!matchX && !matchY) {
+      setDragGuides(null);
+      return;
+    }
+
+    const guideExtent = 4000;
+    setDragGuides({
+      vertical: matchX ? [matchX.value, -guideExtent, matchX.value, guideExtent] : null,
+      horizontal: matchY ? [-guideExtent, matchY.value, guideExtent, matchY.value] : null,
+    });
+  };
+
+  const handleElementDragMove = (id, position) => {
+    const activeGroupDrag = groupDragRef.current;
+    if (activeGroupDrag?.leaderId === id && activeGroupDrag.memberStarts?.length) {
+      const dx = position.x - activeGroupDrag.leaderStart.x;
+      const dy = position.y - activeGroupDrag.leaderStart.y;
+      activeGroupDrag.memberStarts.forEach((member) => {
+        if (member.id === id) return;
+        const memberNode = nodeMapRef.current[member.id];
+        if (!memberNode) return;
+        memberNode.position({
+          x: member.x + dx,
+          y: member.y + dy,
+        });
+      });
+      nodeMapRef.current[id]?.getLayer?.()?.batchDraw();
+    }
+
+    updateGuidesForElement(id, position);
+  };
+
+  const handleElementDragStart = (id) => {
+    const element = elementById[id];
+    if (!element?.groupId) {
+      groupDragRef.current = null;
+      return;
+    }
+
+    const groupMemberIds = elementIdsByGroup[element.groupId] || [];
+    if (groupMemberIds.length < 2) {
+      groupDragRef.current = null;
+      return;
+    }
+
+    const leaderNode = nodeMapRef.current[id];
+    if (!leaderNode) {
+      groupDragRef.current = null;
+      return;
+    }
+
+    const memberStarts = groupMemberIds
+      .map((memberId) => {
+        const memberNode = nodeMapRef.current[memberId];
+        if (!memberNode) return null;
+        return {
+          id: memberId,
+          x: memberNode.x(),
+          y: memberNode.y(),
+        };
+      })
+      .filter(Boolean);
+
+    groupDragRef.current = {
+      leaderId: id,
+      leaderStart: {
+        x: leaderNode.x(),
+        y: leaderNode.y(),
+      },
+      memberStarts,
+    };
+  };
+
+  const handleElementDragEnd = (id, updates) => {
+    setDragGuides(null);
+    const activeGroupDrag = groupDragRef.current;
+    if (activeGroupDrag?.leaderId === id && activeGroupDrag.memberStarts?.length) {
+      const groupUpdates = activeGroupDrag.memberStarts
+        .map((member) => {
+          const memberNode = nodeMapRef.current[member.id];
+          if (!memberNode) return null;
+          return {
+            id: member.id,
+            updates: {
+              x: snapToGrid(memberNode.x(), snapEnabled),
+              y: snapToGrid(memberNode.y(), snapEnabled),
+            },
+          };
+        })
+        .filter(Boolean);
+      groupDragRef.current = null;
+      if (groupUpdates.length) {
+        onElementsUpdate(groupUpdates);
+        return;
+      }
+    }
+
+    groupDragRef.current = null;
+    onElementsUpdate([{ id, updates }]);
+  };
+
+  useEffect(() => {
+    const listener = (evt) => {
+      const activeTag = document.activeElement?.tagName;
+      const isTyping = ['INPUT', 'TEXTAREA'].includes(activeTag) || document.activeElement?.isContentEditable;
+      if (isTyping) return;
+
+      if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === 'c') {
+        const liveSelectedIds = (transformerRef.current?.nodes?.() || [])
+          .map((node) => node.id?.())
+          .filter(Boolean);
+        const activeSelectionIds = liveSelectedIds.length ? liveSelectedIds : selectedIds;
+        if (!activeSelectionIds.length) return;
+        evt.preventDefault();
+        const selected = activeSelectionIds
+          .map((id) => elementById[id])
+          .filter(Boolean)
+          .map((item) => JSON.parse(JSON.stringify(item)));
+        clipboardRef.current = selected;
+        pasteCountRef.current = 0;
+      }
+
+      if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === 'v') {
+        if (!clipboardRef.current.length || typeof onAddElements !== 'function') return;
+        evt.preventDefault();
+        pasteCountRef.current += 1;
+        const offset = 20 * pasteCountRef.current;
+        const pastedGroupMap = {};
+        const clones = clipboardRef.current.map((item) => ({
+          ...item,
+          id: createClientId(),
+          groupId: item.groupId
+            ? (pastedGroupMap[item.groupId] || (pastedGroupMap[item.groupId] = `group_${Date.now()}_${Math.floor(Math.random() * 100000)}`))
+            : undefined,
+          x: Number(item.x || 0) + offset,
+          y: Number(item.y || 0) + offset,
+        }));
+        onAddElements(clones, clones.map((item) => item.id));
+      }
+
+      if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === 'g' && !evt.shiftKey) {
+        if (selectedIds.length < 2 || typeof onGroupSelected !== 'function') return;
+        evt.preventDefault();
+        onGroupSelected();
+      }
+
+      if ((evt.ctrlKey || evt.metaKey) && evt.key.toLowerCase() === 'g' && evt.shiftKey) {
+        if (!selectedIds.length || typeof onUngroupSelected !== 'function') return;
+        evt.preventDefault();
+        onUngroupSelected();
+      }
+    };
+
+    window.addEventListener('keydown', listener);
+    return () => window.removeEventListener('keydown', listener);
+  }, [selectedIds, elementById, onAddElements, onGroupSelected, onUngroupSelected]);
+
+  const handleElementSelect = (id, isShift) => {
+    const element = elementById[id];
+    const groupIds = element?.groupId ? (elementIdsByGroup[element.groupId] || [id]) : [id];
+
+    if (!isShift) {
+      if (groupIds.length > 1 && typeof onSetSelection === 'function') {
+        onSetSelection(groupIds);
+        return;
+      }
+      onSelect(id, false);
+      return;
+    }
+
+    if (groupIds.length === 1) {
+      onSelect(id, true);
+      return;
+    }
+
+    const isFullySelected = groupIds.every((groupId) => selectedIds.includes(groupId));
+    if (typeof onSetSelection === 'function') {
+      if (isFullySelected) {
+        onSetSelection(selectedIds.filter((selectedId) => !groupIds.includes(selectedId)));
+      } else {
+        onSetSelection(Array.from(new Set([...selectedIds, ...groupIds])));
+      }
+      return;
+    }
+
+    groupIds.forEach((groupId) => onSelect(groupId, true));
+  };
+
   const renderGrid = () => {
     if (!gridEnabled) return null;
 
@@ -294,7 +589,7 @@ const CanvasStage = ({
           key={`grid-x-${x}`}
           points={[x, -worldLimit, x, worldLimit]}
           stroke="#e8e8e8"
-          strokeWidth={1}
+          strokeWidth={0.1}
           listening={false}
         />
       );
@@ -306,7 +601,7 @@ const CanvasStage = ({
           key={`grid-y-${y}`}
           points={[-worldLimit, y, worldLimit, y]}
           stroke="#e8e8e8"
-          strokeWidth={1}
+          strokeWidth={0.1}
           listening={false}
         />
       );
@@ -368,6 +663,39 @@ const CanvasStage = ({
     if (updates.length) {
       onElementsUpdate(updates);
     }
+    setRotationHint(null);
+  };
+
+  const updateRotationHint = () => {
+    const transformer = transformerRef.current;
+    if (!transformer) {
+      setRotationHint(null);
+      return;
+    }
+    const activeAnchor = transformer.getActiveAnchor?.();
+    if (activeAnchor !== 'rotater') {
+      setRotationHint(null);
+      return;
+    }
+
+    const nodes = transformer.nodes() || [];
+    const targetNode = nodes[0];
+    if (!targetNode) {
+      setRotationHint(null);
+      return;
+    }
+
+    const rect = targetNode.getClientRect({ skipShadow: true, skipStroke: false });
+    const worldX = rect.x + (rect.width / 2);
+    const worldY = rect.y - 18;
+    const angle = Number(targetNode.rotation?.() || 0);
+    const normalizedAngle = ((Math.round(angle) % 360) + 360) % 360;
+
+    setRotationHint({
+      angle: normalizedAngle,
+      left: stagePosition.x + (worldX * stageScale),
+      top: stagePosition.y + (worldY * stageScale),
+    });
   };
 
   const editingElement = editingId ? elementById[editingId] : null;
@@ -407,13 +735,13 @@ const CanvasStage = ({
         ref={wrapperRef}
         onDragOver={(evt) => evt.preventDefault()}
         onDrop={handleDrop}
+        className='border-secondary'
         style={{
           width: '100%',
           position: 'relative',
-          border: '1px solid #d9d9d9',
           borderRadius: 8,
           overflow: 'hidden',
-          background: '#fff',
+          //background: '#fff',
         }}
       >
         <Stage
@@ -441,6 +769,24 @@ const CanvasStage = ({
           onWheel={handleWheel}
         >
           <Layer listening={false}>{renderGrid()}</Layer>
+          <Layer listening={false}>
+            {dragGuides?.vertical && (
+              <Line
+                points={dragGuides.vertical}
+                stroke="#1677ff"
+                strokeWidth={1}
+                dash={[6, 6]}
+              />
+            )}
+            {dragGuides?.horizontal && (
+              <Line
+                points={dragGuides.horizontal}
+                stroke="#1677ff"
+                strokeWidth={1}
+                dash={[6, 6]}
+              />
+            )}
+          </Layer>
           <Layer>
             {elements.map((element) => (
               <ShapeRenderer
@@ -451,8 +797,10 @@ const CanvasStage = ({
                 snapToGrid={snapToGrid}
                 snapEnabled={snapEnabled}
                 registerNode={registerNode}
-                onSelect={(id, isShift) => onSelect(id, isShift)}
-                onChange={(id, updates) => onElementsUpdate([{ id, updates }])}
+                onSelect={handleElementSelect}
+                onDragStart={handleElementDragStart}
+                onChange={handleElementDragEnd}
+                onDragMove={handleElementDragMove}
                 onStartTextEdit={startTextEdit}
               />
             ))}
@@ -485,10 +833,34 @@ const CanvasStage = ({
                 return newBox;
               }}
               onTransformEnd={handleTransformEnd}
+              onTransformStart={updateRotationHint}
+              onTransform={updateRotationHint}
               onDragEnd={handleTransformEnd}
             />
           </Layer>
         </Stage>
+        {rotationHint && (
+          <div
+            style={{
+              position: 'absolute',
+              left: rotationHint.left,
+              top: rotationHint.top,
+              transform: 'translate(-50%, -100%)',
+              padding: '2px 8px',
+              borderRadius: 999,
+              background: 'rgba(0, 0, 0, 0.78)',
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              pointerEvents: 'none',
+              zIndex: 25,
+              userSelect: 'none',
+            }}
+          >
+            {rotationHint.angle}deg
+          </div>
+        )}
         {editingElement && editorStyle && (
           <input
             value={editingValue}

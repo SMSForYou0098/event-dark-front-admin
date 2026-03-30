@@ -194,12 +194,15 @@ const ExhibitionLayoutUserView = () => {
           {showLabel && !!label && (
             <Text
               x={Number(element.x || 0)}
-              y={Number(element.y || 0) + (height / 2) - 7}
+              y={Number(element.y || 0)}
+              rotation={Number(element.rotation || 0)}
               text={label}
               fontSize={14}
               fill={labelColor}
               align="center"
+              verticalAlign="middle"
               width={Math.max(width - 8, 40)}
+              height={Math.max(height, 24)}
               listening={false}
               wrap="none"
               ellipsis
@@ -216,13 +219,16 @@ const ExhibitionLayoutUserView = () => {
           <Circle {...commonProps} radius={radius} fill={style.fill} />
           {showLabel && !!label && (
             <Text
-              x={Number(element.x || 0) - radius}
-              y={Number(element.y || 0) - 7}
+              x={Number(element.x || 0)}
+              y={Number(element.y || 0)}
+              rotation={Number(element.rotation || 0)}
               text={label}
               fontSize={14}
               fill={labelColor}
               align="center"
-              width={Math.max(radius * 2, 40)}
+              width={Math.max((radius * 2) - 8, 40)}
+              offsetX={Math.max((radius * 2) - 8, 40) / 2}
+              offsetY={7}
               listening={false}
               wrap="none"
               ellipsis
@@ -234,18 +240,23 @@ const ExhibitionLayoutUserView = () => {
 
     if (element.type === 'line') {
       const points = Array.isArray(element.points) ? element.points : [0, 0, 120, 0];
+      const width = Math.max(Number(points?.[2] || 120), 40);
+      const centerX = Number(element.x || 0) + ((Number(points?.[0] || 0) + Number(points?.[2] || 120)) / 2);
+      const centerY = Number(element.y || 0) + ((Number(points?.[1] || 0) + Number(points?.[3] || 0)) / 2) - 16;
       return (
         <React.Fragment key={element.id}>
           <Line {...commonProps} points={points} hitStrokeWidth={12} lineCap="round" lineJoin="round" />
           {showLabel && !!label && (
             <Text
-              x={Number(element.x || 0)}
-              y={Number(element.y || 0) - 16}
+              x={centerX}
+              y={centerY}
+              rotation={Number(element.rotation || 0)}
               text={label}
               fontSize={13}
               fill={labelColor}
               align="center"
-              width={Math.max(Number(points?.[2] || 120), 40)}
+              width={width}
+              offsetX={width / 2}
               listening={false}
               wrap="none"
               ellipsis
@@ -267,13 +278,16 @@ const ExhibitionLayoutUserView = () => {
           />
           {showLabel && !!label && (
             <Text
-              x={Number(element.x || 0) - radius}
-              y={Number(element.y || 0) - 7}
+              x={Number(element.x || 0)}
+              y={Number(element.y || 0)}
+              rotation={Number(element.rotation || 0)}
               text={label}
               fontSize={14}
               fill={labelColor}
               align="center"
-              width={Math.max(radius * 2, 40)}
+              width={Math.max((radius * 2) - 8, 40)}
+              offsetX={Math.max((radius * 2) - 8, 40) / 2}
+              offsetY={7}
               listening={false}
               wrap="none"
               ellipsis

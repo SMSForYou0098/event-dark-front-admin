@@ -31,7 +31,9 @@ const ShapeRenderer = ({
   snapToGrid,
   snapEnabled,
   onSelect,
+  onDragStart,
   onChange,
+  onDragMove,
   onStartTextEdit,
   registerNode,
 }) => {
@@ -53,6 +55,22 @@ const ShapeRenderer = ({
     });
   };
 
+  const handleDragStart = (evt) => {
+    if (!onDragStart) return;
+    onDragStart(element.id, {
+      x: evt.target.x(),
+      y: evt.target.y(),
+    });
+  };
+
+  const handleDragMove = (evt) => {
+    if (!onDragMove) return;
+    onDragMove(element.id, {
+      x: evt.target.x(),
+      y: evt.target.y(),
+    });
+  };
+
   const commonProps = {
     ref: (node) => registerNode(element.id, node),
     id: element.id,
@@ -62,7 +80,9 @@ const ShapeRenderer = ({
     draggable: isEditable,
     onClick: handleSelect,
     onTap: handleSelect,
+    onDragStart: isEditable ? handleDragStart : undefined,
     onDragEnd: isEditable ? handleDragEnd : undefined,
+    onDragMove: isEditable ? handleDragMove : undefined,
     stroke: style.stroke,
     strokeWidth: style.strokeWidth || 1,
     listening: true,
@@ -73,7 +93,6 @@ const ShapeRenderer = ({
 
   const getCenteredLabelPosition = () => {
     if (element.type === 'circle') {
-      const radius = element.radius || 50;
       return { x: element.x, y: element.y };
     }
 
@@ -111,18 +130,16 @@ const ShapeRenderer = ({
         />
         {shouldShowEntityLabel && !!entityLabel && (
           <Text
-            x={centeredLabel.x}
-            y={centeredLabel.y}
-            // offsetX={0}
-            // offsetY={0}
+            x={element.x}
+            y={element.y}
+            rotation={element.rotation || 0}
             text={entityLabel}
             fontSize={14}
             fill={labelColor}
             align="center"
             verticalAlign="middle"
             width={Math.max((element.width || 120) - 8, 40)}
-            offsetX={Math.max((element.width || 120) - 8, 40) / 2}
-            offsetY={7}
+            height={Math.max(element.height || 60, 24)}
             listening={false}
             wrap="none"
             ellipsis
@@ -144,6 +161,7 @@ const ShapeRenderer = ({
           <Text
             x={centeredLabel.x}
             y={centeredLabel.y}
+            rotation={element.rotation || 0}
             text={entityLabel}
             fontSize={14}
             fill={labelColor}
@@ -175,6 +193,7 @@ const ShapeRenderer = ({
           <Text
             x={centeredLabel.x}
             y={centeredLabel.y - 16}
+            rotation={element.rotation || 0}
             text={entityLabel}
             fontSize={13}
             fill={labelColor}
@@ -203,6 +222,7 @@ const ShapeRenderer = ({
           <Text
             x={centeredLabel.x}
             y={centeredLabel.y}
+            rotation={element.rotation || 0}
             text={entityLabel}
             fontSize={14}
             fill={labelColor}

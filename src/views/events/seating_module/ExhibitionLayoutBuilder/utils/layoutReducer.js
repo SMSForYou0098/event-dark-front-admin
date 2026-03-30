@@ -3,6 +3,7 @@ const GRID_SIZE = 20;
 const snapToGrid = (value, snap) => (snap ? Math.round(value / GRID_SIZE) * GRID_SIZE : value);
 
 const createTempId = () => `temp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+const createGroupId = () => `group_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 
 const ENTITY_TYPES = {
   STALL: 'stall',
@@ -257,6 +258,16 @@ const presentReducer = (present, action) => {
         selectedIds: [action.payload.id],
       };
     }
+    case 'ADD_ELEMENTS': {
+      const incoming = Array.isArray(action.payload?.elements) ? action.payload.elements : [];
+      if (!incoming.length) return present;
+      const selectedIds = action.payload?.selectedIds || incoming.map((item) => item.id).filter(Boolean);
+      return {
+        ...present,
+        elements: [...present.elements, ...incoming],
+        selectedIds,
+      };
+    }
     case 'SET_ELEMENTS': {
       return {
         ...present,
@@ -301,11 +312,15 @@ const presentReducer = (present, action) => {
     case 'DUPLICATE_SELECTED': {
       if (!present.selectedIds.length) return present;
       const selected = present.elements.filter((element) => present.selectedIds.includes(element.id));
+      const groupMap = {};
       const duplicates = selected.map((element) => ({
         ...element,
         id: createTempId(),
         x: (element.x || 0) + 20,
         y: (element.y || 0) + 20,
+        groupId: element.groupId
+          ? (groupMap[element.groupId] || (groupMap[element.groupId] = createGroupId()))
+          : undefined,
         meta: {
           ...(element.meta || {}),
         },
@@ -317,6 +332,29 @@ const presentReducer = (present, action) => {
         ...present,
         elements: [...present.elements, ...duplicates],
         selectedIds: duplicates.map((item) => item.id),
+      };
+    }
+    case 'GROUP_SELECTED': {
+      if (present.selectedIds.length < 2) return present;
+      const groupId = action.payload?.groupId || createGroupId();
+      return {
+        ...present,
+        elements: present.elements.map((item) => (
+          present.selectedIds.includes(item.id)
+            ? { ...item, groupId }
+            : item
+        )),
+      };
+    }
+    case 'UNGROUP_SELECTED': {
+      if (!present.selectedIds.length) return present;
+      return {
+        ...present,
+        elements: present.elements.map((item) => (
+          present.selectedIds.includes(item.id)
+            ? { ...item, groupId: undefined }
+            : item
+        )),
       };
     }
     case 'BRING_FORWARD': {

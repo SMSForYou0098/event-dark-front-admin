@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import {
+  Button,
   Card,
   Empty,
   Form,
@@ -7,8 +8,17 @@ import {
   InputNumber,
   Select,
   Switch,
+  Tooltip,
   Typography,
 } from 'antd';
+import {
+  LinkOutlined,
+  DisconnectOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  UndoOutlined,
+  RedoOutlined,
+} from '@ant-design/icons';
 import { getElementDimension } from '../utils/layoutReducer';
 
 const entityTypeOptions = [
@@ -59,7 +69,19 @@ const getReadableTextColor = (hexColor) => {
   return luminance < 150 ? '#ffffff' : '#000000';
 };
 
-const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }) => {
+const PropertiesPanel = ({
+  selectedElements,
+  onUpdateElement,
+  onUpdateSelected,
+  onDeleteSelected,
+  onDuplicateSelected,
+  onGroupSelected,
+  onUngroupSelected,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+}) => {
   const [form] = Form.useForm();
 
   const isSingle = selectedElements.length === 1;
@@ -145,6 +167,9 @@ const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }
   const isLabelEntity = selectedEntityType === 'label' || selected?.type === 'text';
   const resolvedFontColor = form.getFieldValue('textColor')
     || getReadableTextColor(form.getFieldValue('fill') || '#cfcfcf');
+  const hasSelection = selectedElements.length > 0;
+  const canGroup = selectedElements.length > 1;
+  const canUngroup = selectedElements.some((item) => !!item.groupId);
 
   return (
     <Card
@@ -153,6 +178,42 @@ const PropertiesPanel = ({ selectedElements, onUpdateElement, onUpdateSelected }
       style={{ height: '100%' }}
       bodyStyle={{ height: 'calc(100% - 48px)', overflowY: 'auto', overflowX: 'hidden', padding: '10px 12px' }}
     >
+      <div style={{ marginBottom: 8 }}>
+        <span style={sectionStyle}>Actions</span>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+          <Tooltip title="Group (Ctrl/Cmd+G)">
+            <Button size="small" onClick={onGroupSelected} disabled={!canGroup}>
+              <LinkOutlined />
+            </Button>
+          </Tooltip>
+          <Tooltip title="Ungroup (Ctrl/Cmd+Shift+G)">
+            <Button size="small" onClick={onUngroupSelected} disabled={!canUngroup}>
+              <DisconnectOutlined />
+            </Button>
+          </Tooltip>
+          <Tooltip title="Duplicate (Ctrl/Cmd+D)">
+            <Button size="small" onClick={onDuplicateSelected} disabled={!hasSelection}>
+              <CopyOutlined />
+            </Button>
+          </Tooltip>
+          <Tooltip title="Delete">
+            <Button size="small" danger onClick={onDeleteSelected} disabled={!hasSelection}>
+              <DeleteOutlined />
+            </Button>
+          </Tooltip>
+          <Tooltip title="Undo (Ctrl/Cmd+Z)">
+            <Button size="small" onClick={onUndo} disabled={!canUndo}>
+              <UndoOutlined />
+            </Button>
+          </Tooltip>
+          <Tooltip title="Redo (Ctrl/Cmd+Y)">
+            <Button size="small" onClick={onRedo} disabled={!canRedo}>
+              <RedoOutlined />
+            </Button>
+          </Tooltip>
+        </div>
+      </div>
+
       {!selectedElements.length && (
         <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Select an element" />
       )}

@@ -32,8 +32,8 @@ const entityTypeOptions = [
 const labelStyle = {
   fontSize: 11,
   color: '#888',
-  marginBottom: 3,
   display: 'block',
+  marginRight: 8,
   textTransform: 'uppercase',
   letterSpacing: '0.04em',
 };
@@ -45,6 +45,46 @@ const fieldStyle = {
 const rowStyle = {
   display: 'grid',
   gap: 8,
+};
+
+const getShapePreview = (shapeType) => {
+  const common = {
+    border: '1.5px solid #bbb',
+    display: 'inline-block',
+    background: '#8f8f8f',
+  };
+
+  if (shapeType === 'rect') {
+    return <span style={{ ...common, width: 22, height: 12, borderRadius: 2 }} />;
+  }
+  if (shapeType === 'square') {
+    return <span style={{ ...common, width: 16, height: 16, borderRadius: 2 }} />;
+  }
+  if (shapeType === 'circle') {
+    return <span style={{ ...common, width: 16, height: 16, borderRadius: '50%' }} />;
+  }
+  if (shapeType === 'line') {
+    return <span style={{ width: 22, height: 0, borderTop: '3px solid #8f8f8f', display: 'inline-block' }} />;
+  }
+  if (shapeType === 'polygon') {
+    return (
+      <span
+        style={{
+          width: 18,
+          height: 18,
+          border: '1.5px solid #bbb',
+          background: '#8f8f8f',
+          display: 'inline-block',
+          transform: 'rotate(18deg)',
+          clipPath: 'polygon(50% 0%, 95% 35%, 77% 90%, 23% 90%, 5% 35%)',
+        }}
+      />
+    );
+  }
+  if (shapeType === 'text') {
+    return <span style={{ fontSize: 12, fontWeight: 700, color: '#bbb', lineHeight: 1 }}>T</span>;
+  }
+  return <span style={{ fontSize: 12, color: '#bbb' }}>?</span>;
 };
 
 const getReadableTextColor = (hexColor) => {
@@ -70,18 +110,12 @@ const Sidebar = ({
   onAddShape,
   onAddStall,
   onApplyToSelected,
-  onDeleteSelected,
-  onDuplicateSelected,
   onBringForward,
   onSendBackward,
-  onUndo,
-  onRedo,
   onSave,
   onExportJson,
   onImportJson,
   onExportImage,
-  canUndo,
-  canRedo,
   hasSelection,
   loading = false,
   layoutName = '',
@@ -100,22 +134,7 @@ const Sidebar = ({
   return (
     <Card
       title="Tools"
-      size="small"
-      style={{ height: '100%' }}
-      bodyStyle={{ height: 'calc(100% - 48px)', overflowY: 'auto', overflowX: 'hidden', padding: '10px 12px' }}
-    >
-      <Space direction="vertical" style={{ width: '100%' }} size={8}>
-        {/* Layout Name */}
-        <div>
-          <span style={labelStyle}>Layout Name</span>
-          <Input 
-            size="small" 
-            placeholder="Enter layout name" 
-            value={layoutName} 
-            onChange={(e) => onLayoutNameChange(e.target.value)}
-          />
-        </div>
-
+      extra={
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={labelStyle}>Approval Required</span>
           <Switch
@@ -124,25 +143,45 @@ const Sidebar = ({
             onChange={(checked) => onApprovalRequiredChange?.(checked)}
           />
         </div>
-
-        <Divider style={{ margin: '4px 0' }} />
+      }
+      size="small"
+      style={{ height: '100%' }}
+      bodyStyle={{ height: 'calc(100% - 48px)', overflowY: 'auto', overflowX: 'hidden', padding: '10px 12px' }}
+    >
+      <Space direction="vertical" style={{ width: '100%' }} size={8}>
+        {/* Layout Name */}
+        <div>
+          <span style={labelStyle}>Layout Name</span>
+          <Input
+            size="small"
+            placeholder="Enter layout name"
+            value={layoutName}
+            onChange={(e) => onLayoutNameChange(e.target.value)}
+          />
+        </div>
 
         {/* Shape Buttons */}
         <Typography.Text strong style={{ fontSize: 12 }}>Drag to Canvas / Click to Add</Typography.Text>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
           {shapeOptions.map((shape) => (
             <Button
               key={shape.type}
               size="small"
               draggable
-              style={{ fontSize: 11 }}
+              title={shape.label}
+              style={{
+                height: 32,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
               onDragStart={(evt) => {
                 evt.dataTransfer.setData('shapeType', shape.type);
                 evt.dataTransfer.setData('entityType', shape.entityType || defaults.entityType || 'stall');
               }}
               onClick={() => onAddShape(shape.type, { entityType: shape.entityType || defaults.entityType || 'stall' })}
             >
-              {shape.label}
+              {getShapePreview(shape.type)}
             </Button>
           ))}
         </div>
@@ -150,9 +189,6 @@ const Sidebar = ({
         <Button type="primary" onClick={onAddStall} block size="small">
           + Add Stall
         </Button>
-
-        <Divider style={{ margin: '4px 0' }} />
-
         {/* Entity Data Section */}
         <Typography.Text strong style={{ fontSize: 12 }}>Default Entity Data</Typography.Text>
 
@@ -171,8 +207,8 @@ const Sidebar = ({
           />
         </div>
 
-        {/* Color + Border Color side by side */}
-        <div style={{ ...rowStyle, gridTemplateColumns: '1fr 1fr' }}>
+        {/* Fill + Border + Font color in one line */}
+        <div style={{ ...rowStyle, gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
           <div>
             <span style={labelStyle}>Fill Color</span>
             <input
@@ -191,17 +227,17 @@ const Sidebar = ({
               style={{ width: '100%', height: 28, border: '1px solid #333', borderRadius: 4, padding: 0, cursor: 'pointer', background: 'none' }}
             />
           </div>
+          <div>
+            <span style={labelStyle}>Font Color</span>
+            <input
+              type="color"
+              value={resolvedFontColor}
+              onChange={(evt) => syncDefaults({ style: { ...styleDefaults, textColor: evt.target.value } })}
+              style={{ width: '100%', height: 28, border: '1px solid #333', borderRadius: 4, padding: 0, cursor: 'pointer', background: 'none' }}
+            />
+          </div>
         </div>
 
-        <div>
-          <span style={labelStyle}>Font Color</span>
-          <input
-            type="color"
-            value={resolvedFontColor}
-            onChange={(evt) => syncDefaults({ style: { ...styleDefaults, textColor: evt.target.value } })}
-            style={{ width: '100%', height: 28, border: '1px solid #333', borderRadius: 4, padding: 0, cursor: 'pointer', background: 'none' }}
-          />
-        </div>
 
         {/* Name + Border Width side by side */}
         <div style={{ ...rowStyle, gridTemplateColumns: '1fr 80px' }}>
@@ -253,25 +289,12 @@ const Sidebar = ({
           Apply to Selected
         </Button>
 
-        <Divider style={{ margin: '4px 0' }} />
-
         {/* Layer Controls */}
         <Typography.Text strong style={{ fontSize: 12 }}>Layer Controls</Typography.Text>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <Button size="small" onClick={onBringForward} disabled={!hasSelection}>Bring Forward</Button>
           <Button size="small" onClick={onSendBackward} disabled={!hasSelection}>Send Backward</Button>
         </div>
-
-        {/* Actions */}
-        <Typography.Text strong style={{ fontSize: 12 }}>Actions</Typography.Text>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          <Button size="small" onClick={onDuplicateSelected} disabled={!hasSelection}>Duplicate</Button>
-          <Button size="small" danger onClick={onDeleteSelected} disabled={!hasSelection}>Delete</Button>
-          <Button size="small" onClick={onUndo} disabled={!canUndo}>Undo</Button>
-          <Button size="small" onClick={onRedo} disabled={!canRedo}>Redo</Button>
-        </div>
-
-        <Divider style={{ margin: '4px 0' }} />
 
         {/* Save / Export */}
         <Button type="primary" block size="small" onClick={onSave} loading={loading}>Save Layout</Button>

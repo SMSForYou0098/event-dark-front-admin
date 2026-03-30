@@ -209,6 +209,33 @@ const LayoutBuilder = () => {
       const isTyping = ['INPUT', 'TEXTAREA'].includes(activeTag) || document.activeElement?.isContentEditable;
       if (isTyping) return;
 
+      const arrowDeltaByKey = {
+        ArrowLeft: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 },
+        ArrowUp: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 },
+      };
+      if (arrowDeltaByKey[evt.key] && selectedIds.length) {
+        evt.preventDefault();
+        const multiplier = evt.shiftKey ? 10 : 1;
+        const delta = arrowDeltaByKey[evt.key];
+
+        selectedIds.forEach((selectedId, index) => {
+          const target = elements.find((item) => item.id === selectedId);
+          if (!target) return;
+
+          updateElement(
+            selectedId,
+            {
+              x: (Number(target.x) || 0) + (delta.x * multiplier),
+              y: (Number(target.y) || 0) + (delta.y * multiplier),
+            },
+            index === selectedIds.length - 1
+          );
+        });
+        return;
+      }
+
       if (evt.key === 'Delete') {
         dispatch({ type: 'DELETE_SELECTED' });
       }
@@ -235,7 +262,7 @@ const LayoutBuilder = () => {
 
     window.addEventListener('keydown', listener);
     return () => window.removeEventListener('keydown', listener);
-  }, []);
+  }, [elements, selectedIds]);
 
   return (
     <div className="container-fluid" style={{ padding: 12 }}>
@@ -255,18 +282,12 @@ const LayoutBuilder = () => {
             onAddShape={(type, options) => addShape(type, undefined, options)}
             onAddStall={() => addShape('rect', undefined, { entityType: 'stall' })}
             onApplyToSelected={() => updateSelected(toolDefaults)}
-            onDeleteSelected={() => dispatch({ type: 'DELETE_SELECTED' })}
-            onDuplicateSelected={() => dispatch({ type: 'DUPLICATE_SELECTED' })}
             onBringForward={() => dispatch({ type: 'BRING_FORWARD' })}
             onSendBackward={() => dispatch({ type: 'SEND_BACKWARD' })}
-            onUndo={() => dispatch({ type: 'UNDO' })}
-            onRedo={() => dispatch({ type: 'REDO' })}
             onSave={handleSave}
             onExportJson={handleExportJson}
             onImportJson={handleImportJson}
             onExportImage={handleExportImage}
-            canUndo={state.past.length > 0}
-            canRedo={state.future.length > 0}
             hasSelection={selectedIds.length > 0}
             loading={isSaving}
             layoutName={layoutName}
@@ -289,8 +310,18 @@ const LayoutBuilder = () => {
                 elements={elements}
                 selectedIds={selectedIds}
                 onSelect={handleSelect}
+                onSetSelection={(ids) => dispatch({ type: 'SET_SELECTED_IDS', payload: ids })}
                 onClearSelection={() => dispatch({ type: 'CLEAR_SELECTION' })}
                 onDropShape={(type, position, options) => addShape(type, position, options)}
+                onAddElements={(newElements, newSelectionIds) => dispatch({
+                  type: 'ADD_ELEMENTS',
+                  payload: {
+                    elements: newElements,
+                    selectedIds: newSelectionIds,
+                  },
+                })}
+                onGroupSelected={() => dispatch({ type: 'GROUP_SELECTED' })}
+                onUngroupSelected={() => dispatch({ type: 'UNGROUP_SELECTED' })}
                 onElementsUpdate={handleElementsUpdate}
                 snapToGrid={snapToGrid}
                 snapEnabled={snapEnabled}
@@ -307,6 +338,14 @@ const LayoutBuilder = () => {
             selectedElements={selectedElements}
             onUpdateElement={updateElement}
             onUpdateSelected={updateSelected}
+            onDeleteSelected={() => dispatch({ type: 'DELETE_SELECTED' })}
+            onDuplicateSelected={() => dispatch({ type: 'DUPLICATE_SELECTED' })}
+            onGroupSelected={() => dispatch({ type: 'GROUP_SELECTED' })}
+            onUngroupSelected={() => dispatch({ type: 'UNGROUP_SELECTED' })}
+            onUndo={() => dispatch({ type: 'UNDO' })}
+            onRedo={() => dispatch({ type: 'REDO' })}
+            canUndo={state.past.length > 0}
+            canRedo={state.future.length > 0}
           />
         </div>
       </div>
