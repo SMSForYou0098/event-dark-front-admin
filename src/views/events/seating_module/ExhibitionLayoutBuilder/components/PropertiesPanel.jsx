@@ -350,7 +350,7 @@ const PropertiesPanel = ({
           </div>
 
           {/* Text + Font Size */}
-          <div style={{ ...grid2, alignItems: 'end' }}>
+          {/* <div style={{ ...grid2, alignItems: 'end' }}>
             <div>
               <span style={labelStyle}>Text</span>
               <Form.Item name="text" noStyle><Input size="small" /></Form.Item>
@@ -361,7 +361,7 @@ const PropertiesPanel = ({
                 <InputNumber size="small" min={8} style={{ width: '100%' }} />
               </Form.Item>
             </div>
-          </div>
+          </div> */}
 
         </Form>
       )}

@@ -18,7 +18,7 @@ const { Text } = Typography;
 const toBoolean = (v) => v === true || v === 1 || v === '1';
 const toBooleanValue = (checked) => Boolean(checked);
 
-const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee, onSaveControls }) => {
+const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee, onSaveControls, stallId }) => {
 
   const { userRole } = useMyContext();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
@@ -464,7 +464,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                 <Button
                   type="primary"
                   size="small"
-                  onClick={() => navigate(`/exhibition-layout/new?eventId=${id}`)}
+                  onClick={() => navigate(`/exhibition-layout/${stallId || 'new'}?eventId=${id}`)}
                 >
                   Stall Layout
                 </Button>

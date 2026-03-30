@@ -414,6 +414,7 @@ const EventStepperForm = () => {
                     id={detail?.id}
                     venue_id={detail?.venue_id}
                     eventHasAttendee={detail?.event_has_attendee}
+                    stallId={detail?.event_stall_layout?.id}
                     onSaveControls={saveControlsStep}
                 />, icon: <ControlOutlined />
             },
