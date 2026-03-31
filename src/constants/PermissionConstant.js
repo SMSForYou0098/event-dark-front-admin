@@ -65,6 +65,8 @@ export const PERMISSIONS = {
 
     VIEW_LAYOUTS: "View Layouts",
     VIEW_STALL_LAYOUTS: "View Stall Layouts",
+    VIEW_STALL_APPLICATIONS: "View Stall Applications",
+    UPDATE_STALL_APPLICATIONS: "Update Stall Applications",
 
     VIEW_ARTISTS: "View Artists",
     CREATE_ARTIST: "Create Artist",

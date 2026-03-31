@@ -453,6 +453,29 @@ const eventManagementNav = {
   roles: ["Admin", "Organizers"]
 };
 
+// Stall Management Submenu
+const stallManagementSubmenu = [
+  {
+    key: 'stall-applications',
+    path: 'stall/applications',
+    title: 'Applications',
+    icon: ShopOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_STALL_APPLICATIONS]
+  }
+];
+
+const stallManagementNav = {
+  key: 'stall-management',
+  path: 'stall-management',
+  title: 'Stall MGT',
+  icon: ShopOutlined,
+  breadcrumb: false,
+  submenu: stallManagementSubmenu,
+  roles: ["Admin", "Organizers"]
+};
+
 // Scan Submenu
 const scanSubmenu = [
   {
@@ -968,6 +991,7 @@ const navigationConfig = [
   dashboardNav,
   userManagementNav,
   eventManagementNav,
+  stallManagementNav,
   bookingsNav,
   scanNav,
   reportingNav,

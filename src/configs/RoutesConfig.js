@@ -286,6 +286,14 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'stall-applications',
+        path: `/stall/applications`,
+        component: React.lazy(() => import('views/events/StallManagement/Applications')),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_STALL_APPLICATIONS],
+        }
+    },
+    {
         key: 'dashboard-agent',
         path: `/dashboard/agent`,
         component: (props) => (
