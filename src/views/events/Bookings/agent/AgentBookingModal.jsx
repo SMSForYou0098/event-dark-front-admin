@@ -1,6 +1,7 @@
 import { Modal, Form, Input, Button, Upload, Row, Col, Typography, Space, Radio, Image, Alert, Spin, Segmented, Switch } from 'antd';
 import { MailOutlined, WhatsAppOutlined, MessageOutlined, UploadOutlined, FileImageOutlined, FileTextOutlined, FileOutlined, CloseOutlined, LoadingOutlined, EditOutlined } from '@ant-design/icons';
 import { useMyContext } from 'Context/MyContextProvider';
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 // import api from 'auth/FetchInterceptor';
 import confirm_loader from '../../../../assets/event/stock/booking_confirm.gif'
 import { useUserByNumber } from './useAgentBookingHooks';
@@ -338,7 +339,7 @@ const AgentBookingModal = (props) => {
                 <Form.Item
                   label="Name"
                   name="name"
-                  rules={[{ required: true, message: 'Please enter name' }]}
+                  rules={VALIDATION_RULES.NAME}
                 >
                   <Input
                     placeholder="Enter Name"

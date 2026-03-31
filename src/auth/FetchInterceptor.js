@@ -128,6 +128,9 @@ api.interceptors.response.use(
       message.error(serverMsg || 'Server Error: Something went wrong on server.');
     } else if (status === 408 || status === 508) {
       message.error(serverMsg || 'Request Timeout: Request timed out.');
+    } else if (status === 422) {
+      // ✅ Skip showing global message for validation errors!
+      // These are usually handled locally (inline in forms).
     } else {
       // Generic fallback: prefer server-supplied message if present
       message.error(serverMsg);

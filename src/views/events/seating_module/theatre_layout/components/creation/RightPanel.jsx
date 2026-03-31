@@ -50,8 +50,6 @@ const RightPanel = (props) => {
   const [numberOfGaps, setNumberOfGaps] = React.useState(1); // NEW: Number of gaps to add
   const [previousRowId, setPreviousRowId] = React.useState(null); // Track previous row ID
 
-  console.log('isAssignMode', isAssignMode)
-
   // Helper function to extract first gap information from a row
   const extractFirstGapFromRow = React.useCallback((row) => {
     if (!row?.seats || row.seats.length === 0) return null;

@@ -676,6 +676,33 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         return null;
     }, [formState.roleName, formState.agreementStatus, signatureType, typedSignature, selectedFont, uploadedSignature]);
 
+    // ✅ Helper to map and display server-side validation errors
+    const handleServerErrors = useCallback((response) => {
+        if (response?.errors) {
+            const errorFields = Object.keys(response.errors).map(field => {
+                // Map backend field names (often snake_case) to frontend field names (camelCase)
+                let fieldName = field;
+                if (field === 'reporting_user') fieldName = 'reportingUser';
+                if (field === 'org_gst_no') fieldName = 'orgGstNumber';
+                if (field === 'brand_name') fieldName = 'brandName';
+                
+                return {
+                    name: [fieldName], // Use array for path to match AntD 4/5 expectations
+                    errors: response.errors[field]
+                };
+            });
+            form.setFields(errorFields);
+
+            // Find the first field with an error and scroll to it
+            const firstErrorField = errorFields[0]?.name;
+            if (firstErrorField) {
+                form.scrollToField(firstErrorField, { behavior: 'smooth', block: 'center' });
+            }
+            return true;
+        }
+        return false;
+    }, [form]);
+
     // Save user profile (actual API call)
     const saveUserProfile = async (values, isVerifiedOrganizer = false, sessionId = null) => {
         // Build user_tickets: [{event_id, ticket_id?}, ...]
@@ -715,99 +742,91 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
         const url = mode === "create" ? `/create-user` : `/update-user/${id}`;
         let response;
 
-        // If signature exists, use FormData; otherwise use JSON
-        if (signatureData) {
-            const formData = new FormData();
-            const apiData = mapFormToApi(mergedValues);
+        try {
+            if (signatureData) {
+                const formData = new FormData();
+                const apiData = mapFormToApi(mergedValues);
 
-            // Append all form fields to FormData
-            Object.keys(apiData).forEach(key => {
-                const value = apiData[key];
-                if (value !== null && value !== undefined) {
-                    if (Array.isArray(value)) {
-                        // Handle arrays (user_tickets, etc.)
-                        formData.append(key, JSON.stringify(value));
-                    } else if (typeof value === 'object') {
-                        formData.append(key, JSON.stringify(value));
-                    } else {
-                        formData.append(key, value);
+                // Append all form fields to FormData
+                Object.keys(apiData).forEach(key => {
+                    const value = apiData[key];
+                    if (value !== null && value !== undefined) {
+                        if (Array.isArray(value)) {
+                            formData.append(key, JSON.stringify(value));
+                        } else if (typeof value === 'object') {
+                            formData.append(key, JSON.stringify(value));
+                        } else {
+                            formData.append(key, value);
+                        }
                     }
+                });
+
+                if (sessionId) {
+                    formData.append('session_id', sessionId);
                 }
-            });
 
-            // Append session_id if available (from OTP verification)
-            if (sessionId) {
-                formData.append('session_id', sessionId);
-            }
+                formData.append('signature_type', signatureData.type);
 
-            // Append signature data
-            formData.append('signature_type', signatureData.type);
-
-            if (signatureData.type === 'type') {
-                formData.append('signature_text', signatureData.text);
-                formData.append('signature_font', signatureData.font);
-                formData.append('signature_font_style', signatureData.fontStyle);
-            } else if (signatureData.type === 'draw') {
-                // Base64 data for draw
-                formData.append('signature_image', signatureData.data);
-            } else if (signatureData.type === 'upload' && signatureData.file) {
-                // File object for upload
-                formData.append('signature_image', signatureData.file);
-            }
-
-            response = await api.post(url, formData, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                    'Content-Type': 'multipart/form-data',
+                if (signatureData.type === 'type') {
+                    formData.append('signature_text', signatureData.text);
+                    formData.append('signature_font', signatureData.font);
+                    formData.append('signature_font_style', signatureData.fontStyle);
+                } else if (signatureData.type === 'draw') {
+                    formData.append('signature_image', signatureData.data);
+                } else if (signatureData.type === 'upload' && signatureData.file) {
+                    formData.append('signature_image', signatureData.file);
                 }
-            });
-        } else {
-            // No signature - use regular JSON payload
-            const apiData = mapFormToApi(mergedValues);
 
-            // Add session_id if available (from OTP verification)
-            if (sessionId) {
-                apiData.session_id = sessionId;
-            }
-
-            response = await api.post(url, apiData, {
-                headers: {
-                    'Authorization': 'Bearer ' + authToken,
-                }
-            });
-        }
-
-        if (response?.status) {
-            // If creating verified organizer, show agreement modal with user ID
-            if (isVerifiedOrganizer && response.user?.id) {
-                message.success('User created! Please select an agreement.');
-                setCreatedUserId(response.user.id);
-                setAgreementModalVisible(true);
-                return response; // Return early, don't navigate
-            }
-
-            if (id === UserData?.id) {
-                dispatch(updateUser(response.user));
-                navigate(-1);
-            }
-            message.success(`User ${mode === "create" ? "created" : "updated"}`);
-
-            if (mode === "create") {
-                navigate(-1);
-            }
-        } else {
-            // ✅ Handle validation errors from backend
-            if (response?.errors) {
-                const errorFields = Object.keys(response.errors).map(field => ({
-                    name: field,
-                    errors: response.errors[field]
-                }));
-                form.setFields(errorFields);
-                message.error(response.message || 'Validation failed. Please check the fields.');
+                response = await api.post(url, formData, {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken,
+                        'Content-Type': 'multipart/form-data',
+                    }
+                });
             } else {
-                message.error(response.message || `Failed to ${mode === "create" ? "create" : "update"} user`);
+                const apiData = mapFormToApi(mergedValues);
+                if (sessionId) {
+                    apiData.session_id = sessionId;
+                }
+                response = await api.post(url, apiData, {
+                    headers: {
+                        'Authorization': 'Bearer ' + authToken,
+                    }
+                });
+            }
+
+            if (response?.status) {
+                if (isVerifiedOrganizer && response.user?.id) {
+                    message.success('User created! Please select an agreement.');
+                    setCreatedUserId(response.user.id);
+                    setAgreementModalVisible(true);
+                    return response;
+                }
+
+                if (id === UserData?.id) {
+                    dispatch(updateUser(response.user));
+                    navigate(-1);
+                }
+                message.success(`User ${mode === "create" ? "created" : "updated"}`);
+
+                if (mode === "create") {
+                    navigate(-1);
+                }
+            } else {
+                // If backend returns status: false but it's not a 422 (Unlikely for validation)
+                if (!handleServerErrors(response)) {
+                    message.error(response?.message || `Failed to ${mode === "create" ? "create" : "update"} user`);
+                }
+            }
+        } catch (error) {
+            // Handle validation errors from backend (usually caught here due to FetchInterceptor reject)
+            const errorData = error?.response?.data || error;
+            if (!handleServerErrors(errorData)) {
+                // Only show generic toast if it wasn't a handled validation error
+                message.error(Utils.getErrorMessage(error));
             }
         }
+
         if (mode === "edit") {
             refetch();
         }
@@ -846,7 +865,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 await saveUserProfile(values, false);
             }
         } catch (error) {
-            message.error(`Error: ${Utils.getErrorMessage(error)}`);
+            // Errors are already handled (toasted or field-marked) in saveUserProfile
         } finally {
             setIsSubmitting(false);
         }
@@ -1140,7 +1159,10 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                         <Form.Item
                                             label="Organisation"
                                             name="organisation"
-                                            required={true}
+                                            rules={[
+                                                { required: true, message: 'Please enter organisation' },
+                                                { min: 3, message: 'Organisation name must be at least 3 characters' }
+                                            ]}
                                         >
                                             <Input placeholder="Enter organisation" />
                                         </Form.Item>
@@ -1149,7 +1171,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                         <Form.Item
                                             label="Brand Name"
                                             name="brandName"
-                                            required={true}
+                                            rules={[{ required: true, message: 'Please enter brand name' }]}
                                         >
                                             <Input placeholder="Enter brand name" />
                                         </Form.Item>

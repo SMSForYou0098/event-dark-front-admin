@@ -220,13 +220,13 @@ const SEOStep = ({ form, eventKey, eventData, componentLoader, setComponentLoade
                         label="Meta Title"
                         rules={[
                             { required: true, message: 'Please enter meta title' },
-                            { max: 60, message: 'Meta title should be max 60 characters' }
+                            { max: 200, message: 'Meta title should be max 200 characters' }
                         ]}
                     >
                         <Input
                             placeholder="Enter Meta Title"
                             size="large"
-                            maxLength={60}
+                            maxLength={200}
                             showCount
                         />
                     </Form.Item>
@@ -238,13 +238,13 @@ const SEOStep = ({ form, eventKey, eventData, componentLoader, setComponentLoade
                         label="Meta Description"
                         rules={[
                             { required: true, message: 'Please enter meta description' },
-                            { max: 280, message: 'Meta description should be max 280 characters' }
+                            { max: 300, message: 'Meta description should be max 300 characters' }
                         ]}
                     >
                         <TextArea
                             rows={3}
                             placeholder="Enter Meta Description"
-                            maxLength={160}
+                            maxLength={300}
                             showCount
                         />
                     </Form.Item>
@@ -259,6 +259,8 @@ const SEOStep = ({ form, eventKey, eventData, componentLoader, setComponentLoade
                         <Input
                             placeholder="event, music, concert, live show"
                             size="large"
+                            maxLength={500}
+                            showCount
                         />
                     </Form.Item>
                 </Col>
@@ -271,6 +273,8 @@ const SEOStep = ({ form, eventKey, eventData, componentLoader, setComponentLoade
                         <Input
                             placeholder="event, music, concert, live show"
                             size="large"
+                            maxLength={500}
+                            showCount
                         />
                     </Form.Item>
                 </Col>

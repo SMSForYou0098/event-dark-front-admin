@@ -59,6 +59,8 @@ export const VALIDATION_RULES = {
     ],
     NAME: [
         { required: true, message: VALIDATION_MESSAGES.REQUIRED('name') },
+        { min: 2, message: 'Name must be at least 2 characters' },
+        { max: 255, message: 'Name must be max 255 characters' },
         { pattern: VALIDATION_REGEX.NAME, message: VALIDATION_MESSAGES.NAME }
     ],
     MOBILE_LONG: [
