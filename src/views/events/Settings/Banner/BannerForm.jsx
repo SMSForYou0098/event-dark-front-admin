@@ -645,11 +645,11 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
         }}
         onSelect={handleMediaSelect}
         multiple={false}
-        title={`Select ${currentImageField === 'bannerImage' ? 'Banner (1980*450)' : currentImageField === 'smImage' ? 'Small (1980*700)' : 'Medium (1980*700)'} Image`}
+        title={`Select ${currentImageField === 'bannerImage' ? 'Banner (1980*450)' : currentImageField === 'smImage' ? 'Small (1980*750)' : 'Medium (1980*750)'} Image`}
         value={getImageUrl(currentImageField)}
         dimensionValidation={{
           width: 1980,
-          height: currentImageField === 'bannerImage' ? 450 : 700,
+          height: currentImageField === 'bannerImage' ? 450 : 750,
           strict: true
         }}
       />

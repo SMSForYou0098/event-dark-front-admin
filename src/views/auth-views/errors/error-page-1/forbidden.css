@@ -1,6 +1,4 @@
-Forbidden Page Styles
-
-.forbidden-page {
+Forbidden Page Styles .forbidden-page {
   min-height: 100vh;
   background: linear-gradient(135deg, #0a0a0a 0%, #000000 50%, #0a0a0a 100%);
   display: flex;
@@ -43,9 +41,12 @@ Forbidden Page Styles
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }

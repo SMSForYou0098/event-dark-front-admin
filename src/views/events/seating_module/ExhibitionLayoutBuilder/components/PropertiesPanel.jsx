@@ -114,6 +114,10 @@ const PropertiesPanel = ({
       showLabel: selected.display?.showLabel ?? true,
       text: selected.text || '',
       fontSize: Number(selected.fontSize || 20),
+      scaleX: selected.scaleX || 1,
+      scaleY: selected.scaleY || 1,
+      insetX: selected.insetX ?? selected.inset ?? 0.35,
+      insetY: selected.insetY ?? selected.inset ?? 0.35,
     });
   }, [form, selected]);
 
@@ -127,7 +131,7 @@ const PropertiesPanel = ({
       }
     }
 
-    ['x', 'y', 'width', 'height', 'rotation', 'text', 'fontSize'].forEach((field) => {
+    ['x', 'y', 'width', 'height', 'rotation', 'text', 'fontSize', 'scaleX', 'scaleY', 'inset'].forEach((field) => {
       if (values[field] !== undefined) updates[field] = values[field];
     });
 
@@ -271,6 +275,48 @@ const PropertiesPanel = ({
               </Form.Item>
             </div>
           </div>
+
+          {/* Mirroring */}
+          <div style={{ marginTop: 8 }}>
+            <span style={labelStyle}>Mirror / Flip</span>
+            <div style={grid2}>
+              <Button 
+                size="small" 
+                type={form.getFieldValue('scaleX') === -1 ? 'primary' : 'default'}
+                onClick={() => handleValuesChange({ scaleX: form.getFieldValue('scaleX') === -1 ? 1 : -1 })}
+              >
+                Flip H
+              </Button>
+              <Button 
+                size="small" 
+                type={form.getFieldValue('scaleY') === -1 ? 'primary' : 'default'}
+                onClick={() => handleValuesChange({ scaleY: form.getFieldValue('scaleY') === -1 ? 1 : -1 })}
+              >
+                Flip V
+              </Button>
+            </div>
+          </div>
+
+          {/* Side Adjustment (Inset) for L/T shapes */}
+          {(selected?.type === 'L_shape' || selected?.type === 'T_shape') && (
+            <div style={{ marginTop: 8 }}>
+              <span style={labelStyle}>Side Adjustment</span>
+              <div style={grid2}>
+                <div>
+                  <span style={{ fontSize: 9, color: '#aaa' }}>{selected?.type === 'T_shape' ? 'Stem Width' : 'Width X'}</span>
+                  <Form.Item name="insetX" noStyle>
+                    <InputNumber size="small" min={0.1} max={0.9} step={0.05} style={{ width: '100%' }} />
+                  </Form.Item>
+                </div>
+                <div>
+                  <span style={{ fontSize: 9, color: '#aaa' }}>{selected?.type === 'T_shape' ? 'Top Height' : 'Height Y'}</span>
+                  <Form.Item name="insetY" noStyle>
+                    <InputNumber size="small" min={0.1} max={0.9} step={0.05} style={{ width: '100%' }} />
+                  </Form.Item>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Colors */}
           <span style={{ ...sectionStyle, marginTop: 10 }}>Appearance</span>

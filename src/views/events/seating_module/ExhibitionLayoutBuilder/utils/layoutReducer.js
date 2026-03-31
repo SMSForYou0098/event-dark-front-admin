@@ -2,7 +2,7 @@ const GRID_SIZE = 20;
 
 const snapToGrid = (value, snap) => (snap ? Math.round(value / GRID_SIZE) * GRID_SIZE : value);
 
-const createTempId = () => `temp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+export const createTempId = () => `temp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 const createGroupId = () => `group_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
 
 const ENTITY_TYPES = {
@@ -12,6 +12,7 @@ const ENTITY_TYPES = {
   STAGE: 'stage',
   LABEL: 'label',
   RESTRICTED: 'restricted',
+  ANNOTATION: 'annotation',
 };
 
 const BOOKABLE_BY_ENTITY = {
@@ -26,6 +27,7 @@ const BOOKABLE_BY_ENTITY = {
 const inferEntityType = (type, preferred) => {
   if (preferred) return preferred;
   if (type === 'text') return ENTITY_TYPES.LABEL;
+  if (type === 'freedraw') return ENTITY_TYPES.ANNOTATION;
   return ENTITY_TYPES.STALL;
 };
 
@@ -93,6 +95,19 @@ const normalizeElement = (element = {}) => {
     return normalized;
   }
 
+  if (type === 'freedraw') {
+    normalized.points = Array.isArray(element.points) ? element.points : [];
+    normalized.closed = !!element.closed;
+    normalized.tension = Number(element.tension ?? 0.5);
+    return normalized;
+  }
+
+  if (type === 'L_shape' || type === 'T_shape') {
+    normalized.width = Number(element.width ?? 120);
+    normalized.height = Number(element.height ?? 120);
+    return normalized;
+  }
+
   normalized.width = Number(element.width ?? (type === 'square' ? 100 : 140));
   normalized.height = Number(element.height ?? (type === 'square' ? 100 : 90));
   return normalized;
@@ -136,6 +151,10 @@ const mergeElementUpdates = (element, updates = {}) => {
     delete next.height;
   }
 
+  if ((next.type === 'L_shape' || next.type === 'T_shape') && (typeof updates.width === 'number' || typeof updates.height === 'number')) {
+    // Keep dimensions
+  }
+
   return next;
 };
 
@@ -153,6 +172,10 @@ export const createElement = (type, position = {}, defaults = {}, snap = true) =
     x,
     y,
     rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
+    insetX: 0.35,
+    insetY: 0.35,
     style,
     meta,
     display: {
@@ -192,6 +215,39 @@ export const createElement = (type, position = {}, defaults = {}, snap = true) =
     };
   }
 
+  if (type === 'freedraw') {
+    return {
+      ...base,
+      points: position.points || [],
+      tension: 0.5,
+      closed: false,
+      style: {
+        ...style,
+        fill: undefined,
+      }
+    };
+  }
+
+  if (type === 'L_shape') {
+    return {
+      ...base,
+      width: 120,
+      height: 120,
+      insetX: 0.35,
+      insetY: 0.35,
+    };
+  }
+
+  if (type === 'T_shape') {
+    return {
+      ...base,
+      width: 120,
+      height: 120,
+      insetX: 0.35,
+      insetY: 0.35,
+    };
+  }
+
   return {
     ...base,
     type: 'text',
@@ -224,6 +280,7 @@ const initialPresent = {
   },
   gridEnabled: true,
   snapEnabled: true,
+  activeTool: 'select',
 };
 
 const reorderOneStep = (elements, id, direction) => {
@@ -439,6 +496,14 @@ const presentReducer = (present, action) => {
         snapEnabled: !!action.payload,
       };
     }
+    case 'SET_ACTIVE_TOOL': {
+      return {
+        ...present,
+        activeTool: action.payload || 'select',
+        // Clear selection when entering a drawing tool
+        selectedIds: action.payload !== 'select' ? [] : present.selectedIds,
+      };
+    }
     default:
       return present;
   }
@@ -456,6 +521,7 @@ const skipHistoryActions = new Set([
   'SET_TOOL_DEFAULTS',
   'SET_GRID_ENABLED',
   'SET_SNAP_ENABLED',
+  'SET_ACTIVE_TOOL',
 ]);
 
 export const historyReducer = (state, action) => {

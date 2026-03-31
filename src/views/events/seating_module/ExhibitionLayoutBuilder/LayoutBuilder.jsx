@@ -29,7 +29,7 @@ const LayoutBuilder = () => {
   const panelHeight = 'calc(100vh - 96px)';
 
   const [state, dispatch] = useReducer(historyReducer, historyInitialState);
-  const { elements, selectedIds, toolDefaults, gridEnabled, snapEnabled } = state.present;
+  const { elements, selectedIds, toolDefaults, gridEnabled, snapEnabled, activeTool } = state.present;
 
   // Fetch layout if ID exists
   const { data: layoutData, isLoading: isFetching } = useQuery({
@@ -291,6 +291,8 @@ const LayoutBuilder = () => {
             hasSelection={selectedIds.length > 0}
             loading={isSaving}
             layoutName={layoutName}
+            activeTool={activeTool}
+            onSetTool={(tool) => dispatch({ type: 'SET_ACTIVE_TOOL', payload: tool })}
             onLayoutNameChange={setLayoutName}
             approvalRequired={approvalRequired}
             onApprovalRequiredChange={setApprovalRequired}
@@ -326,6 +328,8 @@ const LayoutBuilder = () => {
                 snapToGrid={snapToGrid}
                 snapEnabled={snapEnabled}
                 gridEnabled={gridEnabled}
+                activeTool={activeTool}
+                onSetTool={(tool) => dispatch({ type: 'SET_ACTIVE_TOOL', payload: tool })}
                 onToggleGrid={(checked) => dispatch({ type: 'SET_GRID_ENABLED', payload: checked })}
                 onToggleSnap={(checked) => dispatch({ type: 'SET_SNAP_ENABLED', payload: checked })}
               />

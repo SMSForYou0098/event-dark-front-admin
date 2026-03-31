@@ -107,7 +107,7 @@ const AgentBookingModal = (props) => {
 
 
 
-  // Update form and state when user is found
+  // Update form and state when user is found or reset when not found
   useEffect(() => {
     if (userResponse?.status && userResponse?.user) {
       const user = userResponse.user;
@@ -117,7 +117,7 @@ const AgentBookingModal = (props) => {
         email: user.email || '',
         photo: user.photo || null,
         doc: user.doc || null,
-        companyName: user.company_name || '',
+        companyName: user.company_name || user.organisation || '',
         designation: user.designation || '',
         address: user.address || ''
       };
@@ -126,9 +126,29 @@ const AgentBookingModal = (props) => {
       form.setFieldsValue({
         name: user.name || '',
         email: user.email || '',
-        companyName: user.company_name || '',
+        companyName: user.company_name || user.organisation || '',
         designation: user.designation || '',
         address: user.address || ''
+      });
+    } else if (userResponse?.status === false) {
+      // Clear fields if user is not found to prevent stale data from previous searches
+      const resetDetails = {
+        ...userDetails,
+        name: '',
+        email: '',
+        photo: null,
+        doc: null,
+        companyName: '',
+        designation: '',
+        address: ''
+      };
+      setUserDetails(resetDetails);
+      form.setFieldsValue({
+        name: '',
+        email: '',
+        companyName: '',
+        designation: '',
+        address: ''
       });
     }
   }, [userResponse, form, setUserDetails]); // Added setUserDetails to dependency array
@@ -335,10 +355,10 @@ const AgentBookingModal = (props) => {
                 <Form.Item
                   label="Email"
                   name="email"
-                  rules={[
-                    { required: true, message: 'Please enter email' },
-                    { type: 'email', message: 'Please enter valid email' }
-                  ]}
+                // rules={[
+                //   { required: true, message: 'Please enter email' },
+                //   { type: 'email', message: 'Please enter valid email' }
+                // ]}
                 >
                   <Input
                     placeholder="Enter Email"

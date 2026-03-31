@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Space, Switch, Typography } from 'antd';
 import { Layer, Line, Stage, Transformer } from 'react-konva';
 import ShapeRenderer from './ShapeRenderer';
+import { createTempId } from '../utils/layoutReducer';
 
 const MIN_SCALE = 0.3;
 const MAX_SCALE = 3;
@@ -24,6 +25,8 @@ const CanvasStage = ({
   onToggleGrid,
   onToggleSnap,
   stageRef,
+  activeTool = 'select',
+  onSetTool,
 }) => {
   const wrapperRef = useRef(null);
   const transformerRef = useRef(null);
@@ -36,6 +39,8 @@ const CanvasStage = ({
   const [editingValue, setEditingValue] = useState('');
   const [dragGuides, setDragGuides] = useState(null);
   const [rotationHint, setRotationHint] = useState(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [currentLine, setCurrentLine] = useState(null);
   const stageTransformRef = useRef({ scale: 1, position: { x: 0, y: 0 } });
   const clipboardRef = useRef([]);
   const pasteCountRef = useRef(0);
@@ -165,12 +170,103 @@ const CanvasStage = ({
   };
 
   const handleCanvasMouseDown = (evt) => {
+    // Only clear selection if we directly click the stage background
     const isStage = evt.target === evt.target.getStage();
     if (!isStage) return;
 
-    if (!evt.evt.shiftKey) {
-      onClearSelection();
+    if (activeTool === 'select') {
+      if (!evt.evt.shiftKey) {
+        onClearSelection();
+      }
+      return;
     }
+
+    // Drawing Logic
+    const stage = stageRef.current;
+    const pointer = stage.getPointerPosition();
+    const pos = {
+      x: (pointer.x - stagePosition.x) / stageScale,
+      y: (pointer.y - stagePosition.y) / stageScale,
+    };
+
+    setIsDrawing(true);
+
+    if (activeTool === 'pencil' || activeTool === 'eraser') {
+      setCurrentLine({
+        id: createTempId(),
+        type: 'freedraw',
+        points: [pos.x, pos.y],
+        stroke: activeTool === 'eraser' ? '#ffffff' : (elements[0]?.style?.stroke || '#1f1f1f'),
+        strokeWidth: activeTool === 'eraser' ? 20 : 2,
+        globalCompositeOperation: activeTool === 'eraser' ? 'destination-out' : 'source-over',
+        tension: 0.5,
+        lineCap: 'round',
+        lineJoin: 'round',
+      });
+    } else if (activeTool === 'line_draw') {
+      setCurrentLine({
+        id: createTempId(),
+        type: 'line',
+        x: pos.x,
+        y: pos.y,
+        points: [0, 0, 0, 0], // x1, y1, x2, y2 relative to x,y
+        stroke: elements[0]?.style?.stroke || '#1f1f1f',
+        strokeWidth: 2,
+      });
+    }
+  };
+
+  const handleCanvasMouseMove = (evt) => {
+    if (!isDrawing || !currentLine) return;
+
+    const stage = stageRef.current;
+    const pointer = stage.getPointerPosition();
+    const pos = {
+      x: (pointer.x - stagePosition.x) / stageScale,
+      y: (pointer.y - stagePosition.y) / stageScale,
+    };
+
+    if (activeTool === 'pencil' || activeTool === 'eraser') {
+      setCurrentLine(prev => ({
+        ...prev,
+        points: [...prev.points, pos.x, pos.y],
+      }));
+    } else if (activeTool === 'line_draw') {
+      setCurrentLine(prev => ({
+        ...prev,
+        points: [0, 0, pos.x - prev.x, pos.y - prev.y],
+      }));
+    }
+  };
+
+  const handleCanvasMouseUp = () => {
+    if (!isDrawing || !currentLine) return;
+
+    // Add element to layout
+    if (currentLine.points.length > 2 || activeTool === 'line_draw') {
+        const finalElement = {
+            ...currentLine,
+            entityType: activeTool === 'eraser' ? 'annotation' : 'walkway',
+            style: {
+                stroke: currentLine.stroke,
+                strokeWidth: currentLine.strokeWidth,
+            },
+            meta: {
+                name: activeTool === 'eraser' ? 'Eraser Stroke' : (activeTool === 'pencil' ? 'Pencil Stroke' : 'Line'),
+                bookable: false,
+            }
+        };
+
+        if (activeTool === 'eraser') {
+            finalElement.type = 'freedraw';
+            finalElement.eraser = true;
+        }
+
+        onAddElements([finalElement], []);
+    }
+
+    setIsDrawing(false);
+    setCurrentLine(null);
   };
 
   const startTextEdit = (id) => {
@@ -299,7 +395,7 @@ const CanvasStage = ({
     setStagePosition(nextPosition);
   };
 
-  const createClientId = () => `temp_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+  const createClientId = () => createTempId();
 
   const getElementBounds = (element) => {
     if (!element) return null;
@@ -518,7 +614,7 @@ const CanvasStage = ({
         const pastedGroupMap = {};
         const clones = clipboardRef.current.map((item) => ({
           ...item,
-          id: createClientId(),
+          id: createTempId(),
           groupId: item.groupId
             ? (pastedGroupMap[item.groupId] || (pastedGroupMap[item.groupId] = `group_${Date.now()}_${Math.floor(Math.random() * 100000)}`))
             : undefined,
@@ -623,6 +719,8 @@ const CanvasStage = ({
 
       const scaleX = node.scaleX();
       const scaleY = node.scaleY();
+      const isFlippedX = scaleX < 0;
+      const isFlippedY = scaleY < 0;
 
       const next = {
         id,
@@ -630,19 +728,24 @@ const CanvasStage = ({
           x: snapToGrid(node.x(), snapEnabled),
           y: snapToGrid(node.y(), snapEnabled),
           rotation: node.rotation(),
+          scaleX: isFlippedX ? -1 : 1,
+          scaleY: isFlippedY ? -1 : 1,
         },
       };
 
+      const absScaleX = Math.abs(scaleX);
+      const absScaleY = Math.abs(scaleY);
+
       if (element.type === 'rect' || element.type === 'square') {
-        next.updates.width = Math.max(20, node.width() * scaleX);
-        next.updates.height = Math.max(20, node.height() * scaleY);
+        next.updates.width = Math.max(20, node.width() * absScaleX);
+        next.updates.height = Math.max(20, node.height() * absScaleY);
       } else if (element.type === 'circle') {
-        const radius = Math.max(10, element.radius * Math.max(scaleX, scaleY));
+        const radius = Math.max(10, element.radius * Math.max(absScaleX, absScaleY));
         next.updates.radius = radius;
       } else if (element.type === 'text') {
-        const nextFontSize = Math.max(12, (element.fontSize || node.fontSize() || 16) * scaleX);
+        const nextFontSize = Math.max(12, (element.fontSize || node.fontSize() || 16) * absScaleX);
         const measuredTextWidth = Number(node.getTextWidth?.() || 0);
-        const nextWidth = Math.max((measuredTextWidth * scaleX) + 20, 80);
+        const nextWidth = Math.max((measuredTextWidth * absScaleX) + 20, 80);
         next.updates.fontSize = nextFontSize;
         next.updates.width = nextWidth;
       } else if (element.type === 'line') {
@@ -651,13 +754,16 @@ const CanvasStage = ({
         const lineLength = Math.max(20, baseLength * Math.abs(scaleX));
         next.updates.points = [0, 0, lineLength, 0];
       } else if (element.type === 'polygon') {
-        next.updates.radius = Math.max(10, element.radius * Math.max(scaleX, scaleY));
+        next.updates.radius = Math.max(10, element.radius * Math.max(absScaleX, absScaleY));
+      } else if (element.type === 'L_shape' || element.type === 'T_shape') {
+        next.updates.width = Math.max(20, (element.width || 120) * absScaleX);
+        next.updates.height = Math.max(20, (element.height || 120) * absScaleY);
       }
 
       updates.push(next);
 
-      node.scaleX(1);
-      node.scaleY(1);
+      node.scaleX(isFlippedX ? -1 : 1);
+      node.scaleY(isFlippedY ? -1 : 1);
     });
 
     if (updates.length) {
@@ -752,7 +858,7 @@ const CanvasStage = ({
           y={stagePosition.y}
           scaleX={stageScale}
           scaleY={stageScale}
-          draggable
+          draggable={activeTool === 'select'}
           onDragEnd={(evt) => {
             const stage = evt.target.getStage();
             if (evt.target !== stage) return;
@@ -766,6 +872,10 @@ const CanvasStage = ({
           }}
           onMouseDown={handleCanvasMouseDown}
           onTouchStart={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onTouchMove={handleCanvasMouseMove}
+          onMouseUp={handleCanvasMouseUp}
+          onTouchEnd={handleCanvasMouseUp}
           onWheel={handleWheel}
         >
           <Layer listening={false}>{renderGrid()}</Layer>
@@ -798,12 +908,22 @@ const CanvasStage = ({
                 snapEnabled={snapEnabled}
                 registerNode={registerNode}
                 onSelect={handleElementSelect}
+                onChange={(id, updates) => onElementsUpdate([{ id, updates }])}
                 onDragStart={handleElementDragStart}
-                onChange={handleElementDragEnd}
                 onDragMove={handleElementDragMove}
-                onStartTextEdit={startTextEdit}
+                onDragEnd={handleElementDragEnd}
+                onStartTextEdit={setEditingId}
+                activeTool={activeTool}
               />
             ))}
+            {currentLine && (
+              <ShapeRenderer 
+                element={currentLine} 
+                isSelected={false} 
+                activeTool={activeTool}
+                isDrawing={true}
+              />
+            )}
             <Transformer
               ref={transformerRef}
               rotateEnabled

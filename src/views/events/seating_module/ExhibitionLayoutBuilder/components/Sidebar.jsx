@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Button,
   Card,
@@ -9,14 +8,23 @@ import {
   Space,
   Switch,
   Typography,
+  Tooltip as AntdTooltip,
 } from 'antd';
+import {
+  DragOutlined,
+  EditOutlined,
+  LineOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
 
 const shapeOptions = [
   { label: 'Rectangle', type: 'rect', entityType: 'stall' },
   { label: 'Square Booth', type: 'square', entityType: 'stall' },
   { label: 'Circle', type: 'circle', entityType: 'stall' },
+  { label: 'L-Shape Stall', type: 'L_shape', entityType: 'stall' },
+  { label: 'T-Shape Stall', type: 'T_shape', entityType: 'stall' },
   { label: 'Text Label', type: 'text', entityType: 'label' },
-  { label: 'Line', type: 'line', entityType: 'walkway' },
+  { label: 'Line (Fixed)', type: 'line', entityType: 'walkway' },
   { label: 'Polygon', type: 'polygon', entityType: 'restricted' },
 ];
 
@@ -84,6 +92,26 @@ const getShapePreview = (shapeType) => {
   if (shapeType === 'text') {
     return <span style={{ fontSize: 12, fontWeight: 700, color: '#bbb', lineHeight: 1 }}>T</span>;
   }
+  if (shapeType === 'L_shape') {
+    return (
+      <span style={{ 
+        ...common, 
+        width: 18, 
+        height: 18, 
+        clipPath: 'polygon(0% 0%, 35% 0%, 35% 65%, 100% 65%, 100% 100%, 0% 100%)' 
+      }} />
+    );
+  }
+  if (shapeType === 'T_shape') {
+    return (
+      <span style={{ 
+        ...common, 
+        width: 18, 
+        height: 18, 
+        clipPath: 'polygon(0% 0%, 100% 0%, 100% 35%, 65% 35%, 65% 100%, 35% 100%, 35% 35%, 0% 35%)' 
+      }} />
+    );
+  }
   return <span style={{ fontSize: 12, color: '#bbb' }}>?</span>;
 };
 
@@ -119,6 +147,8 @@ const Sidebar = ({
   hasSelection,
   loading = false,
   layoutName = '',
+  activeTool = 'select',
+  onSetTool,
   onLayoutNameChange,
   approvalRequired = false,
   onApprovalRequiredChange,
@@ -158,6 +188,27 @@ const Sidebar = ({
             value={layoutName}
             onChange={(e) => onLayoutNameChange(e.target.value)}
           />
+        </div>
+
+        {/* Drawing Tools */}
+        <Typography.Text strong style={{ fontSize: 11, color: '#888', textTransform: 'uppercase' }}>Drawing Tools</Typography.Text>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+          {[
+            { id: 'select', icon: <DragOutlined />, label: 'Select' },
+            { id: 'pencil', icon: <EditOutlined />, label: 'Pencil' },
+            { id: 'line_draw', icon: <LineOutlined />, label: 'Line' },
+            { id: 'eraser', icon: <DeleteOutlined />, label: 'Eraser' },
+          ].map(tool => (
+            <AntdTooltip title={tool.label} key={tool.id}>
+              <Button
+                size="small"
+                type={activeTool === tool.id ? 'primary' : 'default'}
+                icon={tool.icon}
+                onClick={() => onSetTool?.(tool.id)}
+                style={{ width: '100%' }}
+              />
+            </AntdTooltip>
+          ))}
         </div>
 
         {/* Shape Buttons */}

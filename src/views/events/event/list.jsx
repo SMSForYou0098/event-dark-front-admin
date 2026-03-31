@@ -339,28 +339,7 @@ const EventList = ({ isJunk = false }) => {
         ),
         // sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
       },
-      {
-        title: 'Category',
-        dataIndex: ['category', 'title'],
-        key: 'category',
-        align: 'center',
-        searchable: true,
-        sorter: (a, b) =>
-          (a.category?.title || '').localeCompare(b.category?.title || ''),
-      },
-      {
-        title: 'Organisation',
-        dataIndex: ['user', 'organisation'],
-        key: 'organisation',
-        align: 'center',
-        searchable: true,
-        render: (organisation) => (
-          <Tooltip title={organisation}>
-            <span>{truncateString(organisation, 11)}</span>
-          </Tooltip>
-        ),
-        // sorter: (a, b) => (a.user?.organisation || '').localeCompare(b.user?.organisation || ''),
-      },
+
       {
         title: 'Event Dates',
         dataIndex: 'date_range',
@@ -388,6 +367,28 @@ const EventList = ({ isJunk = false }) => {
         render: (text) => getStatusBadge(text),
         // sorter: (a, b) => (a.event_status || 0) - (b.event_status || 0),
       }] : []),
+      {
+        title: 'Category',
+        dataIndex: ['category', 'title'],
+        key: 'category',
+        align: 'center',
+        searchable: true,
+        sorter: (a, b) =>
+          (a.category?.title || '').localeCompare(b.category?.title || ''),
+      },
+      {
+        title: 'Organisation',
+        dataIndex: ['user', 'organisation'],
+        key: 'organisation',
+        align: 'center',
+        searchable: true,
+        render: (organisation) => (
+          <Tooltip title={organisation}>
+            <span>{truncateString(organisation, 11)}</span>
+          </Tooltip>
+        ),
+        // sorter: (a, b) => (a.user?.organisation || '').localeCompare(b.user?.organisation || ''),
+      },
       {
         title: isJunk ? 'Deleted At' : 'Created At',
         dataIndex: isJunk ? 'deleted_at' : 'created_at',
