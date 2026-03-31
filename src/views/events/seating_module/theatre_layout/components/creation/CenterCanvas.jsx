@@ -351,38 +351,32 @@ const CenterCanvas = (props) => {
           {/* Stage/Screen */}
           <DraggableStage
             stage={stage}
-            isSelected={!isAssignMode && selectedType === 'stage' && selectedElement?.position === stage.position}
+            isSelected={selectedType === 'stage' && selectedElement?.position === stage.position}
             setIsDraggingElement={setIsDraggingElement}
             onSelect={() => {
-              if (!isAssignMode) {
-                setSelectedElement(stage);
-                setSelectedType('stage');
-              }
+              setSelectedElement(stage);
+              setSelectedType('stage');
             }}
             onDragEnd={(pos) => {
-              if (!isAssignMode) {
-                const updatedStage = {
-                  ...stage,
-                  x: parseFloat(pos.x) || 0,
-                  y: parseFloat(pos.y) || 0
-                };
-                console.log(updatedStage)
-                setStage(updatedStage);
-                if (selectedType === 'stage') setSelectedElement(updatedStage);
-              }
+              const updatedStage = {
+                ...stage,
+                x: parseFloat(pos.x) || 0,
+                y: parseFloat(pos.y) || 0
+              };
+              console.log(updatedStage)
+              setStage(updatedStage);
+              if (selectedType === 'stage') setSelectedElement(updatedStage);
             }}
             onTransformEnd={(transform) => {
-              if (!isAssignMode) {
-                const updatedStage = {
-                  ...stage,
-                  x: parseFloat(transform.x) || 0,
-                  y: parseFloat(transform.y) || 0,
-                  width: parseFloat(transform.width) || 200,
-                  height: parseFloat(transform.height) || 30
-                };
-                setStage(updatedStage);
-                if (selectedType === 'stage') setSelectedElement(updatedStage);
-              }
+              const updatedStage = {
+                ...stage,
+                x: parseFloat(transform.x) || 0,
+                y: parseFloat(transform.y) || 0,
+                width: parseFloat(transform.width) || 200,
+                height: parseFloat(transform.height) || 30
+              };
+              setStage(updatedStage);
+              if (selectedType === 'stage') setSelectedElement(updatedStage);
             }}
           />
 
@@ -391,33 +385,27 @@ const CenterCanvas = (props) => {
             <DraggableSection
               key={section.id}
               section={section}
-              isSelected={!isAssignMode && selectedElement?.id === section.id && selectedType === 'section'}
+              isSelected={selectedElement?.id === section.id && selectedType === 'section'}
               setIsDraggingElement={setIsDraggingElement}
               onSelect={() => {
-                if (!isAssignMode) {
-                  setSelectedElement(section);
-                  setSelectedType('section');
-                }
+                setSelectedElement(section);
+                setSelectedType('section');
               }}
               onDragEnd={(pos) => {
-                if (!isAssignMode) {
-                  const updatedSection = { ...section, ...pos };
-                  updateSection(section.id, pos);
-                  if (selectedElement?.id === section.id && selectedType === 'section') {
-                    setSelectedElement(updatedSection);
-                  }
+                const updatedSection = { ...section, ...pos };
+                updateSection(section.id, pos);
+                if (selectedElement?.id === section.id && selectedType === 'section') {
+                  setSelectedElement(updatedSection);
                 }
               }}
               onTransformEnd={(transform) => {
-                if (!isAssignMode) {
-                  // Update section with transform data - this will trigger gap preservation in updateSection
-                  updateSection(section.id, transform);
+                // Update section with transform data - this will trigger gap preservation in updateSection
+                updateSection(section.id, transform);
 
-                  // Update selected element to reflect new dimensions
-                  if (selectedElement?.id === section.id && selectedType === 'section') {
-                    const updatedSection = { ...section, ...transform };
-                    setSelectedElement(updatedSection);
-                  }
+                // Update selected element to reflect new dimensions
+                if (selectedElement?.id === section.id && selectedType === 'section') {
+                  const updatedSection = { ...section, ...transform };
+                  setSelectedElement(updatedSection);
                 }
               }}
             >

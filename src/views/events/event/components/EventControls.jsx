@@ -260,7 +260,8 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
     }
 
     if (currentLayouts.length === 1) {
-      navigate(`/theatre/event/${eventId}/layout/${currentLayouts[0].id}`);
+      const isAssigned = Number(currentLayouts[0].id) === Number(currentEventLayoutId);
+      navigate(`/theatre/event/${eventId}/layout/${currentLayouts[0].id}?isAssign=${isAssigned}`);
     } else {
       // NOTE: This will still use the old layouts array if Modal is shown
       // But we can navigate directly here if needed or let the modal handle it
@@ -984,7 +985,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
               className={`${isAssigned ? 'border border-primary border-2 bg-light' : 'border border-light'} cursor-pointer rounded mb-2 px-3`}
               onClick={() => {
                 setIsLayoutModalVisible(false);
-                navigate(`/theatre/event/${eventId}/layout/${item.id}`);
+                navigate(`/theatre/event/${eventId}/layout/${item.id}?isAssign=${isAssigned}`);
               }}
               actions={[
                 isAssigned ? (

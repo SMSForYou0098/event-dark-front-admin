@@ -58,8 +58,7 @@ const LeftBar = (props) => {
                             <Flex justifyContent="space-between" alignItems="center" width="100%">
                                 <span>{section.name}</span>
 
-                                {!isAssignMode && (
-                                    <Space size={4}>
+                                <Space size={4}>
                                         <Button
                                             size="small"
                                             type="text"
@@ -80,8 +79,7 @@ const LeftBar = (props) => {
                                                 deleteSection(section.id);
                                             }}
                                         />
-                                    </Space>
-                                )}
+                                </Space>
                             </Flex>
                         }
                         onClick={() => {
@@ -120,22 +118,20 @@ const LeftBar = (props) => {
                                     </span>
                                 </Space>
 
-                                {!isAssignMode && (
-                                    <Button
-                                        size="small"
-                                        type="text"
-                                        icon={<DeleteOutlined />}
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            deleteRow(section.id, row.id);
-                                        }}
-                                    />
-                                )}
+                                <Button
+                                    size="small"
+                                    type="text"
+                                    icon={<DeleteOutlined />}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteRow(section.id, row.id);
+                                    }}
+                                />
                             </div>
                         ))}
 
                         {/* Add Row Button (only for non-standing sections) */}
-                        {!isAssignMode && section.type !== 'Standing' && (
+                        {section.type !== 'Standing' && (
                             <Button
                                 type="dashed"
                                 size="small"
@@ -149,12 +145,6 @@ const LeftBar = (props) => {
 
                     </Card>
                 ))}
-                {isAssignMode &&
-                    <Alert
-                        message="You can zoom and drag sections for better visibility while assigning tickets, but section positions can’t be changed here. To rearrange sections, please use the Edit option in Layouts from the main menu."
-                        type="warning"
-                    />
-                }
             </div>
         </div>
     );

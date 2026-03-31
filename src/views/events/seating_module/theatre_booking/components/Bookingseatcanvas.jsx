@@ -476,20 +476,8 @@ const Section = memo(({ section, selectedSeatIds, selectedSeats, onSeatClick, on
                         cornerRadius={8}
                     />
                     <Text
-                        x={0}
-                        y={12}
-                        width={section.width}
-                        text={section.name}
-                        fontSize={14}
-                        fill={THEME.textPrimary}
-                        fontStyle="bold"
-                        align="center"
-                        listening={false}
-                        perfectDrawEnabled={false}
-                    />
-                    <Text
                         x={4}
-                        y={section.height / 2 - 10}
+                        y={section.height / 2 - 14}
                         width={Math.max(section.width - 8, 0)}
                         text={isStandingSelected ? `🎫 ${selectedCount} SELECTED` : `🎫 STANDING AREA`}
                         fontSize={16}
@@ -499,6 +487,30 @@ const Section = memo(({ section, selectedSeatIds, selectedSeats, onSeatClick, on
                         listening={false}
                         perfectDrawEnabled={false}
                     />
+                    <Text
+                        x={4}
+                        y={section.height / 2 + 10}
+                        width={Math.max(section.width - 8, 0)}
+                        text={section.name}
+                        fontSize={13}
+                        fill={THEME.textPrimary}
+                        fontStyle="bold"
+                        align="center"
+                        listening={false}
+                        perfectDrawEnabled={false}
+                    />
+                    {/* standing area capacity count */}
+                    {/* <Text
+                        x={4}
+                        y={section.height / 2 + 28}
+                        width={Math.max(section.width - 8, 0)}
+                        text={`${section.remainingCapacity ?? 0}/${section.capacity ?? 0}`}
+                        fontSize={11}
+                        fill={THEME.textSecondary}
+                        align="center"
+                        listening={false}
+                        perfectDrawEnabled={false}
+                    /> */}
                 </Group>
             ) : (
                 <>

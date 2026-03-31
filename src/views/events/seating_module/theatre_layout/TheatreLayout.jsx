@@ -1,6 +1,6 @@
 // AuditoriumLayoutDesigner.jsx - UPDATED WITH TICKET ASSIGNMENT API
 import React, { useRef, useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Input, message, Row, Tooltip } from 'antd';
 import api from 'auth/FetchInterceptor';
@@ -21,34 +21,48 @@ const sanitizeStageNumbers = (stageData) => ({
   height: parseFloat(stageData.height) || 50
 });
 
-const sanitizeSeat = (seat) => ({
-  ...seat,
-  number: parseInt(seat.number) || 0,
-  x: parseFloat(seat.x) || 0,
-  y: parseFloat(seat.y) || 0,
-  radius: parseFloat(seat.radius) || 12
-});
+const sanitizeSeat = (seat) => {
+  const ticketId = seat.ticketCategory || seat.ticket?.id || seat.ticketId || null;
+  return {
+    ...seat,
+    number: parseInt(seat.number) || 0,
+    x: parseFloat(seat.x) || 0,
+    y: parseFloat(seat.y) || 0,
+    radius: parseFloat(seat.radius) || 12,
+    ticketCategory: ticketId ? String(ticketId) : null,
+  };
+};
 
-const sanitizeRow = (row) => ({
-  ...row,
-  numberOfSeats: parseInt(row.numberOfSeats) || 0,
-  curve: parseFloat(row.curve) || 0,
-  spacing: parseFloat(row.spacing) || 40,
-  seats: row.seats?.map(sanitizeSeat) || []
-});
+const sanitizeRow = (row) => {
+  const ticketId = row.ticketCategory || row.ticket?.id || row.ticketId || null;
+  return {
+    ...row,
+    numberOfSeats: parseInt(row.numberOfSeats) || 0,
+    curve: parseFloat(row.curve) || 0,
+    spacing: parseFloat(row.spacing) || 40,
+    ticketCategory: ticketId ? String(ticketId) : null,
+    seats: row.seats?.map(sanitizeSeat) || []
+  };
+};
 
-const sanitizeSection = (section) => ({
-  ...section,
-  x: parseFloat(section.x) || 0,
-  y: parseFloat(section.y) || 0,
-  width: parseFloat(section.width) || 600,
-  height: parseFloat(section.height) || 250,
-  ticketCategory: section.ticketCategory || null,
-  rows: section.type === 'Standing' ? [] : (section.rows?.map(sanitizeRow) || [])
-});
+const sanitizeSection = (section) => {
+  const ticketId = section.ticketCategory || section.ticket?.id || section.ticketId || null;
+  return {
+    ...section,
+    x: parseFloat(section.x) || 0,
+    y: parseFloat(section.y) || 0,
+    width: parseFloat(section.width) || 600,
+    height: parseFloat(section.height) || 250,
+    capacity: parseInt(section.capacity) || (section.type === 'Standing' ? 100 : 0),
+    ticketCategory: ticketId ? String(ticketId) : null,
+    rows: section.type === 'Standing' ? [] : (section.rows?.map(sanitizeRow) || [])
+  };
+};
 
 const AuditoriumLayoutDesigner = () => {
   const { id: layoutId, eventId } = useParams();
+  const [searchParams] = useSearchParams();
+  const isAssignQuery = searchParams.get('isAssign') === 'true';
 
   // Determine mode: if eventId exists, we're in ticket assignment mode
   const isAssignMode = !!eventId;
@@ -138,13 +152,17 @@ const AuditoriumLayoutDesigner = () => {
       setIsLoading(true);
 
       try {
-        const response = await api.get(`layout/theatre/${layoutId}`, {
+        const fetchUrl = isAssignQuery
+          ? `layout/theatre/event/${eventId}`
+          : `layout/theatre/template/${layoutId}`;
+
+        const response = await api.get(fetchUrl, {
           signal: abortController.signal
         });
 
         if (!isMounted) return;
 
-        const layoutData = response?.data || response;
+        const layoutData = response?.data?.data || response?.data || response;
 
         setLayoutName(layoutData.name || '');
         setVanueId(layoutData?.venue_id)
@@ -155,6 +173,11 @@ const AuditoriumLayoutDesigner = () => {
         if (layoutData.sections && Array.isArray(layoutData.sections)) {
           setSections(layoutData.sections.map(sanitizeSection));
           setNextSectionId(layoutData.sections.length + 1);
+        }
+
+        // Also set ticket categories if they are present in the layout response
+        if (layoutData.ticketCategories) {
+          setTicketCategories(layoutData.ticketCategories.map(cat => ({ ...cat, id: String(cat.id) })));
         }
 
         // message.success('Layout loaded successfully');
@@ -204,11 +227,11 @@ const AuditoriumLayoutDesigner = () => {
               rows: section.rows.map(row => ({
                 ...row,
                 seats: row.seats.map(seat => {
-                  const assignment = assignmentsData.find(a => a.seatId === seat.id);
+                  const assignment = assignmentsData.find(a => String(a.seatId) === String(seat.id));
                   if (assignment) {
                     return {
                       ...seat,
-                      ticketCategory: assignment.ticketId,
+                      ticketCategory: String(assignment.ticketId),
                       status: assignment.status || seat.status,
                       customTicket: true // Mark as custom since it was pre-assigned
                     };
@@ -253,8 +276,10 @@ const AuditoriumLayoutDesigner = () => {
 
         if (!isMounted) return;
 
-        const ticketsData = response?.tickets || response;
-        setTicketCategories(ticketsData);
+        const ticketsData = response?.data?.tickets || response?.data || response?.tickets || response;
+        if (Array.isArray(ticketsData)) {
+          setTicketCategories(ticketsData.map(cat => ({ ...cat, id: String(cat.id) })));
+        }
         // message.success(`Loaded ${ticketsData.length} ticket categories`);
       } catch (error) {
         if (error.name === 'AbortError') return;
@@ -273,36 +298,53 @@ const AuditoriumLayoutDesigner = () => {
     };
   }, [eventId]);
 
-  // Sanitize sections when ticketCategories change (removes invalid ticket IDs)
   useEffect(() => {
-    if (sections.length === 0) return;
+    // IMPORTANT: Wait for ticket categories to load before sanitizing
+    // Otherwise, all assigned tickets will be cleared (set to null) because they aren't in the valid set yet
+    if (sections.length === 0 || !ticketCategories || ticketCategories.length === 0) return;
 
-    const validTicketIds = new Set(ticketCategories?.map(t => t.id) || []);
+    const validTicketIds = new Set(ticketCategories?.map(t => String(t.id)) || []);
 
-    const sanitizedSections = sections.map(section => ({
-      ...section,
-      rows: section.rows?.map(row => ({
-        ...row,
-        // Keep ticket only if it's valid, otherwise set to null
-        ticketCategory: row.ticketCategory && validTicketIds.has(row.ticketCategory)
-          ? row.ticketCategory
+    const sanitizedSections = sections.map(section => {
+      const sectionTicketId = section.ticketCategory || section.ticket?.id || section.ticketId;
+
+      return {
+        ...section,
+        capacity: parseInt(section.capacity) || (section.type === 'Standing' ? 100 : 0),
+        // Section level ticket (for Standing sections)
+        ticketCategory: sectionTicketId && validTicketIds.has(String(sectionTicketId))
+          ? String(sectionTicketId)
           : null,
-        seats: row.seats?.map(seat => ({
-          ...seat,
-          ticketCategory: seat.ticketCategory && validTicketIds.has(seat.ticketCategory)
-            ? seat.ticketCategory
-            : null
-        })) || []
-      })) || []
-    }));
+        rows: section.rows?.map(row => {
+          const rowTicketId = row.ticketCategory || row.ticket?.id || row.ticketId;
+
+          return {
+            ...row,
+            // Keep ticket only if it's valid, otherwise set to null
+            ticketCategory: rowTicketId && validTicketIds.has(String(rowTicketId))
+              ? String(rowTicketId)
+              : null,
+            seats: row.seats?.map(seat => {
+              const seatTicketId = seat.ticketCategory || seat.ticket?.id || seat.ticketId;
+
+              return {
+                ...seat,
+                ticketCategory: seatTicketId && validTicketIds.has(String(seatTicketId))
+                  ? String(seatTicketId)
+                  : null
+              };
+            }) || []
+          };
+        }) || []
+      };
+    });
 
     // Only update if there are actual changes
     const hasChanges = JSON.stringify(sections) !== JSON.stringify(sanitizedSections);
     if (hasChanges) {
       setSections(sanitizedSections);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ticketCategories]); // Run when ticket categories change (intentionally not including 'sections' to avoid infinite loop)
+  }, [ticketCategories]);
 
   // Update selectedElement when sections change (to reflect sanitized data)
   useEffect(() => {
@@ -311,42 +353,24 @@ const AuditoriumLayoutDesigner = () => {
     // Find the updated element in the sanitized sections
     if (selectedType === 'section') {
       const updatedSection = sections.find(s => s.id === selectedElement.id);
-      if (updatedSection) {
-        // Only update if ticket category was sanitized (changed from invalid to null)
-        if (selectedElement.ticketCategory && !updatedSection.ticketCategory) {
-          setSelectedElement(updatedSection);
-        }
+      if (updatedSection && String(updatedSection.ticketCategory) !== String(selectedElement.ticketCategory)) {
+        setSelectedElement(updatedSection);
       }
     } else if (selectedType === 'row') {
       const section = sections.find(s => s.id === selectedElement.sectionId);
       const updatedRow = section?.rows.find(r => r.id === selectedElement.id);
-      if (updatedRow) {
-        // Only update if ticket category was sanitized (changed from invalid to null)
-        const oldTicket = selectedElement.ticketCategory;
-        const newTicket = updatedRow.ticketCategory;
-
-        // Update only if sanitization occurred (had invalid ticket, now null)
-        if (oldTicket && oldTicket !== newTicket && newTicket === null) {
-          setSelectedElement({ ...updatedRow, sectionId: section.id });
-        }
+      if (updatedRow && String(updatedRow.ticketCategory) !== String(selectedElement.ticketCategory)) {
+        setSelectedElement({ ...updatedRow, sectionId: section.id });
       }
     } else if (selectedType === 'seat') {
       const section = sections.find(s => s.id === selectedElement.sectionId);
       const row = section?.rows.find(r => r.id === selectedElement.rowId);
       const updatedSeat = row?.seats.find(s => s.id === selectedElement.id);
-      if (updatedSeat) {
-        // Only update if ticket category was sanitized (changed from invalid to null)
-        const oldTicket = selectedElement.ticketCategory;
-        const newTicket = updatedSeat.ticketCategory;
-
-        // Update only if sanitization occurred (had invalid ticket, now null)
-        if (oldTicket && oldTicket !== newTicket && newTicket === null) {
-          setSelectedElement({ ...updatedSeat, sectionId: section.id, rowId: row.id });
-        }
+      if (updatedSeat && String(updatedSeat.ticketCategory) !== String(selectedElement.ticketCategory)) {
+        setSelectedElement({ ...updatedSeat, sectionId: section.id, rowId: row.id });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sections]); // Run when sections change (to update selectedElement with sanitized data)
+  }, [sections]); // Run when sections are updated/sanitized (to update selectedElement with sanitized data)
 
   // Generate unique IDs
   const generateId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -887,6 +911,7 @@ const AuditoriumLayoutDesigner = () => {
             sectionId: section.id,
             ticketId: section.ticketCategory,
             type: 'standing',
+            capacity: section.capacity || 0,
             status: 'available'
           });
         }
@@ -917,10 +942,32 @@ const AuditoriumLayoutDesigner = () => {
       // ASSIGNMENT MODE: Save ticket assignments
       const ticketAssignments = extractTicketAssignments();
 
+      // const assignPayload = {
+      //   layoutId: layoutId,
+      //   eventId: eventId,
+      //   ticketAssignments: ticketAssignments
+      // };
+
       const assignPayload = {
         layoutId: layoutId,
         eventId: eventId,
-        ticketAssignments: ticketAssignments
+        ticketAssignments: ticketAssignments,
+        name: layoutName || `Layout ${new Date().toISOString()}`,
+        stage,
+        venue_id: vanueId,
+        sections,
+        ticketCategories,
+        metadata: {
+          updatedAt: new Date().toISOString(),
+          totalSections: sections.length,
+          totalSeats: sections.reduce((total, section) =>
+            total + (section.type === 'Standing'
+              ? 1 // Represent standing as 1 unit in total count if quantity is handled by ticket
+              : section.rows.reduce((rowTotal, row) => rowTotal + row.seats.length, 0))
+            , 0),
+          totalRows: sections.reduce((total, section) => total + (section.type === 'Standing' ? 0 : section.rows.length), 0),
+          totalStandingTickets: 0 // No longer tracked at layout level
+        }
       };
 
       saveMutation.mutate({ isAssignMode: true, assignPayload });
@@ -1033,22 +1080,20 @@ const AuditoriumLayoutDesigner = () => {
             onChange={(e) => setLayoutName(e.target.value)}
           />
         </Col>
-        {!isAssignMode &&
-          <VanueList
-            hideLable={true}
-            noMargin={true}
-            onChange={onVanueChange}
-            value={vanueId}
-            span={4}
-            showDetail={false}
-          />
-        }
+        <VanueList
+          hideLable={true}
+          noMargin={true}
+          onChange={onVanueChange}
+          value={vanueId}
+          span={4}
+          showDetail={false}
+        />
         <Col>
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={addSection}
-            disabled={isAssignMode}
+          // disabled={isAssignMode} // Removed restriction
           >
             Add Section
           </Button>

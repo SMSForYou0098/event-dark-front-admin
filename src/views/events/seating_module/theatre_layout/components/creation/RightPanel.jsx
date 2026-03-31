@@ -228,11 +228,7 @@ const RightPanel = (props) => {
         {/* Section Editor */}
         {selectedType === 'section' && selectedElement && (
           <Form layout="vertical" className="editor-form">
-            {
-              !isAssignMode &&
-              <>
-
-                <Form.Item label="Section Name">
+            <Form.Item label="Section Name">
                   <Input
                     value={selectedElement.name}
                     onChange={(e) => {
@@ -281,10 +277,6 @@ const RightPanel = (props) => {
                     className="w-100"
                   />
                 </Form.Item>
-              </>
-
-
-            }
             {selectedElement.type === 'Standing' ? (
               <>
 
@@ -292,7 +284,7 @@ const RightPanel = (props) => {
                 {isAssignMode && ticketCategories?.length > 0 && (
                   <Form.Item label="Assign Ticket Category">
                     <Select
-                      value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : undefined}
+                      value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
                       onChange={(value) => {
                         updateSection(selectedElement.id, { ticketCategory: value });
                         setSelectedElement({ ...selectedElement, ticketCategory: value });
@@ -314,6 +306,18 @@ const RightPanel = (props) => {
                   </Form.Item>
                 )}
 
+                <Form.Item label="Standing Capacity">
+                  <InputNumber
+                    min={1}
+                    style={{ width: '100%' }}
+                    value={selectedElement.capacity || 100}
+                    onChange={(value) => {
+                      updateSection(selectedElement.id, { capacity: value });
+                      setSelectedElement({ ...selectedElement, capacity: value });
+                    }}
+                  />
+                </Form.Item>
+
                 <div className="p-3 bg-light rounded">
                   <div className="mb-1"><Text strong>Type:</Text> Standing</div>
 
@@ -324,17 +328,16 @@ const RightPanel = (props) => {
               </>
             ) : (
               <>
-                {!isAssignMode && (
-                  <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    block
-                    onClick={() => addRowToSection(selectedElement.id)}
-                    className="mb-3"
-                  >
-                    Add Row
-                  </Button>
-                )}
+                {/* Removed !isAssignMode restriction to allow adding rows in assign mode */}
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  block
+                  onClick={() => addRowToSection(selectedElement.id)}
+                  className="mb-3"
+                >
+                  Add Row
+                </Button>
 
                 <div className="p-3 bg-light rounded">
                   <div className="mb-1"><Text strong>Rows:</Text> {selectedElement.rows.length}</div>
@@ -354,7 +357,7 @@ const RightPanel = (props) => {
             <Form.Item label="Row Title">
               <Input
                 value={selectedElement.title}
-                disabled={isAssignMode}
+                // disabled={isAssignMode} // Removed isAssignMode restriction
                 onChange={(e) => {
                   updateRow(selectedElement.sectionId, selectedElement.id, { title: e.target.value });
                   setSelectedElement({ ...selectedElement, title: e.target.value });
@@ -364,7 +367,7 @@ const RightPanel = (props) => {
 
             <Form.Item
               label="Number of Seats"
-              help={isAssignMode && "Layout is locked in ticket assignment mode"}
+              // help={isAssignMode && "Layout is locked in ticket assignment mode"} // Removed isAssignMode help
             >
               <InputNumber
                 min={1}
@@ -375,13 +378,12 @@ const RightPanel = (props) => {
                   setSelectedElement({ ...selectedElement, numberOfSeats: value });
                 }}
                 className="w-100"
-                disabled={isAssignMode}
+                // disabled={isAssignMode} // Removed isAssignMode restriction
               />
             </Form.Item>
 
-            {/* Row Icon Selector */}
-            {!isAssignMode && (
-              <Form.Item
+            {/* Removed !isAssignMode restriction for row icon selector */}
+            <Form.Item
                 label="Row Seat Icon"
                 help="Apply icon to all seats in this row"
               >
@@ -483,12 +485,11 @@ const RightPanel = (props) => {
                   })}
                 </Row>
               </Form.Item>
-            )}
 
             {isAssignMode && ticketCategories?.length > 0 && (
               <Form.Item label="Assign Ticket Category to All Seats">
                 <Select
-                  value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : undefined}
+                  value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
                   onChange={(value) => {
                     // Update the row's ticket category and override ALL seats (including custom ones)
                     setSections(sections.map(section => {
@@ -563,10 +564,8 @@ const RightPanel = (props) => {
               />
             </Form.Item>
 
-            {/* Gap Management Section */}
-            {!isAssignMode && (
-              <>
-                <Divider style={{ margin: '16px 0' }} />
+            {/* Removed !isAssignMode restriction for gap management */}
+            <Divider style={{ margin: '16px 0' }} />
                 <Form.Item label="Add Blank Seat/Gap" help="Create spacing between seats">
                   <Space direction="vertical" style={{ width: '100%' }} size="small">
                     {/* Method 1: Input seat number */}
@@ -683,8 +682,6 @@ const RightPanel = (props) => {
                     className="mt-2"
                   />
                 )}
-              </>
-            )}
 
             <div className="p-3 bg-light rounded">
               <div className="mb-1"><Text strong>Total Seats in Row:</Text> {selectedElement.seats?.length || 0}</div>
@@ -710,7 +707,7 @@ const RightPanel = (props) => {
           <Form layout="vertical" className="editor-form">
             <Form.Item label="Seat Label">
               <Input
-                disabled={isAssignMode}
+                // disabled={isAssignMode} // Removed restriction
                 value={selectedElement.label}
                 onChange={(e) => {
                   const label = e.target.value;
@@ -720,9 +717,8 @@ const RightPanel = (props) => {
               />
             </Form.Item>
 
-            {/* Seat Icon Selector */}
-            {!isAssignMode && (
-              <Form.Item
+            {/* Removed !isAssignMode restriction for seat icon selector */}
+            <Form.Item
                 label="Seat Icon"
                 help="Set custom icon for this seat. Note: Row-level changes will override this."
               >
@@ -798,13 +794,12 @@ const RightPanel = (props) => {
                   />
                 )}
               </Form.Item>
-            )}
 
             {isAssignMode && ticketCategories?.length > 0 && (
               <>
                 <Form.Item label="Ticket Category">
                   <Select
-                    value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : undefined}
+                    value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
                     placeholder="select ticket"
                     allowClear
                     onChange={(value) => {
