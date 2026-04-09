@@ -14,6 +14,7 @@ import usePermission from 'utils/hooks/usePermission';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 import Utils from 'utils';
+import { OrganisationList } from 'utils/CommonInputs';
 
 const { confirm } = Modal;
 const { Option } = Select;
@@ -92,6 +93,7 @@ const Promocode = memo(() => {
     if (record) {
       setEditingId(record.id);
       form.setFieldsValue({
+        user_id: record.user_id ? String(record.user_id) : undefined,
         code: record.code,
         description: record.description,
         discount_type: record.discount_type,
@@ -287,6 +289,10 @@ const Promocode = memo(() => {
       >
         <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
           <Row gutter={16}>
+            <Col span={24}>
+              <OrganisationList name="user_id" label="Organizer" />
+            </Col>
+
             <Col span={12}>
               <Form.Item
                 label="Code"
@@ -362,7 +368,22 @@ const Promocode = memo(() => {
               <Form.Item
                 label="Usage Per User"
                 name="usage_per_user"
-                rules={[{ required: true, message: 'Please enter usage per user!' }]}
+                dependencies={['usage_limit']}
+                rules={[
+                  { required: true, message: 'Please enter usage per user!' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      const limit = getFieldValue('usage_limit');
+                      if (!value || !limit) {
+                        return Promise.resolve();
+                      }
+                      if (Number(value) > Number(limit)) {
+                        return Promise.reject(<span>Usage per user cannot more than <b>usage limit</b>!</span>);
+                      }
+                      return Promise.resolve();
+                    },
+                  }),
+                ]}
               >
                 <Input type="number" placeholder="Enter usage per user" />
               </Form.Item>

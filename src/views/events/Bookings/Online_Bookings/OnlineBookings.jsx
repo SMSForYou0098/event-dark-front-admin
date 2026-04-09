@@ -18,7 +18,7 @@ import { PERMISSIONS } from "constants/PermissionConstant";
 import usePermission from "utils/hooks/usePermission";
 import { getBookingSeatNumbersDisplay } from "../utils/bookingSeatDisplay";
 
-const OnlineBookings = memo(({ type, seatingChartBooking = false , isRefund = false }) => {
+const OnlineBookings = memo(({ type, seatingChartBooking = false, isRefund = false }) => {
 
   const {
     UserData,
@@ -332,7 +332,7 @@ const OnlineBookings = memo(({ type, seatingChartBooking = false , isRefund = fa
     });
   }, [approvalMutation]);
 
-
+  // Table columns
   const columns = [
     {
       title: "#",
@@ -411,23 +411,23 @@ const OnlineBookings = memo(({ type, seatingChartBooking = false , isRefund = fa
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
     },
-    ...((type === 'paid')
+    ...((seatingChartBooking === true)
       ? [
-          {
-            title: "Seat number",
-            key: "seat_numbers",
-            align: "center",
-            width: 160,
-            render: (_, record) => {
-              const text = getBookingSeatNumbersDisplay(record);
-              return (
-                <Tooltip title={text}>
-                  <span>{truncateString(text, 28)}</span>
-                </Tooltip>
-              );
-            },
+        {
+          title: "Seat number",
+          key: "seat_numbers",
+          align: "center",
+          width: 160,
+          render: (_, record) => {
+            const text = getBookingSeatNumbersDisplay(record);
+            return (
+              <Tooltip title={text}>
+                <span>{truncateString(text, 28)}</span>
+              </Tooltip>
+            );
           },
-        ]
+        },
+      ]
       : []),
     ...(type !== 'free' && userRole === 'Admin' ? [
       {
@@ -587,50 +587,50 @@ const OnlineBookings = memo(({ type, seatingChartBooking = false , isRefund = fa
       : []),
     ...((type === 'paid')
       ? [
-          {
-            title: "Approval",
-            key: "approval",
-            align: "center",
-            render: (_, record) => {
-              const approvalStatus = record?.approval_status || record?.bookings?.[0]?.approval_status;
+        {
+          title: "Approval",
+          key: "approval",
+          align: "center",
+          render: (_, record) => {
+            const approvalStatus = record?.approval_status || record?.bookings?.[0]?.approval_status;
 
-              if (approvalStatus === "pending") {
-                return (
-                  <PermissionChecker permission={PERMISSIONS.APPROVE_ONLINE_BOOKING}>
-                    <Space size="small">
-                      <Tooltip title="Approve">
-                        <Button
-                          type="primary"
-                          size="small"
-                          icon={<CheckCircleOutlined />}
-                          onClick={() => handleApproval(record, 'approved')}
-                          style={{ background: '#52c41a', borderColor: '#52c41a' }}
-                        />
-                      </Tooltip>
-                      <Tooltip title="Reject">
-                        <Button
-                          danger
-                          size="small"
-                          icon={<CloseCircleOutlined />}
-                          onClick={() => handleApproval(record, 'rejected')}
-                        />
-                      </Tooltip>
-                    </Space>
-                  </PermissionChecker>
-                );
-              }
+            if (approvalStatus === "pending") {
+              return (
+                <PermissionChecker permission={PERMISSIONS.APPROVE_ONLINE_BOOKING}>
+                  <Space size="small">
+                    <Tooltip title="Approve">
+                      <Button
+                        type="primary"
+                        size="small"
+                        icon={<CheckCircleOutlined />}
+                        onClick={() => handleApproval(record, 'approved')}
+                        style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Reject">
+                      <Button
+                        danger
+                        size="small"
+                        icon={<CloseCircleOutlined />}
+                        onClick={() => handleApproval(record, 'rejected')}
+                      />
+                    </Tooltip>
+                  </Space>
+                </PermissionChecker>
+              );
+            }
 
-              if (approvalStatus === "approved") {
-                return <Tag color="success">Approved</Tag>;
-              }
-              if (approvalStatus === "rejected") {
-                return <Tag color="error">Rejected</Tag>;
-              }
+            if (approvalStatus === "approved") {
+              return <Tag color="success">Approved</Tag>;
+            }
+            if (approvalStatus === "rejected") {
+              return <Tag color="error">Rejected</Tag>;
+            }
 
-              return "-";
-            },
+            return "-";
           },
-        ]
+        },
+      ]
       : []),
     {
       title: "Action",
