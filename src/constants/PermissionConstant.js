@@ -87,7 +87,8 @@ export const PERMISSIONS = {
     VIEW_AGENT_REPORTS: "View Agent Reports",
     EXPORT_AGENT_REPORTS: "Export Agent Reports",
     VIEW_ORGANIZER_REPORTS: "View Organizer Reports",
-    VIEW_SCANNER_REPORTS: "View Scanner Reports",
+    VIEW_SCAN_REPORTS: "View Scan Reports",
+    EXPORT_SCAN_REPORTS: "Export Scan Reports",
     VIEW_CARD_REPORTS: "View Card Reports",
 
     VIEW_CARD_INVENTORY: "View Card Inventory",

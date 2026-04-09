@@ -29,6 +29,7 @@ export const ExpandDataTable = ({
   enableExport = false,
   exportRoute,
   ExportPermission = false,
+  exportPayload = {},
   extraHeaderContent,
   emptyText = "No data",
   tableProps = {},
@@ -330,7 +331,7 @@ export const ExpandDataTable = ({
 
       const response = await api.post(
         exportRoute,
-        { date: formattedDate, type: type },
+        { date: formattedDate, type: type, ...exportPayload },
         { responseType: "blob" }
       );
 

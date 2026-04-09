@@ -1,5 +1,5 @@
 // Category.jsx
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -9,16 +9,14 @@ import {
   Modal,
   Row,
   Switch,
-  Upload,
   Table,
   Space,
   Popconfirm,
   Spin,
   message,
   Image,
-  Typography
 } from "antd";
-import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined, PictureOutlined } from "@ant-design/icons";
+import { CheckOutlined, CloseOutlined, EditOutlined, DeleteOutlined, PlusOutlined, PictureOutlined, SearchOutlined } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
 import AssignFields from "./AssignFields";
@@ -26,6 +24,7 @@ import SelectedOptionView from "./SelectedOptionView";
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 import Utils from 'utils';
 import PermissionChecker from 'layouts/PermissionChecker';
+import Flex from "components/shared-components/Flex";
 
 const Category = () => {
   const queryClient = useQueryClient();
@@ -37,6 +36,9 @@ const Category = () => {
 
   // Media Picker State
   const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+
+  const [searchText, setSearchText] = useState("");
+  const [tablePage, setTablePage] = useState(1);
 
   const [form] = Form.useForm();
 
@@ -50,6 +52,20 @@ const Category = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes - prevents refetching on every render
     refetchOnWindowFocus: false,
   });
+
+  const filteredCategories = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return categories;
+    return categories.filter((cat) =>
+      String(cat.title ?? "")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [categories, searchText]);
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [searchText]);
 
   // ========================= MUTATIONS =========================
   const saveMutation = useMutation({
@@ -306,21 +322,36 @@ const Category = () => {
       <Card
         title="Categories"
         extra={
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={handleModalOpen}
-          >
-            Add New Category
-          </Button>
+          <Flex gap={16}>
+            <Input
+              placeholder="Search categories..."
+              prefix={<SearchOutlined />}
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={{ maxWidth: 280 }}
+              allowClear
+            />
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={handleModalOpen}
+            >
+              Add New Category
+            </Button>
+          </Flex>
         }
       >
         <Spin spinning={isLoading}>
           <Table
             rowKey="id"
-            dataSource={categories}
+            dataSource={filteredCategories}
             columns={columns}
-            pagination={{ pageSize: 10 }}
+            pagination={{
+              pageSize: 10,
+              current: tablePage,
+              onChange: (page) => setTablePage(page),
+              showTotal: (total) => `Total ${total} categories`,
+            }}
           />
         </Spin>
 

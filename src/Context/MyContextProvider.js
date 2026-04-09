@@ -30,7 +30,17 @@ export const MyContextProvider = ({ children }) => {
   const [hideMobileMenu, setHideMobileMenu] = useState(false);
   const api = API_BASE_URL;
   const UserData = useSelector((auth) => auth?.auth?.user);
-  const UserPermissions = useSelector((auth) => auth?.auth?.user?.permissions)
+  const loggedInPermissions = useSelector((auth) => auth?.auth?.user?.permissions);
+  // Combine logged-in permissions with all known permissions (deduped).
+  // This ensures `UserPermissions.includes(...)` works reliably even if duplicates exist.
+  const normalizePermission = (p) => String(p ?? '').trim();
+  // Only use permissions coming from Redux (user's actual granted permissions).
+  // Do not merge with the full PERMISSIONS catalog.
+  const UserPermissions = Array.from(
+    new Set([
+      ...(Array.isArray(loggedInPermissions) ? loggedInPermissions.map(normalizePermission) : []),
+    ])
+  );
   const authToken = useSelector((auth) => auth?.auth?.token);
   const session_id = useSelector((state) => state.auth.session_id);
   const auth_session = useSelector((state) => state.auth.auth_session);

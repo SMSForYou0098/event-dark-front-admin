@@ -26,11 +26,12 @@ import PermissionChecker from "layouts/PermissionChecker";
 import Utils from "utils";
 import { PERMISSIONS } from "constants/PermissionConstant";
 import usePermission from "utils/hooks/usePermission";
+import { getBookingSeatNumbersDisplay } from "../utils/bookingSeatDisplay";
 
 const { confirm } = Modal;
 const { Text } = Typography;
 
-const PosBooking = memo(({ bookingType = 'free' }) => {
+const PosBooking = memo(({ bookingType = 'free', seatingChartBooking = false }) => {
   const navigate = useNavigate();
   const { api, UserData, formatDateTime, authToken, truncateString } = useMyContext();
   const queryClient = useQueryClient();
@@ -44,7 +45,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [bookingType]);
+  }, [bookingType, seatingChartBooking]);
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -66,7 +67,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['pos-bookings', UserData?.id, formattedDateRange, currentPage, pageSize, searchText, sortField, sortOrder, bookingType],
+    queryKey: ['pos-bookings', UserData?.id, formattedDateRange, currentPage, pageSize, searchText, sortField, sortOrder, bookingType, seatingChartBooking],
     queryFn: async () => {
       const params = new URLSearchParams();
 
@@ -88,6 +89,10 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
       // Date range params
       if (formattedDateRange) {
         params.set("date", formattedDateRange);
+      }
+
+      if (seatingChartBooking) {
+        params.set("seating", "true");
       }
 
       // const url = `${api}bookings/pos/${UserData?.id}?${params.toString()}`;
@@ -303,19 +308,37 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
 
 
   // Define columns for nested table (related bookings)
-  const expandedRowColumns = useMemo(() => [
-    {
-      title: 'Ticket',
-      dataIndex: ['ticket', 'name'],
-      key: 'ticket',
-    },
-    {
+  const expandedRowColumns = useMemo(() => {
+    const cols = [
+      {
+        title: 'Ticket',
+        dataIndex: ['ticket', 'name'],
+        key: 'ticket',
+      },
+    ];
+    if (seatingChartBooking) {
+      cols.push({
+        title: 'Seat number',
+        key: 'seat_numbers',
+        align: 'center',
+        render: (_, r) => {
+          const t = getBookingSeatNumbersDisplay(r);
+          return (
+            <Tooltip title={t}>
+              <span>{truncateString(t, 20)}</span>
+            </Tooltip>
+          );
+        },
+      });
+    }
+    cols.push({
       title: 'Quantity',
       dataIndex: 'quantity',
       key: 'quantity',
       align: 'center',
-    },
-  ], []);
+    });
+    return cols;
+  }, [seatingChartBooking, truncateString]);
 
   // Main table columns
   const columns = useMemo(() => {
@@ -363,6 +386,24 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
           return <span>{ticketName}</span>;
         },
       },
+      ...(seatingChartBooking
+        ? [
+            {
+              title: 'Seat number',
+              key: 'seat_numbers',
+              align: 'center',
+              width: 130,
+              render: (_, record) => {
+                const t = getBookingSeatNumbersDisplay(record);
+                return (
+                  <Tooltip title={t}>
+                    <span>{truncateString(t, 18)}</span>
+                  </Tooltip>
+                );
+              },
+            },
+          ]
+        : []),
       {
         title: 'QTY',
         dataIndex: 'quantity',
@@ -506,7 +547,9 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
     handleToggleStatus,
     toggleStatusMutation.isPending,
     canViewContact,
-    bookingType
+    bookingType,
+    seatingChartBooking,
+    truncateString,
   ]);
 
   const handleDateRangeChange = useCallback((dates) => {
@@ -550,7 +593,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
       )}
 
       <ExpandDataTable
-        title={`${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)} POS`}
+        title={`${bookingType.charAt(0).toUpperCase() + bookingType.slice(1)} POS${seatingChartBooking ? ' - Seating' : ''}`}
         emptyText={`No POS bookings found`}
         onRefresh={refetch}
         innerColumns={expandedRowColumns}
@@ -566,7 +609,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => navigate('/bookings/pos/new')}
+                onClick={() => navigate(seatingChartBooking ? '/bookings/seating-chart/pos/new' : '/bookings/pos/new')}
               />
             </Tooltip>
           </PermissionChecker>
@@ -586,6 +629,7 @@ const PosBooking = memo(({ bookingType = 'free' }) => {
         // Loading and error
         loading={isLoading}
         error={error}
+        exportPayload={seatingChartBooking ? { seating: true } : {}}
       />
 
     </>

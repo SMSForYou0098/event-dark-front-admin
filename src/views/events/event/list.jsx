@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { Button, Dropdown, message, Modal, Space, Spin, Tag, Tooltip } from 'antd';
+import { Button, message, Modal, Popover, Space, Tag, Tooltip } from 'antd';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import DataTable from '../common/DataTable';
 import usePermission from 'utils/hooks/usePermission';
@@ -9,7 +9,6 @@ import {
   ExclamationCircleOutlined,
   EyeOutlined,
   LeftOutlined,
-  MoreOutlined,
   PlusOutlined,
   UndoOutlined,
 } from '@ant-design/icons';
@@ -280,7 +279,7 @@ const EventList = ({ isJunk = false }) => {
         });
       },
     });
-  }, [restoreMutation, refetch]);
+  }, [restoreMutation]);
 
   const canExportEvents = usePermission('Export Events');
   const columns = useMemo(
@@ -298,7 +297,7 @@ const EventList = ({ isJunk = false }) => {
           if (isRegistration) {
             return (
               <Tooltip title="Registration">
-                <span style={{ display: 'inline-flex' }}>
+                  <span style={{ display: 'inline-flex' }}>
                   <ClipboardList size={16} style={{ color: '#722ed1' }} />
                 </span>
               </Tooltip>
@@ -317,9 +316,34 @@ const EventList = ({ isJunk = false }) => {
 
               {!isCard && isTicket && (
                 <Tooltip title="Seating Chart">
-                  <span style={{ display: 'inline-flex' }}>
-                    <Armchair size={16} style={{ color: '#8c8c8c' }} />
-                  </span>
+                  {row.event_has_layout?.layout_id ? (
+                    <Popover
+                      trigger="click"
+                      placement="bottom"
+                      content={(
+                        <Space direction="vertical" size={4}>
+                          <Link to={`/report/${row?.event_key}/layout/${row.event_has_layout?.layout_id}`}>
+                            <Button type="text" size="small" style={{ width: '100%', textAlign: 'left' }}>
+                              Layout Report
+                            </Button>
+                          </Link>
+                          <Link to={`/theatre/event/${row?.event_key}/layout/${row.event_has_layout?.layout_id}?isAssign=true`}>
+                            <Button type="text" size="small" style={{ width: '100%', textAlign: 'left' }}>
+                              Manage Layout
+                            </Button>
+                          </Link>
+                        </Space>
+                      )}
+                    >
+                      <span style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                        <Armchair size={16} style={{ color: '#8c8c8c' }} />
+                      </span>
+                    </Popover>
+                  ) : (
+                    <span style={{ display: 'inline-flex', opacity: 0.5, cursor: 'not-allowed' }}>
+                      <Armchair size={16} style={{ color: '#8c8c8c' }} />
+                    </span>
+                  )}
                 </Tooltip>
               )}
             </Space>

@@ -61,7 +61,7 @@ const QRScanner = ({ onScan, scanMode = 'camera', styles = {}, pauseScan = false
         }
       };
     }
-  }, [scanMode, onScan, pauseScan]); // Re-init scanner if scanMode or onScan changes
+  }, [scanMode, onScan, pauseScan, scannerStatus]); // Re-init scanner if scanMode or onScan changes
 
   // Update scanner state based on pauseScan prop
   useEffect(() => {

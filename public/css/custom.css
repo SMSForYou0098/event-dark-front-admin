@@ -81,6 +81,10 @@ input[type=number] {
   border: 1px solid var(--primary-color) !important;
 }
 
+.ant-card.pos-event-card-selected {
+  border: 2px solid var(--primary-color) !important;
+}
+
 /* accordion css  */
 .ant-collapse-header,
 .ant-collapse-content-box {
@@ -587,4 +591,8 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
 .ant-segmented .ant-segmented-item:hover:not(.ant-segmented-item-selected) {
   color: var(--text-white);
   background: rgba(255, 255, 255, 0.1);
+}
+
+:where(.css-dev-only-do-not-override-1u1move).ant-collapse>.ant-collapse-item >.ant-collapse-header{
+  align-items: center !important;
 }

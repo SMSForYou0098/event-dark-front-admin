@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tag, Typography, Tooltip, Select, Space, Table, Spin } from "antd";
 import apiClient from "auth/FetchInterceptor";
@@ -67,6 +67,7 @@ const ScanHistory = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [selectedEventId, setSelectedEventId] = useState(null);
+  const [searchText, setSearchText] = useState("");
   const [expandedRowKeys, setExpandedRowKeys] = useState([]);
   const { userRole, UserPermissions, UserData } = useMyContext();
 
@@ -83,7 +84,7 @@ const ScanHistory = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["scanHistory", dateRange, currentPage, pageSize, selectedEventId],
+    queryKey: ["scanHistory", dateRange, currentPage, pageSize, selectedEventId, searchText],
     queryFn: async () => {
       const params = new URLSearchParams();
       params.append("page", currentPage);
@@ -97,6 +98,10 @@ const ScanHistory = () => {
         params.append("event_id", selectedEventId);
       }
 
+      if (searchText?.trim()) {
+        params.set("search", searchText.trim());
+      }
+
       const res = await apiClient.get(`scan-histories?${params.toString()}`);
       return res;
     },
@@ -105,8 +110,7 @@ const ScanHistory = () => {
 
 
 
-  // Extract data and pagination from response
-  const scanHistory = response?.data || [];
+  // Extract pagination from response
   const pagination = response?.pagination ? {
     current_page: Number(response.pagination.current_page),
     per_page: Number(response.pagination.per_page),
@@ -122,6 +126,12 @@ const ScanHistory = () => {
       setCurrentPage(1); // Reset to first page when page size changes
     }
   };
+
+  const handleSearchChange = useCallback((value) => {
+    setSearchText(value ?? "");
+    setCurrentPage(1);
+    setExpandedRowKeys([]);
+  }, []);
 
   // Handle date range change
   const handleDateRangeChange = (dates) => {
@@ -153,7 +163,8 @@ const ScanHistory = () => {
 
   // Transform data to add scan_history as "bookings" for ExpandDataTable compatibility
   const transformedData = useMemo(() => {
-    return scanHistory.map(item => ({
+    const rows = response?.data || [];
+    return rows.map(item => ({
       ...item,
       id: item.booking_id,
       set_id: `scan-${item.booking_id}`,
@@ -163,7 +174,7 @@ const ScanHistory = () => {
         id: scan.scan_id,
       })),
     }));
-  }, [scanHistory]);
+  }, [response?.data]);
 
   // Inner columns for expanded scan history details
   const innerColumns = [
@@ -222,7 +233,7 @@ const ScanHistory = () => {
       width: 100,
       render: (deviceInfo) => {
         if (!deviceInfo) return "-";
-        const browserMatch = deviceInfo.match(/(Chrome|Firefox|Safari|Edge|Opera)[\/\s](\d+)/i);
+        const browserMatch = deviceInfo.match(/(Chrome|Firefox|Safari|Edge|Opera)[/\s](\d+)/i);
         const browser = browserMatch ? `${browserMatch[1]} ${browserMatch[2]}` : 'Unknown';
         return (
           <Tooltip title={deviceInfo}>
@@ -400,6 +411,8 @@ const ScanHistory = () => {
         emptyText="No scan history found"
         enableSearch
         showSearch
+        onSearch={handleSearchChange}
+        searchValue={searchText}
         // Server-side pagination props
         serverSide
         pagination={pagination}

@@ -12,7 +12,7 @@ import { SiTablecheck } from 'react-icons/si';
 
 
 // Draggable Stage Component
-const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd, setIsDraggingElement }) => {
+const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd, setIsDraggingElement, isInteractive = true }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
@@ -29,11 +29,12 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
     <>
       <Group
         ref={shapeRef}
-        draggable
+        draggable={isInteractive}
         x={stage.x}
         y={stage.y}
-        onClick={onSelect}
-        onTap={onSelect}
+        listening={isInteractive}
+        onClick={isInteractive ? onSelect : undefined}
+        onTap={isInteractive ? onSelect : undefined}
         onDragStart={(e) => {
           e.cancelBubble = true;
           setIsDraggingElement(true);
@@ -58,7 +59,7 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
             x: node.x(),
             y: node.y(),
             width: Math.max(200, stage.width * scaleX),
-            height: Math.max(30, stage.height * scaleY)
+            height: Math.max(5, stage.height * scaleY)
           });
 
           // Reset scale after transform
@@ -110,7 +111,7 @@ const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd
           anchorFill={PRIMARY}
           flipEnabled={false}
           boundBoxFunc={(oldBox, newBox) => {
-            if (Math.abs(newBox.width) < 200 || Math.abs(newBox.height) < 30) {
+            if (Math.abs(newBox.width) < 200 || Math.abs(newBox.height) < 5) {
               return oldBox;
             }
             return newBox;
@@ -147,41 +148,50 @@ const calculateMinSectionSize = (section) => {
 };
 
 // Draggable Section Component
-const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransformEnd, children, setIsDraggingElement }) => {
+const DraggableSection = ({ section, isSelected, isMultiSelected, onSelect, onDragStart, onDragMove, onDragEnd, onTransformEnd, children, setIsDraggingElement, isInteractive = true }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
   useEffect(() => {
-    if (isSelected) {
+    if (isSelected && !isMultiSelected) {
       if (trRef.current && shapeRef.current) {
         trRef.current.nodes([shapeRef.current]);
         trRef.current.getLayer()?.batchDraw();
       }
     }
-  }, [isSelected]);
+  }, [isSelected, isMultiSelected]);
+
+  const highlighted = isSelected || isMultiSelected;
 
   return (
     <>
       <Group
+        id={`section-${section.id}`}
         ref={shapeRef}
-        draggable
+        draggable={isInteractive}
         x={section.x}
         y={section.y}
-        onClick={onSelect}
-        onTap={onSelect}
+        listening={isInteractive}
+        onClick={isInteractive ? onSelect : undefined}
+        onTap={isInteractive ? onSelect : undefined}
         onDragStart={(e) => {
           e.cancelBubble = true;
           setIsDraggingElement(true);
+          const node = shapeRef.current ?? e.target;
+          onDragStart?.(e, node);
         }}
         onDragMove={(e) => {
           e.cancelBubble = true;
+          const node = shapeRef.current ?? e.target;
+          onDragMove?.(e, node);
         }}
         onDragEnd={(e) => {
           e.cancelBubble = true;
           setIsDraggingElement(false);
+          const node = shapeRef.current ?? e.target;
           onDragEnd({
-            x: e.target.x(),
-            y: e.target.y()
+            x: node.x(),
+            y: node.y()
           });
         }}
         onTransformEnd={(e) => {
@@ -196,7 +206,6 @@ const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransfor
             height: Math.max(150, section.height * scaleY)
           });
 
-          // Reset scale after transform
           node.scaleX(1);
           node.scaleY(1);
         }}
@@ -205,9 +214,9 @@ const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransfor
           width={section.width}
           height={section.height}
           fill="transparent"
-          stroke={isSelected ? PRIMARY : '#999'}
-          strokeWidth={0.5}
-          dash={[5, 5]}
+          stroke={highlighted ? PRIMARY : '#999'}
+          strokeWidth={isMultiSelected ? 1.5 : 0.5}
+          dash={isMultiSelected ? [8, 4] : [5, 5]}
           cornerRadius={5}
         />
         <Text
@@ -222,7 +231,7 @@ const DraggableSection = ({ section, isSelected, onSelect, onDragEnd, onTransfor
         />
         {children}
       </Group>
-      {isSelected && (
+      {isSelected && !isMultiSelected && (
         <Transformer
           ref={trRef}
           borderStroke={PRIMARY}
@@ -303,11 +312,13 @@ const IconImage = ({ iconName, x, y, size = 20, opacity = 1 }) => {
 };
 
 const CenterCanvas = (props) => {
-  const { stageRef, canvasScale, showGrid, stage, setStage, sections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition, isAssignMode } = props;
-
+  const { stageRef, canvasScale, showGrid, stage, setStage, sections, setSections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition, isAssignMode, selectedSectionIds, setSelectedSectionIds, isReportMode = false } = props;
 
   const layerRef = useRef();
   const [isDraggingElement, setIsDraggingElement] = useState(false);
+  const dragStartPositions = useRef({});
+  const multiDragRaf = useRef(null);
+  const pendingMultiDrag = useRef(null);
 
   return (
     <div className="canvas-container">
@@ -353,9 +364,11 @@ const CenterCanvas = (props) => {
             stage={stage}
             isSelected={selectedType === 'stage' && selectedElement?.position === stage.position}
             setIsDraggingElement={setIsDraggingElement}
+            isInteractive={!isReportMode}
             onSelect={() => {
               setSelectedElement(stage);
               setSelectedType('stage');
+              setSelectedSectionIds([]);
             }}
             onDragEnd={(pos) => {
               const updatedStage = {
@@ -373,7 +386,7 @@ const CenterCanvas = (props) => {
                 x: parseFloat(transform.x) || 0,
                 y: parseFloat(transform.y) || 0,
                 width: parseFloat(transform.width) || 200,
-                height: parseFloat(transform.height) || 30
+                height: parseFloat(transform.height) || 50
               };
               setStage(updatedStage);
               if (selectedType === 'stage') setSelectedElement(updatedStage);
@@ -381,31 +394,117 @@ const CenterCanvas = (props) => {
           />
 
           {/* Sections */}
-          {sections.map(section => (
+          {sections.map(section => {
+            const isSingleSelected = selectedElement?.id === section.id && selectedType === 'section';
+            const isMultiSelected = selectedSectionIds.includes(section.id);
+            return (
             <DraggableSection
               key={section.id}
               section={section}
-              isSelected={selectedElement?.id === section.id && selectedType === 'section'}
+              isSelected={isSingleSelected}
+              isMultiSelected={isMultiSelected}
+              isInteractive={!isReportMode}
               setIsDraggingElement={setIsDraggingElement}
-              onSelect={() => {
+              onSelect={(e) => {
+                if (isReportMode) return;
+                const evt = e?.evt || e;
+                if (evt?.shiftKey) {
+                  setSelectedSectionIds(prev =>
+                    prev.includes(section.id)
+                      ? prev.filter(id => id !== section.id)
+                      : [...prev, section.id]
+                  );
+                  return;
+                }
+                setSelectedSectionIds([]);
                 setSelectedElement(section);
                 setSelectedType('section');
               }}
+              onDragStart={(e, dragNode) => {
+                if (isReportMode) return;
+                if (isMultiSelected && selectedSectionIds.length > 1) {
+                  const node = dragNode ?? e.target;
+                  const startX = node.x();
+                  const startY = node.y();
+                  const positions = {};
+                  selectedSectionIds.forEach(id => {
+                    const s = sections.find(sec => sec.id === id);
+                    if (s) positions[id] = { x: s.x, y: s.y };
+                  });
+                  positions.__origin = { x: startX, y: startY };
+                  dragStartPositions.current = positions;
+                }
+              }}
+              onDragMove={(e, dragNode) => {
+                if (isReportMode) return;
+                if (!(isMultiSelected && selectedSectionIds.length > 1)) return;
+                const origin = dragStartPositions.current.__origin;
+                if (!origin) return;
+                const node = dragNode ?? e.target;
+                pendingMultiDrag.current = { draggedId: section.id, x: node.x(), y: node.y() };
+                if (multiDragRaf.current != null) return;
+                multiDragRaf.current = requestAnimationFrame(() => {
+                  multiDragRaf.current = null;
+                  const p = pendingMultiDrag.current;
+                  const o = dragStartPositions.current.__origin;
+                  if (!p || !o) return;
+                  const dx = p.x - o.x;
+                  const dy = p.y - o.y;
+                  setSections(prev => prev.map(s => {
+                    if (!selectedSectionIds.includes(s.id)) return s;
+                    if (s.id === p.draggedId) return { ...s, x: p.x, y: p.y };
+                    const startPos = dragStartPositions.current[s.id];
+                    if (!startPos) return s;
+                    return { ...s, x: startPos.x + dx, y: startPos.y + dy };
+                  }));
+                });
+              }}
               onDragEnd={(pos) => {
-                const updatedSection = { ...section, ...pos };
+                if (isReportMode) return;
+                if (multiDragRaf.current != null) {
+                  cancelAnimationFrame(multiDragRaf.current);
+                  multiDragRaf.current = null;
+                }
+                pendingMultiDrag.current = null;
+                if (isMultiSelected && selectedSectionIds.length > 1) {
+                  const origin = dragStartPositions.current.__origin;
+                  if (origin) {
+                    const dx = pos.x - origin.x;
+                    const dy = pos.y - origin.y;
+                    const startById = { ...dragStartPositions.current };
+                    delete startById.__origin;
+                    setSections(prev => prev.map(s => {
+                      if (!selectedSectionIds.includes(s.id)) return s;
+                      if (s.id === section.id) return { ...s, x: pos.x, y: pos.y };
+                      const startPos = startById[s.id];
+                      if (!startPos) return s;
+                      return { ...s, x: startPos.x + dx, y: startPos.y + dy };
+                    }));
+                    if (selectedType === 'section' && selectedElement?.id && selectedSectionIds.includes(selectedElement.id)) {
+                      const sid = selectedElement.id;
+                      if (sid === section.id) {
+                        setSelectedElement(prev => (prev ? { ...prev, x: pos.x, y: pos.y } : prev));
+                      } else {
+                        const sp = startById[sid];
+                        if (sp) {
+                          setSelectedElement(prev => (prev ? { ...prev, x: sp.x + dx, y: sp.y + dy } : prev));
+                        }
+                      }
+                    }
+                  }
+                  dragStartPositions.current = {};
+                  return;
+                }
                 updateSection(section.id, pos);
                 if (selectedElement?.id === section.id && selectedType === 'section') {
-                  setSelectedElement(updatedSection);
+                  setSelectedElement({ ...section, ...pos });
                 }
               }}
               onTransformEnd={(transform) => {
-                // Update section with transform data - this will trigger gap preservation in updateSection
+                if (isReportMode) return;
                 updateSection(section.id, transform);
-
-                // Update selected element to reflect new dimensions
                 if (selectedElement?.id === section.id && selectedType === 'section') {
-                  const updatedSection = { ...section, ...transform };
-                  setSelectedElement(updatedSection);
+                  setSelectedElement({ ...section, ...transform });
                 }
               }}
             >
@@ -498,16 +597,32 @@ const CenterCanvas = (props) => {
                               strokeWidth={1}
                               dash={[3, 3]}
                               cornerRadius={4}
-                              listening={false}
+                              onMouseEnter={(e) => {
+                                const container = e.target.getStage().container();
+                                container.style.cursor = 'pointer';
+                              }}
+                              onMouseLeave={(e) => {
+                                const container = e.target.getStage().container();
+                                container.style.cursor = 'default';
+                              }}
+                              onClick={(e) => {
+                                if (isReportMode) return;
+                                e.cancelBubble = true;
+                                setSelectedSectionIds([]);
+                                setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
+                                setSelectedType('seat');
+                              }}
                               opacity={0.3}
                             />
                           </Group>
                         );
                       }
 
-                      // Determine opacity based on seat status
+                      // In assign mode, seats are selectable for status corrections.
+                      const isUnavailable = isAssignMode && seat.status !== 'available';
                       const isDisabled = seat.status === 'disabled';
-                      const seatOpacity = isDisabled ? 0.3 : 1;
+                      const canSelectSeat = true;
+                      const seatOpacity = isUnavailable ? 0.3 : 1;
 
                       return (
                         <Group key={seat.id} opacity={seatOpacity}>
@@ -529,7 +644,10 @@ const CenterCanvas = (props) => {
                               container.style.cursor = 'default';
                             }}
                             onClick={(e) => {
+                              if (isReportMode) return;
                               e.cancelBubble = true;
+                              if (!canSelectSeat) return;
+                              setSelectedSectionIds([]);
                               setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
                               setSelectedType('seat');
                             }}
@@ -575,7 +693,8 @@ const CenterCanvas = (props) => {
                 );
               })}
             </DraggableSection>
-          ))}
+          );
+          })}
         </Layer>
       </Stage>
     </div>

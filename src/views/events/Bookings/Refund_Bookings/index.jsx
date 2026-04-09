@@ -7,19 +7,20 @@ import Popconfirm from 'antd/es/popconfirm';
 import api from 'auth/FetchInterceptor';
 import Utils from 'utils';
 import { PERMISSIONS } from 'constants/PermissionConstant';
-import usePermission from 'utils/hooks/usePermission';
 import PermissionChecker from 'layouts/PermissionChecker';
+import { useMyContext } from 'Context/MyContextProvider';
+import { getBookingSeatNumbersDisplay } from '../utils/bookingSeatDisplay';
 
 const { TextArea } = Input;
 
 // ===================== COMPONENT =====================
-const RefundBookings = () => {
+const RefundBookings = ({ seatingChartBooking = false }) => {
+    const { truncateString } = useMyContext();
     const [remarkModalVisible, setRemarkModalVisible] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [remark, setRemark] = useState('');
     const [actionType, setActionType] = useState(null);
 
-    const canManageRefunds = usePermission(PERMISSIONS.MANAGE_REFUND_REQUEST);
 
     // Backend pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -32,7 +33,7 @@ const RefundBookings = () => {
 
     // API call for fetching refund requests
     const { data: refundData, isLoading } = useQuery({
-        queryKey: ['refund-requests', currentPage, pageSize, searchText, sortField, sortOrder],
+        queryKey: ['refund-requests', currentPage, pageSize, searchText, sortField, sortOrder, seatingChartBooking],
         queryFn: async () => {
             const params = new URLSearchParams();
 
@@ -49,6 +50,10 @@ const RefundBookings = () => {
             if (sortField && sortOrder) {
                 params.set('sort_by', sortField);
                 params.set('sort_order', sortOrder === 'ascend' ? 'asc' : 'desc');
+            }
+
+            if (seatingChartBooking) {
+                params.set('seating', 'true');
             }
 
             const url = `refunds?${params.toString()}`;
@@ -170,6 +175,24 @@ const RefundBookings = () => {
                 dataIndex: ['booking', 'ticket', 'name'],
                 render: (name) => name || '-',
             },
+            ...(seatingChartBooking
+                ? [
+                    {
+                        title: 'Seat number',
+                        key: 'seat_numbers',
+                        align: 'center',
+                        width: 160,
+                        render: (_, record) => {
+                            const text = getBookingSeatNumbersDisplay(record);
+                            return (
+                                <Tooltip title={text}>
+                                    <span>{truncateString(text, 28)}</span>
+                                </Tooltip>
+                            );
+                        },
+                    },
+                ]
+                : []),
             {
                 title: 'Amt',
                 dataIndex: 'original_amount',
@@ -321,14 +344,14 @@ const RefundBookings = () => {
                 },
             },
         ],
-        []
+        [seatingChartBooking, truncateString]
     );
 
     // ========================= RENDER =========================
     return (
         <>
             <DataTable
-                title="Refund Requests"
+                title={seatingChartBooking ? 'Refund Requests - Seating' : 'Refund Requests'}
                 data={refundRequests}
                 columns={columns}
                 loading={isLoading || updateStatusMutation.isPending}

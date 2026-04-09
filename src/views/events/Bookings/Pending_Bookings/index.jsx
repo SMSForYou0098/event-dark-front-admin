@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo } from "react";
-import { Button, Space, Modal, message } from "antd";
+import { Button, Space, Modal, message, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { CreditCard, AlertCircle } from "lucide-react";
@@ -9,8 +9,9 @@ import Utils from "utils";
 import PermissionChecker from "layouts/PermissionChecker";
 import { PERMISSIONS } from "constants/PermissionConstant";
 import usePermission from "utils/hooks/usePermission";
+import { getBookingSeatNumbersDisplay } from "../utils/bookingSeatDisplay";
 
-const PendingBookings = memo(() => {
+const PendingBookings = memo(({ seatingChartBooking = false }) => {
   const { UserData, formatDateTime, truncateString } = useMyContext();
   const canExportOnline = usePermission(PERMISSIONS.EXPORT_ONLINE_BOOKINGS);
   const [dateRange, setDateRange] = useState(null);
@@ -31,7 +32,7 @@ const PendingBookings = memo(() => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["pendingBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder],
+    queryKey: ["pendingBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder, seatingChartBooking],
     queryFn: async () => {
       const params = new URLSearchParams();
 
@@ -53,6 +54,10 @@ const PendingBookings = memo(() => {
       // Date range params
       if (dateRange) {
         params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+      }
+
+      if (seatingChartBooking) {
+        params.set("seating", "true");
       }
 
       const url = `bookings/pending/${UserData?.id}?${params.toString()}`;
@@ -316,6 +321,24 @@ const PendingBookings = memo(() => {
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
     },
+    ...(seatingChartBooking
+      ? [
+          {
+            title: "Seat number",
+            key: "seat_numbers",
+            align: "center",
+            width: 160,
+            render: (_, record) => {
+              const text = getBookingSeatNumbersDisplay(record);
+              return (
+                <Tooltip title={text}>
+                  <span>{truncateString(text, 28)}</span>
+                </Tooltip>
+              );
+            },
+          },
+        ]
+      : []),
     {
       title: "Qty",
       dataIndex: "quantity",
@@ -340,7 +363,7 @@ const PendingBookings = memo(() => {
 
   return (
     <DataTable
-      title="Pending Bookings"
+      title={seatingChartBooking ? 'Pending Bookings - Seating' : 'Pending Bookings'}
       data={bookings}
       columns={columns}
       showDateRange={true}
@@ -360,6 +383,7 @@ const PendingBookings = memo(() => {
       searchValue={searchText}
       enableExport={true}
       exportRoute="booking/pending/export"
+      exportPayload={seatingChartBooking ? { seating: true } : {}}
       ExportPermission={canExportOnline}
       onRefresh={refetch}
       emptyText="No pending bookings found"

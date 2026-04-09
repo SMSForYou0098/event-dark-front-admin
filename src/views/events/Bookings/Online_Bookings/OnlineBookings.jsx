@@ -3,20 +3,22 @@ import { Button, message, Space, Tag, Modal, Switch, Tooltip } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import { Send, Ticket, AlertCircle } from "lucide-react";
-import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, DollarOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined, DollarOutlined, TeamOutlined } from '@ant-design/icons';
 import DataTable from "../../common/DataTable";
 import TicketDrawer from "views/events/Tickets/modals/TicketDrawer";
 import api from "auth/FetchInterceptor";
 import BookingCount from "./BookingCount";
 import RefundModal from "./RefundModal";
+import AttendeeDetailDrawer from "./AttendeeDetailDrawer";
 import { resendTickets } from "../agent/utils";
 import { LoadingOutlined } from '@ant-design/icons';
 import Utils from "utils";
 import PermissionChecker from "layouts/PermissionChecker";
 import { PERMISSIONS } from "constants/PermissionConstant";
 import usePermission from "utils/hooks/usePermission";
+import { getBookingSeatNumbersDisplay } from "../utils/bookingSeatDisplay";
 
-const OnlineBookings = memo(({ type }) => {
+const OnlineBookings = memo(({ type, seatingChartBooking = false , isRefund = false }) => {
 
   const {
     UserData,
@@ -37,11 +39,12 @@ const OnlineBookings = memo(({ type }) => {
   const [show, setShow] = useState(false);
   const [showGatewayReport, setShowGatewayReport] = useState(false);
   const [refundBookingData, setRefundBookingData] = useState(null);
+  const [attendeeDrawer, setAttendeeDrawer] = useState(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [type]);
+  }, [type, seatingChartBooking]);
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,32 +61,35 @@ const OnlineBookings = memo(({ type }) => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["onlineBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder, type],
+    queryKey: ["onlineBookings", UserData?.id, dateRange, currentPage, pageSize, searchText, sortField, sortOrder, type, seatingChartBooking],
     queryFn: async ({ queryKey }) => {
-      const [_key, userId, dateRange, page, perPage, searchText, sortField, sortOrder, bookingType] = queryKey;
+      const [, userId, dr, page, perPage, search, sField, sOrder] = queryKey;
       const params = new URLSearchParams();
 
       // Pagination params
-      params.set("page", page.toString());
-      params.set("per_page", perPage.toString());
+      params.set("page", String(page));
+      params.set("per_page", String(perPage));
 
       // Search param
-      if (searchText) {
-        params.set("search", searchText);
+      if (search) {
+        params.set("search", search);
       }
 
       // Sorting params
-      if (sortField && sortOrder) {
-        params.set("sort_by", sortField);
-        params.set("sort_order", sortOrder === "ascend" ? "asc" : "desc");
+      if (sField && sOrder) {
+        params.set("sort_by", sField);
+        params.set("sort_order", sOrder === "ascend" ? "asc" : "desc");
       }
 
       // Date range params
-      if (dateRange) {
-        params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+      if (dr?.startDate && dr?.endDate) {
+        params.set("date", `${dr.startDate},${dr.endDate}`);
       }
 
       // Type param (free/paid)
+      if (seatingChartBooking) {
+        params.set("seating", "true");
+      }
 
       const url = `bookings/online/${userId}/${type}?${params.toString()}`;
       const res = await api.get(url);
@@ -189,7 +195,7 @@ const OnlineBookings = memo(({ type }) => {
         },
       });
     },
-    [bookings, deleteMutation]
+    [deleteMutation]
   );
 
   const showMultiAlert = useCallback(() => {
@@ -405,6 +411,24 @@ const OnlineBookings = memo(({ type }) => {
       render: (_, record) =>
         record?.bookings?.[0]?.ticket?.name || record?.ticket?.name || "",
     },
+    ...((type === 'paid')
+      ? [
+          {
+            title: "Seat number",
+            key: "seat_numbers",
+            align: "center",
+            width: 160,
+            render: (_, record) => {
+              const text = getBookingSeatNumbersDisplay(record);
+              return (
+                <Tooltip title={text}>
+                  <span>{truncateString(text, 28)}</span>
+                </Tooltip>
+              );
+            },
+          },
+        ]
+      : []),
     ...(type !== 'free' && userRole === 'Admin' ? [
       {
         title: "Mode",
@@ -527,7 +551,7 @@ const OnlineBookings = memo(({ type }) => {
       render: (date) => formatDateTime(date),
       // sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
     },
-    ...((UserPermissions?.includes("Initiate Refund") || userRole?.toLowerCase() === 'admin') && type !== 'free'
+    ...((UserPermissions?.includes("Initiate Refund") || userRole?.toLowerCase() === 'admin') && isRefund
       ? [
         {
           title: "Refund",
@@ -561,49 +585,53 @@ const OnlineBookings = memo(({ type }) => {
         },
       ]
       : []),
-    {
-      title: "Approval",
-      key: "approval",
-      align: "center",
-      render: (_, record) => {
-        const approvalStatus = record?.approval_status || record?.bookings?.[0]?.approval_status;
+    ...((type === 'paid')
+      ? [
+          {
+            title: "Approval",
+            key: "approval",
+            align: "center",
+            render: (_, record) => {
+              const approvalStatus = record?.approval_status || record?.bookings?.[0]?.approval_status;
 
-        if (approvalStatus === "pending") {
-          return (
-            <PermissionChecker permission={PERMISSIONS.APPROVE_ONLINE_BOOKING}>
-              <Space size="small">
-                <Tooltip title="Approve">
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<CheckCircleOutlined />}
-                    onClick={() => handleApproval(record, 'approved')}
-                    style={{ background: '#52c41a', borderColor: '#52c41a' }}
-                  />
-                </Tooltip>
-                <Tooltip title="Reject">
-                  <Button
-                    danger
-                    size="small"
-                    icon={<CloseCircleOutlined />}
-                    onClick={() => handleApproval(record, 'rejected')}
-                  />
-                </Tooltip>
-              </Space>
-            </PermissionChecker>
-          );
-        }
+              if (approvalStatus === "pending") {
+                return (
+                  <PermissionChecker permission={PERMISSIONS.APPROVE_ONLINE_BOOKING}>
+                    <Space size="small">
+                      <Tooltip title="Approve">
+                        <Button
+                          type="primary"
+                          size="small"
+                          icon={<CheckCircleOutlined />}
+                          onClick={() => handleApproval(record, 'approved')}
+                          style={{ background: '#52c41a', borderColor: '#52c41a' }}
+                        />
+                      </Tooltip>
+                      <Tooltip title="Reject">
+                        <Button
+                          danger
+                          size="small"
+                          icon={<CloseCircleOutlined />}
+                          onClick={() => handleApproval(record, 'rejected')}
+                        />
+                      </Tooltip>
+                    </Space>
+                  </PermissionChecker>
+                );
+              }
 
-        if (approvalStatus === "approved") {
-          return <Tag color="success">Approved</Tag>;
-        }
-        if (approvalStatus === "rejected") {
-          return <Tag color="error">Rejected</Tag>;
-        }
+              if (approvalStatus === "approved") {
+                return <Tag color="success">Approved</Tag>;
+              }
+              if (approvalStatus === "rejected") {
+                return <Tag color="error">Rejected</Tag>;
+              }
 
-        return "-";
-      },
-    },
+              return "-";
+            },
+          },
+        ]
+      : []),
     {
       title: "Action",
       key: "action",
@@ -616,6 +644,20 @@ const OnlineBookings = memo(({ type }) => {
 
         return (
           <Space size="small" className="p-0">
+            <Tooltip title="View attendee details">
+              <Button
+                type="default"
+                size="small"
+                icon={<TeamOutlined />}
+                onClick={() =>
+                  setAttendeeDrawer({
+                    bookingId: record.id,
+                    isMaster: Boolean(record?.bookings?.length),
+                  })
+                }
+                disabled={record?.id == null}
+              />
+            </Tooltip>
             <PermissionChecker permission={PERMISSIONS.RESEND_TICKETS}>
               <Button
                 type="primary"
@@ -665,11 +707,16 @@ const OnlineBookings = memo(({ type }) => {
   return (
     <>
       {showGatewayReport && (
-        <BookingCount data={bookings} date={dateRange} type={'online'} showGatewayAmount={true} />
+        <BookingCount data={bookings} date={dateRange} type={'online'} showGatewayAmount={true} seatingChartBooking={seatingChartBooking} />
       )}
 
       <DataTable
-        title={<span style={{ fontSize: 14 }}>{type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Online'} </span>}
+        title={
+          <span style={{ fontSize: 14 }}>
+            {(type ? type.charAt(0).toUpperCase() + type.slice(1) : 'Online') +
+              (seatingChartBooking ? ' - Seating' : '')}{' '}
+          </span>
+        }
         data={bookings}
         columns={columns}
         showDateRange={true}
@@ -706,7 +753,8 @@ const OnlineBookings = memo(({ type }) => {
         enableExport={true}
         exportRoute="bookings/export"
         exportPayload={{
-          type: 'online'
+          type: 'online',
+          ...(seatingChartBooking ? { seating: true } : {}),
         }}
         ExportPermission={canExportOnline}
         onRefresh={refetch}
@@ -729,6 +777,13 @@ const OnlineBookings = memo(({ type }) => {
           setRefundBookingData(null);
           refetch();
         }}
+      />
+
+      <AttendeeDetailDrawer
+        open={attendeeDrawer != null}
+        onClose={() => setAttendeeDrawer(null)}
+        bookingId={attendeeDrawer?.bookingId}
+        isMaster={attendeeDrawer?.isMaster ?? false}
       />
     </>
   );

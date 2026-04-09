@@ -1,13 +1,14 @@
 // AuditoriumLayoutDesigner.jsx - UPDATED WITH TICKET ASSIGNMENT API
 import React, { useRef, useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { PlusOutlined, ZoomInOutlined, ZoomOutOutlined, BorderOutlined, SaveOutlined, ArrowLeftOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 import { Button, Card, Col, Input, message, Row, Tooltip } from 'antd';
 import api from 'auth/FetchInterceptor';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import LeftBar from './components/creation/LeftBar';
 import CenterCanvas from './components/creation/CenterCanvas';
 import RightPanel from './components/creation/RightPanel';
+import LayoutBookingSummaryCard from './components/creation/report/LayoutBookingSummaryCard';
 import Loader from 'utils/Loader';
 import Utils from 'utils';
 import { VanueList } from 'views/events/event/components/CONSTANTS';
@@ -23,13 +24,15 @@ const sanitizeStageNumbers = (stageData) => ({
 
 const sanitizeSeat = (seat) => {
   const ticketId = seat.ticketCategory || seat.ticket?.id || seat.ticketId || null;
+  const isBlankSeat = seat.type === 'blank';
   return {
     ...seat,
     number: parseInt(seat.number) || 0,
     x: parseFloat(seat.x) || 0,
     y: parseFloat(seat.y) || 0,
     radius: parseFloat(seat.radius) || 12,
-    ticketCategory: ticketId ? String(ticketId) : null,
+    ticketCategory: isBlankSeat ? null : (ticketId ? String(ticketId) : null),
+    status: isBlankSeat ? 'unavailable' : (seat.status || 'available'),
   };
 };
 
@@ -40,6 +43,7 @@ const sanitizeRow = (row) => {
     numberOfSeats: parseInt(row.numberOfSeats) || 0,
     curve: parseFloat(row.curve) || 0,
     spacing: parseFloat(row.spacing) || 40,
+    alignment: row.alignment || 'center',
     ticketCategory: ticketId ? String(ticketId) : null,
     seats: row.seats?.map(sanitizeSeat) || []
   };
@@ -59,10 +63,61 @@ const sanitizeSection = (section) => {
   };
 };
 
+const THEATRE_LAYOUT_EXPORT_VERSION = 1;
+
+const DEFAULT_STAGE_STATE = {
+  position: 'top',
+  shape: 'curved',
+  width: 800,
+  height: 50,
+  x: 100,
+  y: 50,
+  name: 'SCREEN',
+  curve: 0.95
+};
+
+const safeFilenameFromTitle = (title) => {
+  const base = String(title || 'layout').trim().replace(/[/\\?%*:|"<>]/g, '-').replace(/\s+/g, '_') || 'layout';
+  return `${base}.json`;
+};
+
+/** Accept our export or a wrapped `{ data: { sections, ... } }` object. */
+const pickImportPayload = (raw) => {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  if (Array.isArray(raw.sections)) return raw;
+  if (raw.data && typeof raw.data === 'object' && Array.isArray(raw.data.sections)) return raw.data;
+  return null;
+};
+
+/** Structure-only: keeps geometry, labels, row/seat icons; removes all ticket assignment data. */
+const stripTicketAssignmentsForExport = (sections) => {
+  const cloned = JSON.parse(JSON.stringify(sections || []));
+  return cloned.map((section) => {
+    const s = { ...section, ticketCategory: null };
+    delete s.ticket;
+    if ('ticketId' in s) s.ticketId = null;
+    s.rows = (s.rows || []).map((row) => {
+      const r = { ...row, ticketCategory: null, customTicket: false };
+      delete r.ticket;
+      if ('ticketId' in r) r.ticketId = null;
+      r.seats = (r.seats || []).map((seat) => {
+        const st = { ...seat, ticketCategory: null, customTicket: false };
+        delete st.ticket;
+        if ('ticketId' in st) st.ticketId = null;
+        return st;
+      });
+      return r;
+    });
+    return s;
+  });
+};
+
 const AuditoriumLayoutDesigner = () => {
   const { id: layoutId, eventId } = useParams();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const isAssignQuery = searchParams.get('isAssign') === 'true';
+  const isReportMode = location.pathname.startsWith('/report/');
 
   // Determine mode: if eventId exists, we're in ticket assignment mode
   const isAssignMode = !!eventId;
@@ -86,6 +141,7 @@ const AuditoriumLayoutDesigner = () => {
 
   const [selectedElement, setSelectedElement] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
+  const [selectedSectionIds, setSelectedSectionIds] = useState([]);
   const [canvasScale, setCanvasScale] = useState(1);
   const [showGrid, setShowGrid] = useState(false);
   const [nextSectionId, setNextSectionId] = useState(1);
@@ -127,8 +183,8 @@ const AuditoriumLayoutDesigner = () => {
           queryClient.invalidateQueries(['eventLayout', eventId]);
         } else {
           queryClient.invalidateQueries(['layoutList']);
-          if (!layoutId && response.id) {
-            navigate(`/app/events/layouts/edit/${response.id}`);
+          if (!isUpdate) {
+            navigate(-1);
           }
         }
       } else {
@@ -152,7 +208,7 @@ const AuditoriumLayoutDesigner = () => {
       setIsLoading(true);
 
       try {
-        const fetchUrl = isAssignQuery
+        const fetchUrl = (isAssignQuery || isReportMode)
           ? `layout/theatre/event/${eventId}`
           : `layout/theatre/template/${layoutId}`;
 
@@ -200,7 +256,7 @@ const AuditoriumLayoutDesigner = () => {
       isMounted = false;
       abortController.abort();
     };
-  }, [layoutId]);
+  }, [layoutId, eventId, isAssignQuery, isReportMode]);
 
   // Fetch ticket assignments if in assignment mode
   useEffect(() => {
@@ -227,12 +283,12 @@ const AuditoriumLayoutDesigner = () => {
               rows: section.rows.map(row => ({
                 ...row,
                 seats: row.seats.map(seat => {
+                  if (seat.type === 'blank') return seat;
                   const assignment = assignmentsData.find(a => String(a.seatId) === String(seat.id));
-                  if (assignment) {
+                  if (assignment?.status === 'available') {
                     return {
                       ...seat,
                       ticketCategory: String(assignment.ticketId),
-                      status: assignment.status || seat.status,
                       customTicket: true // Mark as custom since it was pre-assigned
                     };
                   }
@@ -329,7 +385,9 @@ const AuditoriumLayoutDesigner = () => {
 
               return {
                 ...seat,
-                ticketCategory: seatTicketId && validTicketIds.has(String(seatTicketId))
+                ticketCategory: seat.type === 'blank'
+                  ? null
+                  : (seatTicketId && validTicketIds.has(String(seatTicketId)))
                   ? String(seatTicketId)
                   : null
               };
@@ -350,31 +408,34 @@ const AuditoriumLayoutDesigner = () => {
   useEffect(() => {
     if (!selectedElement || !selectedType) return;
 
-    // Find the updated element in the sanitized sections
+    // Keep selected element in sync with latest sections data
     if (selectedType === 'section') {
       const updatedSection = sections.find(s => s.id === selectedElement.id);
-      if (updatedSection && String(updatedSection.ticketCategory) !== String(selectedElement.ticketCategory)) {
+      if (updatedSection && JSON.stringify(updatedSection) !== JSON.stringify(selectedElement)) {
         setSelectedElement(updatedSection);
       }
     } else if (selectedType === 'row') {
       const section = sections.find(s => s.id === selectedElement.sectionId);
       const updatedRow = section?.rows.find(r => r.id === selectedElement.id);
-      if (updatedRow && String(updatedRow.ticketCategory) !== String(selectedElement.ticketCategory)) {
+      const nextSelectedRow = updatedRow ? { ...updatedRow, sectionId: section.id } : null;
+      if (nextSelectedRow && JSON.stringify(nextSelectedRow) !== JSON.stringify(selectedElement)) {
         setSelectedElement({ ...updatedRow, sectionId: section.id });
       }
     } else if (selectedType === 'seat') {
       const section = sections.find(s => s.id === selectedElement.sectionId);
       const row = section?.rows.find(r => r.id === selectedElement.rowId);
       const updatedSeat = row?.seats.find(s => s.id === selectedElement.id);
-      if (updatedSeat && String(updatedSeat.ticketCategory) !== String(selectedElement.ticketCategory)) {
+      const nextSelectedSeat = updatedSeat ? { ...updatedSeat, sectionId: section.id, rowId: row.id } : null;
+      if (nextSelectedSeat && JSON.stringify(nextSelectedSeat) !== JSON.stringify(selectedElement)) {
         setSelectedElement({ ...updatedSeat, sectionId: section.id, rowId: row.id });
       }
     }
-  }, [sections]); // Run when sections are updated/sanitized (to update selectedElement with sanitized data)
+  }, [sections]); // Sync selection after sections updates only
 
   // Generate unique IDs
   const generateId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const stageRef = useRef();
+  const layoutImportInputRef = useRef(null);
   // Generate row title (A, B, C, ..., Z, AA, AB, ...)
   const generateRowTitle = (rowNumber) => {
     let title = '';
@@ -391,6 +452,7 @@ const AuditoriumLayoutDesigner = () => {
 
   // Add Section - FIXED: Better positioning
   const addSection = () => {
+    if (isReportMode) return;
     // Calculate Y position based on stage position
     const baseY = stage.y + stage.height + 50;
     const sectionY = baseY + (sections.length * 280);
@@ -425,8 +487,30 @@ const AuditoriumLayoutDesigner = () => {
     }, 100);
   };
 
+  // Ensure section frame always encloses visible rows/seats.
+  const ensureSectionFitsContent = (section) => {
+    if (section.type === 'Standing' || !section.rows?.length) return section;
+
+    let maxSeatBottom = 80; // keeps some room even for small/default sections
+    section.rows.forEach((row) => {
+      row.seats?.forEach((seat) => {
+        const seatBottom = (seat.y || 0) + (seat.radius || 12);
+        if (seatBottom > maxSeatBottom) maxSeatBottom = seatBottom;
+      });
+    });
+
+    const requiredHeight = Math.max(150, maxSeatBottom + 30); // bottom padding
+    if (requiredHeight <= section.height) return section;
+
+    return {
+      ...section,
+      height: requiredHeight
+    };
+  };
+
   // Add Row to Section
   const addRowToSection = (sectionId) => {
+    if (isReportMode) return;
     setSections(sections.map(section => {
       if (section.id === sectionId) {
         // Don't add rows to standing sections
@@ -440,16 +524,25 @@ const AuditoriumLayoutDesigner = () => {
           shape: 'straight',
           curve: 0,
           spacing: 40,
+          alignment: 'center',
           defaultIcon: null, // NEW: Track row-level default icon
           seats: []
         };
 
         newRow.seats = generateSeatsForRow(newRow, section, section.rows.length);
 
-        return {
+        const rowsWithNewRow = [...section.rows, newRow];
+        const sectionWithUpdatedRows = { ...section, rows: rowsWithNewRow };
+        const normalizedRows = rowsWithNewRow.map((row, idx) => ({
+          ...row,
+          seats: recalculateSeatPositions(row.seats, sectionWithUpdatedRows, idx, row)
+        }));
+
+        const nextSection = {
           ...section,
-          rows: [...section.rows, newRow]
+          rows: normalizedRows
         };
+        return ensureSectionFitsContent(nextSection);
       }
       return section;
     }));
@@ -461,31 +554,49 @@ const AuditoriumLayoutDesigner = () => {
     const leftPadding = 50;
     const rightPadding = 20;
     const totalWidth = section.width - leftPadding - rightPadding;
+    const rowSeatCount = Math.max(1, row.numberOfSeats || 1);
+    const maxSeatSlotsInSection = Math.max(
+      rowSeatCount,
+      ...((section.rows || [])
+        .filter(r => r.id !== row.id)
+        .map(r => Math.max(1, r.seats?.length || r.numberOfSeats || 1)))
+    );
 
     const maxSeatRadius = Math.min(
-      (totalWidth / row.numberOfSeats) * 0.4,
+      (totalWidth / maxSeatSlotsInSection) * 0.4,
       12
     );
     const seatRadius = Math.max(4, maxSeatRadius);
 
-    const seatSpacing = totalWidth / row.numberOfSeats;
+    const seatSpacing = totalWidth / maxSeatSlotsInSection;
+    const rowContentWidth = seatSpacing * rowSeatCount;
+    const alignment = row.alignment || 'center';
+    const contentStartX = leftPadding;
+    const startX = alignment === 'start'
+      ? contentStartX
+      : alignment === 'end'
+        ? contentStartX + (totalWidth - rowContentWidth)
+        : contentStartX + ((totalWidth - rowContentWidth) / 2);
+    const centerX = startX + (rowContentWidth / 2);
 
-    for (let i = 0; i < row.numberOfSeats; i++) {
+    for (let i = 0; i < rowSeatCount; i++) {
       const seatNumber = i + 1;
       let x, y;
 
       if (row.shape === 'straight') {
-        x = leftPadding + (seatSpacing * i) + (seatSpacing / 2);
+        x = startX + (seatSpacing * i) + (seatSpacing / 2);
         y = 50 + (rowIndex * row.spacing);
       } else if (row.shape === 'curved-convex') {
-        const angle = (i / (row.numberOfSeats - 1)) * Math.PI - Math.PI / 2;
-        const radius = totalWidth / 2;
-        x = section.width / 2 + Math.cos(angle) * radius;
+        const angleDenominator = Math.max(rowSeatCount - 1, 1);
+        const angle = (i / angleDenominator) * Math.PI - Math.PI / 2;
+        const radius = rowContentWidth / 2;
+        x = centerX + Math.cos(angle) * radius;
         y = 50 + (rowIndex * row.spacing) - Math.sin(angle) * (row.curve || 50);
       } else if (row.shape === 'curved-concave') {
-        const angle = (i / (row.numberOfSeats - 1)) * Math.PI - Math.PI / 2;
-        const radius = totalWidth / 2;
-        x = section.width / 2 + Math.cos(angle) * radius;
+        const angleDenominator = Math.max(rowSeatCount - 1, 1);
+        const angle = (i / angleDenominator) * Math.PI - Math.PI / 2;
+        const radius = rowContentWidth / 2;
+        x = centerX + Math.cos(angle) * radius;
         y = 50 + (rowIndex * row.spacing) + Math.sin(angle) * (row.curve || 50);
       }
 
@@ -515,24 +626,41 @@ const AuditoriumLayoutDesigner = () => {
     const totalWidth = section.width - leftPadding - rightPadding;
 
     // Calculate spacing including blank seats
-    const totalSeats = seats.length;
-    const seatSpacing = totalWidth / totalSeats;
+    const totalSeats = Math.max(1, seats.length);
+    const maxSeatSlotsInSection = Math.max(
+      totalSeats,
+      ...((section.rows || [])
+        .filter(r => r.id !== row.id)
+        .map(r => Math.max(1, r.seats?.length || r.numberOfSeats || 1)))
+    );
+    const seatSpacing = totalWidth / maxSeatSlotsInSection;
+    const rowContentWidth = seatSpacing * totalSeats;
+    const alignment = row.alignment || 'center';
+    const contentStartX = leftPadding;
+    const startX = alignment === 'start'
+      ? contentStartX
+      : alignment === 'end'
+        ? contentStartX + (totalWidth - rowContentWidth)
+        : contentStartX + ((totalWidth - rowContentWidth) / 2);
+    const centerX = startX + (rowContentWidth / 2);
 
     return seats.map((seat, index) => {
       let x, y;
 
       if (row.shape === 'straight') {
-        x = leftPadding + (seatSpacing * index) + (seatSpacing / 2);
+        x = startX + (seatSpacing * index) + (seatSpacing / 2);
         y = 50 + (rowIndex * row.spacing);
       } else if (row.shape === 'curved-convex') {
-        const angle = (index / (totalSeats - 1)) * Math.PI - Math.PI / 2;
-        const radius = totalWidth / 2;
-        x = section.width / 2 + Math.cos(angle) * radius;
+        const angleDenominator = Math.max(totalSeats - 1, 1);
+        const angle = (index / angleDenominator) * Math.PI - Math.PI / 2;
+        const radius = rowContentWidth / 2;
+        x = centerX + Math.cos(angle) * radius;
         y = 50 + (rowIndex * row.spacing) - Math.sin(angle) * (row.curve || 50);
       } else if (row.shape === 'curved-concave') {
-        const angle = (index / (totalSeats - 1)) * Math.PI - Math.PI / 2;
-        const radius = totalWidth / 2;
-        x = section.width / 2 + Math.cos(angle) * radius;
+        const angleDenominator = Math.max(totalSeats - 1, 1);
+        const angle = (index / angleDenominator) * Math.PI - Math.PI / 2;
+        const radius = rowContentWidth / 2;
+        x = centerX + Math.cos(angle) * radius;
         y = 50 + (rowIndex * row.spacing) + Math.sin(angle) * (row.curve || 50);
       }
 
@@ -625,6 +753,57 @@ const AuditoriumLayoutDesigner = () => {
     }));
   };
 
+  // Remove a single gap seat from a row
+  const removeSingleGapFromRow = (sectionId, rowId, gapSeatId) => {
+    setSections(sections.map(section => {
+      if (section.id === sectionId) {
+        return {
+          ...section,
+          rows: section.rows.map((row, rowIndex) => {
+            if (row.id === rowId) {
+              const nextSeats = row.seats.filter(
+                seat => !(seat.id === gapSeatId && seat.type === 'blank')
+              );
+              return {
+                ...row,
+                seats: recalculateSeatPositions(nextSeats, section, rowIndex, row)
+              };
+            }
+            return row;
+          })
+        };
+      }
+      return section;
+    }));
+
+    if (selectedType === 'seat' && selectedElement?.id === gapSeatId) {
+      setSelectedElement(null);
+      setSelectedType(null);
+    }
+  };
+
+  // Apply row alignment to all rows in a section
+  const applyAlignmentToSectionRows = (sectionId, alignment) => {
+    setSections(sections.map(section => {
+      if (section.id !== sectionId) return section;
+
+      const rowsWithAlignment = section.rows.map(row => ({
+        ...row,
+        alignment
+      }));
+      const sectionWithUpdatedRows = { ...section, rows: rowsWithAlignment };
+      const normalizedRows = rowsWithAlignment.map((row, rowIndex) => ({
+        ...row,
+        seats: recalculateSeatPositions(row.seats, sectionWithUpdatedRows, rowIndex, row)
+      }));
+
+      return {
+        ...section,
+        rows: normalizedRows
+      };
+    }));
+  };
+
   // Get gap pattern from a row (for applying to other rows)
   const getGapPattern = (row) => {
     const gaps = [];
@@ -647,7 +826,15 @@ const AuditoriumLayoutDesigner = () => {
 
         // If type changed to Standing, clear rows
         if (updates.type === 'Standing' && section.type !== 'Standing') {
+          // Preserve current regular rows so switching back can restore them.
+          updatedSection.previousRows = section.rows || [];
           updatedSection.rows = [];
+        } else if (updates.type && updates.type !== 'Standing' && section.type === 'Standing') {
+          // Restore previously preserved rows when switching back from Standing.
+          updatedSection.rows = section.previousRows || [];
+          if ('previousRows' in updatedSection) {
+            delete updatedSection.previousRows;
+          }
         }
 
         // Regenerate seats if width or height changed significantly
@@ -736,19 +923,126 @@ const AuditoriumLayoutDesigner = () => {
   const updateRow = (sectionId, rowId, updates) => {
     setSections(sections.map(section => {
       if (section.id === sectionId) {
-        return {
-          ...section,
-          rows: section.rows.map((row, index) => {
-            if (row.id === rowId) {
-              const updatedRow = { ...row, ...updates };
-              if (updates.numberOfSeats || updates.shape || updates.spacing || updates.curve) {
-                updatedRow.seats = generateSeatsForRow(updatedRow, section, index);
+        const updatedRows = section.rows.map((row, index) => {
+          if (row.id === rowId) {
+            let normalizedUpdates = { ...updates };
+
+            if (updates.numberOfSeats !== undefined && updates.numberOfSeats !== null) {
+              const regularSeats = row.seats.filter(seat => seat.type !== 'blank');
+              const lockedSeatsCount = regularSeats.filter(seat => seat.status !== 'available').length;
+              const minAllowedSeats = Math.max(1, lockedSeatsCount);
+              const requestedSeats = parseInt(updates.numberOfSeats, 10);
+
+              if (!Number.isNaN(requestedSeats) && requestedSeats < minAllowedSeats) {
+                normalizedUpdates.numberOfSeats = minAllowedSeats;
+                message.warning(`You can reduce seats only up to available seats. Minimum allowed is ${minAllowedSeats}.`);
               }
-              return updatedRow;
             }
-            return row;
-          })
+
+            const updatedRow = { ...row, ...normalizedUpdates };
+            const hasTitleChanged =
+              normalizedUpdates.title !== undefined && normalizedUpdates.title !== row.title;
+
+            if (hasTitleChanged) {
+              updatedRow.seats = row.seats.map((seat) => {
+                if (seat.type === 'blank') return seat;
+
+                const oldDefaultLabel = `${row.title}${seat.number}`;
+                const seatLabel = seat.label ?? '';
+                const shouldAutoRename = seatLabel === '' || seatLabel === oldDefaultLabel;
+
+                if (!shouldAutoRename) return seat;
+
+                return {
+                  ...seat,
+                  label: `${normalizedUpdates.title}${seat.number}`
+                };
+              });
+            }
+
+            const needsSeatRegeneration =
+              normalizedUpdates.numberOfSeats !== undefined || normalizedUpdates.shape !== undefined;
+
+            if (needsSeatRegeneration) {
+              const gapInfo = {};
+
+              for (let idx = 0; idx < row.seats.length; idx++) {
+                const seat = row.seats[idx];
+
+                if (seat.type === 'blank' && idx > 0) {
+                  const prevSeat = row.seats[idx - 1];
+
+                  if (prevSeat.type === 'regular') {
+                    let gapCount = 0;
+                    let checkIdx = idx;
+
+                    while (checkIdx < row.seats.length && row.seats[checkIdx].type === 'blank') {
+                      gapCount++;
+                      checkIdx++;
+                    }
+
+                    gapInfo[prevSeat.number] = gapCount;
+                  }
+                }
+              }
+
+              let newSeats = generateSeatsForRow(updatedRow, section, index);
+
+              Object.entries(gapInfo).forEach(([afterSeatNumberStr, gapCount]) => {
+                const afterSeatNumber = parseInt(afterSeatNumberStr, 10);
+                const insertIndex = newSeats.findIndex(
+                  s => s.number === afterSeatNumber && s.type === 'regular'
+                );
+
+                if (insertIndex !== -1) {
+                  const seatRadius = newSeats[insertIndex]?.radius || 12;
+                  const blankSeats = [];
+                  for (let i = 0; i < gapCount; i++) {
+                    blankSeats.push({
+                      id: generateId('seat'),
+                      number: afterSeatNumber + 0.1 + (i * 0.1),
+                      label: '',
+                      type: 'blank',
+                      x: 0,
+                      y: 0,
+                      radius: seatRadius,
+                      ticketCategory: null,
+                      status: 'unavailable',
+                      icon: null,
+                      customIcon: false,
+                      customTicket: false
+                    });
+                  }
+                  newSeats.splice(insertIndex + 1, 0, ...blankSeats);
+                }
+              });
+
+              updatedRow.seats = newSeats;
+            } else if (updates.spacing !== undefined || updates.curve !== undefined) {
+              updatedRow.seats = recalculateSeatPositions(
+                row.seats,
+                section,
+                index,
+                updatedRow
+              );
+            }
+
+            return updatedRow;
+          }
+          return row;
+        });
+
+        const sectionWithUpdatedRows = { ...section, rows: updatedRows };
+        const normalizedRows = updatedRows.map((row, index) => ({
+          ...row,
+          seats: recalculateSeatPositions(row.seats, sectionWithUpdatedRows, index, row)
+        }));
+
+        const nextSection = {
+          ...section,
+          rows: normalizedRows
         };
+        return ensureSectionFitsContent(nextSection);
       }
       return section;
     }));
@@ -782,6 +1076,57 @@ const AuditoriumLayoutDesigner = () => {
     setSections(sections.filter(s => s.id !== sectionId));
     setSelectedElement(null);
     setSelectedType(null);
+  };
+
+  // Duplicate Row (inserts copy directly below the source row)
+  const duplicateRow = (sectionId, rowId) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section || section.type === 'Standing') return;
+
+    const rowIndex = section.rows.findIndex(r => r.id === rowId);
+    if (rowIndex === -1) return;
+
+    const sourceRow = section.rows[rowIndex];
+    const newTitle = `${sourceRow.title}(C)`;
+
+    const duplicatedRow = {
+      ...sourceRow,
+      id: generateId('row'),
+      title: newTitle,
+      seats: sourceRow.seats.map(seat => {
+        const nextSeat = { ...seat, id: generateId('seat') };
+        if (seat.type === 'blank') return nextSeat;
+
+        const oldDefaultLabel = `${sourceRow.title}${seat.number}`;
+        const seatLabel = seat.label ?? '';
+        const shouldAutoRename = seatLabel === '' || seatLabel === oldDefaultLabel;
+        if (shouldAutoRename) {
+          nextSeat.label = `${newTitle}${seat.number}`;
+        }
+        return nextSeat;
+      })
+    };
+
+    const newRows = [
+      ...section.rows.slice(0, rowIndex + 1),
+      duplicatedRow,
+      ...section.rows.slice(rowIndex + 1)
+    ];
+    const sectionWithNewRows = { ...section, rows: newRows };
+    const normalizedRows = newRows.map((row, index) => ({
+      ...row,
+      seats: recalculateSeatPositions(row.seats, sectionWithNewRows, index, row)
+    }));
+    const newDuplicateRow = normalizedRows[rowIndex + 1];
+
+    setSections(sections.map(s =>
+      s.id === sectionId
+        ? ensureSectionFitsContent({ ...s, rows: normalizedRows })
+        : s
+    ));
+
+    setSelectedElement({ ...newDuplicateRow, sectionId });
+    setSelectedType('row');
   };
 
   // Duplicate Section
@@ -936,11 +1281,80 @@ const AuditoriumLayoutDesigner = () => {
     return assignments;
   };
 
+  const exportLayoutJson = () => {
+    const payload = {
+      theatreLayoutExportVersion: THEATRE_LAYOUT_EXPORT_VERSION,
+      stage: JSON.parse(JSON.stringify(stage)),
+      sections: stripTicketAssignmentsForExport(sections)
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = safeFilenameFromTitle(layoutName);
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    message.success('Layout exported');
+  };
+
+  const applyImportedLayout = (parsed) => {
+    const picked = pickImportPayload(parsed);
+    if (!picked) {
+      message.error('Invalid layout file: expected an object with a sections array');
+      return;
+    }
+    const nextStage = picked.stage ? sanitizeStageNumbers(picked.stage) : { ...DEFAULT_STAGE_STATE };
+    const nextSections = stripTicketAssignmentsForExport(picked.sections || []).map(sanitizeSection);
+    setStage(nextStage);
+    setSections(nextSections);
+    setTicketCategories([]);
+    setNextSectionId(Math.max(1, nextSections.length + 1));
+    setSelectedElement(null);
+    setSelectedType(null);
+    setSelectedSectionIds([]);
+    message.success('Layout imported (structure only, no ticket assignments). Set layout name and venue, then save.');
+  };
+
+  const onLayoutImportFileChange = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result || ''));
+        applyImportedLayout(data);
+      } catch {
+        message.error('Could not read layout file (invalid JSON)');
+      }
+    };
+    reader.onerror = () => message.error('Failed to read file');
+    reader.readAsText(file);
+  };
+
   // Save Layout to Backend (UPDATED WITH ASSIGNMENT MODE)
   const saveLayout = () => {
+    if (isReportMode) return;
     if (isAssignMode) {
       // ASSIGNMENT MODE: Save ticket assignments
       const ticketAssignments = extractTicketAssignments();
+      const sectionsForAssign = sections.map(section => ({
+        ...section,
+        rows: section.rows?.map(row => ({
+          ...row,
+          seats: row.seats?.map(seat =>
+            seat.type === 'blank'
+              ? {
+                ...seat,
+                ticketCategory: null,
+                customTicket: false
+              }
+              : seat
+          ) || []
+        })) || []
+      }));
 
       // const assignPayload = {
       //   layoutId: layoutId,
@@ -955,7 +1369,7 @@ const AuditoriumLayoutDesigner = () => {
         name: layoutName || `Layout ${new Date().toISOString()}`,
         stage,
         venue_id: vanueId,
-        sections,
+        sections: sectionsForAssign,
         ticketCategories,
         metadata: {
           updatedAt: new Date().toISOString(),
@@ -1008,10 +1422,12 @@ const AuditoriumLayoutDesigner = () => {
 
   // Handle Canvas Click
   const handleCanvasClick = (e) => {
+    if (isReportMode) return;
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) {
       setSelectedElement(null);
       setSelectedType(null);
+      setSelectedSectionIds([]);
     }
   };
 
@@ -1061,101 +1477,159 @@ const AuditoriumLayoutDesigner = () => {
   }
 
   return (
-    <Card className="auditorium-designer" bodyStyle={{ paddingTop: 10 }}>
+    <Card className="auditorium-designer"
+     bodyStyle={{ paddingTop: 10 }}
+     title={isReportMode
+      ? `Layout Report: ${layoutName}`
+      : isAssignMode
+      ? `Assign Tickets to Layout: ${layoutName}`
+      : layoutId
+        ? `Edit Layout: ${layoutName}`
+        : "New Auditorium Layout"}
+     extra={
+      isReportMode ? (
+        <Row align="middle" gutter={10} wrap={false} className='mb-4'>
+          <Col>
+            <Tooltip title="Zoom in">
+              <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
+            </Tooltip>
+          </Col>
+          <Col>
+            <Tooltip title="Zoom out">
+              <Button icon={<ZoomOutOutlined />} onClick={() => handleZoom(false)} />
+            </Tooltip>
+          </Col>
+          <Col>
+            <Tooltip title="Back">
+              <Button
+                type="primary"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate(-1)}
+              />
+            </Tooltip>
+          </Col>
+        </Row>
+      ) : (
       <Row align="middle" gutter={10} wrap={false} className='mb-4'>
-        <Col span={9}>
-          <h5>
-            {isAssignMode
-              ? `Assign Tickets to Layout: ${layoutName}`
-              : layoutId
-                ? `Edit Layout: ${layoutName}`
-                : "New Auditorium Layout"}
-          </h5>
-        </Col>
-        <Col span={4}>
-          {/* add field to write name for layout */}
-          <Input
-            placeholder="Layout Name"
-            value={layoutName}
-            onChange={(e) => setLayoutName(e.target.value)}
-          />
-        </Col>
-        <VanueList
-          hideLable={true}
-          noMargin={true}
-          onChange={onVanueChange}
-          value={vanueId}
-          span={4}
-          showDetail={false}
+      <Col span={4}>
+        {/* add field to write name for layout */}
+        <Input
+          placeholder="Layout Name"
+          value={layoutName}
+          onChange={(e) => setLayoutName(e.target.value)}
         />
-        <Col>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={addSection}
-          // disabled={isAssignMode} // Removed restriction
-          >
-            Add Section
-          </Button>
-        </Col>
+      </Col>
+      <VanueList
+        hideLable={true}
+        noMargin={true}
+        onChange={onVanueChange}
+        value={vanueId}
+        span={4}
+        showDetail={false}
+      />
+      <Col>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={addSection}
+        // disabled={isAssignMode} // Removed restriction
+        >
+          Add Section
+        </Button>
+      </Col>
 
-        <Col>
-          <Button
-            icon={<BorderOutlined />}
-            onClick={() => setShowGrid(!showGrid)}
-          />
-        </Col>
+      <Col>
+        <Tooltip title="Show/hide grid">  
+        <Button
+          icon={<BorderOutlined />}
+          onClick={() => setShowGrid(!showGrid)}
+        />
+        </Tooltip>
+      </Col>
 
-        <Col>
+      <Col>
+        <Tooltip title="Zoom in">
           <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
-        </Col>
-
-        <Col>
+        </Tooltip>
+      </Col>
+      <Col>
+        <Tooltip title="Zoom out">
           <Button icon={<ZoomOutOutlined />} onClick={() => handleZoom(false)} />
-        </Col>
-
-        <Col>
+        </Tooltip>
+      </Col>
+      <Col>
+        <Tooltip title="Export layout JSON: geometry, icons, labels only — no ticket categories or seat assignments">
+          <Button icon={<DownloadOutlined />} onClick={exportLayoutJson} />
+        </Tooltip>
+      </Col>
+      <Col>
+        <input
+          ref={layoutImportInputRef}
+          type="file"
+          accept=".json,application/json"
+          style={{ display: 'none' }}
+          onChange={onLayoutImportFileChange}
+        />
+        <Tooltip title="Import layout from JSON">
+          <Button
+            icon={<UploadOutlined />}
+            onClick={() => layoutImportInputRef.current?.click()}
+          />
+        </Tooltip>
+      </Col>
+      <Col>
+        <Button
+          type="primary"
+          icon={<SaveOutlined />}
+          loading={saveMutation.isPending}
+          onClick={saveLayout}
+          style={{ background: "#52c41a", borderColor: "#52c41a" }}
+        >
+          {isAssignMode ? "Save" : layoutId ? "Update" : "Save"}
+        </Button>
+      </Col>
+      <Col>
+        <Tooltip title="Back">
           <Button
             type="primary"
-            icon={<SaveOutlined />}
-            loading={saveMutation.isPending}
-            onClick={saveLayout}
-            style={{ background: "#52c41a", borderColor: "#52c41a" }}
-          >
-            {isAssignMode ? "Save" : layoutId ? "Update" : "Save"}
-          </Button>
-        </Col>
-        <Col>
-          <Tooltip title="Back">
-            <Button
-              type="primary"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate(-1)}
-            />
-          </Tooltip>
-        </Col>
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate(-1)}
+          />
+        </Tooltip>
+      </Col>
 
-      </Row>
+    </Row>
+      )
+     }
+     >
 
 
       <Row>
-        <Col lg={4}>
-          {/* Left Panel */}
-          <LeftBar
-            sections={sections}
-            selectedType={selectedType}
-            setSelectedElement={setSelectedElement}
-            stage={stage}
-            setSelectedType={setSelectedType}
-            duplicateSection={duplicateSection}
-            deleteSection={deleteSection}
-            selectedElement={selectedElement}
-            deleteRow={deleteRow}
-            addRowToSection={addRowToSection}
-            isAssignMode={isAssignMode}
-          />
-
-        </Col>
+        {isReportMode ? (
+          <Col lg={8}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <LayoutBookingSummaryCard eventKey={eventId} />
+            </div>
+          </Col>
+        ) : (
+          <Col lg={4}>
+            {/* Left Panel */}
+            <LeftBar
+              sections={sections}
+              selectedType={selectedType}
+              setSelectedElement={setSelectedElement}
+              stage={stage}
+              setSelectedType={setSelectedType}
+              duplicateSection={duplicateSection}
+              duplicateRow={duplicateRow}
+              deleteSection={deleteSection}
+              selectedElement={selectedElement}
+              deleteRow={deleteRow}
+              addRowToSection={addRowToSection}
+              isAssignMode={isAssignMode}
+            />
+          </Col>
+        )}
         {/* Center Canvas */}
         <Col lg={16}>
           <CenterCanvas
@@ -1175,28 +1649,34 @@ const AuditoriumLayoutDesigner = () => {
             handleWheel={handleWheel}
             setStagePosition={setStagePosition}
             isAssignMode={isAssignMode}
+            isReportMode={isReportMode}
+            selectedSectionIds={selectedSectionIds}
+            setSelectedSectionIds={setSelectedSectionIds}
           />
         </Col>
-        {/* Right Panel - Editor */}
-        <Col lg={4}>
-          <RightPanel
-            selectedType={selectedType}
-            selectedElement={selectedElement}
-            setSelectedElement={setSelectedElement}
-            updateSection={updateSection}
-            setSections={setSections}
-            sections={sections}
-            stage={stage}
-            setStage={setStage}
-            updateRow={updateRow}
-            updateSeat={updateSeat}
-            addRowToSection={addRowToSection}
-            ticketCategories={ticketCategories}
-            isAssignMode={isAssignMode}
-            addBlankSeatToRow={addBlankSeatToRow}
-            removeAllGapsFromRow={removeAllGapsFromRow}
-          />
-        </Col>
+        {!isReportMode && (
+          <Col lg={4}>
+            <RightPanel
+              selectedType={selectedType}
+              selectedElement={selectedElement}
+              setSelectedElement={setSelectedElement}
+              updateSection={updateSection}
+              setSections={setSections}
+              sections={sections}
+              stage={stage}
+              setStage={setStage}
+              updateRow={updateRow}
+              updateSeat={updateSeat}
+              addRowToSection={addRowToSection}
+              ticketCategories={ticketCategories}
+              isAssignMode={isAssignMode}
+              addBlankSeatToRow={addBlankSeatToRow}
+              removeAllGapsFromRow={removeAllGapsFromRow}
+              removeSingleGapFromRow={removeSingleGapFromRow}
+              applyAlignmentToSectionRows={applyAlignmentToSectionRows}
+            />
+          </Col>
+        )}
       </Row>
     </Card>
   );

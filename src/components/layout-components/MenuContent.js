@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Menu, Grid } from 'antd';
 import IntlMessage from '../util-components/IntlMessage';
@@ -86,7 +86,7 @@ const getTopNavMenuItem = (navItem) =>
 
 const SideNavContent = (props) => {
   const { routeInfo, hideGroupTitle, sideNavTheme = SIDE_NAV_LIGHT } = props;
-  const { UserPermissions = [], userRole = '' ,isMobile} = useMyContext();
+  const { UserPermissions = [], userRole = ''} = useMyContext();
 
   // 1) Filter the raw config by access
   const filteredNav = useMemo(

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Row,
     Col,
@@ -9,7 +9,6 @@ import {
     Tag,
     Typography,
     Space,
-    Modal,
     message,
     Tooltip,
     Popconfirm
@@ -18,8 +17,6 @@ import {
     DeleteOutlined,
     SyncOutlined,
     FileSearchOutlined,
-    InfoCircleOutlined,
-    WarningOutlined,
     ExclamationCircleOutlined,
     DatabaseOutlined,
     EyeOutlined
@@ -27,12 +24,10 @@ import {
 import { Drawer, DatePicker as AntDatePicker } from 'antd';
 import DataTable from 'views/events/common/DataTable';
 import {
-    useLogTypes,
     useLogStats,
     useLogs,
     useClearLogs
 } from '../hooks/useSettings';
-import Flex from 'components/shared-components/Flex';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -58,7 +53,7 @@ const ServerLogs = () => {
     const logTypes = STATIC_LOG_TYPES;
     const loadingTypes = false;
 
-    const { data: stats = {}, isLoading: loadingStats, refetch: refetchStats } = useLogStats();
+    const { data: stats = {}, refetch: refetchStats } = useLogStats();
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -239,49 +234,57 @@ const ServerLogs = () => {
 
     return (
         <div className="container-fluid">
-            <Flex justifyContent="space-between" alignItems="center" className="mb-4">
-                <div>
-                    <Title level={2}>Server Logs</Title>
-                    <Text type="secondary">View and manage server activity logs</Text>
-                </div>
-                <Space>
-                    <Select
-                        placeholder="Select Log Type"
-                        style={{ width: 180 }}
-                        value={selectedType}
-                        onChange={setSelectedType}
-                        loading={loadingTypes}
-                    >
-                        {logTypes.map(type => (
-                            <Option key={type} value={type}>{type.toUpperCase()}</Option>
-                        ))}
-                    </Select>
-                    <RangePicker
-                        onChange={(dates) => setDateRange(dates)}
-                        style={{ width: 250 }}
-                    />
-                    <Button
-                        icon={<SyncOutlined spin={loadingLogs} />}
-                        onClick={handleRefresh}
-                        loading={loadingLogs}
-                    >
-                        Refresh
-                    </Button>
-                    <Popconfirm
-                        title="Clear Logs"
-                        description={`Are you sure you want to clear the ${selectedType} logs? This action cannot be undone.`}
-                        onConfirm={handleClearLogs}
-                        okText="Yes, Clear"
-                        cancelText="Cancel"
-                        okButtonProps={{ danger: true }}
-                        icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
-                    >
-                        <Button danger icon={<DeleteOutlined />} loading={clearMutation.isPending}>
-                            Clear Logs
+            <Row gutter={[16, 16]} className="mb-4" align="top">
+                <Col xs={24} lg={10} xl={8}>
+                    <div>
+                        <Title level={2} className="mb-2">
+                            Server Logs
+                        </Title>
+                        <Text type="secondary" style={{ display: 'block' }}>
+                            View and manage server activity logs
+                        </Text>
+                    </div>
+                </Col>
+                <Col xs={24} lg={14} xl={16}>
+                    <Space wrap size={[8, 8]} style={{ width: '100%' }}>
+                        <Select
+                            placeholder="Select Log Type"
+                            value={selectedType}
+                            onChange={setSelectedType}
+                            loading={loadingTypes}
+                            style={{ width: '100%', minWidth: 140, maxWidth: 280 }}
+                        >
+                            {logTypes.map(type => (
+                                <Option key={type} value={type}>{type.toUpperCase()}</Option>
+                            ))}
+                        </Select>
+                        <RangePicker
+                            onChange={(dates) => setDateRange(dates)}
+                            style={{ width: '100%', maxWidth: 360 }}
+                        />
+                        <Button
+                            icon={<SyncOutlined spin={loadingLogs} />}
+                            onClick={handleRefresh}
+                            loading={loadingLogs}
+                        >
+                            Refresh
                         </Button>
-                    </Popconfirm>
-                </Space>
-            </Flex>
+                        <Popconfirm
+                            title="Clear Logs"
+                            description={`Are you sure you want to clear the ${selectedType} logs? This action cannot be undone.`}
+                            onConfirm={handleClearLogs}
+                            okText="Yes, Clear"
+                            cancelText="Cancel"
+                            okButtonProps={{ danger: true }}
+                            icon={<ExclamationCircleOutlined style={{ color: 'red' }} />}
+                        >
+                            <Button danger icon={<DeleteOutlined />} loading={clearMutation.isPending}>
+                                Clear Logs
+                            </Button>
+                        </Popconfirm>
+                    </Space>
+                </Col>
+            </Row>
 
             <StatsSection />
 

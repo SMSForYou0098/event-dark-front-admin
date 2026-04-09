@@ -18,9 +18,6 @@ import {
 import { persistor } from "store";
 import { AUTH_PREFIX_PATH } from "configs/AppConfig";
 import { Key } from "lucide-react";
-import Flex from "components/shared-components/Flex";
-
-const { Title, Paragraph } = Typography;
 
 const VerifyPassword = memo(() => {
   const navigate = useNavigate();

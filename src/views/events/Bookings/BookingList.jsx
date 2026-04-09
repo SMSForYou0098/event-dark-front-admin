@@ -1,7 +1,7 @@
 import React, { memo, Fragment, useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
 import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal } from 'antd';
-import { MoreOutlined, QuestionCircleOutlined, LoadingOutlined, CloseOutlined, CheckOutlined, BlockOutlined } from '@ant-design/icons';
+import { MoreOutlined, QuestionCircleOutlined, LoadingOutlined, CloseOutlined, CheckOutlined, BlockOutlined, TeamOutlined } from '@ant-design/icons';
 import { useMyContext } from "Context/MyContextProvider";
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
@@ -12,8 +12,10 @@ import { ExpandDataTable } from "../common/ExpandDataTable";
 import PermissionChecker from "layouts/PermissionChecker";
 import { resendTickets } from "./agent/utils";
 import { PERMISSIONS } from "constants/PermissionConstant";
+import AttendeeDetailDrawer from "./Online_Bookings/AttendeeDetailDrawer";
+import { getBookingSeatNumbersDisplay } from "./utils/bookingSeatDisplay";
 
-const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
+const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBooking = false }) => {
     const { UserData, formatDateTime, truncateString, isMobile, UserPermissions, userRole } = useMyContext();
 
     const [dateRange, setDateRange] = useState(null);
@@ -26,6 +28,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
     // id of the row currently processing resend -> shows spinner only for that row
     const [loadingId, setLoadingId] = useState(null);
     const [ticketOptionModal, setTicketOptionModal] = useState({ visible: false, hasMultiple: false });
+    const [attendeeDrawer, setAttendeeDrawer] = useState(null);
     const ticketRefs = useRef([]);
 
     // Backend pagination state
@@ -42,7 +45,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
         const token = (data) => data?.is_master ? data?.bookings[0]?.master_token : data?.token || data?.order_id;
 
         return {
-            title: `${bookingTypeCapitalized} ${typeCapitalized}`,
+            title: `${bookingTypeCapitalized} ${typeCapitalized}${seatingChartBooking ? ' - Seating' : ''}`,
             apiUrl: `bookings/${type}/${UserData?.id}/${bookingType}`,
             exportRoute: `bookings/export`,
             exportPermission: `Export ${typeCapitalized} Bookings`,
@@ -50,11 +53,11 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
                 ? `restore/${type}/${token(data)}`
                 : `disable/${type}/${token(data)}`,
         };
-    }, [type, bookingType, UserData?.id]);
+    }, [type, bookingType, UserData?.id, seatingChartBooking]);
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [bookingType, type]);
+    }, [bookingType, type, seatingChartBooking]);
 
     const HandleSendTicket = useCallback(async (record) => {
         // use id if present otherwise fallback to set_id
@@ -77,7 +80,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
         error,
         refetch,
     } = useQuery({
-        queryKey: ['bookings', type, bookingType, dateRange, UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
+        queryKey: ['bookings', type, bookingType, seatingChartBooking, dateRange, UserData?.id, currentPage, pageSize, searchText, sortField, sortOrder],
         queryFn: async () => {
             const params = new URLSearchParams();
 
@@ -99,6 +102,10 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
             // Date range params
             if (dateRange && dateRange.startDate && dateRange.endDate) {
                 params.set("date", `${dateRange.startDate},${dateRange.endDate}`);
+            }
+
+            if (seatingChartBooking) {
+                params.set("seating", "true");
             }
 
             const url = `${config.apiUrl}?${params.toString()}`;
@@ -223,9 +230,6 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
         setSortOrder(order || null);
     }, []);
 
-    const downloadTicket = () => {
-        downloadTickets(ticketRefs, ticketType?.type, setLoading);
-    }
 
     function handleCloseModal() {
         setTicketData([])
@@ -253,6 +257,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
             isMobile = false,
             handlers = {},
             loading = {},
+            seatingChartBooking: seatingSeats = false,
         } = options;
 
         const columns = [];
@@ -263,7 +268,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
                 title: "#",
                 key: "index",
                 align: "center",
-                width: isNested ? 50 : 70,
+                width: isNested ? 50 : 15,
                 render: (_, __, index) => index + 1,
             });
         }
@@ -377,6 +382,23 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
                 );
             },
         });
+
+        if (seatingSeats) {
+            columns.push({
+                title: 'Seat number',
+                key: 'seat_numbers',
+                align: 'center',
+                width: isNested ? 120 : 160,
+                render: (_, record) => {
+                    const text = getBookingSeatNumbersDisplay(record);
+                    return (
+                        <Tooltip title={text}>
+                            <span>{truncateString(text, isNested ? 16 : 28)}</span>
+                        </Tooltip>
+                    );
+                },
+            });
+        }
 
         // Quantity column (common for both)
         columns.push({
@@ -507,6 +529,28 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === true;
                 const actions = [
+                    ...(handlers.onOpenAttendeeDrawer
+                        ? [
+                            {
+                                key: 'attendee',
+                                label: 'View attendee details',
+                                type: 'default',
+                                icon: <TeamOutlined />,
+                                onClick: () => {
+                                    const bookingId = record?.id ?? record?.set_id;
+                                    if (bookingId == null) return;
+                                    handlers.onOpenAttendeeDrawer({
+                                        bookingId,
+                                        isMaster: isNested
+                                            ? false
+                                            : record?.is_master === true ||
+                                              Boolean(record?.bookings?.length),
+                                    });
+                                },
+                                disabled: record?.id == null && record?.set_id == null,
+                            },
+                        ]
+                        : []),
                     {
                         key: 'generate',
                         label: 'Generate Ticket',
@@ -585,17 +629,19 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
             showIndex: true,
             isNested: true,
             isMobile,
+            seatingChartBooking,
             handlers: {
                 onDelete: DeleteBooking,
                 onGenerate: GenerateTicket,
                 onResend: HandleSendTicket,
+                onOpenAttendeeDrawer: type === 'agent' ? setAttendeeDrawer : undefined,
             },
             loading: {
                 togglePending: toggleBookingMutation.isPending,
                 currentId: loadingId,
             },
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }), [isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
+        }), [type, isMobile, seatingChartBooking, bookingType, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
 
     // Columns for DataTable
     const columns = useMemo(() =>
@@ -611,17 +657,19 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
             showPurchaseDate: true,
             isNested: false,
             isMobile,
+            seatingChartBooking,
             handlers: {
                 onDelete: DeleteBooking,
                 onGenerate: GenerateTicket,
                 onResend: HandleSendTicket,
+                onOpenAttendeeDrawer: type === 'agent' ? setAttendeeDrawer : undefined,
             },
             loading: {
                 togglePending: toggleBookingMutation.isPending,
                 currentId: loadingId,
             },
             // eslint-disable-next-line react-hooks/exhaustive-deps
-        }), [isMobile, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
+        }), [type, isMobile, seatingChartBooking, bookingType, DeleteBooking, GenerateTicket, HandleSendTicket, toggleBookingMutation.isPending, loadingId]);
 
     return (
         <Fragment>
@@ -684,6 +732,14 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
                 showTicketDetails={false}
                 formatDateRange={dateRange}
             />
+            {type === 'agent' && (
+                <AttendeeDetailDrawer
+                    open={attendeeDrawer != null}
+                    onClose={() => setAttendeeDrawer(null)}
+                    bookingId={attendeeDrawer?.bookingId}
+                    isMaster={attendeeDrawer?.isMaster ?? false}
+                />
+            )}
             <ExpandDataTable
                 title={config.title}
                 emptyText={`No ${type} bookings found`}
@@ -703,7 +759,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
                             <Button
                                 type="primary"
                                 icon={<PlusIcon size={16} />}
-                                onClick={() => navigate(`/bookings/${type}/new`)}
+                                onClick={() => navigate(seatingChartBooking ? `/bookings/seating-chart/${type}/new` : `/bookings/${type}/new`)}
                             />
                         </Tooltip>
                     </PermissionChecker>
@@ -725,6 +781,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free' }) => {
                 error={error}
                 enableExport={true}
                 type={type}
+                exportPayload={seatingChartBooking ? { seating: true } : {}}
             />
 
         </Fragment>

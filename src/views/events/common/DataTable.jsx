@@ -54,6 +54,7 @@ const DataTable = ({
   onSearch, // (searchText) => void - for server-side search
   onSortChange, // (field, order) => void - for server-side sorting
   searchValue = "", // Controlled search value for server-side
+  searchPlaceholder = "Search across...",
   pageSizeOptions = ["10", "20", "50", "100"], // Options for items per page
   defaultPageSize = 10, // Default page size for client-side pagination
   size, // Table size: 'small' | 'middle' | 'large' - overrides responsive default
@@ -389,7 +390,7 @@ const DataTable = ({
     <Space wrap size="middle">
       {showSearch && (
         <Input
-          placeholder="Search across..."
+          placeholder={searchPlaceholder}
           prefix={<SearchOutlined />}
           value={displaySearchText}
           onChange={(e) => handleGlobalSearch(e.target.value)}

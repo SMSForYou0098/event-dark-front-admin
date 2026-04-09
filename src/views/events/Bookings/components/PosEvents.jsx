@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, Collapse, Input, Grid, Button, Badge } from 'antd';
 import { useMyContext } from 'Context/MyContextProvider';
 import PosEventCard from './PosEventCard';
-import { SearchOutlined, LeftOutlined, RightOutlined, CheckCircleFilled } from "@ant-design/icons";
+import { SearchOutlined, LeftOutlined, RightOutlined, CheckCircleFilled, DeleteOutlined } from "@ant-design/icons";
 import Loader from 'utils/Loader';
 import { useQuery } from '@tanstack/react-query';
 import api from 'auth/FetchInterceptor';
+import { PRIMARY } from 'utils/consts';
 
 const { Panel } = Collapse;
 
@@ -131,16 +132,13 @@ const PosEvents = ({ type = 'pos', handleButtonClick, isScanner, multiple = fals
                 ghost
             >
                 <Panel header={
-                    <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
+                    <div className="d-flex justify-content-between align-items-center gap-3">
                         <div className="d-flex align-items-center gap-2">
-                            <p className="mb-0 fs-14 fw-semibold">Events</p>
-                            {multiple && selectedEvents.length > 0 && (
-                                <Badge count={selectedEvents.length} style={{ backgroundColor: '#52c41a' }} />
-                            )}
+                            <p className="mb-0 fs-14 fw-semibold">Events <Badge count={selectedEvents.length} style={{ backgroundColor: PRIMARY }} /></p>
                         </div>
-                        <div className='d-flex align-items-center gap-2 mr-2'>
+                        <div className="d-flex align-items-center mr-2" style={{ gap: 10 }}>
                             {multiple && selectedEvents.length > 0 && (
-                                <Button size="small" onClick={handleClearSelection}>
+                                <Button icon={<DeleteOutlined />} onClick={handleClearSelection}>
                                     Clear Selection
                                 </Button>
                             )}
@@ -197,22 +195,17 @@ const PosEvents = ({ type = 'pos', handleButtonClick, isScanner, multiple = fals
                                                     padding: 2
                                                 }}
                                             >
-                                                <CheckCircleFilled style={{ color: '#fff', fontSize: 20 }} />
+                                                <CheckCircleFilled style={{ color: PRIMARY, fontSize: 20 }} />
                                             </div>
                                         )}
-                                        <div style={{
-                                            border: isSelected ? '2px solid #52c41a' : '2px solid transparent',
-                                            borderRadius: 8,
-                                            transition: 'border-color 0.2s ease'
-                                        }}>
                                             <PosEventCard
                                                 productName={formattedProductName(item.name)}
                                                 productImage={item?.event_media?.thumbnail || ''}
                                                 id={item.event_key}
+                                                isSelected={isSelected}
                                                 productRating="3.5"
                                                 statusColor="primary"
                                             />
-                                        </div>
                                     </div>
                                 );
                             })}

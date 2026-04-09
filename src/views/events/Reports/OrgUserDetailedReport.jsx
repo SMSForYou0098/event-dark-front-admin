@@ -237,7 +237,7 @@ const OrgUserDetailedReport = ({ type: propType }) => {
                     extraHeaderContent={
                         <>
                             {userRole === 'Admin' && (
-                                <OrganisationList label="" onChange={handleOrgChange} />
+                                <OrganisationList onChange={handleOrgChange} />
                             )}
                             {!propType && !isSpecificRole && (
                                 <Form.Item name="type">

@@ -291,8 +291,11 @@ const Promocode = memo(() => {
               <Form.Item
                 label="Code"
                 name="code"
-                rules={[{ required: true, message: 'Please enter promo code!' }]}
-                normalize={(value) => value?.toUpperCase()}
+                rules={[
+                  { required: true, message: 'Please enter promo code!' },
+                  { pattern: /^[A-Z0-9]+$/, message: 'Only capital letters and numbers are allowed!' },
+                ]}
+                normalize={(value) => value?.toUpperCase().replace(/[^A-Z0-9]/g, '')}
               >
                 <Input
                   className='text-upper'

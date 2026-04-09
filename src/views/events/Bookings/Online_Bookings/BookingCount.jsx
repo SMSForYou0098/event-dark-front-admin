@@ -9,7 +9,7 @@ import EventCards from './EventCards'
 import SummaryPrintModal from './SummaryPrintModal'
 import api from 'auth/FetchInterceptor'
 
-const BookingCount = ({ type, date, showGatewayAmount }) => {
+const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = false }) => {
     const { isMobile } = useMyContext()
     const [showPrintModal, setShowPrintModal] = useState(false)
 
@@ -71,7 +71,7 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
         nb: 0,
         ticketSales: [],
     } } = useQuery({
-        queryKey: ['dashboardSummary', type, date],
+        queryKey: ['dashboardSummary', type, date, seatingChartBooking],
         queryFn: async () => {
             const typeParam = getTypeParam(type);
             const url = `bookings/summary/${typeParam}`;
@@ -80,6 +80,9 @@ const BookingCount = ({ type, date, showGatewayAmount }) => {
             const dateParam = formatDateParams(date);
             if (dateParam) {
                 params.date = dateParam;
+            }
+            if (seatingChartBooking) {
+                params.seating = 'true';
             }
 
             if (process.env.NODE_ENV === 'development') {

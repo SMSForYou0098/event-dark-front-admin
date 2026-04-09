@@ -180,7 +180,162 @@ const userManagementNav = {
   icon: TeamOutlined,
   breadcrumb: false,
   submenu: userManagementSubmenu,
-  roles: ["Admin", "Organizers"]
+  roles: ["Admin", "Organizer"]
+};
+
+// Seating chart bookings (seat-based / ticket_system flow; sibling top-level group like Bookings)
+const seatingChartBookingsSubmenu = [
+    {
+      key: 'seating-online-manage',
+      title: 'Online',
+      breadcrumb: false,
+      icon: LayoutOutlined,
+      permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+      submenu: [
+        {
+          key: 'seating-online-new',
+          title: 'Confirmed',
+          breadcrumb: false,
+          icon: ShoppingOutlined,
+          permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+          submenu: [
+            {
+              key: 'seating-online-paid',
+              path: 'bookings/seating-chart/online/paid',
+              title: 'Paid',
+              breadcrumb: false,
+              icon: DollarOutlined,
+              permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+            },
+            {
+              key: 'seating-online-free',
+              path: 'bookings/seating-chart/online/free',
+              title: 'Free',
+              breadcrumb: false,
+              icon: CheckOutlined,
+              permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+            }
+          ]
+        },
+        {
+          key: 'seating-pending-booking',
+          path: 'bookings/seating-chart/pending',
+          title: 'Pending',
+          icon: ClockCircleOutlined,
+          breadcrumb: false,
+          submenu: [],
+          roles: ["Admin"]
+        },
+        {
+          key: 'seating-refund-booking',
+          title: 'Refund',
+          icon: DollarOutlined,
+          breadcrumb: false,
+          permissions: [PERMISSIONS.VIEW_REFUND_REQUESTS],
+          submenu: [
+            {
+              key: 'seating-refund-requests',
+              path: 'bookings/seating-chart/refund',
+              title: 'Refund Requests',
+              breadcrumb: false,
+              permissions: [PERMISSIONS.VIEW_REFUND_REQUESTS]
+            }
+          ]
+        },
+      ]
+    },
+    {
+      key: 'seating-agent-booking',
+      path: 'bookings/seating-chart/agent',
+      title: 'Agent',
+      icon: IdcardOutlined,
+      breadcrumb: false,
+      permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+      submenu: [
+        {
+          key: 'seating-agent-manage',
+          title: 'Manage',
+          breadcrumb: false,
+          permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+          submenu: [
+            {
+              key: 'seating-agent-paid',
+              path: 'bookings/seating-chart/agent/paid',
+              title: 'Paid',
+              breadcrumb: false,
+              permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+              icon: DollarOutlined,
+            },
+            {
+              key: 'seating-agent-free',
+              path: 'bookings/seating-chart/agent/free',
+              title: 'Free',
+              breadcrumb: false,
+              permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+              icon: CheckOutlined,
+            }
+          ]
+        },
+        {
+          key: 'seating-agent-new',
+          path: 'bookings/seating-chart/agent/new',
+          title: 'New',
+          breadcrumb: false,
+          permissions: [PERMISSIONS.ADD_AGENT_BOOKING]
+        }
+      ]
+    },
+    {
+      key: 'seating-pos-booking',
+      path: 'bookings/seating-chart/pos',
+      title: 'POS',
+      icon: ShoppingOutlined,
+      breadcrumb: false,
+      permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+      submenu: [
+        {
+          key: 'seating-pos-manage',
+          title: 'Manage',
+          breadcrumb: false,
+          permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+          submenu: [
+            {
+              key: 'seating-pos-paid',
+              path: 'bookings/seating-chart/pos/paid',
+              title: 'Paid',
+              breadcrumb: false,
+              permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+              icon: DollarOutlined,
+            },
+            {
+              key: 'seating-pos-free',
+              path: 'bookings/seating-chart/pos/free',
+              title: 'Free',
+              breadcrumb: false,
+              permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
+              icon: CheckOutlined,
+            }
+          ]
+        },
+        {
+          key: 'seating-pos-new',
+          path: 'bookings/seating-chart/pos/new',
+          title: 'New',
+          breadcrumb: false,
+          permissions: [PERMISSIONS.ADD_POS_BOOKING]
+        }
+      ]
+    },
+];
+
+const seatingChartBookingsNav = {
+  key: 'seating-chart-bookings',
+  path: 'bookings/seating-chart',
+  title: 'Seating chart',
+  icon: LayoutOutlined,
+  breadcrumb: false,
+  submenu: seatingChartBookingsSubmenu,
+  roles: ["Admin", "Organizer"]
 };
 
 // Bookings Submenu
@@ -338,7 +493,7 @@ const bookingsNav = {
   icon: ScheduleOutlined,
   breadcrumb: false,
   submenu: bookingsSubmenu,
-  roles: ["Admin", "Organizers"]
+  roles: ["Admin", "Organizer"]
 };
 
 
@@ -381,7 +536,7 @@ const eventManagementSubmenu = [
     icon: LayoutOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin", "Organizers"],
+    roles: ["Admin", "Organizer"],
     permissions: [PERMISSIONS.VIEW_LAYOUTS]
   },
   {
@@ -391,7 +546,7 @@ const eventManagementSubmenu = [
     icon: LayoutOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin", "Organizers"],
+    roles: ["Admin", "Organizer"],
     permissions: [PERMISSIONS.VIEW_STALL_LAYOUTS]
   },
   {
@@ -401,7 +556,7 @@ const eventManagementSubmenu = [
     icon: CustomerServiceOutlined,
     breadcrumb: false,
     submenu: [],
-    // roles: ["Admin", "Organizers"],
+    // roles: ["Admin", "Organizer"],
     permissions: [PERMISSIONS.VIEW_ARTISTS]
   },
   {
@@ -450,7 +605,7 @@ const eventManagementNav = {
   icon: CalendarOutlined,
   breadcrumb: false,
   submenu: eventManagementSubmenu,
-  roles: ["Admin", "Organizers"]
+  roles: ["Admin", "Organizer"]
 };
 
 // Stall Management Submenu
@@ -473,7 +628,7 @@ const stallManagementNav = {
   icon: ShopOutlined,
   breadcrumb: false,
   submenu: stallManagementSubmenu,
-  roles: ["Admin", "Organizers"]
+  roles: ["Admin", "Organizer"]
 };
 
 // Scan Submenu
@@ -504,7 +659,16 @@ const scanSubmenu = [
     breadcrumb: false,
     submenu: [],
     permissions: [PERMISSIONS.VIEW_SCAN_HISTORY]
-  }
+  },
+  {
+    key: 'scan-reports',
+    path: 'reports/scanner',
+    title: 'Scan Reports',
+    icon: FileSearchOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_SCAN_REPORTS],
+  },
 ];
 const scanNav = {
   key: 'scan',
@@ -513,7 +677,7 @@ const scanNav = {
   icon: ScanOutlined,
   breadcrumb: false,
   submenu: scanSubmenu,
-  roles: ["Admin", "Organizers", "Scanner"]
+  roles: ["Admin", "Organizer", "Scanner"]
 
 }
 // Sales & Operations Submenu
@@ -556,7 +720,7 @@ const salesOperationsNav = {
   icon: CommentOutlined,
   breadcrumb: false,
   submenu: salesOperationsSubmenu,
-  roles: ["Admin", "Organizers"]
+  roles: ["Admin", "Organizer"]
 };
 
 // Reporting Submenu
@@ -602,11 +766,11 @@ const reportingSubmenu = [
   {
     key: 'scanner-report',
     path: 'reports/scanner',
-    title: 'Scanner Report',
+    title: 'Scan Reports',
     icon: FileSearchOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: [PERMISSIONS.VIEW_SCANNER_REPORTS],
+    permissions: [PERMISSIONS.VIEW_SCAN_REPORTS],
   },
   {
     key: 'card-report',
@@ -626,7 +790,14 @@ const reportingNav = {
   icon: BarChartOutlined,
   breadcrumb: false,
   submenu: reportingSubmenu,
-  permissions: [PERMISSIONS.VIEW_EVENT_REPORTS, PERMISSIONS.VIEW_POS_REPORTS, PERMISSIONS.VIEW_AGENT_REPORTS],
+  permissions: [
+    PERMISSIONS.VIEW_EVENT_REPORTS,
+    PERMISSIONS.VIEW_POS_REPORTS,
+    PERMISSIONS.VIEW_AGENT_REPORTS,
+    PERMISSIONS.VIEW_ORGANIZER_REPORTS,
+    PERMISSIONS.VIEW_SCAN_REPORTS,
+    PERMISSIONS.VIEW_CARD_REPORTS,
+  ],
 };
 
 // Financial Management Submenu
@@ -657,7 +828,7 @@ const financialManagementSubmenu = [
     icon: ShoppingOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin", "Organizers"],
+    roles: ["Admin", "Organizer"],
     permissions: [PERMISSIONS.VIEW_PROMOCODES]
   },
   {
@@ -993,6 +1164,7 @@ const navigationConfig = [
   eventManagementNav,
   stallManagementNav,
   bookingsNav,
+  seatingChartBookingsNav,
   scanNav,
   reportingNav,
   {

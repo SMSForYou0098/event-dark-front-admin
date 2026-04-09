@@ -46,7 +46,8 @@ const AssignCredit = ({ id }) => {
 
   // Derived current balance
   const currentBalance = useMemo(() => {
-    return userBalance?.total_credits || 0;
+    const parsedBalance = Number(userBalance?.total_credits);
+    return Number.isFinite(parsedBalance) ? parsedBalance : 0;
   }, [userBalance]);
 
   // Safe number formatting function

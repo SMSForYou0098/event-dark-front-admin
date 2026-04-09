@@ -1,7 +1,7 @@
 import { Card, Select, Typography, Space, Spin, Alert, Col, Row, Table, Form, InputNumber, Input, Button, message } from 'antd';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import apiClient from 'auth/FetchInterceptor';
-import { UserOutlined, TagsOutlined, SaveOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UserOutlined, SaveOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import useTicketInventory from "./hooks/useTicketInventory";
 import TicketSelect from "./TicketSelect";
 import Utils from "utils";
@@ -10,17 +10,11 @@ import PermissionChecker from "layouts/PermissionChecker";
 import { useMemo, useState } from 'react';
 
 const { Text } = Typography;
-const { TextArea } = Input;
 
 const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSummary }) => {
     const [selectedAgent, setSelectedAgent] = useState(null);
     const [selectedTicketId, setSelectedTicketId] = useState(null);
     const [form] = Form.useForm();
-
-    // Unassigned blocks for validation
-    const unassignedBlocks = useMemo(() => {
-        return (summary?.summary?.type_breakdown || []).filter(t => t.type === 'unassigned');
-    }, [summary]);
 
     // Mutation for assigning user
     const assignMutation = useMutation({
@@ -56,9 +50,10 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
         queryKey: ['agents-list'],
         queryFn: async () => {
             const res = await apiClient.get('users-by-role/agent');
-            // Check for users array in res or res.data
-            const users = res?.users || res?.data?.users || [];
-            return Array.isArray(users) ? users : [];
+            // API returns { status, message, data: [...], pagination }
+            const users = res?.data || res?.users || [];
+            const arr = Array.isArray(users) ? users : [];
+            return arr.map(u => ({ label: u.name, value: u.id }));
         },
         staleTime: 5 * 60 * 1000,
     });
@@ -85,7 +80,7 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
     );
 
     const agentOptions = useMemo(() => {
-        return agents; // Agents are already in { label, value } format
+        return agents; // Already mapped to { label, value } in queryFn
     }, [agents]);
 
     const handleAgentChange = (value) => {
@@ -310,14 +305,6 @@ const AgentCardInventory = ({ selectedEventId, ticketOptions, summary, refetchSu
                                                                     if (alreadyHas) {
                                                                         return Promise.reject(new Error(`Already assigned to this agent (${alreadyHas.range_start}-${alreadyHas.range_end})`));
                                                                     }
-
-                                                                    // 3. Check if start exists in this ticket's available inventory (history)
-                                                                    const history = ticketInventory?.history || [];
-                                                                    const validBatch = history.find(r =>
-                                                                        r.batch_index_range &&
-                                                                        value >= r.batch_index_range.start &&
-                                                                        value <= r.batch_index_range.end
-                                                                    );
 
                                                                     // if (!validBatch) {
                                                                     //     return Promise.reject(new Error(`Start index not found`));

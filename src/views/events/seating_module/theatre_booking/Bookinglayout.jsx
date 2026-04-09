@@ -1,6 +1,6 @@
 // BookingLayout.jsx - IMPROVED VERSION WITH CUSTOM HOOK
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Card, Row, Col, message, Modal, Space, Button, Drawer } from 'antd';
+import { Row, Col, message, Modal, Space, Button, Drawer } from 'antd';
 import { FaClock } from 'react-icons/fa';
 import { PlusOutlined, MinusOutlined } from '@ant-design/icons';
 import api from 'auth/FetchInterceptor';

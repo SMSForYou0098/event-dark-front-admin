@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Stage, Layer, Rect, Text, Group, Path, Line } from 'react-konva';
+import { Stage, Layer, Rect, Text, Group, Line } from 'react-konva';
 import { Image as KonvaImage } from 'react-konva';
 import Konva from 'konva';
 import { PRIMARY, SECONDARY } from 'utils/consts';
@@ -154,6 +154,197 @@ const SEAT_COLORS = {
     noTicket: THEME.seatNoTicket,
 };
 
+/** Row title + seat number (e.g. A1, Z12, AA1) — no extra separator */
+const formatSeatDisplayLabel = (rowTitle, seatNumber) => {
+    const t = rowTitle != null ? String(rowTitle).trim() : '';
+    const n = seatNumber != null && seatNumber !== '' ? String(seatNumber) : '';
+    return t ? `${t}${n}` : n;
+};
+
+// Booking canvas: relax dense layouts (many seats) without editing the layout editor
+const BOOKING_SEAT_EDGE_GAP = 6;
+const BOOKING_MIN_RADIUS_DESKTOP = 15;
+const BOOKING_MIN_RADIUS_MOBILE = 13;
+const BOOKING_RADIUS_BOOST = 1.28;
+const BOOKING_MIN_ROW_VERTICAL_GAP = 8;
+
+/** Straight stage line at y=0; label placed below — keep in sync with StageScreen */
+const BOOKING_STAGE_SCREEN_LABEL_Y = 12;
+const BOOKING_STAGE_SCREEN_NAME_SIZE = 14;
+/** Pixels below stage.y occupied by line + label + glow slack (booking uses straight only) */
+const getBookingStageStraightFootprintPx = () =>
+    BOOKING_STAGE_SCREEN_LABEL_Y + Math.ceil(BOOKING_STAGE_SCREEN_NAME_SIZE * 1.35) + 12;
+/** Minimum gap between bottom of stage block and top of section / seats */
+const BOOKING_STAGE_SECTION_GAP = 18;
+
+const getBookingTargetMinRadius = () =>
+    (IS_MOBILE ? BOOKING_MIN_RADIUS_MOBILE : BOOKING_MIN_RADIUS_DESKTOP);
+
+/** Expand centers so adjacent gap >= minCenterGap; keep row midpoint fixed */
+const spreadRowSeatCenters = (seats, minCenterGap, midX) => {
+    const n = seats.length;
+    if (n <= 1) return;
+    const xs = seats.map(s => s.x);
+    const minX = Math.min(...xs);
+    const maxX = Math.max(...xs);
+    const rowMid = midX ?? (minX + maxX) / 2;
+    const span = maxX - minX;
+    const required = (n - 1) * minCenterGap;
+
+    if (span < 1e-6) {
+        const total = required;
+        const start = rowMid - total / 2;
+        seats.forEach((s, i) => { s.x = start + i * minCenterGap; });
+        return;
+    }
+
+    if (span < required) {
+        const scale = required / span;
+        seats.forEach(s => { s.x = rowMid + (s.x - rowMid) * scale; });
+    }
+};
+
+const clampRowRadiusToNeighborGaps = (seats, edgeGap, desiredR, absoluteMin) => {
+    if (seats.length <= 1) return Math.max(absoluteMin, desiredR);
+    let maxAllowed = desiredR;
+    for (let i = 1; i < seats.length; i++) {
+        const gap = seats[i].x - seats[i - 1].x;
+        const maxR = (gap - edgeGap) / 2;
+        if (Number.isFinite(maxR) && maxR > 0) maxAllowed = Math.min(maxAllowed, maxR);
+    }
+    return Math.max(absoluteMin * 0.82, maxAllowed);
+};
+
+const applyVerticalRowSpacing = (rows, minGapBetweenRows) => {
+    const resultRows = rows.map(r => ({
+        ...r,
+        seats: (r.seats || []).map(s => (s ? { ...s } : s)),
+    }));
+
+    const rowBounds = resultRows.map((row, idx) => {
+        const seats = row.seats || [];
+        let minTop = Infinity;
+        let maxBot = -Infinity;
+        for (const s of seats) {
+            if (!s || typeof s.y !== 'number') continue;
+            const rad = parseFloat(s.radius) || 12;
+            minTop = Math.min(minTop, s.y - rad);
+            maxBot = Math.max(maxBot, s.y + rad);
+        }
+        if (minTop === Infinity) return null;
+        return { idx, minTop, maxBot };
+    }).filter(Boolean);
+
+    rowBounds.sort((a, b) => a.minTop - b.minTop);
+
+    let prevBottom = -Infinity;
+    for (const b of rowBounds) {
+        const dy = b.minTop < prevBottom + minGapBetweenRows
+            ? prevBottom + minGapBetweenRows - b.minTop
+            : 0;
+        if (dy !== 0) {
+            const row = resultRows[b.idx];
+            row.seats = row.seats.map(s =>
+                (s && typeof s.y === 'number' ? { ...s, y: s.y + dy } : s)
+            );
+        }
+        prevBottom = b.maxBot + dy;
+    }
+
+    return resultRows;
+};
+
+const optimizeSeatingSection = (section) => {
+    if (section.type === 'Standing' || !section.rows?.length) return section;
+
+    const minR = getBookingTargetMinRadius();
+    const edge = BOOKING_SEAT_EDGE_GAP;
+
+    let newRows = section.rows.map(row => {
+        const raw = row.seats || [];
+        const withPos = raw
+            .map((s) => (s && typeof s.x === 'number' ? s : null))
+            .filter(Boolean);
+        if (withPos.length === 0) return row;
+
+        const sorted = [...withPos].sort((a, b) => a.x - b.x);
+        const working = sorted.map(s => ({ ...s }));
+
+        const baseRadius = Math.max(
+            ...working.map(w => parseFloat(w.radius) || 12),
+            minR
+        );
+        let displayR = Math.max(minR, Math.min(baseRadius * BOOKING_RADIUS_BOOST, minR * 2));
+
+        const xs = working.map(w => w.x);
+        const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
+        const minCenterGap = 2 * displayR + edge;
+
+        spreadRowSeatCenters(working, minCenterGap, midX);
+        displayR = clampRowRadiusToNeighborGaps(working, edge, displayR, minR);
+        working.forEach(w => { w.radius = displayR; });
+
+        const idToAdj = new Map(sorted.map((s, i) => [s.id, working[i]]));
+
+        const outSeats = raw.map(s => {
+            if (!s || typeof s.x !== 'number') return s;
+            const adj = idToAdj.get(s.id);
+            if (!adj) return s;
+            return { ...s, x: adj.x, y: adj.y, radius: adj.radius };
+        });
+
+        return { ...row, seats: outSeats };
+    });
+
+    newRows = applyVerticalRowSpacing(newRows, BOOKING_MIN_ROW_VERTICAL_GAP);
+
+    return { ...section, rows: newRows };
+};
+
+const optimizeSectionsForBooking = (sections) => {
+    if (!sections?.length) return sections || [];
+    return sections.map(s => optimizeSeatingSection(s));
+};
+
+/** Push sections down so stage + SCREEN label never overlaps first row / titles (API may overlap) */
+const applyStageSectionVerticalClearance = (stage, sections) => {
+    if (!stage || !sections?.length) return sections;
+
+    const footprint = getBookingStageStraightFootprintPx();
+    const stageStrictBottom = stage.y + footprint;
+    const apiH = parseFloat(stage.height);
+    const stageBottom = Math.max(stageStrictBottom, stage.y + (Number.isFinite(apiH) ? apiH : 0));
+
+    let minContentTop = Infinity;
+
+    for (const sec of sections) {
+        if (sec.type === 'Standing') {
+            minContentTop = Math.min(minContentTop, sec.y);
+            continue;
+        }
+        const rows = sec.rows || [];
+        let secTop = sec.y + (rows.length ? 12 : 0);
+        for (const row of rows) {
+            for (const s of row.seats || []) {
+                if (!s || typeof s.y !== 'number') continue;
+                const r = parseFloat(s.radius) || 12;
+                secTop = Math.min(secTop, sec.y + s.y - r);
+            }
+        }
+        minContentTop = Math.min(minContentTop, secTop);
+    }
+
+    if (minContentTop === Infinity) return sections;
+
+    const delta = stageBottom + BOOKING_STAGE_SECTION_GAP - minContentTop;
+    if (delta <= 0) return sections;
+
+    return sections.map(sec => ({ ...sec, y: sec.y + delta }));
+};
+
+const buildBookingDisplaySections = (sections, stage) =>
+    applyStageSectionVerticalClearance(stage, optimizeSectionsForBooking(sections ?? []));
+
 const getSeatColor = (seat, isSelected) => {
     if (!seat.ticket) return SEAT_COLORS.noTicket;
     if (seat.status === 'booked') return SEAT_COLORS.booked;
@@ -220,6 +411,11 @@ const Seat = memo(({
     const x = seat.x;
     const y = seat.y;
     const radius = seat.radius;
+    const seatLabel = formatSeatDisplayLabel(rowTitle, seat.number);
+    const labelLen = seatLabel.length;
+    const baseSeatFont = Math.max(10, Math.min(14, radius * 0.72));
+    const seatLabelFontSize =
+        labelLen > 4 ? Math.max(8, baseSeatFont - 2) : labelLen > 3 ? Math.max(8, baseSeatFont - 1) : baseSeatFont;
 
     // Handle blank seats (gaps) - render with dotted outline, non-interactive
     if (seat.type === 'blank') {
@@ -268,7 +464,7 @@ const Seat = memo(({
                 listening={isClickable}
                 perfectDrawEnabled={false}
                 shadowForStrokeEnabled={false}
-                hitStrokeWidth={IS_MOBILE ? 12 : 4}
+                hitStrokeWidth={IS_MOBILE ? 14 : 6}
 
                 onMouseEnter={(e) => {
                     const container = e.target.getStage().container();
@@ -295,31 +491,33 @@ const Seat = memo(({
 
 
             {!isBooked && !isHold && !isLocked && (
-                iconImage ? (
-                    <KonvaImage
-                        image={iconImage}
-                        x={-radius * 0.6}
-                        y={-radius * 0.6}
-                        width={radius * 1.2}
-                        height={radius * 1.2}
-                        listening={false}
-                        perfectDrawEnabled={false}
-                    />
-                ) : (
+                <>
+                    {iconImage && (
+                        <KonvaImage
+                            image={iconImage}
+                            x={-radius * 0.6}
+                            y={-radius * 0.6}
+                            width={radius * 1.2}
+                            height={radius * 1.2}
+                            listening={false}
+                            perfectDrawEnabled={false}
+                            opacity={0.35}
+                        />
+                    )}
                     <Text
                         x={-radius}
                         y={-radius}
                         width={radius * 2}
                         height={radius * 2}
-                        text={String(seat.number)}
-                        fontSize={Math.max(9, Math.min(11, radius * 0.8))}
+                        text={seatLabel}
+                        fontSize={seatLabelFontSize}
                         fill={THEME.textPrimary}
                         align="center"
                         verticalAlign="middle"
                         listening={false}
                         perfectDrawEnabled={false}
                     />
-                )
+                </>
             )}
 
             {isBooked && (
@@ -365,7 +563,9 @@ const Seat = memo(({
     return prevProps.isSelected === nextProps.isSelected &&
         prevProps.seat.status === nextProps.seat.status &&
         prevProps.seat.x === nextProps.seat.x &&
-        prevProps.seat.y === nextProps.seat.y;
+        prevProps.seat.y === nextProps.seat.y &&
+        prevProps.rowTitle === nextProps.rowTitle &&
+        prevProps.seat.number === nextProps.seat.number;
 });
 
 Seat.displayName = 'Seat';
@@ -373,21 +573,8 @@ Seat.displayName = 'Seat';
 const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave, sectionId }) => {
     if (!row.seats || row.seats.length === 0) return null;
 
-    const firstSeatY = row.seats[0]?.y ?? 50;
-
     return (
         <Group>
-            <Text
-                x={10}
-                y={firstSeatY - 5}
-                text={row.title}
-                fontSize={13}
-                fill={THEME.textSecondary}
-                fontStyle="600"
-                listening={false}
-                perfectDrawEnabled={false}
-            />
-
             {row.seats.map(seat => {
                 if (!seat || typeof seat.x !== 'number' || typeof seat.y !== 'number') {
                     return null;
@@ -416,20 +603,25 @@ const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave,
 
     if (prevHasSelected !== nextHasSelected) return false;
     if (!prevHasSelected && !nextHasSelected) {
-        // Even if no selected seats, check if any seat status changed
-        const statusChanged = prevProps.row.seats.some((prevSeat, index) => {
+        const changed = prevProps.row.seats.some((prevSeat, index) => {
             const nextSeat = nextProps.row.seats[index];
-            return !nextSeat || prevSeat.status !== nextSeat.status;
+            return !nextSeat ||
+                prevSeat.status !== nextSeat.status ||
+                prevSeat.x !== nextSeat.x ||
+                prevSeat.y !== nextSeat.y ||
+                prevSeat.radius !== nextSeat.radius;
         });
-        return !statusChanged; // Return true if no changes (skip re-render)
+        return !changed;
     }
 
-    // Check both selection and status changes
     return prevProps.row.seats.every((prevSeat, index) => {
         const nextSeat = nextProps.row.seats[index];
         if (!nextSeat) return false;
         return prevProps.selectedSeatIds.has(prevSeat.id) === nextProps.selectedSeatIds.has(nextSeat.id) &&
-            prevSeat.status === nextSeat.status;
+            prevSeat.status === nextSeat.status &&
+            prevSeat.x === nextSeat.x &&
+            prevSeat.y === nextSeat.y &&
+            prevSeat.radius === nextSeat.radius;
     });
 });
 
@@ -572,51 +764,25 @@ Section.displayName = 'Section';
 const StageScreen = memo(({ stage }) => {
     if (!stage) return null;
 
-    const isStraight = stage.shape === 'straight';
-
-    // Curve intensity - how much the line curves
-    const curveIntensity = stage.curve || 0.12;
-    const curveHeight = isStraight ? 0 : stage.width * curveIntensity;
-
+    // Booking canvas always uses a straight screen (saves vertical space vs curved API layout)
     return (
         <Group x={stage.x} y={stage.y}>
-            {/* Conditional curved or straight screen line */}
-            {isStraight ? (
-                <Line
-                    points={[0, 0, stage.width, 0]}
-                    stroke={THEME.primary}
-                    strokeWidth={3}
-                    lineCap="round"
-                    listening={false}
-                    perfectDrawEnabled={false}
-                    shadowColor={THEME.primary}
-                    shadowBlur={12}
-                    shadowOpacity={0.7}
-                />
-            ) : (
-                <Path
-                    data={`
-                        M 0 ${curveHeight}
-                        Q ${stage.width / 2} 0 ${stage.width} ${curveHeight}
-                    `}
-                    stroke={THEME.primary}
-                    strokeWidth={3}
-                    fill="transparent"
-                    lineCap="round"
-                    listening={false}
-                    perfectDrawEnabled={false}
-                    shadowColor={THEME.primary}
-                    shadowBlur={12}
-                    shadowOpacity={0.7}
-                />
-            )}
-
-            {/* SCREEN Label */}
+            <Line
+                points={[0, 0, stage.width, 0]}
+                stroke={THEME.primary}
+                strokeWidth={3}
+                lineCap="round"
+                listening={false}
+                perfectDrawEnabled={false}
+                shadowColor={THEME.primary}
+                shadowBlur={10}
+                shadowOpacity={0.65}
+            />
             <Text
                 width={stage.width}
-                y={curveHeight + 15}
+                y={BOOKING_STAGE_SCREEN_LABEL_Y}
                 text={stage.name || 'SCREEN'}
-                fontSize={14}
+                fontSize={BOOKING_STAGE_SCREEN_NAME_SIZE}
                 fill={THEME.textSecondary}
                 fontStyle="500"
                 align="center"
@@ -646,6 +812,19 @@ const getLayoutBounds = (stage, sections) => {
         minY = Math.min(minY, section.y);
         maxX = Math.max(maxX, section.x + section.width);
         maxY = Math.max(maxY, section.y + section.height);
+
+        section.rows?.forEach(row => {
+            row.seats?.forEach(seat => {
+                if (!seat || typeof seat.x !== 'number' || typeof seat.y !== 'number') return;
+                const r = parseFloat(seat.radius) || 12;
+                const ax = section.x + seat.x;
+                const ay = section.y + seat.y;
+                minX = Math.min(minX, ax - r);
+                maxX = Math.max(maxX, ax + r);
+                minY = Math.min(minY, ay - r);
+                maxY = Math.max(maxY, ay + r);
+            });
+        });
     });
 
     return {
@@ -807,12 +986,18 @@ const BookingSeatCanvas = ({
         return seatIds;
     }, [selectedSeats]);
 
+    /** Relaxed spacing + larger hit targets for dense layouts (display-only; IDs unchanged) */
+    const displaySections = useMemo(
+        () => buildBookingDisplaySections(sections, stage),
+        [sections, stage]
+    );
+
     // Memoized seat click handler with auto-center
     const handleSeatClick = useCallback((seat, sectionId, rowId) => {
         onSeatClick(seat, sectionId, rowId);
 
         // Auto-center on the clicked seat
-        const section = sections.find(s => s.id === sectionId);
+        const section = displaySections.find(s => s.id === sectionId);
         if (!section) return;
 
         const seatAbsX = section.x + seat.x;
@@ -829,7 +1014,7 @@ const BookingSeatCanvas = ({
         };
 
         animateTo(targetScale, targetPos);
-    }, [onSeatClick, sections, dimensions, animateTo]);
+    }, [onSeatClick, displaySections, dimensions, animateTo]);
 
     // Hover handlers with 400ms delay & stay-on-tooltip
     const handleSeatHover = useCallback((seat, rowTitle, x, y) => {
@@ -877,7 +1062,7 @@ const BookingSeatCanvas = ({
 
     // Calculate initial view
     const getInitialView = useCallback(() => {
-        const bounds = getLayoutBounds(stage, sections);
+        const bounds = getLayoutBounds(stage, displaySections);
         const padding = IS_MOBILE ? 40 : 80;
 
         const scaleX = (dimensions.width - padding * 2) / bounds.width;
@@ -894,12 +1079,12 @@ const BookingSeatCanvas = ({
         const centerY = padding - bounds.minY * fitScale;
 
         return { scale: fitScale, position: { x: centerX, y: centerY } };
-    }, [stage, sections, dimensions]);
+    }, [stage, displaySections, dimensions]);
 
-    // Reset initialization when stage or dimensions change
+    // Reset initialization when stage, dimensions, or layout geometry change
     useEffect(() => {
         hasInitialized.current = false;
-    }, [stage, dimensions]);
+    }, [stage, dimensions, sections]);
 
     // Initial centering and scale (with sessionStorage + deep link support)
     useEffect(() => {
@@ -922,10 +1107,10 @@ const BookingSeatCanvas = ({
             const sectionParam = params.get('section');
             const rowParam = params.get('row');
             if (sectionParam) {
-                let targetSection = sections.find(s => String(s.id) === sectionParam);
+                let targetSection = displaySections.find(s => String(s.id) === sectionParam);
                 if (!targetSection) {
                     const idx = parseInt(sectionParam, 10);
-                    if (!isNaN(idx) && idx >= 0 && idx < sections.length) targetSection = sections[idx];
+                    if (!isNaN(idx) && idx >= 0 && idx < displaySections.length) targetSection = displaySections[idx];
                 }
                 if (targetSection) {
                     const pad = 40;
@@ -991,7 +1176,7 @@ const BookingSeatCanvas = ({
 
         setIsReady(true);
         hasInitialized.current = true;
-    }, [stage, sections, dimensions, stageRef, externalSetStagePosition, getInitialView, layoutId]);
+    }, [stage, sections, displaySections, dimensions, stageRef, externalSetStagePosition, getInitialView, layoutId]);
 
     // Mouse wheel zoom
     const handleWheel = useCallback((e) => {
@@ -1172,7 +1357,7 @@ const BookingSeatCanvas = ({
 
     // ──── Zoom-to-section ────
     const handleZoomToSection = useCallback((sectionId) => {
-        const section = sections.find(s => s.id === sectionId);
+        const section = displaySections.find(s => s.id === sectionId);
         if (!section) return;
         const pad = 40;
         const sx = (dimensions.width - pad * 2) / section.width;
@@ -1182,20 +1367,20 @@ const BookingSeatCanvas = ({
             x: dimensions.width / 2 - (section.x + section.width / 2) * fitScale,
             y: dimensions.height / 2 - (section.y + section.height / 2) * fitScale,
         });
-    }, [sections, dimensions, animateTo]);
+    }, [displaySections, dimensions, animateTo]);
 
     // ──── Viewport culling ────
     const visibleSections = useMemo(() => {
-        if (!sections.length) return [];
+        if (!displaySections.length) return [];
         const pad = 300; // generous padding in canvas coords
         const vl = -position.x / scale - pad;
         const vt = -position.y / scale - pad;
         const vr = (dimensions.width - position.x) / scale + pad;
         const vb = (dimensions.height - position.y) / scale + pad;
-        return sections.filter(s =>
+        return displaySections.filter(s =>
             s.x + s.width > vl && s.x < vr && s.y + s.height > vt && s.y < vb
         );
-    }, [sections, position.x, position.y, scale, dimensions.width, dimensions.height]);
+    }, [displaySections, position.x, position.y, scale, dimensions.width, dimensions.height]);
 
     // Status label helper for tooltip
     const getSeatStatusLabel = useCallback((seat) => {
@@ -1463,7 +1648,7 @@ const BookingSeatCanvas = ({
                     }}
                 >
                     <Typography.Text strong style={{ color: THEME.textPrimary, fontSize: 13 }}>
-                        {hoveredSeat.rowTitle}{hoveredSeat.seat.number}
+                        {formatSeatDisplayLabel(hoveredSeat.rowTitle, hoveredSeat.seat?.number)}
                     </Typography.Text>
 
                     {hoveredSeat.seat.ticket && (

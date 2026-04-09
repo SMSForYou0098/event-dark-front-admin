@@ -33,6 +33,7 @@ const PermissionChecker = ({
 
   // --- 3️⃣ Normalize user data ---
   const userPermissions = toArray(UserPermissions).map(norm);
+  // console.log('userPermissions', userPermissions);
   const userRoles = toArray(userRole).map(norm);
 
   // --- 4️⃣ ✅ ADMIN BYPASS ---
