@@ -142,6 +142,17 @@ export const PERMISSIONS = {
     ASSIGN_CREDITS: "Assign Credits",
     TRANSACTIONS_HISTORY: "Transactions History",
     ASSIGN_ROLE: "Assign Role",
+
+    // Seatings permissions
+    VIEW_SEATING_ONLINE_BOOKINGS: "View Seating Online Bookings",
+    VIEW_SEATING_PENDING_BOOKINGS: "View Seating Pending Bookings",
+    VIEW_SEATING_REFUND_REQUESTS: "View Seating Refund Requests",
+    VIEW_SEATING_AGENT_BOOKINGS: "View Seating Agent Bookings",
+    ADD_SEATING_AGENT_BOOKING: "Add Seating Agent Booking",
+    VIEW_SEATING_POS_BOOKINGS: "View Seating POS Bookings",
+    ADD_SEATING_POS_BOOKING: "Add Seating POS Booking",
+    VIEW_SEATING_LAYOUT_REPORT: "View Seating Layout Report",
+    VIEW_MANAGE_SEATING_LAYOUT: "View Manage Seating Layout",
 };
 
 export const PERMISSION_COUNT = Object.keys(PERMISSIONS).length;

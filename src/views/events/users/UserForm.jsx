@@ -23,6 +23,7 @@ import { updateUser } from "store/slices/authSlice";
 import { Key } from "lucide-react";
 import PermissionChecker from "layouts/PermissionChecker";
 import Loader from "utils/Loader";
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 
 const { Option } = Select;
 
@@ -574,18 +575,21 @@ const UserForm = memo(({ mode = "edit" }) => {
                                 </Card>
                             </PermissionChecker>
 
-                            <Card title="Basic Information">
+                            <Card title="Basic Information test">
                                 <Row gutter={[16]}>
                                     <Col xs={24} md={12}>
                                         <Form.Item
                                             label="Name"
                                             name="name"
-                                            rules={[{ required: true, message: 'Please enter name' }]}
+                                            rules={[
+                                                { required: true, message: 'Please enter name' },
+                                                { pattern: /^[a-zA-Z\s]+$/, message: 'Name must contain only letters and spaces' }
+                                            ]}
                                         >
                                             <Input
                                                 placeholder="Enter name"
                                                 value={formState.name}
-                                                onChange={(e) => handleInputChange('name', e.target.value)}
+                                                onChange={(e) => handleInputChange('name', e.target.value.replace(/[^a-zA-Z\s]/g, '').trimStart().replace(/\s\s+/g, ' '))}
                                             />
                                         </Form.Item>
                                     </Col>
@@ -594,10 +598,7 @@ const UserForm = memo(({ mode = "edit" }) => {
                                         <Form.Item
                                             label="Email"
                                             name="email"
-                                            rules={[
-                                                { required: true, message: 'Please enter email' },
-                                                { type: 'email', message: 'Please enter valid email' }
-                                            ]}
+                                            rules={VALIDATION_RULES.EMAIL}
                                         >
                                             <Input
                                                 placeholder="Enter email"
@@ -611,15 +612,13 @@ const UserForm = memo(({ mode = "edit" }) => {
                                         <Form.Item
                                             label="Mobile Number"
                                             name="number"
-                                            rules={[
-                                                { required: true, message: 'Please enter mobile number' },
-                                                { pattern: /^\d{10,12}$/, message: 'Mobile number must be 10-12 digits' }
-                                            ]}
+                                            rules={VALIDATION_RULES.MOBILE}
                                         >
                                             <Input
                                                 placeholder="Enter mobile number"
                                                 value={formState.number}
-                                                onChange={(e) => handleInputChange('number', e.target.value)}
+                                                maxLength={10}
+                                                onChange={(e) => handleInputChange('number', e.target.value.replace(/\D/g, '').slice(0, 10))}
                                             />
                                         </Form.Item>
                                     </Col>

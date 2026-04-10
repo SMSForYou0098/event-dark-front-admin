@@ -1,21 +1,18 @@
 import React, { memo, useState, useCallback, useMemo } from "react";
-import { Button, Space, Modal, message, Tooltip } from "antd";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Space, Tooltip } from "antd";
+import { useQuery } from "@tanstack/react-query";
 import { useMyContext } from "../../../../Context/MyContextProvider";
-import { CreditCard, AlertCircle } from "lucide-react";
 import DataTable from "../../common/DataTable";
 import api from "auth/FetchInterceptor";
-import Utils from "utils";
-import PermissionChecker from "layouts/PermissionChecker";
 import { PERMISSIONS } from "constants/PermissionConstant";
 import usePermission from "utils/hooks/usePermission";
 import { getBookingSeatNumbersDisplay } from "../utils/bookingSeatDisplay";
+import ConfirmPendingBookingButton from "./ConfirmPendingBookingButton";
 
 const PendingBookings = memo(({ seatingChartBooking = false }) => {
   const { UserData, formatDateTime, truncateString } = useMyContext();
   const canExportOnline = usePermission(PERMISSIONS.EXPORT_ONLINE_BOOKINGS);
   const [dateRange, setDateRange] = useState(null);
-  const queryClient = useQueryClient();
 
   // Backend pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -105,57 +102,6 @@ const PendingBookings = memo(({ seatingChartBooking = false }) => {
   // Extract bookings and pagination from query data
   const bookings = useMemo(() => bookingsData.bookings || [], [bookingsData.bookings]);
   const pagination = bookingsData.pagination;
-
-  // Confirm payment mutation
-  const confirmPaymentMutation = useMutation({
-    mutationFn: async ({ session_id }) => {
-      return api.post(`booking-confirm/${session_id}`);
-    },
-    onSuccess: (res) => {
-      if (res.status) {
-        queryClient.invalidateQueries(["pendingBookings"]);
-        Modal.success({
-          title: "Success",
-          content: "Booking confirmed successfully.",
-        });
-      } else {
-        message.error(res?.message || "Something went wrong.");
-      }
-    },
-    onError: (err) => {
-      message.error(Utils.getErrorMessage(err, "Failed to confirm booking"));
-    },
-  });
-
-  const HandlePay = useCallback(
-    async (id) => {
-      try {
-        const booking = bookings?.find((booking) => booking?.id === id);
-        const session_id = booking?.session_id;
-
-        if (!session_id) {
-          message.error("Session ID not found");
-          return;
-        }
-
-        // Add confirmation dialog using Ant Design Modal
-        Modal.confirm({
-          title: "Confirm Payment",
-          content: "Do you want to confirm payment for this booking?",
-          icon: <AlertCircle size={24} color="#faad14" />,
-          okText: "Yes, confirm it!",
-          cancelText: "Cancel",
-          okButtonProps: { danger: false },
-          onOk: () => {
-            confirmPaymentMutation.mutate({ session_id });
-          },
-        });
-      } catch (error) {
-        message.error(Utils.getErrorMessage(error, "Failed to process payment confirmation"));
-      }
-    },
-    [bookings, confirmPaymentMutation]
-  );
 
   // Handle date range change
   const handleDateRangeChange = useCallback((dates) => {
@@ -288,18 +234,10 @@ const PendingBookings = memo(({ seatingChartBooking = false }) => {
       width: 120,
       render: (_, record) => (
         <Space size="small">
-          <PermissionChecker permission={PERMISSIONS.CONFIRM_PENDING_BOOKING}>
-            <Button
-              type="primary"
-              size="small"
-              icon={<CreditCard size={14} />}
-              onClick={() => HandlePay(record.id)}
-              loading={confirmPaymentMutation.isPending}
-              title="Pay Now"
-            >
-              Pay Now
-            </Button>
-          </PermissionChecker>
+          <ConfirmPendingBookingButton
+            booking={record}
+            seatingChartBooking={seatingChartBooking}
+          />
         </Space>
       ),
     },
@@ -370,7 +308,7 @@ const PendingBookings = memo(({ seatingChartBooking = false }) => {
       showRefresh={true}
       dateRange={dateRange}
       onDateRangeChange={handleDateRangeChange}
-      loading={isLoading || confirmPaymentMutation.isPending}
+      loading={isLoading}
       error={isError ? error : null}
       enableSearch={true}
       showSearch={true}

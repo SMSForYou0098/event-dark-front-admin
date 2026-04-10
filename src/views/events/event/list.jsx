@@ -20,10 +20,11 @@ import PermissionChecker from 'layouts/PermissionChecker';
 import { USERSITE_URL } from 'utils/consts';
 import EmptyEventsState from './components/EmptyEventsState';
 import Utils from 'utils';
+import { PERMISSIONS } from 'constants/PermissionConstant';
 
 const EventList = ({ isJunk = false }) => {
   const navigate = useNavigate();
-  const { UserData, formatDateTime, isMobile, createSlug, truncateString } = useMyContext();
+  const { UserData, formatDateTime, isMobile, createSlug, truncateString, UserPermissions, userRole } = useMyContext();
   const [dateRange, setDateRange] = useState(null);
   const queryClient = useQueryClient();
 
@@ -297,7 +298,7 @@ const EventList = ({ isJunk = false }) => {
           if (isRegistration) {
             return (
               <Tooltip title="Registration">
-                  <span style={{ display: 'inline-flex' }}>
+                <span style={{ display: 'inline-flex' }}>
                   <ClipboardList size={16} style={{ color: '#722ed1' }} />
                 </span>
               </Tooltip>
@@ -316,34 +317,48 @@ const EventList = ({ isJunk = false }) => {
 
               {!isCard && isTicket && (
                 <Tooltip title="Seating Chart">
-                  {row.event_has_layout?.layout_id ? (
-                    <Popover
-                      trigger="click"
-                      placement="bottom"
-                      content={(
-                        <Space direction="vertical" size={4}>
-                          <Link to={`/report/${row?.event_key}/layout/${row.event_has_layout?.layout_id}`}>
-                            <Button type="text" size="small" style={{ width: '100%', textAlign: 'left' }}>
-                              Layout Report
-                            </Button>
-                          </Link>
-                          <Link to={`/theatre/event/${row?.event_key}/layout/${row.event_has_layout?.layout_id}?isAssign=true`}>
-                            <Button type="text" size="small" style={{ width: '100%', textAlign: 'left' }}>
-                              Manage Layout
-                            </Button>
-                          </Link>
-                        </Space>
-                      )}
-                    >
-                      <span style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                  {(() => {
+                    const hasAccess = userRole?.toLowerCase() === 'admin' ||
+                      (UserPermissions || []).includes(PERMISSIONS.VIEW_SEATING_LAYOUT_REPORT) ||
+                      (UserPermissions || []).includes(PERMISSIONS.VIEW_MANAGE_SEATING_LAYOUT);
+
+                    if (row.event_has_layout?.layout_id && hasAccess) {
+                      return (
+                        <Popover
+                          trigger="click"
+                          placement="bottom"
+                          content={(
+                            <Space direction="vertical" size={4}>
+                              <PermissionChecker permission={PERMISSIONS.VIEW_SEATING_LAYOUT_REPORT}>
+                                <Link to={`/report/${row?.event_key}/layout/${row.event_has_layout?.layout_id}`}>
+                                  <Button type="text" size="small" style={{ width: '100%', textAlign: 'left' }}>
+                                    Layout Report
+                                  </Button>
+                                </Link>
+                              </PermissionChecker>
+                              <PermissionChecker permission={PERMISSIONS.VIEW_MANAGE_SEATING_LAYOUT}>
+                                <Link to={`/theatre/event/${row?.event_key}/layout/${row.event_has_layout?.layout_id}?isAssign=true`}>
+                                  <Button type="text" size="small" style={{ width: '100%', textAlign: 'left' }}>
+                                    Manage Layout
+                                  </Button>
+                                </Link>
+                              </PermissionChecker>
+                            </Space>
+                          )}
+                        >
+                          <span style={{ display: 'inline-flex', cursor: 'pointer' }}>
+                            <Armchair size={16} style={{ color: '#8c8c8c' }} />
+                          </span>
+                        </Popover>
+                      );
+                    }
+
+                    return (
+                      <span style={{ display: 'inline-flex', opacity: 0.5, cursor: 'not-allowed' }}>
                         <Armchair size={16} style={{ color: '#8c8c8c' }} />
                       </span>
-                    </Popover>
-                  ) : (
-                    <span style={{ display: 'inline-flex', opacity: 0.5, cursor: 'not-allowed' }}>
-                      <Armchair size={16} style={{ color: '#8c8c8c' }} />
-                    </span>
-                  )}
+                    );
+                  })()}
                 </Tooltip>
               )}
             </Space>

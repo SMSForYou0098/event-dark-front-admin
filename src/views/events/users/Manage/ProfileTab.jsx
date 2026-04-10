@@ -685,7 +685,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 if (field === 'reporting_user') fieldName = 'reportingUser';
                 if (field === 'org_gst_no') fieldName = 'orgGstNumber';
                 if (field === 'brand_name') fieldName = 'brandName';
-                
+
                 return {
                     name: [fieldName], // Use array for path to match AntD 4/5 expectations
                     errors: response.errors[field]
@@ -1105,7 +1105,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                             }
                                         }
                                     ]}
-                                    getValueFromEvent={(e) => e.target.value.trimStart().replace(/\s\s+/g, ' ')}
+                                    getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z\s]/g, '').trimStart().replace(/\s\s+/g, ' ')}
                                 >
                                     <Input
                                         placeholder="Enter name"
@@ -1119,8 +1119,13 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                     label="Mobile Number"
                                     name="number"
                                     rules={VALIDATION_RULES.MOBILE}
+                                    getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 10)}
                                 >
-                                    <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} />
+                                    <Input
+                                        placeholder="Enter mobile number"
+                                        disabled={mode === 'edit' && userRole !== 'Admin'}
+                                        maxLength={10}
+                                    />
                                 </Form.Item>
                             </Col>
 

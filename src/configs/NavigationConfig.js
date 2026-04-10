@@ -185,147 +185,147 @@ const userManagementNav = {
 
 // Seating chart bookings (seat-based / ticket_system flow; sibling top-level group like Bookings)
 const seatingChartBookingsSubmenu = [
-    {
-      key: 'seating-online-manage',
-      title: 'Online',
-      breadcrumb: false,
-      icon: LayoutOutlined,
-      permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
-      submenu: [
-        {
-          key: 'seating-online-new',
-          title: 'Confirmed',
-          breadcrumb: false,
-          icon: ShoppingOutlined,
-          permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
-          submenu: [
-            {
-              key: 'seating-online-paid',
-              path: 'bookings/seating-chart/online/paid',
-              title: 'Paid',
-              breadcrumb: false,
-              icon: DollarOutlined,
-              permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
-            },
-            {
-              key: 'seating-online-free',
-              path: 'bookings/seating-chart/online/free',
-              title: 'Free',
-              breadcrumb: false,
-              icon: CheckOutlined,
-              permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
-            }
-          ]
-        },
-        {
-          key: 'seating-pending-booking',
-          path: 'bookings/seating-chart/pending',
-          title: 'Pending',
-          icon: ClockCircleOutlined,
-          breadcrumb: false,
-          submenu: [],
-          roles: ["Admin"]
-        },
-        {
-          key: 'seating-refund-booking',
-          title: 'Refund',
-          icon: DollarOutlined,
-          breadcrumb: false,
-          permissions: [PERMISSIONS.VIEW_REFUND_REQUESTS],
-          submenu: [
-            {
-              key: 'seating-refund-requests',
-              path: 'bookings/seating-chart/refund',
-              title: 'Refund Requests',
-              breadcrumb: false,
-              permissions: [PERMISSIONS.VIEW_REFUND_REQUESTS]
-            }
-          ]
-        },
-      ]
-    },
-    {
-      key: 'seating-agent-booking',
-      path: 'bookings/seating-chart/agent',
-      title: 'Agent',
-      icon: IdcardOutlined,
-      breadcrumb: false,
-      permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
-      submenu: [
-        {
-          key: 'seating-agent-manage',
-          title: 'Manage',
-          breadcrumb: false,
-          permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
-          submenu: [
-            {
-              key: 'seating-agent-paid',
-              path: 'bookings/seating-chart/agent/paid',
-              title: 'Paid',
-              breadcrumb: false,
-              permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
-              icon: DollarOutlined,
-            },
-            {
-              key: 'seating-agent-free',
-              path: 'bookings/seating-chart/agent/free',
-              title: 'Free',
-              breadcrumb: false,
-              permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
-              icon: CheckOutlined,
-            }
-          ]
-        },
-        {
-          key: 'seating-agent-new',
-          path: 'bookings/seating-chart/agent/new',
-          title: 'New',
-          breadcrumb: false,
-          permissions: [PERMISSIONS.ADD_AGENT_BOOKING]
-        }
-      ]
-    },
-    {
-      key: 'seating-pos-booking',
-      path: 'bookings/seating-chart/pos',
-      title: 'POS',
-      icon: ShoppingOutlined,
-      breadcrumb: false,
-      permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
-      submenu: [
-        {
-          key: 'seating-pos-manage',
-          title: 'Manage',
-          breadcrumb: false,
-          permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
-          submenu: [
-            {
-              key: 'seating-pos-paid',
-              path: 'bookings/seating-chart/pos/paid',
-              title: 'Paid',
-              breadcrumb: false,
-              permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
-              icon: DollarOutlined,
-            },
-            {
-              key: 'seating-pos-free',
-              path: 'bookings/seating-chart/pos/free',
-              title: 'Free',
-              breadcrumb: false,
-              permissions: [PERMISSIONS.VIEW_POS_BOOKINGS],
-              icon: CheckOutlined,
-            }
-          ]
-        },
-        {
-          key: 'seating-pos-new',
-          path: 'bookings/seating-chart/pos/new',
-          title: 'New',
-          breadcrumb: false,
-          permissions: [PERMISSIONS.ADD_POS_BOOKING]
-        }
-      ]
-    },
+  {
+    key: 'seating-online-manage',
+    title: 'Online',
+    breadcrumb: false,
+    icon: LayoutOutlined,
+    permissions: [PERMISSIONS.VIEW_SEATING_ONLINE_BOOKINGS],
+    submenu: [
+      {
+        key: 'seating-online-new',
+        title: 'Confirmed',
+        breadcrumb: false,
+        icon: ShoppingOutlined,
+        permissions: [PERMISSIONS.VIEW_SEATING_ONLINE_BOOKINGS],
+        submenu: [
+          {
+            key: 'seating-online-paid',
+            path: 'bookings/seating-chart/online/paid',
+            title: 'Paid',
+            breadcrumb: false,
+            icon: DollarOutlined,
+            permissions: [PERMISSIONS.VIEW_SEATING_ONLINE_BOOKINGS],
+          },
+          {
+            key: 'seating-online-free',
+            path: 'bookings/seating-chart/online/free',
+            title: 'Free',
+            breadcrumb: false,
+            icon: CheckOutlined,
+            permissions: [PERMISSIONS.VIEW_SEATING_ONLINE_BOOKINGS],
+          }
+        ]
+      },
+      {
+        key: 'seating-pending-booking',
+        path: 'bookings/seating-chart/pending',
+        title: 'Pending',
+        icon: ClockCircleOutlined,
+        breadcrumb: false,
+        submenu: [],
+        permissions: [PERMISSIONS.VIEW_SEATING_PENDING_BOOKINGS]
+      },
+      {
+        key: 'seating-refund-booking',
+        title: 'Refund',
+        icon: DollarOutlined,
+        breadcrumb: false,
+        permissions: [PERMISSIONS.VIEW_SEATING_REFUND_REQUESTS],
+        submenu: [
+          {
+            key: 'seating-refund-requests',
+            path: 'bookings/seating-chart/refund',
+            title: 'Refund Requests',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_SEATING_REFUND_REQUESTS]
+          }
+        ]
+      },
+    ]
+  },
+  {
+    key: 'seating-agent-booking',
+    path: 'bookings/seating-chart/agent',
+    title: 'Agent',
+    icon: IdcardOutlined,
+    breadcrumb: false,
+    permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
+    submenu: [
+      {
+        key: 'seating-agent-manage',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
+        submenu: [
+          {
+            key: 'seating-agent-paid',
+            path: 'bookings/seating-chart/agent/paid',
+            title: 'Paid',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
+            icon: DollarOutlined,
+          },
+          {
+            key: 'seating-agent-free',
+            path: 'bookings/seating-chart/agent/free',
+            title: 'Free',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
+            icon: CheckOutlined,
+          }
+        ]
+      },
+      {
+        key: 'seating-agent-new',
+        path: 'bookings/seating-chart/agent/new',
+        title: 'New',
+        breadcrumb: false,
+        permissions: [PERMISSIONS.ADD_SEATING_AGENT_BOOKING]
+      }
+    ]
+  },
+  {
+    key: 'seating-pos-booking',
+    path: 'bookings/seating-chart/pos',
+    title: 'POS',
+    icon: ShoppingOutlined,
+    breadcrumb: false,
+    permissions: [PERMISSIONS.VIEW_SEATING_POS_BOOKINGS],
+    submenu: [
+      {
+        key: 'seating-pos-manage',
+        title: 'Manage',
+        breadcrumb: false,
+        permissions: [PERMISSIONS.VIEW_SEATING_POS_BOOKINGS],
+        submenu: [
+          {
+            key: 'seating-pos-paid',
+            path: 'bookings/seating-chart/pos/paid',
+            title: 'Paid',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_SEATING_POS_BOOKINGS],
+            icon: DollarOutlined,
+          },
+          {
+            key: 'seating-pos-free',
+            path: 'bookings/seating-chart/pos/free',
+            title: 'Free',
+            breadcrumb: false,
+            permissions: [PERMISSIONS.VIEW_SEATING_POS_BOOKINGS],
+            icon: CheckOutlined,
+          }
+        ]
+      },
+      {
+        key: 'seating-pos-new',
+        path: 'bookings/seating-chart/pos/new',
+        title: 'New',
+        breadcrumb: false,
+        permissions: [PERMISSIONS.ADD_SEATING_POS_BOOKING]
+      }
+    ]
+  },
 ];
 
 const seatingChartBookingsNav = {
@@ -335,7 +335,12 @@ const seatingChartBookingsNav = {
   icon: LayoutOutlined,
   breadcrumb: false,
   submenu: seatingChartBookingsSubmenu,
-  roles: ["Admin", "Organizer"]
+  roles: ["Admin", "Organizer"],
+  permissions: [
+    PERMISSIONS.VIEW_SEATING_ONLINE_BOOKINGS,
+    PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS,
+    PERMISSIONS.VIEW_SEATING_POS_BOOKINGS
+  ]
 };
 
 // Bookings Submenu

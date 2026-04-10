@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card, Col, Row, Form, Input, Radio } from 'antd';
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 
 /**
  * Address Card Component
@@ -20,8 +21,13 @@ const AddressCard = () => {
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                    <Form.Item label="Pincode" name="pincode">
-                        <Input placeholder="Enter pincode" />
+                    <Form.Item
+                        label="Pincode"
+                        name="pincode"
+                        rules={VALIDATION_RULES.PINCODE}
+                        getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 6)}
+                    >
+                        <Input placeholder="Enter pincode" maxLength={6} />
                     </Form.Item>
                 </Col>
             </Row>
@@ -46,14 +52,10 @@ const BankingDetailsCard = () => {
                     <Form.Item
                         label="IFSC Code"
                         name="bankIfsc"
-                        rules={[
-                            {
-                                pattern: /^[A-Za-z]{4}0[A-Za-z0-9]{6}$/,
-                                message: 'Please enter a valid IFSC code (e.g., ABCD0123456)'
-                            }
-                        ]}
+                        rules={VALIDATION_RULES.IFSC}
+                        getValueFromEvent={(e) => e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11)}
                     >
-                        <Input placeholder="Enter IFSC code" />
+                        <Input placeholder="Enter IFSC code" maxLength={11} />
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
@@ -62,8 +64,15 @@ const BankingDetailsCard = () => {
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                    <Form.Item label="Account Number" name="bankNumber">
-                        <Input placeholder="Enter account number" />
+                    <Form.Item
+                        label="Account Number"
+                        name="bankNumber"
+                        rules={[
+                            { pattern: /^\d{9,18}$/, message: 'Please enter a valid account number (9-18 digits)' }
+                        ]}
+                        getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 18)}
+                    >
+                        <Input placeholder="Enter account number" maxLength={18} />
                     </Form.Item>
                 </Col>
             </Row>

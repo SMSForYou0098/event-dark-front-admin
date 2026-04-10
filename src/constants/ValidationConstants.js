@@ -19,6 +19,12 @@ export const VALIDATION_REGEX = {
 
     // Mobile: 10-12 digits
     MOBILE_LONG: /^\d{10,12}$/,
+
+    // Email: 
+    EMAIL: /^[A-Za-z0-9]+([._+-]?[A-Za-z0-9]+)*@[A-Za-z0-9]+(-[A-Za-z0-9]+)*(\.[A-Za-z0-9]+(-[A-Za-z0-9]+)*)+$/,
+
+    // 
+
 };
 
 export const VALIDATION_MESSAGES = {
@@ -55,7 +61,7 @@ export const VALIDATION_RULES = {
     ],
     EMAIL: [
         { required: true, message: VALIDATION_MESSAGES.REQUIRED('email') },
-        { type: 'email', message: VALIDATION_MESSAGES.EMAIL }
+        { pattern: VALIDATION_REGEX.EMAIL, message: VALIDATION_MESSAGES.EMAIL }
     ],
     NAME: [
         { required: true, message: VALIDATION_MESSAGES.REQUIRED('name') },

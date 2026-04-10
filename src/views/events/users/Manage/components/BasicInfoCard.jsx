@@ -74,6 +74,7 @@ const BasicInfoCard = ({
                         label="Name"
                         name="name"
                         rules={VALIDATION_RULES.NAME}
+                        getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z\s]/g, '').trimStart().replace(/\s\s+/g, ' ')}
                     >
                         <Input placeholder="Enter name" />
                     </Form.Item>
@@ -83,9 +84,10 @@ const BasicInfoCard = ({
                     <Form.Item
                         label="Mobile Number"
                         name="number"
-                        rules={VALIDATION_RULES.MOBILE_LONG}
+                        rules={VALIDATION_RULES.MOBILE}
+                        getValueFromEvent={(e) => e.target.value.replace(/\D/g, '').slice(0, 10)}
                     >
-                        <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} />
+                        <Input placeholder="Enter mobile number" disabled={mode === 'edit' && userRole !== 'Admin'} maxLength={10} />
                     </Form.Item>
                 </Col>
 
