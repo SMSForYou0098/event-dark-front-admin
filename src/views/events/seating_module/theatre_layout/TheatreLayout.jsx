@@ -15,6 +15,7 @@ import { VanueList } from 'views/events/event/components/CONSTANTS';
 import PermissionChecker from 'layouts/PermissionChecker';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import { useMyContext } from 'Context/MyContextProvider';
+import { PRIMARY } from 'utils/consts';
 
 // Helper functions to sanitize numeric values from API (strings to numbers)
 const sanitizeStageNumbers = (stageData) => ({
@@ -34,6 +35,7 @@ const sanitizeSeat = (seat) => {
     x: parseFloat(seat.x) || 0,
     y: parseFloat(seat.y) || 0,
     radius: parseFloat(seat.radius) || 12,
+    seatColor: seat.seatColor || seat.color || null,
     ticketCategory: isBlankSeat ? null : (ticketId ? String(ticketId) : null),
     status: isBlankSeat ? 'unavailable' : (seat.status || 'available'),
   };
@@ -47,6 +49,7 @@ const sanitizeRow = (row) => {
     curve: parseFloat(row.curve) || 0,
     spacing: parseFloat(row.spacing) || 40,
     alignment: row.alignment || 'center',
+    seatColor: row.seatColor || row.color || null,
     ticketCategory: ticketId ? String(ticketId) : null,
     seats: row.seats?.map(sanitizeSeat) || []
   };
@@ -61,6 +64,7 @@ const sanitizeSection = (section) => {
     width: parseFloat(section.width) || 600,
     height: parseFloat(section.height) || 250,
     capacity: parseInt(section.capacity) || (section.type === 'Standing' ? 100 : 0),
+    seatColor: section.seatColor || section.color || null,
     ticketCategory: ticketId ? String(ticketId) : null,
     rows: section.type === 'Standing' ? [] : (section.rows?.map(sanitizeRow) || [])
   };
@@ -151,6 +155,7 @@ const AuditoriumLayoutDesigner = () => {
   const [selectedElement, setSelectedElement] = useState(null);
   const [selectedType, setSelectedType] = useState(null);
   const [selectedSectionIds, setSelectedSectionIds] = useState([]);
+  const [selectedSeatIds, setSelectedSeatIds] = useState([]);
   const [canvasScale, setCanvasScale] = useState(1);
   const [showGrid, setShowGrid] = useState(false);
   const [nextSectionId, setNextSectionId] = useState(1);
@@ -411,7 +416,7 @@ const AuditoriumLayoutDesigner = () => {
     if (hasChanges) {
       setSections(sanitizedSections);
     }
-  }, [ticketCategories]);
+  }, [ticketCategories,sections]);
 
   // Update selectedElement when sections change (to reflect sanitized data)
   useEffect(() => {
@@ -439,7 +444,15 @@ const AuditoriumLayoutDesigner = () => {
         setSelectedElement({ ...updatedSeat, sectionId: section.id, rowId: row.id });
       }
     }
-  }, [sections]); // Sync selection after sections updates only
+  }, [sections,selectedElement,selectedType]); // Sync selection after sections updates only
+
+  useEffect(() => {
+    if (selectedSeatIds.length === 0) return;
+    const availableSeatIds = new Set(
+      sections.flatMap((section) => section.rows?.flatMap((row) => row.seats?.map((seat) => seat.id) || []) || [])
+    );
+    setSelectedSeatIds((prev) => prev.filter((seatId) => availableSeatIds.has(seatId)));
+  }, [sections, selectedSeatIds.length]);
 
   // Generate unique IDs
   const generateId = (prefix) => `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -470,6 +483,7 @@ const AuditoriumLayoutDesigner = () => {
       id: generateId('section'),
       name: `Section ${nextSectionId}`,
       type: 'Regular',
+      seatColor: PRIMARY,
       x: 100,
       y: sectionY,
       width: 600,
@@ -530,6 +544,7 @@ const AuditoriumLayoutDesigner = () => {
           title: generateRowTitle(rowNumber),
           numberOfSeats: 10,
           ticketCategory: ticketCategories?.length > 0 ? ticketCategories[0].id : null,
+          seatColor: section.seatColor || PRIMARY,
           shape: 'straight',
           curve: 0,
           spacing: 40,
@@ -621,7 +636,9 @@ const AuditoriumLayoutDesigner = () => {
         radius: seatRadius,
         icon: row.defaultIcon || null, // NEW: Inherit row's default icon
         customIcon: false, // NEW: Track if seat has custom icon
-        customTicket: false // NEW: Track if seat has custom ticket assignment
+        customTicket: false, // NEW: Track if seat has custom ticket assignment
+        seatColor: row.seatColor || section.seatColor || PRIMARY,
+        customSeatColor: false
       });
     }
 
@@ -813,19 +830,6 @@ const AuditoriumLayoutDesigner = () => {
     }));
   };
 
-  // Get gap pattern from a row (for applying to other rows)
-  const getGapPattern = (row) => {
-    const gaps = [];
-    row.seats.forEach((seat, index) => {
-      if (seat.type === 'blank' && index > 0) {
-        const previousSeat = row.seats[index - 1];
-        if (previousSeat.type !== 'blank') {
-          gaps.push(previousSeat.number);
-        }
-      }
-    });
-    return gaps;
-  };
 
   // Update Section
   const updateSection = (sectionId, updates) => {
@@ -1080,11 +1084,26 @@ const AuditoriumLayoutDesigner = () => {
     }));
   };
 
+  const updateMultipleSeats = (seatIds, updates) => {
+    if (!seatIds?.length) return;
+    const seatIdSet = new Set(seatIds);
+    setSections((prevSections) => prevSections.map((section) => ({
+      ...section,
+      rows: section.rows.map((row) => ({
+        ...row,
+        seats: row.seats.map((seat) => (
+          seatIdSet.has(seat.id) ? { ...seat, ...updates } : seat
+        ))
+      }))
+    })));
+  };
+
   // Delete Section
   const deleteSection = (sectionId) => {
     setSections(sections.filter(s => s.id !== sectionId));
     setSelectedElement(null);
     setSelectedType(null);
+    setSelectedSeatIds([]);
   };
 
   // Duplicate Row (inserts copy directly below the source row)
@@ -1253,6 +1272,41 @@ const AuditoriumLayoutDesigner = () => {
     }));
   };
 
+  // Move Row in Section
+  const moveRow = (sectionId, sourceRowId, targetRowId) => {
+    setSections((prevSections) => prevSections.map(section => {
+      if (section.id !== sectionId) {
+        return section;
+      }
+
+      const sourceIndex = section.rows.findIndex((row) => row.id === sourceRowId);
+      const targetIndex = section.rows.findIndex((row) => row.id === targetRowId);
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return section;
+      }
+
+      const reorderedRows = [...section.rows];
+      const [movedRow] = reorderedRows.splice(sourceIndex, 1);
+      reorderedRows.splice(targetIndex, 0, movedRow);
+
+      const sectionWithReorderedRows = { ...section, rows: reorderedRows };
+      const updatedRows = reorderedRows.map((row, index) => ({
+        ...row,
+        seats: recalculateSeatPositions(row.seats, sectionWithReorderedRows, index, row)
+      }));
+
+      return ensureSectionFitsContent({
+        ...section,
+        rows: updatedRows
+      });
+    }));
+
+    if (selectedType === 'row' && selectedElement?.sectionId === sectionId && selectedElement?.id === sourceRowId) {
+      setSelectedElement({ ...selectedElement, sectionId });
+    }
+  };
+
   // NEW: Function to extract ticket assignments from sections (including status)
   const extractTicketAssignments = () => {
     const assignments = [];
@@ -1343,6 +1397,24 @@ const AuditoriumLayoutDesigner = () => {
     reader.readAsText(file);
   };
 
+  const buildSectionsPayloadForSave = (sourceSections) => {
+    return (sourceSections || []).map((section) => ({
+      ...section,
+      ticketId: section.ticketCategory || null,
+      color: section.seatColor || section.color || PRIMARY,
+      rows: (section.rows || []).map((row) => ({
+        ...row,
+        ticketId: row.ticketCategory || null,
+        color: row.seatColor || row.color || section.seatColor || PRIMARY,
+        seats: (row.seats || []).map((seat) => ({
+          ...seat,
+          ticketId: seat.ticketCategory || null,
+          color: seat.seatColor || seat.color || row.seatColor || section.seatColor || PRIMARY
+        }))
+      }))
+    }));
+  };
+
   // Save Layout to Backend (UPDATED WITH ASSIGNMENT MODE)
   const saveLayout = () => {
     if (isReportMode) return;
@@ -1364,6 +1436,7 @@ const AuditoriumLayoutDesigner = () => {
           ) || []
         })) || []
       }));
+      const sectionsPayload = buildSectionsPayloadForSave(sectionsForAssign);
 
       // const assignPayload = {
       //   layoutId: layoutId,
@@ -1378,7 +1451,7 @@ const AuditoriumLayoutDesigner = () => {
         name: layoutName || `Layout ${new Date().toISOString()}`,
         stage,
         venue_id: vanueId,
-        sections: sectionsForAssign,
+        sections: sectionsPayload,
         ticketCategories,
         metadata: {
           updatedAt: new Date().toISOString(),
@@ -1405,11 +1478,12 @@ const AuditoriumLayoutDesigner = () => {
       }
 
       // LAYOUT CREATION/EDIT MODE: Save layout structure
+      const sectionsPayload = buildSectionsPayloadForSave(sections);
       const layoutPayload = {
         name: layoutName || `Layout ${new Date().toISOString()}`,
         stage,
         venue_id: vanueId,
-        sections,
+        sections: sectionsPayload,
         ticketCategories,
         metadata: {
           createdAt: new Date().toISOString(),
@@ -1437,6 +1511,7 @@ const AuditoriumLayoutDesigner = () => {
       setSelectedElement(null);
       setSelectedType(null);
       setSelectedSectionIds([]);
+      setSelectedSeatIds([]);
     }
   };
 
@@ -1636,7 +1711,9 @@ const AuditoriumLayoutDesigner = () => {
                 selectedElement={selectedElement}
                 deleteRow={deleteRow}
                 addRowToSection={addRowToSection}
+                moveRow={moveRow}
                 isAssignMode={isAssignMode}
+                setSelectedSeatIds={setSelectedSeatIds}
               />
             </Col>
           </PermissionChecker>
@@ -1663,6 +1740,8 @@ const AuditoriumLayoutDesigner = () => {
             isReportMode={isReportMode}
             selectedSectionIds={selectedSectionIds}
             setSelectedSectionIds={setSelectedSectionIds}
+            selectedSeatIds={selectedSeatIds}
+            setSelectedSeatIds={setSelectedSeatIds}
           />
         </Col>
         {!isReportMode && (
@@ -1685,6 +1764,8 @@ const AuditoriumLayoutDesigner = () => {
               removeAllGapsFromRow={removeAllGapsFromRow}
               removeSingleGapFromRow={removeSingleGapFromRow}
               applyAlignmentToSectionRows={applyAlignmentToSectionRows}
+              selectedSeatIds={selectedSeatIds}
+              updateMultipleSeats={updateMultipleSeats}
             />
           </Col>
         )}

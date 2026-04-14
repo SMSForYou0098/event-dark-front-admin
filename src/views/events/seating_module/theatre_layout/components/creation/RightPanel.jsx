@@ -12,8 +12,7 @@ import {
   Alert,
   Col,
   Row,
-  Checkbox,
-  Divider
+  Checkbox
 } from "antd";
 
 import {
@@ -24,6 +23,42 @@ import { getIconComponent, seatIcons } from "../consts";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
+const SEAT_COLOR_OPTIONS = ['#b51515', '#1677ff', '#52c41a', '#faad14', '#722ed1', '#13c2c2'];
+
+const SeatColorSelector = ({ value, onChange }) => {
+  const selectedColor = value || SEAT_COLOR_OPTIONS[0];
+  return (
+    <Space direction="vertical" size={8} style={{ width: '100%' }}>
+      <Space wrap size={8}>
+        {SEAT_COLOR_OPTIONS.map((color) => (
+          <div
+            key={color}
+            onClick={() => onChange(color)}
+            title={color}
+            style={{
+              width: 24,
+              height: 24,
+              borderRadius: 4,
+              cursor: 'pointer',
+              backgroundColor: color,
+              border: selectedColor === color ? '2px solid #ffffff' : '1px solid rgba(255,255,255,0.3)',
+              boxShadow: selectedColor === color ? '0 0 0 1px rgba(0,0,0,0.35)' : 'none'
+            }}
+          />
+        ))}
+      </Space>
+      <Space align="center" size={8}>
+        <Text type="secondary">Custom</Text>
+        <input
+          type="color"
+          value={selectedColor}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ width: 36, height: 24, border: 'none', background: 'transparent', padding: 0, cursor: 'pointer' }}
+        />
+      </Space>
+    </Space>
+  );
+};
 
 const RightPanel = (props) => {
   const {
@@ -43,7 +78,9 @@ const RightPanel = (props) => {
     addBlankSeatToRow,
     removeAllGapsFromRow,
     removeSingleGapFromRow,
-    applyAlignmentToSectionRows
+    applyAlignmentToSectionRows,
+    selectedSeatIds = [],
+    updateMultipleSeats
   } = props;
 
   // State for gap management
@@ -111,6 +148,8 @@ const RightPanel = (props) => {
       setPreviousRowId(null);
     }
   }, [selectedElement, selectedType, previousRowId, extractFirstGapFromRow]);
+
+  const isMultiSeatEdit = selectedType === 'seat' && selectedSeatIds.length > 1;
 
   return (
     <div className="right-panel bg-custom-secondary" style={{ maxHeight: 'calc(100vh - 100px)', overflowX: 'hidden', overflowY: 'auto' }}>
@@ -275,6 +314,35 @@ const RightPanel = (props) => {
                 className="w-100"
               />
             </Form.Item>
+            {selectedElement.type !== 'Standing' && (
+              <Form.Item
+                label="Seat Color (Section)"
+                extra="Apply seat color to all rows and seats in this section."
+              >
+                <SeatColorSelector
+                  value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                  onChange={(color) => {
+                    setSections(sections.map((section) => {
+                      if (section.id !== selectedElement.id) return section;
+                      return {
+                        ...section,
+                        seatColor: color,
+                        rows: section.rows.map((row) => ({
+                          ...row,
+                          seatColor: color,
+                          seats: row.seats.map((seat) => ({
+                            ...seat,
+                            seatColor: color,
+                            customSeatColor: false
+                          }))
+                        }))
+                      };
+                    }));
+                    setSelectedElement({ ...selectedElement, seatColor: color });
+                  }}
+                />
+              </Form.Item>
+            )}
             {selectedElement.type !== 'Standing' && (
               <Form.Item label="Rows Alignment (Apply All)">
                 <Select
@@ -489,7 +557,35 @@ const RightPanel = (props) => {
                 </>
               );
             })()}
-
+   <Form.Item
+              label="Seat Color (Row)"
+              extra="Apply color to all seats in this row."
+            >
+              <SeatColorSelector
+                value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                onChange={(color) => {
+                  setSections(sections.map((section) => {
+                    if (section.id !== selectedElement.sectionId) return section;
+                    return {
+                      ...section,
+                      rows: section.rows.map((row) => {
+                        if (row.id !== selectedElement.id) return row;
+                        return {
+                          ...row,
+                          seatColor: color,
+                          seats: row.seats.map((seat) => ({
+                            ...seat,
+                            seatColor: color,
+                            customSeatColor: false
+                          }))
+                        };
+                      })
+                    };
+                  }));
+                  setSelectedElement({ ...selectedElement, seatColor: color });
+                }}
+              />
+            </Form.Item>
             {/* Removed !isAssignMode restriction for row icon selector */}
             <Form.Item
               label="Row Seat Icon"
@@ -539,7 +635,6 @@ const RightPanel = (props) => {
                     1
                   </div>
                 </Col>
-
                 {seatIcons?.map(iconObj => {
                   const IconComponent = getIconComponent(iconObj?.icon);
                   const isActive = selectedElement.defaultIcon === iconObj?.icon;
@@ -593,6 +688,8 @@ const RightPanel = (props) => {
                 })}
               </Row>
             </Form.Item>
+
+           
 
             {isAssignMode && ticketCategories?.length > 0 && (
               <Form.Item label="Assign Ticket Category to All Seats">
@@ -828,7 +925,88 @@ const RightPanel = (props) => {
         {/* Seat Editor */}
         {selectedType === 'seat' && selectedElement && (
           <Form layout="vertical" className="editor-form">
-            {selectedElement.type === 'blank' ? (
+            {isMultiSeatEdit && (
+              <>
+                <Alert
+                  message={`${selectedSeatIds.length} seats selected`}
+                  description="Bulk actions below will apply to all selected seats."
+                  type="info"
+                  showIcon
+                  className="mb-3"
+                />
+
+                <Form.Item label="Seat Color (Bulk)">
+                  <SeatColorSelector
+                    value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                    onChange={(color) => {
+                      updateMultipleSeats?.(selectedSeatIds, { seatColor: color, customSeatColor: true });
+                      setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
+                    }}
+                  />
+                </Form.Item>
+
+                <Form.Item label="Seat Icon (Bulk)">
+                  <Select
+                    placeholder="Apply icon to selected seats"
+                    value={selectedElement.icon || undefined}
+                    onChange={(value) => {
+                      const nextIcon = value || null;
+                      updateMultipleSeats?.(selectedSeatIds, { icon: nextIcon, customIcon: true });
+                      setSelectedElement({ ...selectedElement, icon: nextIcon, customIcon: true });
+                    }}
+                    allowClear
+                  >
+                    {seatIcons?.map(iconObj => {
+                      const IconComponent = getIconComponent(iconObj.icon);
+                      return (
+                        <Option key={iconObj.id} value={iconObj.icon}>
+                          <Space size={8} align="center">
+                            {IconComponent ? <IconComponent /> : null}
+                            <span>{iconObj.name}</span>
+                          </Space>
+                        </Option>
+                      );
+                    })}
+                  </Select>
+                </Form.Item>
+
+                {isAssignMode && ticketCategories?.length > 0 && (
+                  <Form.Item label="Ticket Category (Bulk)">
+                    <Select
+                      placeholder="Apply ticket to selected seats"
+                      allowClear
+                      onChange={(value) => {
+                        updateMultipleSeats?.(selectedSeatIds, {
+                          ticketCategory: value || null,
+                          customTicket: true,
+                          status: 'available'
+                        });
+                      }}
+                    >
+                      {ticketCategories?.map(cat => (
+                        <Option key={cat.id} value={String(cat.id)}>
+                          {cat.name} (₹{cat.price})
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                )}
+
+                <Form.Item label="Seat Status (Bulk)">
+                  <Radio.Group
+                    onChange={(e) => {
+                      updateMultipleSeats?.(selectedSeatIds, { status: e.target.value });
+                    }}
+                  >
+                    <Radio value="available" className="d-block mb-2">Available</Radio>
+                    <Radio value="disabled" className="d-block mb-2">Disabled</Radio>
+                    <Radio value="reserved" className="d-block mb-2">Reserved</Radio>
+                    <Radio value="blocked" className="d-block mb-2">Blocked</Radio>
+                  </Radio.Group>
+                </Form.Item>
+              </>
+            )}
+            {!isMultiSeatEdit && (selectedElement.type === 'blank' ? (
               <>
                 <Alert
                   message="Gap selected"
@@ -1018,6 +1196,24 @@ const RightPanel = (props) => {
                       </Radio.Group>
                     </Form.Item>
 
+                    <Form.Item
+                      label="Seat Color (Single Seat)"
+                      extra="Overrides row/section color for this seat."
+                    >
+                      <SeatColorSelector
+                        value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                        onChange={(color) => {
+                          updateSeat(
+                            selectedElement.sectionId,
+                            selectedElement.rowId,
+                            selectedElement.id,
+                            { seatColor: color, customSeatColor: true }
+                          );
+                          setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
+                        }}
+                      />
+                    </Form.Item>
+
                     <div className="p-3 bg-light rounded">
                       <div className="d-flex align-items-center gap-3">
                         <div className="border border-secondary d-flex align-items-center justify-content-center" style={{ width: 30, height: 30, fontSize: '16px' }}>
@@ -1035,7 +1231,7 @@ const RightPanel = (props) => {
                   </>
                 );
               })()
-            )}
+            ))}
           </Form>
         )}
       </div>

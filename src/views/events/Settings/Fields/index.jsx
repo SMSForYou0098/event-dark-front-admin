@@ -9,12 +9,12 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { DndContext, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { arrayMove, useSortable } from '@dnd-kit/sortable';
 import AddFields from './AddFields';
 import { useMyContext } from 'Context/MyContextProvider';
 import Utils from 'utils';
 import PermissionChecker from 'layouts/PermissionChecker';
+import SortableDndWrapper from 'components/shared-components/dnd/SortableDndWrapper';
 
 const { confirm } = Modal;
 
@@ -67,14 +67,6 @@ const AttendeeFields = () => {
   const [editData, setEditData] = useState(null);
   const [editState, setEditState] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8,
-      },
-    })
-  );
 
   // Fetch fields with TanStack Query
   const { data: fieldsList = [], isLoading, isFetching } = useQuery({
@@ -301,11 +293,10 @@ const AttendeeFields = () => {
           </Button>
         }
       >
-        <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-          <SortableContext
-            items={sortedFields.map((i) => i.id)}
-            strategy={verticalListSortingStrategy}
-          >
+        <SortableDndWrapper
+          items={sortedFields.map((i) => i.id)}
+          onDragEnd={handleDragEnd}
+        >
             <Table
               components={{
                 body: {
@@ -321,8 +312,7 @@ const AttendeeFields = () => {
                 emptyText: 'No fields found',
               }}
             />
-          </SortableContext>
-        </DndContext>
+        </SortableDndWrapper>
       </Card>
     </PermissionChecker>
   );

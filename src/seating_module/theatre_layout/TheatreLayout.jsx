@@ -397,6 +397,36 @@ const AuditoriumLayoutDesigner = () => {
   };
 
   // Generate Seats for Row
+  const calculateSeatPosition = (row, section, rowIndex, seatIndex) => {
+    const leftPadding = 50;
+    const rightPadding = 20;
+    const totalWidth = section.width - leftPadding - rightPadding;
+    const seatSpacing = totalWidth / row.numberOfSeats;
+
+    if (row.shape === 'straight') {
+      return {
+        x: leftPadding + (seatSpacing * seatIndex) + (seatSpacing / 2),
+        y: 50 + (rowIndex * row.spacing)
+      };
+    }
+
+    const angle = (seatIndex / (row.numberOfSeats - 1)) * Math.PI - Math.PI / 2;
+    const radius = totalWidth / 2;
+    const baseX = section.width / 2 + Math.cos(angle) * radius;
+
+    if (row.shape === 'curved-concave') {
+      return {
+        x: baseX,
+        y: 50 + (rowIndex * row.spacing) + Math.sin(angle) * (row.curve || 50)
+      };
+    }
+
+    return {
+      x: baseX,
+      y: 50 + (rowIndex * row.spacing) - Math.sin(angle) * (row.curve || 50)
+    };
+  };
+
   const generateSeatsForRow = (row, section, rowIndex) => {
     const seats = [];
     const leftPadding = 50;
@@ -409,26 +439,9 @@ const AuditoriumLayoutDesigner = () => {
     );
     const seatRadius = Math.max(4, maxSeatRadius);
 
-    const seatSpacing = totalWidth / row.numberOfSeats;
-
     for (let i = 0; i < row.numberOfSeats; i++) {
       const seatNumber = i + 1;
-      let x, y;
-
-      if (row.shape === 'straight') {
-        x = leftPadding + (seatSpacing * i) + (seatSpacing / 2);
-        y = 50 + (rowIndex * row.spacing);
-      } else if (row.shape === 'curved-convex') {
-        const angle = (i / (row.numberOfSeats - 1)) * Math.PI - Math.PI / 2;
-        const radius = totalWidth / 2;
-        x = section.width / 2 + Math.cos(angle) * radius;
-        y = 50 + (rowIndex * row.spacing) - Math.sin(angle) * (row.curve || 50);
-      } else if (row.shape === 'curved-concave') {
-        const angle = (i / (row.numberOfSeats - 1)) * Math.PI - Math.PI / 2;
-        const radius = totalWidth / 2;
-        x = section.width / 2 + Math.cos(angle) * radius;
-        y = 50 + (rowIndex * row.spacing) + Math.sin(angle) * (row.curve || 50);
-      }
+      const { x, y } = calculateSeatPosition(row, section, rowIndex, i);
 
       seats.push({
         id: generateId('seat'),
@@ -567,6 +580,39 @@ const AuditoriumLayoutDesigner = () => {
         };
       }
       return section;
+    }));
+  };
+
+  // Move Row in Section
+  const moveRow = (sectionId, sourceRowId, targetRowId) => {
+    setSections(sections.map(section => {
+      if (section.id !== sectionId) {
+        return section;
+      }
+
+      const sourceIndex = section.rows.findIndex(r => r.id === sourceRowId);
+      const targetIndex = section.rows.findIndex(r => r.id === targetRowId);
+
+      if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
+        return section;
+      }
+
+      const reorderedRows = [...section.rows];
+      const [movedRow] = reorderedRows.splice(sourceIndex, 1);
+      reorderedRows.splice(targetIndex, 0, movedRow);
+
+      const rowsWithUpdatedSeatPositions = reorderedRows.map((row, rowIndex) => ({
+        ...row,
+        seats: row.seats.map((seat, seatIndex) => {
+          const { x, y } = calculateSeatPosition(row, section, rowIndex, seatIndex);
+          return { ...seat, x, y };
+        })
+      }));
+
+      return {
+        ...section,
+        rows: rowsWithUpdatedSeatPositions
+      };
     }));
   };
 
@@ -766,6 +812,7 @@ const AuditoriumLayoutDesigner = () => {
           selectedElement={selectedElement}
           deleteRow={deleteRow}
           addRowToSection={addRowToSection}
+          moveRow={moveRow}
         />
 
         {/* Center Canvas */}

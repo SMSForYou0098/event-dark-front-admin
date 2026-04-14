@@ -9,6 +9,7 @@ import { LuSofa } from 'react-icons/lu';
 import { TbSofa } from 'react-icons/tb';
 import { GiRoundTable } from 'react-icons/gi';
 import { SiTablecheck } from 'react-icons/si';
+import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil';
 
 
 // Draggable Stage Component
@@ -312,7 +313,7 @@ const IconImage = ({ iconName, x, y, size = 20, opacity = 1 }) => {
 };
 
 const CenterCanvas = (props) => {
-  const { stageRef, canvasScale, showGrid, stage, setStage, sections, setSections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition, isAssignMode, selectedSectionIds, setSelectedSectionIds, isReportMode = false } = props;
+  const { stageRef, canvasScale, showGrid, stage, setStage, sections, setSections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition, isAssignMode, selectedSectionIds, setSelectedSectionIds, selectedSeatIds = [], setSelectedSeatIds, isReportMode = false } = props;
 
   const layerRef = useRef();
   const [isDraggingElement, setIsDraggingElement] = useState(false);
@@ -369,6 +370,7 @@ const CenterCanvas = (props) => {
               setSelectedElement(stage);
               setSelectedType('stage');
               setSelectedSectionIds([]);
+              setSelectedSeatIds([]);
             }}
             onDragEnd={(pos) => {
               const updatedStage = {
@@ -409,6 +411,7 @@ const CenterCanvas = (props) => {
                 if (isReportMode) return;
                 const evt = e?.evt || e;
                 if (evt?.shiftKey) {
+                  setSelectedSeatIds([]);
                   setSelectedSectionIds(prev =>
                     prev.includes(section.id)
                       ? prev.filter(id => id !== section.id)
@@ -416,6 +419,7 @@ const CenterCanvas = (props) => {
                   );
                   return;
                 }
+                setSelectedSeatIds([]);
                 setSelectedSectionIds([]);
                 setSelectedElement(section);
                 setSelectedType('section');
@@ -609,6 +613,7 @@ const CenterCanvas = (props) => {
                                 if (isReportMode) return;
                                 e.cancelBubble = true;
                                 setSelectedSectionIds([]);
+                                setSelectedSeatIds([seat.id]);
                                 setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
                                 setSelectedType('seat');
                               }}
@@ -623,6 +628,10 @@ const CenterCanvas = (props) => {
                       const isDisabled = seat.status === 'disabled';
                       const canSelectSeat = true;
                       const seatOpacity = isUnavailable ? 0.3 : 1;
+                      const resolvedSeatColor = seat.seatColor || row.seatColor || section.seatColor || PRIMARY;
+                      const seatFillColor = getBackgroundWithOpacity(resolvedSeatColor, 0.2);
+                      const isSeatSelected = selectedType === 'seat' && selectedSeatIds.includes(seat.id);
+                      const selectedSeatFillColor = getBackgroundWithOpacity(resolvedSeatColor, 0.45);
 
                       return (
                         <Group key={seat.id} opacity={seatOpacity}>
@@ -631,9 +640,9 @@ const CenterCanvas = (props) => {
                             y={seat.y - seat.radius}
                             width={seat.radius * 2}
                             height={seat.radius * 2}
-                            fill={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : 'transparent'}
-                            stroke={selectedElement?.id === seat.id && selectedType === 'seat' ? '#b51515' : PRIMARY}
-                            strokeWidth={selectedElement?.id === seat.id && selectedType === 'seat' ? 2 : 1}
+                            fill={isSeatSelected ? selectedSeatFillColor : seatFillColor}
+                            stroke={resolvedSeatColor}
+                            strokeWidth={isSeatSelected ? 2 : 1}
                             cornerRadius={4}
                             onMouseEnter={(e) => {
                               const container = e.target.getStage().container();
@@ -648,6 +657,26 @@ const CenterCanvas = (props) => {
                               e.cancelBubble = true;
                               if (!canSelectSeat) return;
                               setSelectedSectionIds([]);
+                              const isMultiSelectGesture = e.evt?.shiftKey || e.evt?.ctrlKey || e.evt?.metaKey;
+                              if (isMultiSelectGesture) {
+                                const currentlySelected = selectedSeatIds.includes(seat.id);
+                                const nextSeatIds = currentlySelected
+                                  ? selectedSeatIds.filter((id) => id !== seat.id)
+                                  : [...selectedSeatIds, seat.id];
+
+                                if (nextSeatIds.length === 0) {
+                                  setSelectedSeatIds([]);
+                                  setSelectedElement(null);
+                                  setSelectedType(null);
+                                  return;
+                                }
+
+                                setSelectedSeatIds(nextSeatIds);
+                                setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
+                                setSelectedType('seat');
+                                return;
+                              }
+                              setSelectedSeatIds([seat.id]);
                               setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
                               setSelectedType('seat');
                             }}
