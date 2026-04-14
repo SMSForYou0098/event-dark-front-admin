@@ -28,7 +28,7 @@ import Utils from 'utils';
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
 
-const DataTable = ({
+const   DataTable = ({
   title,
   data = [],
   columns,

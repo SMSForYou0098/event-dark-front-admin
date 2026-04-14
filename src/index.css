@@ -1,0 +1,10 @@
+/* Global fix for Ant Design Select dropdown cutting off the last item */
+.ant-select-dropdown .rc-virtual-list-holder {
+  padding-bottom: 12px !important;
+}
+
+.ant-select-dropdown {
+  padding-bottom: 8px !important;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+}

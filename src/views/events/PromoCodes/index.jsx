@@ -1,6 +1,6 @@
 import React, { memo, useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Modal, Form, Input, Select, Button, Space, Tag, message, Row, Col } from 'antd';
+import { Modal, Form, Input, Select, Button, Space, Tag, message, Row, Col, Tooltip } from 'antd';
 import {
   EditOutlined,
   DeleteOutlined,
@@ -20,7 +20,7 @@ const { confirm } = Modal;
 const { Option } = Select;
 
 const Promocode = memo(() => {
-  const { UserData } = useMyContext();
+  const { UserData, userRole, truncateString } = useMyContext();
   const queryClient = useQueryClient();
   const [form] = Form.useForm();
 
@@ -145,6 +145,7 @@ const Promocode = memo(() => {
         width: 60,
         render: (_, __, index) => index + 1,
       },
+
       {
         title: 'Code',
         dataIndex: 'code',
@@ -153,14 +154,20 @@ const Promocode = memo(() => {
         searchable: true,
         sorter: (a, b) => a.code.localeCompare(b.code),
       },
-      {
-        title: 'Description',
-        dataIndex: 'description',
-        key: 'description',
+      ...(userRole === 'Admin' ? [{
+        title: 'Org',
+        dataIndex: 'user',
+        key: 'organization',
         align: 'center',
-        searchable: true,
-        ellipsis: true,
-      },
+        render: (user, record) => {
+          const orgName = user?.organisation || record?.organisation || record?.organizer || user?.name || 'N/A';
+          return (
+            <Tooltip title={orgName}>
+              <span>{truncateString(orgName, 11)}</span>
+            </Tooltip>
+          );
+        },
+      }] : []),
       {
         title: 'Discount Type',
         dataIndex: 'discount_type',
@@ -218,6 +225,14 @@ const Promocode = memo(() => {
         sorter: (a, b) => a.usage_per_user - b.usage_per_user,
       },
       {
+        title: 'Description',
+        dataIndex: 'description',
+        key: 'description',
+        align: 'center',
+        searchable: true,
+        ellipsis: true,
+      },
+      {
         title: 'Status',
         dataIndex: 'status',
         key: 'status',
@@ -260,7 +275,7 @@ const Promocode = memo(() => {
         ),
       },
     ],
-    [deleteMutation.isPending]
+    [deleteMutation.isPending, userRole]
   );
 
   return (
@@ -289,9 +304,11 @@ const Promocode = memo(() => {
       >
         <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
           <Row gutter={16}>
-            <Col span={24}>
-              <OrganisationList name="user_id" label="Organizer" />
-            </Col>
+            <PermissionChecker role={"Admin"}>
+              <Col span={24}>
+                <OrganisationList name="user_id" label="Organizer" />
+              </Col>
+            </PermissionChecker>
 
             <Col span={12}>
               <Form.Item

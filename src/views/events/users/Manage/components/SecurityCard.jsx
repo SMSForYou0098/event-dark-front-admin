@@ -38,12 +38,26 @@ const SecurityCard = ({
                             name="password"
                             rules={[
                                 { required: mode === 'create', message: 'Please enter password' },
-                                ...(mode === 'create' ? [{ min: 8, message: 'Min 8 characters' }] : [])
+                                {
+                                    validator: (_, value) => {
+                                        if (!value) return Promise.resolve();
+                                        if (/\s/.test(value)) return Promise.reject(new Error('Spaces are not allowed'));
+                                        if (/^[^a-zA-Z0-9]/.test(value)) return Promise.reject(new Error('Cannot start with a special character'));
+                                        if (/[^a-zA-Z0-9]{2,}/.test(value)) return Promise.reject(new Error('Consecutive special characters not allowed'));
+                                        if (value.length < 8) return Promise.reject(new Error('Min 8 characters required'));
+                                        if (!/[A-Z]/.test(value)) return Promise.reject(new Error('Need at least one uppercase letter'));
+                                        if (!/[a-z]/.test(value)) return Promise.reject(new Error('Need at least one lowercase letter'));
+                                        if (!/\d/.test(value)) return Promise.reject(new Error('Need at least one digit'));
+                                        if (!/[^a-zA-Z0-9]/.test(value)) return Promise.reject(new Error('Need at least one special character'));
+                                        return Promise.resolve();
+                                    }
+                                }
                             ]}
                         >
                             <Input.Password
                                 prefix={<Key className="text-primary" size={16} />}
                                 placeholder="Enter password"
+                                onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
                             />
                         </Form.Item>
                     </Col>
@@ -65,7 +79,10 @@ const SecurityCard = ({
                                     })
                                 ]}
                             >
-                                <Input.Password placeholder="Re-enter password" />
+                                <Input.Password 
+                                    placeholder="Re-enter password" 
+                                    onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
+                                />
                             </Form.Item>
                         </Col>
                     )}

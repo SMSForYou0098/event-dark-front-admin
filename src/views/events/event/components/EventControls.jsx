@@ -12,6 +12,7 @@ import MultiScanCheckpoints from './MultiScanCheckpoints';
 import SelectFields from 'views/events/Settings/Fields/SelectFields';
 import apiClient from 'auth/FetchInterceptor';
 import Utils from 'utils';
+import PermissionChecker from 'layouts/PermissionChecker';
 const { Text } = Typography;
 
 // helpers — convert to boolean
@@ -543,19 +544,12 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
               tooltip: "Enable or disable stall layout for this event",
             },
           ]
-            .filter((f) => {
-              // Only show "High Demand" field to Admin users
-              if (f.name === "event_feature" && userRole !== "Admin") {
-                return false;
-              }
-              return true;
-            })
             .map((f) => {
               // Define mutually exclusive fields
               const exclusiveFields = ['is_cancelled', 'is_sold_out', 'is_postponed'];
               const isExclusive = exclusiveFields.includes(f.name);
 
-              return (
+              const colContent = (
                 <Col xs={24} sm={12} lg={4} key={f.name}>
                   <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking}>
                     {({ getFieldValue }) => {
@@ -615,6 +609,15 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                   </Form.Item>
                 </Col>
               );
+
+              if (f.name === 'event_feature') {
+                return (
+                  <PermissionChecker role="Admin" key={f.name}>
+                    {colContent}
+                  </PermissionChecker>
+                );
+              }
+              return colContent;
             })}
         </Row>
         {/* Expected Date - Only show when event is postponed */}
@@ -681,37 +684,48 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
               name: "offline_att_sug",
               label: "Hide Agent Att Sug",
             },
-          ].map((f) => (
-            <Col xs={24} sm={12} lg={4} key={f.name}>
-              <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking || prev.is_cancelled !== curr.is_cancelled}>
-                {({ getFieldValue }) => {
-                  const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
-                  const isCancelled = toBoolean(getFieldValue('is_cancelled'));
+          ].map((f) => {
+            const colContent = (
+              <Col xs={24} sm={12} lg={4} key={f.name}>
+                <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking || prev.is_cancelled !== curr.is_cancelled}>
+                  {({ getFieldValue }) => {
+                    const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
+                    const isCancelled = toBoolean(getFieldValue('is_cancelled'));
 
-                  // Disable show_on_home if online_booking is false or event is cancelled
-                  const isDisabled = (f.name === 'show_on_home' && (!onlineBookingEnabled || isCancelled));
+                    // Disable show_on_home if online_booking is false or event is cancelled
+                    const isDisabled = (f.name === 'show_on_home' && (!onlineBookingEnabled || isCancelled));
 
-                  return (
-                    <Form.Item
-                      name={f.name}
-                      label={f.label}
-                      tooltip={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : f.tooltip}
-                      valuePropName="checked"
-                      getValueProps={(v) => ({ checked: toBoolean(v) })}
-                      getValueFromEvent={toBooleanValue}
-                      initialValue={f.defaultValue ?? false}
-                    >
-                      <Switch
-                        disabled={isDisabled}
-                        checkedChildren="Yes"
-                        unCheckedChildren="No"
-                      />
-                    </Form.Item>
-                  );
-                }}
-              </Form.Item>
-            </Col>
-          ))}
+                    return (
+                      <Form.Item
+                        name={f.name}
+                        label={f.label}
+                        tooltip={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : f.tooltip}
+                        valuePropName="checked"
+                        getValueProps={(v) => ({ checked: toBoolean(v) })}
+                        getValueFromEvent={toBooleanValue}
+                        initialValue={f.defaultValue ?? false}
+                      >
+                        <Switch
+                          disabled={isDisabled}
+                          checkedChildren="Yes"
+                          unCheckedChildren="No"
+                        />
+                      </Form.Item>
+                    );
+                  }}
+                </Form.Item>
+              </Col>
+            );
+
+            if (f.name === 'show_on_home') {
+              return (
+                <PermissionChecker role="Admin" key={f.name}>
+                  {colContent}
+                </PermissionChecker>
+              );
+            }
+            return colContent;
+          })}
         </Row>
       </Card>
 

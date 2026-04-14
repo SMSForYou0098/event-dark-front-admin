@@ -3,6 +3,7 @@ import { Col, Select, Form, Card, Space, Typography, Button, Alert, Empty, Spin 
 import { HomeOutlined, CompassOutlined, EnvironmentOutlined, PlusOutlined } from "@ant-design/icons";
 import { useVenues } from "../hooks/useEventOptions";
 import { useNavigate } from "react-router-dom";
+import { VALIDATION_FUNCTIONS } from "constants/ValidationConstants";
 
 // constants.js
 export const CONSTANTS = {
@@ -173,6 +174,7 @@ export const VanueList = ({
             optionRender={renderOption}
             filterOption={handleFilter}
             notFoundContent={venueLoading ? <Spin size="small" /> : customNotFoundContent}
+            onInputKeyDown={(e) => VALIDATION_FUNCTIONS.preventSpecialCharsInSelect(e, /^[a-zA-Z0-9\s.-]+$/)}
             {...(!form && {
                 value: venueLoading ? undefined : (value ? String(value) : undefined),
                 onChange: handleChange

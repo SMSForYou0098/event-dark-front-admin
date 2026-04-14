@@ -201,7 +201,7 @@ const seatingChartBookingsSubmenu = [
         submenu: [
           {
             key: 'seating-online-paid',
-            path: 'bookings/seating-chart/online/paid',
+            path: 'bookings/seating/online/paid',
             title: 'Paid',
             breadcrumb: false,
             icon: DollarOutlined,
@@ -209,7 +209,7 @@ const seatingChartBookingsSubmenu = [
           },
           {
             key: 'seating-online-free',
-            path: 'bookings/seating-chart/online/free',
+            path: 'bookings/seating/online/free',
             title: 'Free',
             breadcrumb: false,
             icon: CheckOutlined,
@@ -219,7 +219,7 @@ const seatingChartBookingsSubmenu = [
       },
       {
         key: 'seating-pending-booking',
-        path: 'bookings/seating-chart/pending',
+        path: 'bookings/seating/pending',
         title: 'Pending',
         icon: ClockCircleOutlined,
         breadcrumb: false,
@@ -235,7 +235,7 @@ const seatingChartBookingsSubmenu = [
         submenu: [
           {
             key: 'seating-refund-requests',
-            path: 'bookings/seating-chart/refund',
+            path: 'bookings/seating/refund',
             title: 'Refund Requests',
             breadcrumb: false,
             permissions: [PERMISSIONS.VIEW_SEATING_REFUND_REQUESTS]
@@ -246,7 +246,7 @@ const seatingChartBookingsSubmenu = [
   },
   {
     key: 'seating-agent-booking',
-    path: 'bookings/seating-chart/agent',
+    path: 'bookings/seating/agent',
     title: 'Agent',
     icon: IdcardOutlined,
     breadcrumb: false,
@@ -260,7 +260,7 @@ const seatingChartBookingsSubmenu = [
         submenu: [
           {
             key: 'seating-agent-paid',
-            path: 'bookings/seating-chart/agent/paid',
+            path: 'bookings/seating/agent/paid',
             title: 'Paid',
             breadcrumb: false,
             permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
@@ -268,7 +268,7 @@ const seatingChartBookingsSubmenu = [
           },
           {
             key: 'seating-agent-free',
-            path: 'bookings/seating-chart/agent/free',
+            path: 'bookings/seating/agent/free',
             title: 'Free',
             breadcrumb: false,
             permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
@@ -278,7 +278,7 @@ const seatingChartBookingsSubmenu = [
       },
       {
         key: 'seating-agent-new',
-        path: 'bookings/seating-chart/agent/new',
+        path: 'bookings/seating/agent/new',
         title: 'New',
         breadcrumb: false,
         permissions: [PERMISSIONS.ADD_SEATING_AGENT_BOOKING]
@@ -287,7 +287,7 @@ const seatingChartBookingsSubmenu = [
   },
   {
     key: 'seating-pos-booking',
-    path: 'bookings/seating-chart/pos',
+    path: 'bookings/seating/pos',
     title: 'POS',
     icon: ShoppingOutlined,
     breadcrumb: false,
@@ -301,7 +301,7 @@ const seatingChartBookingsSubmenu = [
         submenu: [
           {
             key: 'seating-pos-paid',
-            path: 'bookings/seating-chart/pos/paid',
+            path: 'bookings/seating/pos/paid',
             title: 'Paid',
             breadcrumb: false,
             permissions: [PERMISSIONS.VIEW_SEATING_POS_BOOKINGS],
@@ -309,7 +309,7 @@ const seatingChartBookingsSubmenu = [
           },
           {
             key: 'seating-pos-free',
-            path: 'bookings/seating-chart/pos/free',
+            path: 'bookings/seating/pos/free',
             title: 'Free',
             breadcrumb: false,
             permissions: [PERMISSIONS.VIEW_SEATING_POS_BOOKINGS],
@@ -319,7 +319,7 @@ const seatingChartBookingsSubmenu = [
       },
       {
         key: 'seating-pos-new',
-        path: 'bookings/seating-chart/pos/new',
+        path: 'bookings/seating/pos/new',
         title: 'New',
         breadcrumb: false,
         permissions: [PERMISSIONS.ADD_SEATING_POS_BOOKING]
@@ -330,8 +330,8 @@ const seatingChartBookingsSubmenu = [
 
 const seatingChartBookingsNav = {
   key: 'seating-chart-bookings',
-  path: 'bookings/seating-chart',
-  title: 'Seating chart',
+  path: 'bookings/seating',
+  title: 'Seat Booking',
   icon: LayoutOutlined,
   breadcrumb: false,
   submenu: seatingChartBookingsSubmenu,

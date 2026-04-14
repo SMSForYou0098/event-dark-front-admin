@@ -12,6 +12,7 @@ import { ContentSelect } from './ContentSelect';
 import apiClient from 'auth/FetchInterceptor';
 import SelectFields from 'views/events/Settings/Fields/SelectFields';
 import Utils from 'utils';
+import { VALIDATION_FUNCTIONS, VALIDATION_RULES } from 'constants/ValidationConstants';
 
 const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
   const [selectFieldsModalOpen, setSelectFieldsModalOpen] = useState(false);
@@ -220,7 +221,9 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
         <Form.Item
           name="category"
           label="Category"
-          rules={[{ required: true, message: "Please select category" }]}
+          rules={VALIDATION_RULES.CATEGORY_NAME}
+
+
         >
           <Select
             placeholder="Select Category"
@@ -231,8 +234,52 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
             notFoundContent={catLoading ? "Loading..." : "No categories found"}
+            onInputKeyDown={(e) => VALIDATION_FUNCTIONS.preventSpecialCharsInSelect(e, /^[a-zA-Z0-9\s.-]+$/)}
           />
         </Form.Item>
+      </Col>
+
+      {/* Event Name */}
+      <Col xs={24} md={8} className=''>
+        <Form.Item
+          name="name"
+          label="Event Name"
+          rules={[
+            { required: true, message: "Please enter event name" },
+            { min: 3, message: "Event name must be at least 3 characters" },
+            {
+              validator: (_, value) => {
+                if (!value) return Promise.resolve();
+
+                // Suggestion: Block consecutive spaces, hyphens, or underscores
+                if (/[ _-]{2,}/.test(value)) {
+                  return Promise.reject(new Error("Consecutive spaces, hyphens, or underscores are not allowed."));
+                }
+
+                // Suggestion: Ensure the first character is a letter or number!
+                if (/^[ _-]/.test(value)) {
+                  return Promise.reject(new Error("Event Name cannot start with a space or symbol."));
+                }
+
+                // Allow letters (any language), digits, spaces, hyphen and underscore only.
+                // Disallow dot (.) and other special characters because they cause issues with Easebuzz.
+                const valid = /^[\p{L}0-9 _-]+$/u.test(value);
+                return valid
+                  ? Promise.resolve()
+                  : Promise.reject(
+                    new Error(
+                      "Only letters, numbers and spaces are allowed — hyphen (-) and underscore (_) are also permitted. Dots (.) and other special characters are not allowed."
+                    )
+                  );
+              },
+            },
+          ]}
+          getValueFromEvent={(e) => e.target.value.replace(/[^\p{L}0-9 _-]/gu, '')}
+
+        >
+          <Input placeholder="Enter Event Name" />
+        </Form.Item>
+
       </Col>
 
       {/* Category Fields Section - Display when category is Registration */}
@@ -260,7 +307,7 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
           >
             {/* Show category's default fields */}
             {hasFields && (
-              <div className={selectedFieldIds.length > 0 ? 'mb-3' : ''}>
+              <div>
                 <div className="mb-2 text-muted small">
                   Default Category Fields:
                 </div>
@@ -281,30 +328,25 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
 
             {/* Show selected fields for Registration category */}
             {selectedFieldIds.length > 0 && (
-              <div>
-                <div className="mb-2 text-muted small">
-                  Selected Registration Fields:
-                </div>
-                <div className="d-flex flex-column gap-2">
-                  {selectedFieldsData.map((field) => (
-                    <div key={field.id} className="d-flex align-items-center gap-2">
-                      <Tag
-                        color="green"
-                        closable
-                        onClose={() => handleRemoveField(field.id)}
-                        className="py-1 px-2 m-0"
-                      >
-                        {field.lable || field.field_name}
-                      </Tag>
-                      {fieldNotes[field.id] && (
-                        <span className="text-muted small fst-italic">
-                          — {fieldNotes[field.id]}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Space wrap size={[16, 8]}>
+                {selectedFieldsData.map((field) => (
+                  <Space key={field.id} align="center" size={4}>
+                    <Tag
+                      color="green"
+                      closable
+                      onClose={() => handleRemoveField(field.id)}
+                      className="py-1 px-2 m-0"
+                    >
+                      {field.lable || field.field_name}
+                    </Tag>
+                    {fieldNotes[field.id] && (
+                      <span className="text-muted small fst-italic">
+                        — {fieldNotes[field.id]}
+                      </span>
+                    )}
+                  </Space>
+                ))}
+              </Space>
             )}
 
             {/* Show add fields prompt when no fields selected */}
@@ -336,7 +378,6 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
         </Col>
       )}
 
-      {/* Select Fields Drawer for Registration Category */}
       <SelectFields
         open={selectFieldsModalOpen}
         onClose={() => setSelectFieldsModalOpen(false)}
@@ -345,35 +386,6 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
         initialFieldNotes={fieldNotes}
       />
 
-      {/* Event Name */}
-      <Col xs={24} md={8} className=''>
-        <Form.Item
-          name="name"
-          label="Event Name"
-          rules={[
-            { required: true, message: "Please enter event name" },
-            { min: 3, message: "Event name must be at least 3 characters" },
-            {
-              validator: (_, value) => {
-                if (!value) return Promise.resolve();
-                // Allow letters (any language), digits, spaces, hyphen and underscore only.
-                // Disallow dot (.) and other special characters because they cause issues with Easebuzz.
-                const valid = /^[\p{L}0-9 _-]+$/u.test(value);
-                return valid
-                  ? Promise.resolve()
-                  : Promise.reject(
-                    new Error(
-                      "Only letters, numbers and spaces are allowed — hyphen (-) and underscore (_) are also permitted. Dots (.) and other special characters are not allowed."
-                    )
-                  );
-              },
-            },
-          ]}
-        >
-          <Input placeholder="Enter Event Name" />
-        </Form.Item>
-
-      </Col>
       {/* <Col xs={24} md={12}> */}
 
       <VanueList form={form} />

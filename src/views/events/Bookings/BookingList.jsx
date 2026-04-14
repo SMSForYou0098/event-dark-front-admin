@@ -333,7 +333,8 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
         }
 
         // Agent column
-        if (showAgent) {
+        if (showAgent && userRole !== 'Agent') {
+            // if (showAgent) {
             columns.push({
                 title: 'Agent',
                 dataIndex: 'agent_name',
@@ -544,7 +545,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
                                         isMaster: isNested
                                             ? false
                                             : record?.is_master === true ||
-                                              Boolean(record?.bookings?.length),
+                                            Boolean(record?.bookings?.length),
                                     });
                                 },
                                 disabled: record?.id == null && record?.set_id == null,
@@ -759,7 +760,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
                             <Button
                                 type="primary"
                                 icon={<PlusIcon size={16} />}
-                                onClick={() => navigate(seatingChartBooking ? `/bookings/seating-chart/${type}/new` : `/bookings/${type}/new`)}
+                                onClick={() => navigate(seatingChartBooking ? `/bookings/seating/${type}/new` : `/bookings/${type}/new`)}
                             />
                         </Tooltip>
                     </PermissionChecker>

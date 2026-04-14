@@ -982,6 +982,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                 agentDiscount: false,
                 convenienceFeeType: 'percentage',
                 convenienceFee: '',
+                organisationCommissionType: 'percentage',
+                organisationCommission: '',
                 verifiedEmail: false
             }}
         >
@@ -1166,7 +1168,11 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                             name="organisation"
                                             rules={[
                                                 { required: true, message: 'Please enter organisation' },
-                                                { min: 3, message: 'Organisation name must be at least 3 characters' }
+                                                { min: 3, message: 'Organisation must be at least 3 characters' },
+                                                {
+                                                    pattern: /^[a-zA-Z0-9\s]+$/,
+                                                    message: 'Organisation can only contain letters, numbers and spaces'
+                                                }
                                             ]}
                                         >
                                             <Input placeholder="Enter organisation" />
@@ -1176,7 +1182,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                         <Form.Item
                                             label="Brand Name"
                                             name="brandName"
-                                            rules={[{ required: true, message: 'Please enter brand name' }]}
+                                            // rules={[{ required: true, message: 'Please enter brand name' }]}
+                                            rules={[...VALIDATION_RULES.BRAND_NAME]}
                                         >
                                             <Input placeholder="Enter brand name" />
                                         </Form.Item>
@@ -1186,6 +1193,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                             label="GST Number"
                                             name="orgGstNumber"
                                             rules={VALIDATION_RULES.GST}
+                                            getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 15)}
                                         >
                                             <Input placeholder="GST Number" />
                                         </Form.Item>
@@ -1195,6 +1203,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                             label="PAN Number"
                                             name="pan_no"
                                             rules={VALIDATION_RULES.PAN}
+                                            getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 10)}
                                         >
                                             <Input placeholder="PAN Number" />
                                         </Form.Item>
@@ -1222,26 +1231,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                                 noStyle
                                                                 dependencies={["convenienceFeeType"]}
                                                                 rules={[
-                                                                    ({ getFieldValue }) => ({
-                                                                        validator(_, value) {
-                                                                            if (value === undefined || value === null || value === '') {
-                                                                                return Promise.resolve();
-                                                                            }
-                                                                            const num = Number(value);
-                                                                            if (Number.isNaN(num)) {
-                                                                                return Promise.reject(new Error('Enter a valid number'));
-                                                                            }
-                                                                            if (num < 0) {
-                                                                                return Promise.reject(new Error('Value cannot be negative'));
-                                                                            }
-                                                                            const type = getFieldValue('convenienceFeeType') || convenienceFeeType;
-                                                                            if (type === 'percentage' && num > 100) {
-                                                                                return Promise.reject(new Error('Percentage cannot exceed 100'));
-                                                                            }
-                                                                            return Promise.resolve();
-                                                                        }
-                                                                    })
+                                                                    VALIDATION_FUNCTIONS.amountOrPercentageValidator('convenienceFeeType', convenienceFeeType)
                                                                 ]}
+                                                                getValueFromEvent={(e) => e.target.value.slice(0, 10)}
                                                             >
                                                                 <Input
                                                                     type="number"
@@ -1249,6 +1241,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                                     step="0.01"
                                                                     placeholder={convenienceFeeType === 'percentage' ? '0 - 100' : 'Amount'}
                                                                     aria-label="Convenience fee value"
+                                                                    onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                                                                 />
                                                             </Form.Item>
                                                         </Space.Compact>
@@ -1273,26 +1266,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                                 noStyle
                                                                 dependencies={["organisationCommissionType"]}
                                                                 rules={[
-                                                                    ({ getFieldValue }) => ({
-                                                                        validator(_, value) {
-                                                                            if (value === undefined || value === null || value === '') {
-                                                                                return Promise.resolve();
-                                                                            }
-                                                                            const num = Number(value);
-                                                                            if (Number.isNaN(num)) {
-                                                                                return Promise.reject(new Error('Enter a valid number'));
-                                                                            }
-                                                                            if (num < 0) {
-                                                                                return Promise.reject(new Error('Value cannot be negative'));
-                                                                            }
-                                                                            const type = getFieldValue('organisationCommissionType') || organisationCommissionType;
-                                                                            if (type === 'percentage' && num > 100) {
-                                                                                return Promise.reject(new Error('Percentage cannot exceed 100'));
-                                                                            }
-                                                                            return Promise.resolve();
-                                                                        }
-                                                                    })
+                                                                    VALIDATION_FUNCTIONS.amountOrPercentageValidator('organisationCommissionType', organisationCommissionType)
                                                                 ]}
+                                                                getValueFromEvent={(e) => e.target.value.slice(0, 10)}
                                                             >
                                                                 <Input
                                                                     type="number"
@@ -1300,6 +1276,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                                     step="0.01"
                                                                     placeholder={organisationCommissionType === 'percentage' ? '0 - 100' : 'Amount'}
                                                                     aria-label="Organisation commission value"
+                                                                    onKeyDown={(e) => ['e', 'E', '+', '-'].includes(e.key) && e.preventDefault()}
                                                                 />
                                                             </Form.Item>
                                                         </Space.Compact>
@@ -1345,6 +1322,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                 showSearch
                                                 loading={eventsLoading || eventsFetching}
                                                 disabled={!reportingUserId}
+                                                onInputKeyDown={(e) => VALIDATION_FUNCTIONS.preventSpecialCharsInSelect(e)}
                                                 notFoundContent={
                                                     eventsLoading ? <Spin size="small" /> :
                                                         !reportingUserId ? 'Please select an account manager first' :
@@ -1404,6 +1382,7 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                     placeholder="Select tickets"
                                                     disabled={!formState.events?.length}
                                                     showSearch
+                                                    onInputKeyDown={(e) => VALIDATION_FUNCTIONS.preventSpecialCharsInSelect(e)}
                                                     options={ticketOptions}
                                                     optionFilterProp="label"
                                                     dropdownRender={(menu) => {
@@ -1490,8 +1469,9 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                 }
                                             }
                                         ]}
+                                        getValueFromEvent={(e) => e.target.value.replace(/\D/g, '')}
                                     >
-                                        <Input type="number" min={6} max={20} placeholder="6-20" />
+                                        <Input maxLength={2} min={6} max={20} placeholder="6-20" />
                                     </Form.Item>
                                 </Col>
                             )}

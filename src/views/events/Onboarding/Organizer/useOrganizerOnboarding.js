@@ -48,7 +48,7 @@ export const useApproveOrganizerOnboarding = (options = {}) => {
     return useMutation({
         mutationFn: approveOrganizerOnboarding,
         onSuccess: (data) => {
-            message.success(data?.message || 'Organizer approved successfully!');
+            message.success(data?.message || 'Success!');
             queryClient.invalidateQueries({ queryKey: ['organizer-onboarding'] });
             options.onSuccess?.(data);
         },

@@ -177,7 +177,28 @@ const ContentFormModal = ({
                         <Form.Item
                             label="Title"
                             name="title"
-                            rules={[{ required: true, message: 'Title is required' }]}
+                            rules={[
+                                { required: true, message: 'Title is required' },
+                                {
+                                    validator: (_, value) => {
+                                        if (!value) return Promise.resolve();
+                                        if (/^\s/.test(value)) {
+                                            return Promise.reject(new Error('Cannot start with a space'));
+                                        }
+                                        if (/^[,.\-'&(]/.test(value)) {
+                                            return Promise.reject(new Error("Cannot start with a special character"));
+                                        }
+                                        if (/\s{2,}/.test(value)) {
+                                            return Promise.reject(new Error('Consecutive spaces are not allowed'));
+                                        }
+                                        if (/[,.()\-'&]{2,}/.test(value)) {
+                                            return Promise.reject(new Error('Consecutive special characters are not allowed'));
+                                        }
+                                        return Promise.resolve();
+                                    }
+                                }
+                            ]}
+                            getValueFromEvent={(e) => e.target.value.replace(/[^a-zA-Z0-9\s.()\-'&]/g, '')}
                         >
                             <Input placeholder="Enter content title" />
                         </Form.Item>

@@ -11,12 +11,14 @@ const AddressCard = () => {
         <Card title="Address" style={{ marginBottom: 16 }}>
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={24}>
-                    <Form.Item label="Address" name="address">
+                    <Form.Item label="Address" name="address" rules={VALIDATION_RULES.ADDRESS}>
                         <Input.TextArea rows={2} placeholder="Enter full address" />
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                    <Form.Item label="City" name="city">
+                    <Form.Item label="City" name="city" rules={VALIDATION_RULES.CITY}
+                        getValueFromEvent={(e) => e.target.value.replace(/[^A-Za-z\s-]/g, '')
+                        }>
                         <Input placeholder="Enter city" />
                     </Form.Item>
                 </Col>
@@ -31,7 +33,7 @@ const AddressCard = () => {
                     </Form.Item>
                 </Col>
             </Row>
-        </Card>
+        </Card >
     );
 };
 
@@ -44,7 +46,7 @@ const BankingDetailsCard = () => {
         <Card title="Banking Details" style={{ marginBottom: 16 }}>
             <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
-                    <Form.Item label="Bank Name" name="bankName">
+                    <Form.Item label="Bank Name" name="bankName" rules={VALIDATION_RULES.BANK_NAME}>
                         <Input placeholder="Enter bank name" />
                     </Form.Item>
                 </Col>
@@ -59,7 +61,21 @@ const BankingDetailsCard = () => {
                     </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
-                    <Form.Item label="Branch Name" name="bankBranch">
+                    <Form.Item
+                        label="Branch Name"
+                        name="bankBranch"
+                        rules={[
+                            ...(VALIDATION_RULES.BANK_BRANCH || []),
+                            {
+                                validator: (_, value) => {
+                                    if (value && /[^A-Za-z0-9\s]{2,}/.test(value)) {
+                                        return Promise.reject(new Error('Consecutive special characters are not allowed'));
+                                    }
+                                    return Promise.resolve();
+                                }
+                            }
+                        ]}
+                    >
                         <Input placeholder="Enter branch name" />
                     </Form.Item>
                 </Col>

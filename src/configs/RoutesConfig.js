@@ -730,31 +730,31 @@ export const protectedRoutes = [
     // ==================== SEATING CHART BOOKINGS ====================
     {
         key: 'seating-paid-bookings',
-        path: `/bookings/seating-chart/online/paid`,
+        path: `/bookings/seating/online/paid`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <OnlineBookings {...props} type="paid" seatingChartBooking />
             </React.Suspense>
         ),
         meta: {
-            permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+            permissions: [PERMISSIONS.VIEW_SEATING_ONLINE_BOOKINGS],
         }
     },
     {
         key: 'seating-free-bookings',
-        path: `/bookings/seating-chart/online/free`,
+        path: `/bookings/seating/online/free`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <OnlineBookings {...props} type="free" seatingChartBooking />
             </React.Suspense>
         ),
         meta: {
-            permissions: [PERMISSIONS.VIEW_ONLINE_BOOKINGS],
+            permissions: [PERMISSIONS.VIEW_SEATING_ONLINE_BOOKINGS],
         }
     },
     {
         key: 'seating-pending-bookings',
-        path: `/bookings/seating-chart/pending`,
+        path: `/bookings/seating/pending`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <PendingBookingsPage {...props} seatingChartBooking />
@@ -766,7 +766,7 @@ export const protectedRoutes = [
     },
     {
         key: 'seating-refund-bookings',
-        path: `/bookings/seating-chart/refund`,
+        path: `/bookings/seating/refund`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <RefundBookingsPage {...props} seatingChartBooking />
@@ -778,43 +778,43 @@ export const protectedRoutes = [
     },
     {
         key: 'seating-agent-bookings',
-        path: `/bookings/seating-chart/agent`,
+        path: `/bookings/seating/agent`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <BookingList {...props} type="agent" seatingChartBooking />
             </React.Suspense>
         ),
         meta: {
-            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+            permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
         }
     },
     {
         key: 'seating-agent-bookings-paid',
-        path: `/bookings/seating-chart/agent/paid`,
+        path: `/bookings/seating/agent/paid`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <BookingList {...props} type="agent" bookingType="paid" seatingChartBooking />
             </React.Suspense>
         ),
         meta: {
-            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+            permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
         }
     },
     {
         key: 'seating-agent-bookings-free',
-        path: `/bookings/seating-chart/agent/free`,
+        path: `/bookings/seating/agent/free`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <BookingList {...props} type="agent" bookingType="free" seatingChartBooking />
             </React.Suspense>
         ),
         meta: {
-            permissions: [PERMISSIONS.VIEW_AGENT_BOOKINGS],
+            permissions: [PERMISSIONS.VIEW_SEATING_AGENT_BOOKINGS],
         }
     },
     {
         key: 'seating-pos-bookings',
-        path: `/bookings/seating-chart/pos`,
+        path: `/bookings/seating/pos`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <PosBooking {...props} isPos={true} seatingChartBooking />
@@ -826,7 +826,7 @@ export const protectedRoutes = [
     },
     {
         key: 'seating-pos-bookings-paid',
-        path: `/bookings/seating-chart/pos/paid`,
+        path: `/bookings/seating/pos/paid`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <PosBooking {...props} isPos={true} bookingType="paid" seatingChartBooking />
@@ -838,7 +838,7 @@ export const protectedRoutes = [
     },
     {
         key: 'seating-pos-bookings-free',
-        path: `/bookings/seating-chart/pos/free`,
+        path: `/bookings/seating/pos/free`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <PosBooking {...props} isPos={true} bookingType="free" seatingChartBooking />
@@ -850,7 +850,7 @@ export const protectedRoutes = [
     },
     {
         key: 'seating-pos-new',
-        path: `/bookings/seating-chart/pos/new`,
+        path: `/bookings/seating/pos/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <POS {...props} isPos={true} />
@@ -1179,7 +1179,7 @@ export const protectedRoutes = [
     },
     {
         key: 'new-booking-agent-seating-chart',
-        path: `/bookings/seating-chart/agent/new`,
+        path: `/bookings/seating/agent/new`,
         component: (props) => (
             <React.Suspense fallback={<div>Loading...</div>}>
                 <NewBooking {...props} type="agent" />
@@ -1187,7 +1187,7 @@ export const protectedRoutes = [
         ),
         meta: {
             roles: ['admin', 'organizer', 'agent'],
-            permissions: [PERMISSIONS.ADD_AGENT_BOOKING],
+            permissions: [PERMISSIONS.ADD_SEATING_AGENT_BOOKING],
         }
     },
     // ==================== New Booking Page ====================

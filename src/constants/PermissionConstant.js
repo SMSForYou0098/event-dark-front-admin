@@ -153,6 +153,11 @@ export const PERMISSIONS = {
     ADD_SEATING_POS_BOOKING: "Add Seating POS Booking",
     VIEW_SEATING_LAYOUT_REPORT: "View Seating Layout Report",
     VIEW_MANAGE_SEATING_LAYOUT: "View Manage Seating Layout",
+
+    MANAGE_SEATING_LAYOUT_SECTIONS: "Manage Seating Layout Sections",
+    
+
+
 };
 
 export const PERMISSION_COUNT = Object.keys(PERMISSIONS).length;

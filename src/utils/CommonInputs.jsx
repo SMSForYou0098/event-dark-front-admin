@@ -36,6 +36,11 @@ export const OrganisationList = ({ onChange, disabled, label = "Organization", n
                 optionFilterProp="label"
                 onChange={onChange}
                 value={value}
+                onInputKeyDown={(e) => {
+                    if (e.key.length === 1 && !/^[a-zA-Z\s]+$/.test(e.key)) {
+                        e.preventDefault();
+                    }
+                }}
                 {...selectProps}
             />
         </Form.Item>
@@ -121,6 +126,11 @@ export const RoleSelect = ({
                     value={value}
                     showSearch
                     optionFilterProp="label"
+                    onInputKeyDown={(e) => {
+                        if (e.key.length === 1 && !/^[a-zA-Z\s]+$/.test(e.key)) {
+                            e.preventDefault();
+                        }
+                    }}
                     {...selectProps}
                 />
             </Form.Item>

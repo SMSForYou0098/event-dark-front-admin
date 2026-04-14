@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { Card, Collapse, Input, Grid, Button, Badge } from 'antd';
 import { useMyContext } from 'Context/MyContextProvider';
 import PosEventCard from './PosEventCard';
@@ -21,6 +22,8 @@ const { Panel } = Collapse;
  */
 const PosEvents = ({ type = 'pos', handleButtonClick, isScanner, multiple = false }) => {
     const { UserData, truncateString } = useMyContext();
+    const location = useLocation();
+    const isSeating = location.pathname.includes('seating');
     const screens = Grid.useBreakpoint();
     const scrollerRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -32,10 +35,10 @@ const PosEvents = ({ type = 'pos', handleButtonClick, isScanner, multiple = fals
 
     // Fetch events using TanStack Query
     const { data: events = [], isLoading, isError } = useQuery({
-        queryKey: ['pos-events', UserData?.id, type],
+        queryKey: ['pos-events', UserData?.id, type, isSeating],
         queryFn: async () => {
             if (!UserData?.id) return [];
-            const res = await api.get(`pos-events/${UserData?.id}?type=${type}`);
+            const res = await api.get(`pos-events/${UserData?.id}?type=${type}&seating=${isSeating}`);
             return res.events || [];
         },
         enabled: !!UserData?.id,
@@ -198,14 +201,14 @@ const PosEvents = ({ type = 'pos', handleButtonClick, isScanner, multiple = fals
                                                 <CheckCircleFilled style={{ color: PRIMARY, fontSize: 20 }} />
                                             </div>
                                         )}
-                                            <PosEventCard
-                                                productName={formattedProductName(item.name)}
-                                                productImage={item?.event_media?.thumbnail || ''}
-                                                id={item.event_key}
-                                                isSelected={isSelected}
-                                                productRating="3.5"
-                                                statusColor="primary"
-                                            />
+                                        <PosEventCard
+                                            productName={formattedProductName(item.name)}
+                                            productImage={item?.event_media?.thumbnail || ''}
+                                            id={item.event_key}
+                                            isSelected={isSelected}
+                                            productRating="3.5"
+                                            statusColor="primary"
+                                        />
                                     </div>
                                 );
                             })}

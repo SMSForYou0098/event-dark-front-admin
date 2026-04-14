@@ -388,21 +388,21 @@ const PosBooking = memo(({ bookingType = 'free', seatingChartBooking = false }) 
       },
       ...(seatingChartBooking
         ? [
-            {
-              title: 'Seat number',
-              key: 'seat_numbers',
-              align: 'center',
-              width: 130,
-              render: (_, record) => {
-                const t = getBookingSeatNumbersDisplay(record);
-                return (
-                  <Tooltip title={t}>
-                    <span>{truncateString(t, 18)}</span>
-                  </Tooltip>
-                );
-              },
+          {
+            title: 'Seat number',
+            key: 'seat_numbers',
+            align: 'center',
+            width: 130,
+            render: (_, record) => {
+              const t = getBookingSeatNumbersDisplay(record);
+              return (
+                <Tooltip title={t}>
+                  <span>{truncateString(t, 18)}</span>
+                </Tooltip>
+              );
             },
-          ]
+          },
+        ]
         : []),
       {
         title: 'QTY',
@@ -609,7 +609,7 @@ const PosBooking = memo(({ bookingType = 'free', seatingChartBooking = false }) 
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
-                onClick={() => navigate(seatingChartBooking ? '/bookings/seating-chart/pos/new' : '/bookings/pos/new')}
+                onClick={() => navigate(seatingChartBooking ? '/bookings/seating/pos/new' : '/bookings/pos/new')}
               />
             </Tooltip>
           </PermissionChecker>
