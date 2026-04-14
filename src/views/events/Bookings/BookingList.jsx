@@ -386,7 +386,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
 
         if (seatingSeats) {
             columns.push({
-                title: 'Seat number',
+                title: 'Seat No',
                 key: 'seat_numbers',
                 align: 'center',
                 width: isNested ? 120 : 160,
@@ -510,7 +510,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
         // Purchase Date column
         if (showPurchaseDate) {
             columns.push({
-                title: 'Purchase Date',
+                title: 'P Date',
                 dataIndex: 'created_at',
                 key: 'created_at',
                 align: 'center',

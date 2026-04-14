@@ -33,6 +33,7 @@ const ContentFormModal = ({
     const hideOrganizerSelect = isUserOrganizer || !!organizerId;
 
     const [content, setContent] = useState('');
+    const [contentError, setContentError] = useState(null);
     const [selectedType, setSelectedType] = useState(null);
     const [form] = Form.useForm();
     const editor = useRef(null);
@@ -82,6 +83,7 @@ const ContentFormModal = ({
     const handleClose = useCallback(() => {
         form.resetFields();
         setContent('');
+        setContentError(null);
         setSelectedType(null);
         onClose?.();
     }, [form, onClose]);
@@ -91,6 +93,7 @@ const ContentFormModal = ({
         setSelectedType(newType);
         // Clear content when switching types to avoid format issues
         setContent('');
+        setContentError(null);
     }, []);
 
     const handleSubmit = useCallback(async () => {
@@ -104,6 +107,11 @@ const ContentFormModal = ({
 
             if (isContentEmpty) {
                 message.error('Please enter content');
+                return;
+            }
+
+            if (contentError) {
+                message.error('Please fix the errors in your content first');
                 return;
             }
 
@@ -136,6 +144,52 @@ const ContentFormModal = ({
     }, [form, content, selectedType, editRecord, createMutation, updateMutation, isUserOrganizer, UserData?.id, organizerId]);
 
     const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
+    const handleContentValidation = useCallback((val, isRichText) => {
+        setContent(val);
+
+        // Strip HTML if rich text just for validation purposes
+        let plainText = val;
+        if (isRichText) {
+            // Very roughly strip HTML
+            plainText = val.replace(/<[^>]*>?/gm, '').replace(/&(nbsp|amp|quot|lt|gt);/g, ' ');
+        }
+
+        if (/^\s/.test(plainText)) {
+            setContentError('Cannot start with a space');
+            return;
+        }
+
+        if (/\s{2,}/.test(plainText)) {
+            setContentError('Consecutive spaces are not allowed');
+            return;
+        }
+
+        if (/[!@#$%^&*_+={}\[\]:;"'<>,.?/\\|`~\-]{2,}/.test(plainText)) {
+            setContentError('Consecutive special characters are not allowed');
+            return;
+        }
+
+        const dbQueryRegex = /(SELECT.*FROM|INSERT.*INTO|UPDATE.*SET|DELETE.*FROM|DROP\s+(TABLE|DATABASE|INDEX)|ALTER\s+TABLE|TRUNCATE\s+TABLE|UNION.*SELECT)/i;
+        const injectionRegex = /(<script|<iframe|<object|<embed|<form|--|;|\/\*)/i;
+
+        if (dbQueryRegex.test(plainText) || injectionRegex.test(plainText)) {
+            setContentError('Database queries and injection scripts are not allowed');
+            return;
+        }
+
+        setContentError(null);
+    }, [setContent]);
+
+    const handleNoteChange = useCallback((e) => {
+        handleContentValidation(e.target.value, false);
+    }, [handleContentValidation]);
+
+    const handleDescriptionChange = useCallback((newContent) => {
+        // For Jodit, we just run validation to show error but avoid forcing content update here to prevent cursor jump, 
+        // wait, we actually need to do setContent so that handleSubmit has the state.
+        handleContentValidation(newContent, true);
+    }, [handleContentValidation]);
 
     return (
         <Modal
@@ -220,13 +274,15 @@ const ContentFormModal = ({
                 <Form.Item
                     label="Content"
                     required
-                    help={!selectedType ? 'Please select a type first' : undefined}
+                    validateStatus={contentError ? 'error' : ''}
+                    help={contentError || (!selectedType ? 'Please select a type first' : undefined)}
                 >
                     {selectedType === 'note' ? (
                         // Textarea for notes
                         <Input.TextArea
                             value={content}
-                            onChange={(e) => setContent(e.target.value)}
+                            onChange={handleNoteChange}
+
                             placeholder="Enter your note content..."
                             rows={8}
                             style={{ width: '100%' }}
@@ -240,7 +296,7 @@ const ContentFormModal = ({
                             config={joditConfig}
                             tabIndex={1}
                             onBlur={(newContent) => setContent(newContent)}
-                            onChange={() => { }}
+                            onChange={handleDescriptionChange}
                         />
                     ) : (
                         // Placeholder when no type selected
