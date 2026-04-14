@@ -182,11 +182,13 @@ const BookingLayout = forwardRef((props, ref) => {
                         y: parseFloat(section.y) || 0,
                         width: parseFloat(section.width) || 600,
                         height: parseFloat(section.height) || 250,
+                        seatColor: section.seatColor || section.color || null,
                         rows: section.rows?.map(row => ({
                             ...row,
                             numberOfSeats: parseInt(row.numberOfSeats) || 0,
                             curve: parseFloat(row.curve) || 0,
                             spacing: parseFloat(row.spacing) || 40,
+                            seatColor: row.seatColor || row.color || null,
                             seats: row.seats?.map(seat => {
                                 // Filter out hold status for current user's seats
                                 let seatStatus = seat.status || 'available';
@@ -200,6 +202,7 @@ const BookingLayout = forwardRef((props, ref) => {
                                     x: parseFloat(seat.x) || 0,
                                     y: parseFloat(seat.y) || 0,
                                     radius: parseFloat(seat.radius) || 12,
+                                    seatColor: seat.seatColor || seat.color || null,
                                     // Seat status can be: 'available', 'selected', 'booked', 'disabled'
                                     status: seatStatus,
                                     // Ticket information from relation

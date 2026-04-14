@@ -14,6 +14,7 @@ import { SiTablecheck } from 'react-icons/si';
 import { PlusOutlined, MinusOutlined, ReloadOutlined, LayoutOutlined } from "@ant-design/icons";
 import { Button, Tag, Typography } from 'antd';
 import { motion } from 'framer-motion';
+import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil';
 
 const THEME = {
     // Primary brand color
@@ -154,19 +155,49 @@ const SEAT_COLORS = {
     noTicket: THEME.seatNoTicket,
 };
 
+const SEAT_STYLES = {
+    booked: {
+        background: 'rgba(255,255,255,0.06)',
+        border: '1px solid rgba(255,255,255,0.15)',
+        color: 'rgba(255,255,255,0.4)',
+        cursor: 'not-allowed',
+    },
+    reserved: {
+        background: 'rgb(152, 124, 39)',
+        border: '2px solid rgb(152, 124, 39)',
+        color: '#000',
+        cursor: 'not-allowed',
+    },
+    disabled: {
+        background: '#1f2937',
+        border: '1px solid rgba(255,255,255,0.1)',
+        color: 'rgba(255,255,255,0.3)',
+        cursor: 'not-allowed',
+    },
+    noTicket: {
+        background: '#111827',
+        border: '1px solid rgba(255,255,255,0.08)',
+        color: 'rgba(255,255,255,0.25)',
+        cursor: 'not-allowed',
+    },
+};
+
+const parseSeatBorder = (borderValue) => {
+    if (!borderValue) return { stroke: 'transparent', strokeWidth: 0 };
+    const match = String(borderValue).match(/(\d+(?:\.\d+)?)px\s+solid\s+(.+)/i);
+    if (!match) return { stroke: 'transparent', strokeWidth: 0 };
+    return {
+        strokeWidth: parseFloat(match[1]) || 0,
+        stroke: match[2] || 'transparent',
+    };
+};
+
 /** Row title + seat number (e.g. A1, Z12, AA1) — no extra separator */
 const formatSeatDisplayLabel = (rowTitle, seatNumber) => {
     const t = rowTitle != null ? String(rowTitle).trim() : '';
     const n = seatNumber != null && seatNumber !== '' ? String(seatNumber) : '';
     return t ? `${t}${n}` : n;
 };
-
-// Booking canvas: relax dense layouts (many seats) without editing the layout editor
-const BOOKING_SEAT_EDGE_GAP = 6;
-const BOOKING_MIN_RADIUS_DESKTOP = 15;
-const BOOKING_MIN_RADIUS_MOBILE = 13;
-const BOOKING_RADIUS_BOOST = 1.28;
-const BOOKING_MIN_ROW_VERTICAL_GAP = 8;
 
 /** Straight stage line at y=0; label placed below — keep in sync with StageScreen */
 const BOOKING_STAGE_SCREEN_LABEL_Y = 12;
@@ -176,134 +207,61 @@ const getBookingStageStraightFootprintPx = () =>
     BOOKING_STAGE_SCREEN_LABEL_Y + Math.ceil(BOOKING_STAGE_SCREEN_NAME_SIZE * 1.35) + 12;
 /** Minimum gap between bottom of stage block and top of section / seats */
 const BOOKING_STAGE_SECTION_GAP = 18;
+/** Desired extra clear space between neighboring seats (display-only) */
+const BOOKING_SEAT_CLEAR_GAP = 6;
+/** Display-only seat size boost (radius) */
+const BOOKING_SEAT_SIZE_BOOST = 2;
 
-const getBookingTargetMinRadius = () =>
-    (IS_MOBILE ? BOOKING_MIN_RADIUS_MOBILE : BOOKING_MIN_RADIUS_DESKTOP);
+const applySeatHorizontalGapBoost = (sections) => {
+    if (!sections?.length) return sections;
 
-/** Expand centers so adjacent gap >= minCenterGap; keep row midpoint fixed */
-const spreadRowSeatCenters = (seats, minCenterGap, midX) => {
-    const n = seats.length;
-    if (n <= 1) return;
-    const xs = seats.map(s => s.x);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const rowMid = midX ?? (minX + maxX) / 2;
-    const span = maxX - minX;
-    const required = (n - 1) * minCenterGap;
+    return sections.map((section) => {
+        if (section.type === 'Standing' || !section.rows?.length) return section;
 
-    if (span < 1e-6) {
-        const total = required;
-        const start = rowMid - total / 2;
-        seats.forEach((s, i) => { s.x = start + i * minCenterGap; });
-        return;
-    }
+        return {
+            ...section,
+            rows: section.rows.map((row) => {
+                if (!row?.seats?.length) return row;
 
-    if (span < required) {
-        const scale = required / span;
-        seats.forEach(s => { s.x = rowMid + (s.x - rowMid) * scale; });
-    }
-};
+                const sortableSeats = row.seats
+                    .map((seat, index) => ({ seat, index }))
+                    .filter(({ seat }) => seat && typeof seat.x === 'number')
+                    .sort((a, b) => a.seat.x - b.seat.x);
 
-const clampRowRadiusToNeighborGaps = (seats, edgeGap, desiredR, absoluteMin) => {
-    if (seats.length <= 1) return Math.max(absoluteMin, desiredR);
-    let maxAllowed = desiredR;
-    for (let i = 1; i < seats.length; i++) {
-        const gap = seats[i].x - seats[i - 1].x;
-        const maxR = (gap - edgeGap) / 2;
-        if (Number.isFinite(maxR) && maxR > 0) maxAllowed = Math.min(maxAllowed, maxR);
-    }
-    return Math.max(absoluteMin * 0.82, maxAllowed);
-};
+                if (sortableSeats.length <= 1) return row;
 
-const applyVerticalRowSpacing = (rows, minGapBetweenRows) => {
-    const resultRows = rows.map(r => ({
-        ...r,
-        seats: (r.seats || []).map(s => (s ? { ...s } : s)),
-    }));
+                let minCurrentGap = Infinity;
+                let maxDisplayRadius = 0;
+                for (let i = 0; i < sortableSeats.length; i++) {
+                    const seat = sortableSeats[i].seat;
+                    const displayRadius = (parseFloat(seat.radius) || 12) + BOOKING_SEAT_SIZE_BOOST;
+                    maxDisplayRadius = Math.max(maxDisplayRadius, displayRadius);
+                    if (i > 0) {
+                        const prevX = sortableSeats[i - 1].seat.x;
+                        minCurrentGap = Math.min(minCurrentGap, seat.x - prevX);
+                    }
+                }
 
-    const rowBounds = resultRows.map((row, idx) => {
-        const seats = row.seats || [];
-        let minTop = Infinity;
-        let maxBot = -Infinity;
-        for (const s of seats) {
-            if (!s || typeof s.y !== 'number') continue;
-            const rad = parseFloat(s.radius) || 12;
-            minTop = Math.min(minTop, s.y - rad);
-            maxBot = Math.max(maxBot, s.y + rad);
-        }
-        if (minTop === Infinity) return null;
-        return { idx, minTop, maxBot };
-    }).filter(Boolean);
+                const targetMinGap = maxDisplayRadius * 2 + BOOKING_SEAT_CLEAR_GAP;
+                const neededGapBoost = minCurrentGap < Infinity
+                    ? Math.max(0, targetMinGap - minCurrentGap)
+                    : 0;
 
-    rowBounds.sort((a, b) => a.minTop - b.minTop);
+                const middle = (sortableSeats.length - 1) / 2;
+                const updatedSeats = [...row.seats];
 
-    let prevBottom = -Infinity;
-    for (const b of rowBounds) {
-        const dy = b.minTop < prevBottom + minGapBetweenRows
-            ? prevBottom + minGapBetweenRows - b.minTop
-            : 0;
-        if (dy !== 0) {
-            const row = resultRows[b.idx];
-            row.seats = row.seats.map(s =>
-                (s && typeof s.y === 'number' ? { ...s, y: s.y + dy } : s)
-            );
-        }
-        prevBottom = b.maxBot + dy;
-    }
+                sortableSeats.forEach((entry, sortedIndex) => {
+                    const offset = (sortedIndex - middle) * neededGapBoost;
+                    updatedSeats[entry.index] = {
+                        ...entry.seat,
+                        x: entry.seat.x + offset,
+                    };
+                });
 
-    return resultRows;
-};
-
-const optimizeSeatingSection = (section) => {
-    if (section.type === 'Standing' || !section.rows?.length) return section;
-
-    const minR = getBookingTargetMinRadius();
-    const edge = BOOKING_SEAT_EDGE_GAP;
-
-    let newRows = section.rows.map(row => {
-        const raw = row.seats || [];
-        const withPos = raw
-            .map((s) => (s && typeof s.x === 'number' ? s : null))
-            .filter(Boolean);
-        if (withPos.length === 0) return row;
-
-        const sorted = [...withPos].sort((a, b) => a.x - b.x);
-        const working = sorted.map(s => ({ ...s }));
-
-        const baseRadius = Math.max(
-            ...working.map(w => parseFloat(w.radius) || 12),
-            minR
-        );
-        let displayR = Math.max(minR, Math.min(baseRadius * BOOKING_RADIUS_BOOST, minR * 2));
-
-        const xs = working.map(w => w.x);
-        const midX = (Math.min(...xs) + Math.max(...xs)) / 2;
-        const minCenterGap = 2 * displayR + edge;
-
-        spreadRowSeatCenters(working, minCenterGap, midX);
-        displayR = clampRowRadiusToNeighborGaps(working, edge, displayR, minR);
-        working.forEach(w => { w.radius = displayR; });
-
-        const idToAdj = new Map(sorted.map((s, i) => [s.id, working[i]]));
-
-        const outSeats = raw.map(s => {
-            if (!s || typeof s.x !== 'number') return s;
-            const adj = idToAdj.get(s.id);
-            if (!adj) return s;
-            return { ...s, x: adj.x, y: adj.y, radius: adj.radius };
-        });
-
-        return { ...row, seats: outSeats };
+                return { ...row, seats: updatedSeats };
+            }),
+        };
     });
-
-    newRows = applyVerticalRowSpacing(newRows, BOOKING_MIN_ROW_VERTICAL_GAP);
-
-    return { ...section, rows: newRows };
-};
-
-const optimizeSectionsForBooking = (sections) => {
-    if (!sections?.length) return sections || [];
-    return sections.map(s => optimizeSeatingSection(s));
 };
 
 /** Push sections down so stage + SCREEN label never overlaps first row / titles (API may overlap) */
@@ -343,15 +301,17 @@ const applyStageSectionVerticalClearance = (stage, sections) => {
 };
 
 const buildBookingDisplaySections = (sections, stage) =>
-    applyStageSectionVerticalClearance(stage, optimizeSectionsForBooking(sections ?? []));
+    // Keep booking geometry aligned with creation module coordinates.
+    // Only apply slight seat-gap expansion + stage-to-section clearance.
+    applyStageSectionVerticalClearance(stage, applySeatHorizontalGapBoost(sections ?? []));
 
-const getSeatColor = (seat, isSelected) => {
+const getSeatColor = (seat, isSelected, resolvedSeatColor) => {
     if (!seat.ticket) return SEAT_COLORS.noTicket;
     if (seat.status === 'booked') return SEAT_COLORS.booked;
     if (seat.status === 'disabled') return SEAT_COLORS.disabled;
-    if (seat.status === 'hold' || seat.status === 'locked') return '#B51515'; // Orange color for hold/locked
-    if (isSelected || seat.status === 'selected') return SEAT_COLORS.selected;
-    return SEAT_COLORS.available;
+    if (seat.status === 'hold' || seat.status === 'locked' || seat.status === 'reserved') return '#B51515';
+    if (isSelected || seat.status === 'selected') return resolvedSeatColor;
+    return resolvedSeatColor;
 };
 
 const Seat = memo(({
@@ -362,7 +322,9 @@ const Seat = memo(({
     onLeave,
     sectionId,
     rowId,
-    rowTitle
+    rowTitle,
+    rowSeatColor,
+    sectionSeatColor
 }) => {
     const [iconImage, setIconImage] = useState(null);
     const [clockIconImage, setClockIconImage] = useState(null);
@@ -372,10 +334,12 @@ const Seat = memo(({
     const isBooked = seat.status === 'booked';
     const isHold = seat.status === 'hold';
     const isLocked = seat.status === 'locked';
+    const isReserved = seat.status === 'reserved';
     // Allow clicking on available or selected seats (for deselection)
     // Disable if booked, hold, or locked
-    const isClickable = !isDisabled && !isBooked && !isHold && !isLocked;
-    const seatColor = getSeatColor(seat, isSelected);
+    const isClickable = !isDisabled && !isBooked && !isHold && !isLocked && !isReserved;
+    const resolvedSeatColor = seat.seatColor || seat.color || rowSeatColor || sectionSeatColor || SEAT_COLORS.available;
+    const seatColor = getSeatColor(seat, isSelected, resolvedSeatColor);
     const seatOpacity = isDisabled ? 0.3 : 1;
 
     useEffect(() => {
@@ -410,40 +374,32 @@ const Seat = memo(({
 
     const x = seat.x;
     const y = seat.y;
-    const radius = seat.radius;
     const seatLabel = formatSeatDisplayLabel(rowTitle, seat.number);
     const labelLen = seatLabel.length;
-    const baseSeatFont = Math.max(10, Math.min(14, radius * 0.72));
-    const seatLabelFontSize =
-        labelLen > 4 ? Math.max(8, baseSeatFont - 2) : labelLen > 3 ? Math.max(8, baseSeatFont - 1) : baseSeatFont;
+    const baseRadius = (parseFloat(seat.radius) || 12) + BOOKING_SEAT_SIZE_BOOST;
+    // Keep seats slightly larger for longer labels (e.g., AA2 / AA12) to prevent text clipping.
+    const radius =
+        labelLen >= 5 ? baseRadius + 3 :
+            labelLen >= 4 ? baseRadius + 2 :
+                labelLen >= 3 ? baseRadius + 1 : baseRadius;
+    const seatLabelFontSize = 7;
 
-    // Handle blank seats (gaps) - render with dotted outline, non-interactive
+    // Handle blank seats (gaps) - keep them fully invisible in booking
     if (seat.type === 'blank') {
-        return (
-            <Group x={x} y={y}>
-                <Rect
-                    x={-radius}
-                    y={-radius}
-                    width={radius * 2}
-                    height={radius * 2}
-                    fill="transparent"
-                    stroke="rgba(255, 255, 255, 0.15)"
-                    strokeWidth={1}
-                    dash={[3, 3]}
-                    cornerRadius={4}
-                    listening={false}
-                    opacity={0.4}
-                    perfectDrawEnabled={false}
-                />
-            </Group>
-        );
+        return null;
     }
 
     // Determine fill and stroke based on seat status
-    const isAvailable = hasTicket && seat.status !== 'booked' && seat.status !== 'disabled' && !isSelected;
-    const seatFill = isAvailable ? 'transparent' : seatColor;
-    const seatStroke = isAvailable || isSelected ? SEAT_COLORS.available : 'transparent';
-    const strokeWidth = isAvailable || isSelected ? 1 : 0;
+    const isInteractiveSeat = hasTicket && !isBooked && !isDisabled && !isHold && !isLocked && !isReserved;
+    const styleKey = !hasTicket ? 'noTicket' : (isBooked ? 'booked' : ((isHold || isLocked || isReserved) ? 'reserved' : (isDisabled ? 'disabled' : null)));
+    const statusStyle = styleKey ? SEAT_STYLES[styleKey] : null;
+    const parsedStatusBorder = statusStyle ? parseSeatBorder(statusStyle.border) : null;
+    const seatFill = isInteractiveSeat
+        ? (isSelected ? seatColor : getBackgroundWithOpacity(seatColor, 0.2))
+        : (statusStyle?.background || seatColor);
+    const seatStroke = isInteractiveSeat ? seatColor : (parsedStatusBorder?.stroke || 'transparent');
+    const strokeWidth = isInteractiveSeat ? (isSelected ? 2 : 1) : (parsedStatusBorder?.strokeWidth || 0);
+    const seatTextColor = statusStyle?.color || THEME.textPrimary;
 
     return (
         <Group x={x} y={y} opacity={seatOpacity}>
@@ -470,8 +426,8 @@ const Seat = memo(({
                     const container = e.target.getStage().container();
                     if (isClickable) {
                         container.style.cursor = 'pointer';
-                    } else if (isDisabled || isBooked || isHold || isLocked) {
-                        container.style.cursor = 'not-allowed';
+                    } else if (isDisabled || isBooked || isHold || isLocked || isReserved) {
+                        container.style.cursor = statusStyle?.cursor || 'not-allowed';
                     }
 
                     // Trigger hover with seat data and pointer position
@@ -511,7 +467,7 @@ const Seat = memo(({
                         height={radius * 2}
                         text={seatLabel}
                         fontSize={seatLabelFontSize}
-                        fill={THEME.textPrimary}
+                        fill={seatTextColor}
                         align="center"
                         verticalAlign="middle"
                         listening={false}
@@ -548,7 +504,7 @@ const Seat = memo(({
                 />
             )}
 
-            {isDisabled && !isBooked && !isHold && !isLocked && (
+            {isDisabled && !isBooked && !isHold && !isLocked && !isReserved && (
                 <Line
                     points={[-radius * 0.5, -radius * 0.5, radius * 0.5, radius * 0.5]}
                     stroke={THEME.errorColor}
@@ -570,7 +526,7 @@ const Seat = memo(({
 
 Seat.displayName = 'Seat';
 
-const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave, sectionId }) => {
+const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave, sectionId, sectionSeatColor }) => {
     if (!row.seats || row.seats.length === 0) return null;
 
     return (
@@ -591,6 +547,8 @@ const Row = memo(({ row, selectedSeatIds, onSeatClick, onSeatHover, onSeatLeave,
                         sectionId={sectionId}
                         rowId={row.id}
                         rowTitle={row.title}
+                        rowSeatColor={row.seatColor || row.color || null}
+                        sectionSeatColor={sectionSeatColor}
                     />
                 );
             })}
@@ -727,6 +685,7 @@ const Section = memo(({ section, selectedSeatIds, selectedSeats, onSeatClick, on
                             onSeatHover={onSeatHover}
                             onSeatLeave={onSeatLeave}
                             sectionId={section.id}
+                            sectionSeatColor={section.seatColor || section.color || null}
                         />
                     ))}
                 </>
@@ -1554,7 +1513,7 @@ const BookingSeatCanvas = ({
                     }}
                 >
                     {/* Legend row */}
-                    <div className="d-flex" style={{ gap: 14 }}>
+                    {/* <div className="d-flex" style={{ gap: 14 }}>
                         {[
                             { color: SEAT_COLORS.available, label: 'Available', border: true },
                             { color: SEAT_COLORS.selected, label: 'Selected' },
@@ -1571,7 +1530,7 @@ const BookingSeatCanvas = ({
                                 <span style={{ color: THEME.textPrimary, fontSize: 12 }}>{item.label}</span>
                             </div>
                         ))}
-                    </div>
+                    </div> */}
 
                     {/* Section chips (only when 2+ sections) */}
                     {sections.length >= 2 && (

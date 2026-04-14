@@ -11,6 +11,30 @@ import { GiRoundTable } from 'react-icons/gi';
 import { SiTablecheck } from 'react-icons/si';
 import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil';
 
+const SEAT_STATUS_STYLES = {
+  reserved: {
+    background: 'rgb(152, 124, 39)',
+    border: '2px solid rgb(152, 124, 39)',
+    color: '#FFFFFF',
+    cursor: 'not-allowed',
+  },
+  disabled: {
+    background: '#1f2937',
+    border: '1px solid rgba(255,255,255,0.1)',
+    color: '#FFFFFF',
+    cursor: 'not-allowed',
+  },
+};
+
+const parseBorderStyle = (border) => {
+  const match = border?.match?.(/(\d+(?:\.\d+)?)px\s+solid\s+(.+)/i);
+  if (!match) return { width: 1, color: '#FFFFFF' };
+  return {
+    width: parseFloat(match[1]) || 1,
+    color: match[2] || '#FFFFFF',
+  };
+};
+
 
 // Draggable Stage Component
 const DraggableStage = ({ stage, isSelected, onSelect, onDragEnd, onTransformEnd, setIsDraggingElement, isInteractive = true }) => {
@@ -629,9 +653,18 @@ const CenterCanvas = (props) => {
                       const canSelectSeat = true;
                       const seatOpacity = isUnavailable ? 0.3 : 1;
                       const resolvedSeatColor = seat.seatColor || row.seatColor || section.seatColor || PRIMARY;
-                      const seatFillColor = getBackgroundWithOpacity(resolvedSeatColor, 0.2);
+                      const statusStyle = SEAT_STATUS_STYLES[seat.status];
+                      const parsedStatusBorder = statusStyle ? parseBorderStyle(statusStyle.border) : null;
+                      const seatFillColor = statusStyle
+                        ? statusStyle.background
+                        : getBackgroundWithOpacity(resolvedSeatColor, 0.2);
                       const isSeatSelected = selectedType === 'seat' && selectedSeatIds.includes(seat.id);
-                      const selectedSeatFillColor = getBackgroundWithOpacity(resolvedSeatColor, 0.45);
+                      const selectedSeatFillColor = statusStyle
+                        ? statusStyle.background
+                        : getBackgroundWithOpacity(resolvedSeatColor, 0.45);
+                      const seatStrokeColor = statusStyle ? parsedStatusBorder.color : resolvedSeatColor;
+                      const seatStrokeWidth = statusStyle ? parsedStatusBorder.width : (isSeatSelected ? 2 : 1);
+                      const seatLabelColor = statusStyle?.color || '#FFFFFF';
 
                       return (
                         <Group key={seat.id} opacity={seatOpacity}>
@@ -641,12 +674,12 @@ const CenterCanvas = (props) => {
                             width={seat.radius * 2}
                             height={seat.radius * 2}
                             fill={isSeatSelected ? selectedSeatFillColor : seatFillColor}
-                            stroke={resolvedSeatColor}
-                            strokeWidth={isSeatSelected ? 2 : 1}
+                            stroke={seatStrokeColor}
+                            strokeWidth={seatStrokeWidth}
                             cornerRadius={4}
                             onMouseEnter={(e) => {
                               const container = e.target.getStage().container();
-                              container.style.cursor = 'pointer';
+                              container.style.cursor = statusStyle?.cursor || 'pointer';
                             }}
                             onMouseLeave={(e) => {
                               const container = e.target.getStage().container();
@@ -696,7 +729,7 @@ const CenterCanvas = (props) => {
                               width={seat.radius * 2}
                               text={seat.number.toString()}
                               fontSize={10}
-                              fill="#FFFFFF"
+                              fill={seatLabelColor}
                               align="center"
                               verticalAlign="middle"
                               listening={false}

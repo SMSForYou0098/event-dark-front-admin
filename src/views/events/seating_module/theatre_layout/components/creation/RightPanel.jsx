@@ -7,7 +7,6 @@ import {
   Button,
   Space,
   Slider,
-  Radio,
   Typography,
   Alert,
   Col,
@@ -59,6 +58,33 @@ const SeatColorSelector = ({ value, onChange }) => {
     </Space>
   );
 };
+
+const SeatIconSelect = ({
+  value,
+  onChange,
+  placeholder = "Select seat icon",
+  disabled = false,
+}) => (
+  <Select
+    placeholder={placeholder}
+    value={value || undefined}
+    onChange={(nextValue) => onChange(nextValue || null)}
+    allowClear
+    disabled={disabled}
+  >
+    {seatIcons?.map((iconObj) => {
+      const IconComponent = getIconComponent(iconObj.icon);
+      return (
+        <Option key={iconObj.id} value={iconObj.icon}>
+          <Space size={8} align="center">
+            {IconComponent ? <IconComponent /> : null}
+            <span>{iconObj.name}</span>
+          </Space>
+        </Option>
+      );
+    })}
+  </Select>
+);
 
 const RightPanel = (props) => {
   const {
@@ -152,13 +178,13 @@ const RightPanel = (props) => {
   const isMultiSeatEdit = selectedType === 'seat' && selectedSeatIds.length > 1;
 
   return (
-    <div className="right-panel bg-custom-secondary" style={{ maxHeight: 'calc(100vh - 100px)', overflowX: 'hidden', overflowY: 'auto' }}>
+    <div className="right-panel bg-custom-secondary" style={{ minHeight: 'calc(100vh - 100px)', overflowX: 'hidden', overflowY: 'auto' }}>
       <div className="panel-header">
         <Title level={4} className="mb-0">
           {selectedType === 'stage' && 'Stage Editor'}
           {selectedType === 'section' && 'Section Editor'}
           {selectedType === 'row' && 'Row Editor'}
-          {selectedType === 'seat' && 'Seat Editor'}
+          {selectedType === 'seat' && 'Seat Lable'}
           {!selectedType && 'Select an Element'}
         </Title>
       </div>
@@ -946,28 +972,14 @@ const RightPanel = (props) => {
                 </Form.Item>
 
                 <Form.Item label="Seat Icon (Bulk)">
-                  <Select
+                  <SeatIconSelect
                     placeholder="Apply icon to selected seats"
-                    value={selectedElement.icon || undefined}
-                    onChange={(value) => {
-                      const nextIcon = value || null;
+                    value={selectedElement.icon}
+                    onChange={(nextIcon) => {
                       updateMultipleSeats?.(selectedSeatIds, { icon: nextIcon, customIcon: true });
                       setSelectedElement({ ...selectedElement, icon: nextIcon, customIcon: true });
                     }}
-                    allowClear
-                  >
-                    {seatIcons?.map(iconObj => {
-                      const IconComponent = getIconComponent(iconObj.icon);
-                      return (
-                        <Option key={iconObj.id} value={iconObj.icon}>
-                          <Space size={8} align="center">
-                            {IconComponent ? <IconComponent /> : null}
-                            <span>{iconObj.name}</span>
-                          </Space>
-                        </Option>
-                      );
-                    })}
-                  </Select>
+                  />
                 </Form.Item>
 
                 {isAssignMode && ticketCategories?.length > 0 && (
@@ -993,16 +1005,20 @@ const RightPanel = (props) => {
                 )}
 
                 <Form.Item label="Seat Status (Bulk)">
-                  <Radio.Group
-                    onChange={(e) => {
-                      updateMultipleSeats?.(selectedSeatIds, { status: e.target.value });
+                  <Select
+                    value={selectedElement.status || undefined}
+                    placeholder="Select status for selected seats"
+                    onChange={(value) => {
+                      updateMultipleSeats?.(selectedSeatIds, { status: value });
+                      setSelectedElement({ ...selectedElement, status: value });
                     }}
-                  >
-                    <Radio value="available" className="d-block mb-2">Available</Radio>
-                    <Radio value="disabled" className="d-block mb-2">Disabled</Radio>
-                    <Radio value="reserved" className="d-block mb-2">Reserved</Radio>
-                    <Radio value="blocked" className="d-block mb-2">Blocked</Radio>
-                  </Radio.Group>
+                    options={[
+                      { value: 'available', label: 'Available' },
+                      { value: 'reserved', label: 'Reserved' },
+                      { value: 'disabled', label: 'Disabled' },
+                      // { value: 'blocked', label: 'Blocked' }
+                    ]}
+                  />
                 </Form.Item>
               </>
             )}
@@ -1037,7 +1053,7 @@ const RightPanel = (props) => {
                 const isSeatLockedForEdit = isAssignMode && selectedElement.status !== 'available';
                 return (
                   <>
-                    <Form.Item label="Seat Label">
+                    <Form.Item label="">
                       <Input
                         // disabled={isAssignMode} // Removed restriction
                         disabled={isSeatLockedForEdit}
@@ -1050,75 +1066,23 @@ const RightPanel = (props) => {
                       />
                     </Form.Item>
 
-                    {/* Removed !isAssignMode restriction for seat icon selector */}
                     <Form.Item
                       label="Seat Icon"
-                      help="Set custom icon for this seat. Note: Row-level changes will override this."
                     >
-                      <Space wrap size={8}>
-                        {/* Default numeric seat */}
-                        <div
-                          onClick={() => {
-                            if (isSeatLockedForEdit) return;
-                            updateSeat(
-                              selectedElement.sectionId,
-                              selectedElement.rowId,
-                              selectedElement.id,
-                              { icon: null, customIcon: true }
-                            );
-                            setSelectedElement({ ...selectedElement, icon: null, customIcon: true });
-                          }}
-                          className="border border-secondary rounded d-flex align-items-center justify-content-center"
-                          style={{
-                            width: 48,
-                            height: 48,
-                            cursor: isSeatLockedForEdit ? 'not-allowed' : 'pointer',
-                            background: !selectedElement.icon ? 'var(--primary-color)' : 'transparent',
-                            color: '#ffffff',
-                            fontSize: 16,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {selectedElement.number}
-                        </div>
-
-                        {/* Icon options */}
-                        {seatIcons?.map(iconObj => {
-                          const IconComponent = getIconComponent(iconObj.icon);
-                          const isActive = selectedElement.icon === iconObj.icon;
-
-                          return (
-                            <div
-                              key={iconObj.id}
-                              className="rounded d-flex align-items-center justify-content-center"
-                              onClick={() => {
-                                if (isSeatLockedForEdit) return;
-                                updateSeat(
-                                  selectedElement.sectionId,
-                                  selectedElement.rowId,
-                                  selectedElement.id,
-                                  { icon: iconObj.icon, customIcon: true }
-                                );
-                                setSelectedElement({ ...selectedElement, icon: iconObj.icon, customIcon: true });
-                              }}
-                              style={{
-                                width: 48,
-                                height: 48,
-                                border: isActive
-                                  ? '2px solid var(--primary-color)'
-                                  : '1px solid #d9d9d9',
-                                cursor: isSeatLockedForEdit ? 'not-allowed' : 'pointer',
-                                background: isActive ? 'var(--primary-color)' : 'transparent',
-                                color: '#ffffff',
-                                fontSize: 22,
-                              }}
-                              title={iconObj.name}
-                            >
-                              <IconComponent />
-                            </div>
+                      <SeatIconSelect
+                        placeholder="Select icon for this seat"
+                        value={selectedElement.icon}
+                        disabled={isSeatLockedForEdit}
+                        onChange={(nextIcon) => {
+                          updateSeat(
+                            selectedElement.sectionId,
+                            selectedElement.rowId,
+                            selectedElement.id,
+                            { icon: nextIcon, customIcon: true }
                           );
-                        })}
-                      </Space>
+                          setSelectedElement({ ...selectedElement, icon: nextIcon, customIcon: true });
+                        }}
+                      />
                       {selectedElement.customIcon && (
                         <Alert
                           message="Custom icon set. This will be overridden if row-level icon is changed."
@@ -1160,45 +1124,28 @@ const RightPanel = (props) => {
                           </Select>
                         </Form.Item>
 
-                        {selectedElement.customTicket && (
-                          <Alert
-                            message="Custom ticket assigned. This will be overridden if row-level ticket is changed."
-                            type="info"
-                            icon={<InfoCircleOutlined />}
-                            showIcon
-                            className="mb-3"
-                          />
-                        )}
                       </>
                     )}
 
                     <Form.Item label="Seat Status">
-                      <Radio.Group
-                        value={selectedElement.status}
-                        onChange={(e) => {
-                          const status = e.target.value;
+                      <Select
+                        value={selectedElement.status || undefined}
+                        placeholder="Select seat status"
+                        onChange={(status) => {
                           updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, { status });
                           setSelectedElement({ ...selectedElement, status });
                         }}
-                      >
-                        <Radio value="available" className="d-block mb-2">
-                          Available
-                        </Radio>
-                        <Radio value="disabled" className="d-block mb-2">
-                          Disabled
-                        </Radio>
-                        <Radio value="reserved" className="d-block mb-2">
-                          Reserved
-                        </Radio>
-                        <Radio value="blocked" className="d-block mb-2">
-                          Blocked
-                        </Radio>
-                      </Radio.Group>
+                        options={[
+                          { value: 'available', label: 'Available' },
+                          { value: 'reserved', label: 'Reserved' },
+                          { value: 'disabled', label: 'Disabled' },
+                          // { value: 'blocked', label: 'Blocked' }
+                        ]}
+                      />
                     </Form.Item>
 
                     <Form.Item
                       label="Seat Color (Single Seat)"
-                      extra="Overrides row/section color for this seat."
                     >
                       <SeatColorSelector
                         value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
@@ -1213,21 +1160,9 @@ const RightPanel = (props) => {
                         }}
                       />
                     </Form.Item>
-
-                    <div className="p-3 bg-light rounded">
-                      <div className="d-flex align-items-center gap-3">
-                        <div className="border border-secondary d-flex align-items-center justify-content-center" style={{ width: 30, height: 30, fontSize: '16px' }}>
-                          {selectedElement.icon ? (() => {
-                            const IconComponent = getIconComponent(selectedElement.icon);
-                            return <IconComponent />;
-                          })() : selectedElement.number}
+                        <div className="d-flex align-items-center ">
+                          <Text className="m-0 mr-2">Seat:</Text> {selectedElement.label} {selectedElement.status}
                         </div>
-                        <div>
-                          <Text strong>Seat:</Text> {selectedElement.label} <br />
-                          <Text strong>Status:</Text> {selectedElement.status}
-                        </div>
-                      </div>
-                    </div>
                   </>
                 );
               })()
@@ -1237,7 +1172,7 @@ const RightPanel = (props) => {
       </div>
 
       {/* Legend */}
-      <div className="legend">
+      <div className="legend mt-2">
         <Title level={5}>Ticket Categories</Title>
         {ticketCategories?.map(cat => (
           <div key={cat.id} className="legend-item d-flex align-items-center gap-2 mb-2">
