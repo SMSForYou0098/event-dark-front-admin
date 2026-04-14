@@ -52,6 +52,8 @@ export const VALIDATION_REGEX = {
 
     // Category Name: Only letters, numbers, spaces, dots, hyphens, and parentheses
     CATEGORY_NAME: /^[A-Za-z0-9]+(?:[ .-][A-Za-z0-9]+)*$/,
+    // URL validation: Supports http, https, and optional www
+    URL: /^(https?:\/\/)?(www\.)?([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}(:\d{1,5})?(\/[^\s]*)?$/,
 
 };
 
@@ -68,6 +70,7 @@ export const VALIDATION_MESSAGES = {
     BRAND_NAME: 'Brand name must contain only letters and spaces',
     EVENT_NAME: 'Event name can only contain letters, numbers, spaces, commas, dots, and hyphens',
     CATEGORY_NAME: 'Category name can only contain letters, numbers, spaces, commas, dots, and hyphens',
+    URL: 'Please enter a valid URL (e.g., https://example.com)',
 
     // Bank Details Messages
     BANK_NAME: 'Bank name must contain only letters and spaces',
@@ -98,8 +101,11 @@ export const VALIDATION_RULES = {
         { pattern: VALIDATION_REGEX.MOBILE, message: VALIDATION_MESSAGES.MOBILE }
     ],
     EMAIL: [
-        { required: true, message: VALIDATION_MESSAGES.REQUIRED('email') },
+        { required: true, message: VALIDATION_MESSAGES.REQUIRED('email address') },
         { pattern: VALIDATION_REGEX.EMAIL, message: VALIDATION_MESSAGES.EMAIL }
+    ],
+    URL: [
+        { pattern: VALIDATION_REGEX.URL, message: VALIDATION_MESSAGES.URL }
     ],
     NAME: [
         { required: true, message: VALIDATION_MESSAGES.REQUIRED('name') },

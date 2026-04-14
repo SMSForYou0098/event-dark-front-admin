@@ -169,7 +169,7 @@ export const VanueList = ({
             loading={venueLoading}
             disabled={venueLoading && !!selectedVenueId}
             showSearch
-            // style={{ width: '100%' }}
+            style={{ width: '100%' }}
             options={venueOptions}
             optionRender={renderOption}
             filterOption={handleFilter}
@@ -183,33 +183,31 @@ export const VanueList = ({
     );
 
     return (
-        <>
+        <Col xs={24} md={span ?? 24}>
             {/* Venues — driven by organizerId */}
-            <Col xs={24} md={span ?? 24}>
-                {form ? (
-                    <Form.Item
-                        name="venue_id"
-                        className={noMargin ? 'mb-0' : undefined}
-                        label={hideLable ? null : "Select Venue"}
-                        rules={[{ required: true, message: "Please select venue" }]}
-                        // This ensures form doesn't try to display value until options are loaded
-                        getValueProps={(val) => ({
-                            value: venueLoading || !venues.length ? undefined : (val ? String(val) : undefined)
-                        })}
-                    >
-                        {selectComponent}
-                    </Form.Item>
-                ) : (
-                    <>
-                        {!hideLable && <label>Select Venue</label>}
-                        {selectComponent}
-                    </>
-                )}
-            </Col>
+            {form ? (
+                <Form.Item
+                    name="venue_id"
+                    className={noMargin ? 'mb-0' : undefined}
+                    label={hideLable ? null : "Select Venue"}
+                    rules={[{ required: true, message: "Please select venue" }]}
+                    // This ensures form doesn't try to display value until options are loaded
+                    getValueProps={(val) => ({
+                        value: venueLoading || !venues.length ? undefined : (val ? String(val) : undefined)
+                    })}
+                >
+                    {selectComponent}
+                </Form.Item>
+            ) : (
+                <>
+                    {!hideLable && <label>Select Venue</label>}
+                    {selectComponent}
+                </>
+            )}
 
             {/* Venue Details */}
             {showDetail && selectedVenue && (
-                <Col xs={24}>
+                <div className="mt-3">
                     <Card
                         size="small"
                         title="Venue Details"
@@ -223,23 +221,21 @@ export const VanueList = ({
                             </Button>
                         }
                     >
-                        <Space direction="vertical">
-                            <Space size="large">
+                        <Space size="large" wrap>
+                            <Space>
+                                <HomeOutlined className='text-white bg-primary p-2 rounded-circle' />
+                                <Typography.Text>
+                                    {selectedVenue?.name || selectedVenue?.label}
+                                </Typography.Text>
+                            </Space>
+                            {(selectedVenue?.location || selectedVenue?.city || selectedVenue?.state) && (
                                 <Space>
-                                    <HomeOutlined className='text-white bg-primary p-2 rounded-circle' />
+                                    <CompassOutlined className='text-white bg-primary p-2 rounded-circle' />
                                     <Typography.Text>
-                                        {selectedVenue?.name || selectedVenue?.label}
+                                        {selectedVenue?.location || [selectedVenue?.city, selectedVenue?.state].filter(Boolean).join(', ')}
                                     </Typography.Text>
                                 </Space>
-                                {(selectedVenue?.location || selectedVenue?.city || selectedVenue?.state) && (
-                                    <Space>
-                                        <CompassOutlined className='text-white bg-primary p-2 rounded-circle' />
-                                        <Typography.Text>
-                                            {selectedVenue?.location || [selectedVenue?.city, selectedVenue?.state].filter(Boolean).join(', ')}
-                                        </Typography.Text>
-                                    </Space>
-                                )}
-                            </Space>
+                            )}
                             {selectedVenue?.address && (
                                 <Space>
                                     <EnvironmentOutlined className='text-white bg-primary p-2 rounded-circle' />
@@ -258,8 +254,8 @@ export const VanueList = ({
                             </Button>
                         )}
                     </Card>
-                </Col>
+                </div>
             )}
-        </>
+        </Col>
     );
 };

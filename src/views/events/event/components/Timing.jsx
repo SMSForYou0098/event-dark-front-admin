@@ -291,6 +291,12 @@ const TimingStep = ({ form, ...props }) => {
                       format={FMT_T}
                       placeholder="End time"
                       disabled={isTba}
+                      onKeyDown={(e) => {
+                        const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Delete', 'ArrowLeft', 'ArrowRight', ':', 'Shift'];
+                        if (!/^\d$/.test(e.key) && !allowedKeys.includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </Form.Item>
                 </Col>
@@ -351,6 +357,12 @@ const TimingStep = ({ form, ...props }) => {
                       format={FMT_T}
                       placeholder="Entry time"
                       disabled={isTba}
+                      onKeyDown={(e) => {
+                        const allowedKeys = ['Backspace', 'Tab', 'Enter', 'Delete', 'ArrowLeft', 'ArrowRight', ':', 'Shift'];
+                        if (!/^\d$/.test(e.key) && !allowedKeys.includes(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
                       disabledTime={() => {
                         if (!startTime) return {};
 

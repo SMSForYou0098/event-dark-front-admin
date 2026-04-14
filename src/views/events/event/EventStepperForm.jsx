@@ -626,7 +626,7 @@ const EventStepperForm = () => {
                             </Tooltip>
                         }
 
-                        <div style={{ display: 'flex', gap: 8 }}>
+                        <div style={{ display: 'flex', gap: 8, marginLeft: 'auto', justifyContent: 'flex-end' }}>
                             {current > 0 && current !== steps.length - 1 && (
                                 <Button onClick={prev} size="large" disabled={isLoading || componentLoader}>
                                     Previous

@@ -155,7 +155,8 @@ export const PERMISSIONS = {
     VIEW_MANAGE_SEATING_LAYOUT: "View Manage Seating Layout",
 
     MANAGE_SEATING_LAYOUT_SECTIONS: "Manage Seating Layout Sections",
-    
+    UPDATE_SEATING_LAYOUT_SECTIONS: "Update Seating Layout Sections",
+
 
 
 };

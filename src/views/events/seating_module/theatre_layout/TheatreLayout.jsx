@@ -416,7 +416,7 @@ const AuditoriumLayoutDesigner = () => {
     if (hasChanges) {
       setSections(sanitizedSections);
     }
-  }, [ticketCategories,sections]);
+  }, [ticketCategories, sections]);
 
   // Update selectedElement when sections change (to reflect sanitized data)
   useEffect(() => {
@@ -444,7 +444,7 @@ const AuditoriumLayoutDesigner = () => {
         setSelectedElement({ ...updatedSeat, sectionId: section.id, rowId: row.id });
       }
     }
-  }, [sections,selectedElement,selectedType]); // Sync selection after sections updates only
+  }, [sections, selectedElement, selectedType]); // Sync selection after sections updates only
 
   useEffect(() => {
     if (selectedSeatIds.length === 0) return;
@@ -1563,131 +1563,131 @@ const AuditoriumLayoutDesigner = () => {
   return (
     <Card className="auditorium-designer"
       bodyStyle={{ paddingTop: 10 }}
-      title={isReportMode
-        ? `Layout Report: ${layoutName}`
-        : isAssignMode
-          ? `Assign Tickets to Layout: ${layoutName}`
-          : layoutId
-            ? `Edit Layout: ${layoutName}`
-            : "New Auditorium Layout"}
-      extra={
-        isReportMode ? (
-          <Row align="middle" gutter={10} wrap={false} className='mb-4'>
-            <Col>
-              <Tooltip title="Zoom in">
-                <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
-              </Tooltip>
-            </Col>
-            <Col>
-              <Tooltip title="Zoom out">
-                <Button icon={<ZoomOutOutlined />} onClick={() => handleZoom(false)} />
-              </Tooltip>
-            </Col>
-            <Col>
-              <Tooltip title="Back">
-                <Button
-                  type="primary"
-                  icon={<ArrowLeftOutlined />}
-                  onClick={() => navigate(-1)}
-                />
-              </Tooltip>
-            </Col>
-          </Row>
-        ) : (
-          <Row align="middle" gutter={10} wrap={false} className='mb-4'>
-            <Col span={4}>
-              {/* add field to write name for layout */}
-              <Input
-                placeholder="Layout Name"
-                value={layoutName}
-                onChange={(e) => setLayoutName(e.target.value)}
+    // title={isReportMode
+    //   ? `Layout Report: ${layoutName}`
+    //   : isAssignMode
+    //     ? `Assign Tickets: ${layoutName}`
+    //     : layoutId
+    //       ? `Edit Layout: ${layoutName}`
+    //       : "New Auditorium Layout"}
+    >
+
+      {isReportMode ? (
+        <Row align="middle" gutter={10} wrap={false} className='mb-4'>
+          <Col>
+            <Tooltip title="Zoom in">
+              <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
+            </Tooltip>
+          </Col>
+          <Col>
+            <Tooltip title="Zoom out">
+              <Button icon={<ZoomOutOutlined />} onClick={() => handleZoom(false)} />
+            </Tooltip>
+          </Col>
+          <Col>
+            <Tooltip title="Back">
+              <Button
+                type="primary"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate(-1)}
               />
-            </Col>
-            <VanueList
-              hideLable={true}
-              noMargin={true}
-              onChange={onVanueChange}
-              value={vanueId}
-              span={4}
-              showDetail={false}
+            </Tooltip>
+          </Col>
+        </Row>
+      ) : (
+        <Row align="middle" justify="center" gutter={10} wrap={false} className='mb-4'>
+          <Col span={1} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Tooltip title="Back">
+              <Button
+                type="primary"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate(-1)}
+              />
+            </Tooltip>
+          </Col>
+          <Col span={4} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            {/* add field to write name for layout */}
+            <Input
+              placeholder="Layout Name"
+              value={layoutName}
+              onChange={(e) => setLayoutName(e.target.value)}
             />
-            <Col>
+          </Col>
+          <VanueList
+            hideLable={true}
+            noMargin={true}
+            onChange={onVanueChange}
+            value={vanueId}
+            span={4}
+            showDetail={false}
+          />
+          <PermissionChecker permission={PERMISSIONS.UPDATE_SEATING_LAYOUT_SECTIONS}>
+            <Col span={2} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 onClick={addSection}
               // disabled={isAssignMode} // Removed restriction
               >
-                Add Section
+                Section
               </Button>
             </Col>
 
-            <Col>
-              <Tooltip title="Show/hide grid">
-                <Button
-                  icon={<BorderOutlined />}
-                  onClick={() => setShowGrid(!showGrid)}
-                />
-              </Tooltip>
-            </Col>
-
-            <Col>
-              <Tooltip title="Zoom in">
-                <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
-              </Tooltip>
-            </Col>
-            <Col>
-              <Tooltip title="Zoom out">
-                <Button icon={<ZoomOutOutlined />} onClick={() => handleZoom(false)} />
-              </Tooltip>
-            </Col>
-            <Col>
-              <Tooltip title="Export layout JSON: geometry, icons, labels only — no ticket categories or seat assignments">
-                <Button icon={<DownloadOutlined />} onClick={exportLayoutJson} />
-              </Tooltip>
-            </Col>
-            <Col>
-              <input
-                ref={layoutImportInputRef}
-                type="file"
-                accept=".json,application/json"
-                style={{ display: 'none' }}
-                onChange={onLayoutImportFileChange}
-              />
-              <Tooltip title="Import layout from JSON">
-                <Button
-                  icon={<UploadOutlined />}
-                  onClick={() => layoutImportInputRef.current?.click()}
-                />
-              </Tooltip>
-            </Col>
-            <Col>
+          </PermissionChecker>
+          <Col span={1} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Tooltip title="Show/hide grid">
               <Button
-                type="primary"
-                icon={<SaveOutlined />}
-                loading={saveMutation.isPending}
-                onClick={saveLayout}
-                style={{ background: "#52c41a", borderColor: "#52c41a" }}
-              >
-                {isAssignMode ? "Save" : layoutId ? "Update" : "Save"}
-              </Button>
-            </Col>
-            <Col>
-              <Tooltip title="Back">
-                <Button
-                  type="primary"
-                  icon={<ArrowLeftOutlined />}
-                  onClick={() => navigate(-1)}
-                />
-              </Tooltip>
-            </Col>
+                icon={<BorderOutlined />}
+                onClick={() => setShowGrid(!showGrid)}
+              />
+            </Tooltip>
+          </Col>
 
-          </Row>
-        )
-      }
-    >
+          <Col span={1} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Tooltip title="Zoom in">
+              <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
+            </Tooltip>
+          </Col>
+          <Col span={1} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Tooltip title="Zoom out">
+              <Button icon={<ZoomOutOutlined />} onClick={() => handleZoom(false)} />
+            </Tooltip>
+          </Col>
+          <Col span={1} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Tooltip title="Export layout JSON: geometry, icons, labels only — no ticket categories or seat assignments">
+              <Button icon={<DownloadOutlined />} onClick={exportLayoutJson} />
+            </Tooltip>
+          </Col>
+          <Col span={1} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <input
+              ref={layoutImportInputRef}
+              type="file"
+              accept=".json,application/json"
+              style={{ display: 'none' }}
+              onChange={onLayoutImportFileChange}
+            />
+            <Tooltip title="Import layout from JSON">
+              <Button
+                icon={<UploadOutlined />}
+                onClick={() => layoutImportInputRef.current?.click()}
+              />
+            </Tooltip>
+          </Col>
+          <Col span={2} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={saveMutation.isPending}
+              onClick={saveLayout}
+              style={{ background: "#52c41a", borderColor: "#52c41a" }}
+            >
+              {isAssignMode ? "Save" : layoutId ? "Update" : "Save"}
+            </Button>
+          </Col>
 
 
+        </Row>
+      )}
       <Row>
         {isReportMode ? (
           <Col lg={8}>

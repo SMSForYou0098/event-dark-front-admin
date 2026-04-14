@@ -19,6 +19,9 @@ import {
   InfoCircleOutlined
 } from "@ant-design/icons";
 import { getIconComponent, seatIcons } from "../consts";
+import PermissionChecker from "layouts/PermissionChecker";
+
+const UPDATE_SEATING_PERMISSION = "Update Seating Layout Sections";
 
 const { Option } = Select;
 const { Text, Title } = Typography;
@@ -198,444 +201,596 @@ const RightPanel = (props) => {
 
         {/* Stage Editor */}
         {selectedType === 'stage' && (
-          <Form layout="vertical" className="editor-form">
-            <Form.Item label="Stage/Screen Name">
-              <Input
-                value={stage.name}
-                onChange={(e) => {
-                  const updatedStage = { ...stage, name: e.target.value };
-                  setStage(updatedStage);
-                  setSelectedElement(updatedStage);
-                }}
-                placeholder="e.g., SCREEN, STAGE, etc."
+          <PermissionChecker
+            permission={UPDATE_SEATING_PERMISSION}
+            fallback={
+              <Alert
+                message="You don't have permission to edit the stage."
+                type="warning"
+                showIcon
+                className="m-3"
               />
-            </Form.Item>
-
-            <Form.Item label="Position">
-              <Select
-                value={stage.position}
-                onChange={(value) => {
-                  const updatedStage = { ...stage, position: value };
-                  setStage(updatedStage);
-                  setSelectedElement(updatedStage);
-                }}
-              >
-                <Option value="top">Top</Option>
-                <Option value="bottom">Bottom</Option>
-                <Option value="center">Center</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item label="Shape">
-              <Select
-                value={stage.shape || 'curved'}
-                onChange={(value) => {
-                  const updatedStage = { ...stage, shape: value };
-                  setStage(updatedStage);
-                  setSelectedElement(updatedStage);
-                }}
-              >
-                <Option value="straight">Straight</Option>
-                <Option value="curved">Curved</Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item label="Width">
-              <InputNumber
-                min={200}
-                value={parseFloat(stage.width) || 800}
-                onChange={(value) => {
-                  const updatedStage = { ...stage, width: parseFloat(value) || 800 };
-                  setStage(updatedStage);
-                  setSelectedElement(updatedStage);
-                }}
-                className="w-100"
-              />
-            </Form.Item>
-
-            <Form.Item label="Height">
-              <InputNumber
-                min={5}
-                value={parseFloat(stage.height) || 50}
-                onChange={(value) => {
-                  const updatedStage = { ...stage, height: parseFloat(value) || 50 };
-                  setStage(updatedStage);
-                  setSelectedElement(updatedStage);
-                }}
-                className="w-100"
-              />
-            </Form.Item>
-
-            {stage.shape === 'curved' && (
-              <Form.Item label="Curve Amount">
-                <Slider
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={stage.curve || 0.15}
-                  onChange={(value) => {
-                    const updatedStage = { ...stage, curve: value };
+            }
+          >
+            <Form layout="vertical" className="editor-form">
+              <Form.Item label="Stage/Screen Name">
+                <Input
+                  value={stage.name}
+                  onChange={(e) => {
+                    const updatedStage = { ...stage, name: e.target.value };
                     setStage(updatedStage);
                     setSelectedElement(updatedStage);
                   }}
-                  tooltip={{ formatter: (value) => `${Math.round(value * 100)}%` }}
+                  placeholder="e.g., SCREEN, STAGE, etc."
                 />
               </Form.Item>
-            )}
 
-            <Alert
-              message="💡 Tip: Click and drag the screen to move it. Use corner handles to resize."
-              type="info"
-              showIcon
-              icon={<InfoCircleOutlined />}
-            />
-          </Form>
+              <Form.Item label="Position">
+                <Select
+                  value={stage.position}
+                  onChange={(value) => {
+                    const updatedStage = { ...stage, position: value };
+                    setStage(updatedStage);
+                    setSelectedElement(updatedStage);
+                  }}
+                >
+                  <Option value="top">Top</Option>
+                  <Option value="bottom">Bottom</Option>
+                  <Option value="center">Center</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item label="Shape">
+                <Select
+                  value={stage.shape || 'curved'}
+                  onChange={(value) => {
+                    const updatedStage = { ...stage, shape: value };
+                    setStage(updatedStage);
+                    setSelectedElement(updatedStage);
+                  }}
+                >
+                  <Option value="straight">Straight</Option>
+                  <Option value="curved">Curved</Option>
+                </Select>
+              </Form.Item>
+
+              <Form.Item label="Width">
+                <InputNumber
+                  min={200}
+                  value={parseFloat(stage.width) || 800}
+                  onChange={(value) => {
+                    const updatedStage = { ...stage, width: parseFloat(value) || 800 };
+                    setStage(updatedStage);
+                    setSelectedElement(updatedStage);
+                  }}
+                  className="w-100"
+                />
+              </Form.Item>
+
+              <Form.Item label="Height">
+                <InputNumber
+                  min={5}
+                  value={parseFloat(stage.height) || 50}
+                  onChange={(value) => {
+                    const updatedStage = { ...stage, height: parseFloat(value) || 50 };
+                    setStage(updatedStage);
+                    setSelectedElement(updatedStage);
+                  }}
+                  className="w-100"
+                />
+              </Form.Item>
+
+              {stage.shape === 'curved' && (
+                <Form.Item label="Curve Amount">
+                  <Slider
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={stage.curve || 0.15}
+                    onChange={(value) => {
+                      const updatedStage = { ...stage, curve: value };
+                      setStage(updatedStage);
+                      setSelectedElement(updatedStage);
+                    }}
+                    tooltip={{ formatter: (value) => `${Math.round(value * 100)}%` }}
+                  />
+                </Form.Item>
+              )}
+
+              <Alert
+                message="💡 Tip: Click and drag the screen to move it. Use corner handles to resize."
+                type="info"
+                showIcon
+                icon={<InfoCircleOutlined />}
+              />
+            </Form>
+          </PermissionChecker>
         )}
 
         {/* Section Editor */}
         {selectedType === 'section' && selectedElement && (
-          <Form layout="vertical" className="editor-form">
-            <Form.Item label="Section Name">
-              <Input
-                value={selectedElement.name}
-                onChange={(e) => {
-                  updateSection(selectedElement.id, { name: e.target.value });
-                  setSelectedElement({ ...selectedElement, name: e.target.value });
-                }}
+          <PermissionChecker
+            permission={UPDATE_SEATING_PERMISSION}
+            fallback={
+              <Alert
+                message="You don't have permission to edit sections."
+                type="warning"
+                showIcon
+                className="m-3"
               />
-            </Form.Item>
+            }
+          >
+            <Form layout="vertical" className="editor-form">
+              <Form.Item label="Section Name">
+                <Input
+                  value={selectedElement.name}
+                  onChange={(e) => {
+                    updateSection(selectedElement.id, { name: e.target.value });
+                    setSelectedElement({ ...selectedElement, name: e.target.value });
+                  }}
+                />
+              </Form.Item>
 
-            <Form.Item label="Section Type">
-              <Select
-                value={selectedElement.type}
-                onChange={(value) => {
-                  updateSection(selectedElement.id, { type: value });
-                  setSelectedElement({ ...selectedElement, type: value });
-                }}
-                options={[
-                  { value: 'Regular', label: 'Regular' },
-                  { value: 'Standing', label: 'Standing' }
-                ]}
-              />
-            </Form.Item>
+              <Form.Item label="Section Type">
+                <Select
+                  value={selectedElement.type}
+                  onChange={(value) => {
+                    updateSection(selectedElement.id, { type: value });
+                    setSelectedElement({ ...selectedElement, type: value });
+                  }}
+                  options={[
+                    { value: 'Regular', label: 'Regular' },
+                    { value: 'Standing', label: 'Standing' }
+                  ]}
+                />
+              </Form.Item>
 
-            <Form.Item label="Width">
-              <InputNumber
-                value={selectedElement.width}
-                onChange={(value) => {
-                  updateSection(selectedElement.id, { width: value });
-                  setSelectedElement({ ...selectedElement, width: value });
-                }}
-                className="w-100"
-              />
-            </Form.Item>
+              <Form.Item label="Width">
+                <InputNumber
+                  value={selectedElement.width}
+                  onChange={(value) => {
+                    updateSection(selectedElement.id, { width: value });
+                    setSelectedElement({ ...selectedElement, width: value });
+                  }}
+                  className="w-100"
+                />
+              </Form.Item>
 
-            <Form.Item label="Height">
-              <InputNumber
-                value={selectedElement.height}
-                onChange={(value) => {
-                  updateSection(selectedElement.id, { height: value });
-                  setSelectedElement({ ...selectedElement, height: value });
-                }}
-                className="w-100"
+              <Form.Item label="Height">
+                <InputNumber
+                  value={selectedElement.height}
+                  onChange={(value) => {
+                    updateSection(selectedElement.id, { height: value });
+                    setSelectedElement({ ...selectedElement, height: value });
+                  }}
+                  className="w-100"
+                />
+              </Form.Item>
+              {selectedElement.type !== 'Standing' && (
+                <Form.Item
+                  label="Seat Color (Section)"
+                  extra="Apply seat color to all rows and seats in this section."
+                >
+                  <SeatColorSelector
+                    value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                    onChange={(color) => {
+                      setSections(sections.map((section) => {
+                        if (section.id !== selectedElement.id) return section;
+                        return {
+                          ...section,
+                          seatColor: color,
+                          rows: section.rows.map((row) => ({
+                            ...row,
+                            seatColor: color,
+                            seats: row.seats.map((seat) => ({
+                              ...seat,
+                              seatColor: color,
+                              customSeatColor: false
+                            }))
+                          }))
+                        };
+                      }));
+                      setSelectedElement({ ...selectedElement, seatColor: color });
+                    }}
+                  />
+                </Form.Item>
+              )}
+              {selectedElement.type !== 'Standing' && (
+                <Form.Item label="Rows Alignment (Apply All)">
+                  <Select
+                    value={selectedElement.rows?.[0]?.alignment || 'center'}
+                    onChange={(value) => {
+                      applyAlignmentToSectionRows?.(selectedElement.id, value);
+                    }}
+                  >
+                    <Option value="start">Start</Option>
+                    <Option value="center">Center</Option>
+                    <Option value="end">End</Option>
+                  </Select>
+                </Form.Item>
+              )}
+
+              {selectedElement.type !== 'Standing' && isAssignMode && ticketCategories?.length > 0 && (
+                <Form.Item
+                  label="Assign Ticket to Entire Section"
+                  extra="Applies to all rows and available seats. Gaps stay unassigned; unavailable seats are unchanged."
+                >
+                  <Select
+                    value={
+                      selectedElement.ticketCategory
+                        ? String(selectedElement.ticketCategory)
+                        : selectedElement.ticket?.id
+                          ? String(selectedElement.ticket.id)
+                          : undefined
+                    }
+                    onChange={(value) => {
+                      const next = value == null ? null : value;
+                      setSections(sections.map((section) => {
+                        if (section.id !== selectedElement.id) return section;
+                        return {
+                          ...section,
+                          ticketCategory: next,
+                          rows: section.rows.map((row) => ({
+                            ...row,
+                            ticketCategory: next,
+                            seats: row.seats.map((seat) => {
+                              if (seat.type === 'blank') {
+                                return {
+                                  ...seat,
+                                  ticketCategory: null,
+                                  status: 'unavailable',
+                                  customTicket: false
+                                };
+                              }
+                              if (seat.status !== 'available') {
+                                return seat;
+                              }
+                              return {
+                                ...seat,
+                                ticketCategory: next,
+                                status: seat.status || 'available',
+                                customTicket: false
+                              };
+                            })
+                          }))
+                        };
+                      }));
+                      setSelectedElement({ ...selectedElement, ticketCategory: next });
+                    }}
+                    placeholder="Apply to all rows and available seats"
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                    filterOption={(input, option) =>
+                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                    }
+                  >
+                    {ticketCategories?.map((cat) => (
+                      <Option key={cat.id} value={String(cat.id)}>
+                        {cat.name} (₹{cat.price})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              )}
+
+              {selectedElement.type === 'Standing' ? (
+                <>
+
+
+                  {isAssignMode && ticketCategories?.length > 0 && (
+                    <Form.Item label="Assign Ticket Category">
+                      <Select
+                        value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
+                        onChange={(value) => {
+                          updateSection(selectedElement.id, { ticketCategory: value });
+                          setSelectedElement({ ...selectedElement, ticketCategory: value });
+                        }}
+                        placeholder="Select a ticket category"
+                        allowClear
+                        showSearch
+                        optionFilterProp="children"
+                        filterOption={(input, option) =>
+                          option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                        }
+                      >
+                        {ticketCategories?.map(cat => (
+                          <Option key={cat.id} value={String(cat.id)}>
+                            {cat.name} (₹{cat.price})
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  )}
+
+                  <Form.Item label="Standing Capacity">
+                    <InputNumber
+                      min={1}
+                      style={{ width: '100%' }}
+                      value={selectedElement.capacity || 100}
+                      onChange={(value) => {
+                        updateSection(selectedElement.id, { capacity: value });
+                        setSelectedElement({ ...selectedElement, capacity: value });
+                      }}
+                    />
+                  </Form.Item>
+
+                  <div className="p-3 bg-light rounded">
+                    <div className="mb-1"><Text strong>Type:</Text> Standing</div>
+
+                    <Text type="secondary" className="d-block">
+                      <strong>💡 Tip:</strong> Standing sections have tickets only — no rows or seats.
+                    </Text>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Removed !isAssignMode restriction to allow adding rows in assign mode */}
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    block
+                    onClick={() => addRowToSection(selectedElement.id)}
+                    className="mb-3"
+                  >
+                    Add Row
+                  </Button>
+
+                  <div className="p-3 bg-light rounded">
+                    <div className="mb-1"><Text strong>Rows:</Text> {selectedElement.rows.length}</div>
+                    <div className="mb-2"><Text strong>Total Seats:</Text> {selectedElement.rows.reduce((total, row) => total + row.seats.length, 0)}</div>
+                    <Text type="secondary" className="d-block">
+                      <strong>💡 Tip:</strong> Click and drag to move. Use corner handles to resize.
+                    </Text>
+                  </div>
+                </>
+              )}
+            </Form>
+          </PermissionChecker>
+        )}
+
+        {/* Row Editor */}
+        {selectedType === 'row' && selectedElement && (
+          <PermissionChecker
+            permission={UPDATE_SEATING_PERMISSION}
+            fallback={
+              <Alert
+                message="You don't have permission to edit rows."
+                type="warning"
+                showIcon
+                className="m-3"
               />
-            </Form.Item>
-            {selectedElement.type !== 'Standing' && (
+            }
+          >
+            <Form layout="vertical" className="editor-form">
+              {(() => {
+                const regularSeats = (selectedElement.seats || []).filter(seat => seat.type !== 'blank');
+                const lockedSeatsCount = regularSeats.filter(seat => seat.status !== 'available').length;
+                const minSeatsAllowed = Math.max(1, lockedSeatsCount);
+                return (
+                  <>
+                    <Form.Item label="Row Title">
+                      <Input
+                        value={selectedElement.title}
+                        onChange={(e) => {
+                          setSelectedElement({ ...selectedElement, title: e.target.value });
+                        }}
+                        onBlur={(e) => {
+                          const nextTitle = e.target.value;
+                          updateRow(selectedElement.sectionId, selectedElement.id, { title: nextTitle });
+                        }}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      label="Number of Seats"
+                    // help={isAssignMode && "Layout is locked in ticket assignment mode"} // Removed isAssignMode help
+                    >
+                      <InputNumber
+                        min={minSeatsAllowed}
+                        max={100}
+                        value={selectedElement.numberOfSeats}
+                        onChange={(value) => {
+                          const nextValue = Math.max(minSeatsAllowed, parseInt(value || 0, 10) || minSeatsAllowed);
+                          setSelectedElement({ ...selectedElement, numberOfSeats: nextValue });
+                        }}
+                        onBlur={() => {
+                          const nextValue = Math.max(
+                            minSeatsAllowed,
+                            parseInt(selectedElement.numberOfSeats || 0, 10) || minSeatsAllowed
+                          );
+                          updateRow(selectedElement.sectionId, selectedElement.id, { numberOfSeats: nextValue });
+                        }}
+                        className="w-100"
+                      />
+                    </Form.Item>
+
+                    <Form.Item label="Row Alignment">
+                      <Select
+                        value={selectedElement.alignment || 'center'}
+                        onChange={(value) => {
+                          updateRow(selectedElement.sectionId, selectedElement.id, { alignment: value });
+                          setSelectedElement({ ...selectedElement, alignment: value });
+                        }}
+                      >
+                        <Option value="start">Start</Option>
+                        <Option value="center">Center</Option>
+                        <Option value="end">End</Option>
+                      </Select>
+                    </Form.Item>
+                  </>
+                );
+              })()}
               <Form.Item
-                label="Seat Color (Section)"
-                extra="Apply seat color to all rows and seats in this section."
+                label="Seat Color (Row)"
+                extra="Apply color to all seats in this row."
               >
                 <SeatColorSelector
                   value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
                   onChange={(color) => {
                     setSections(sections.map((section) => {
-                      if (section.id !== selectedElement.id) return section;
+                      if (section.id !== selectedElement.sectionId) return section;
                       return {
                         ...section,
-                        seatColor: color,
-                        rows: section.rows.map((row) => ({
-                          ...row,
-                          seatColor: color,
-                          seats: row.seats.map((seat) => ({
-                            ...seat,
+                        rows: section.rows.map((row) => {
+                          if (row.id !== selectedElement.id) return row;
+                          return {
+                            ...row,
                             seatColor: color,
-                            customSeatColor: false
-                          }))
-                        }))
+                            seats: row.seats.map((seat) => ({
+                              ...seat,
+                              seatColor: color,
+                              customSeatColor: false
+                            }))
+                          };
+                        })
                       };
                     }));
                     setSelectedElement({ ...selectedElement, seatColor: color });
                   }}
                 />
               </Form.Item>
-            )}
-            {selectedElement.type !== 'Standing' && (
-              <Form.Item label="Rows Alignment (Apply All)">
-                <Select
-                  value={selectedElement.rows?.[0]?.alignment || 'center'}
-                  onChange={(value) => {
-                    applyAlignmentToSectionRows?.(selectedElement.id, value);
-                  }}
-                >
-                  <Option value="start">Start</Option>
-                  <Option value="center">Center</Option>
-                  <Option value="end">End</Option>
-                </Select>
-              </Form.Item>
-            )}
-
-            {selectedElement.type !== 'Standing' && isAssignMode && ticketCategories?.length > 0 && (
+              {/* Removed !isAssignMode restriction for row icon selector */}
               <Form.Item
-                label="Assign Ticket to Entire Section"
-                extra="Applies to all rows and available seats. Gaps stay unassigned; unavailable seats are unchanged."
+                label="Row Seat Icon"
+                help="Apply icon to all seats in this row"
               >
-                <Select
-                  value={
-                    selectedElement.ticketCategory
-                      ? String(selectedElement.ticketCategory)
-                      : selectedElement.ticket?.id
-                        ? String(selectedElement.ticket.id)
-                        : undefined
-                  }
-                  onChange={(value) => {
-                    const next = value == null ? null : value;
-                    setSections(sections.map((section) => {
-                      if (section.id !== selectedElement.id) return section;
-                      return {
-                        ...section,
-                        ticketCategory: next,
-                        rows: section.rows.map((row) => ({
-                          ...row,
-                          ticketCategory: next,
-                          seats: row.seats.map((seat) => {
-                            if (seat.type === 'blank') {
-                              return {
-                                ...seat,
-                                ticketCategory: null,
-                                status: 'unavailable',
-                                customTicket: false
-                              };
-                            }
-                            if (seat.status !== 'available') {
-                              return seat;
-                            }
+                <Row gutter={[16, 10]}>
+                  {/* Default numeric seat */}
+                  <Col span={4}>
+                    <div
+                      onClick={() => {
+                        setSections(sections?.map(section => {
+                          if (section?.id === selectedElement?.sectionId) {
                             return {
-                              ...seat,
-                              ticketCategory: next,
-                              status: seat.status || 'available',
-                              customTicket: false
+                              ...section,
+                              rows: section?.rows?.map(row => {
+                                if (row?.id === selectedElement?.id) {
+                                  return {
+                                    ...row,
+                                    defaultIcon: null,
+                                    seats: (row?.seats || [])?.map(seat => ({
+                                      ...seat,
+                                      icon: null,
+                                      customIcon: false
+                                    }))
+                                  };
+                                }
+                                return row;
+                              })
                             };
-                          })
-                        }))
-                      };
-                    }));
-                    setSelectedElement({ ...selectedElement, ticketCategory: next });
-                  }}
-                  placeholder="Apply to all rows and available seats"
-                  allowClear
-                  showSearch
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  }
-                >
-                  {ticketCategories?.map((cat) => (
-                    <Option key={cat.id} value={String(cat.id)}>
-                      {cat.name} (₹{cat.price})
-                    </Option>
-                  ))}
-                </Select>
+                          }
+                          return section;
+                        }));
+                        setSelectedElement({ ...selectedElement, defaultIcon: null });
+                      }}
+                      className="border border-secondary rounded d-flex align-items-center justify-content-center"
+                      style={{
+                        width: 38,
+                        height: 38,
+                        cursor: 'pointer',
+                        background: !selectedElement.defaultIcon ? 'var(--primary-color)' : 'transparent',
+                        color: '#ffffff',
+                        fontSize: 16,
+                        fontWeight: 600,
+                      }}
+                      title="Default (Numbers)"
+                    >
+                      1
+                    </div>
+                  </Col>
+                  {seatIcons?.map(iconObj => {
+                    const IconComponent = getIconComponent(iconObj?.icon);
+                    const isActive = selectedElement.defaultIcon === iconObj?.icon;
+
+                    return (
+                      <Col span={4} key={iconObj?.id}>
+                        <div
+                          className="border border-secondary rounded d-flex align-items-center justify-content-center"
+                          onClick={() => {
+                            setSections(sections?.map(section => {
+                              if (section?.id === selectedElement?.sectionId) {
+                                return {
+                                  ...section,
+                                  rows: section?.rows?.map(row => {
+                                    if (row?.id === selectedElement?.id) {
+                                      return {
+                                        ...row,
+                                        defaultIcon: iconObj.icon,
+                                        seats: row?.seats?.map(seat => ({
+                                          ...seat,
+                                          icon: iconObj.icon,
+                                          customIcon: false
+                                        }))
+                                      };
+                                    }
+                                    return row;
+                                  })
+                                };
+                              }
+                              return section;
+                            }));
+                            setSelectedElement({ ...selectedElement, defaultIcon: iconObj.icon });
+                          }}
+                          style={{
+                            width: 38,
+                            height: 38,
+                            border: isActive
+                              ? '2px solid var(--primary-color)'
+                              : '1px solid #d9d9d9',
+                            cursor: 'pointer',
+                            background: isActive ? 'var(--primary-color)' : 'transparent',
+                            color: '#ffffff',
+                            fontSize: 22,
+                          }}
+                          title={iconObj.name}
+                        >
+                          <IconComponent />
+                        </div>
+                      </Col>
+                    );
+                  })}
+                </Row>
               </Form.Item>
-            )}
-
-            {selectedElement.type === 'Standing' ? (
-              <>
 
 
-                {isAssignMode && ticketCategories?.length > 0 && (
-                  <Form.Item label="Assign Ticket Category">
-                    <Select
-                      value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
-                      onChange={(value) => {
-                        updateSection(selectedElement.id, { ticketCategory: value });
-                        setSelectedElement({ ...selectedElement, ticketCategory: value });
-                      }}
-                      placeholder="Select a ticket category"
-                      allowClear
-                      showSearch
-                      optionFilterProp="children"
-                      filterOption={(input, option) =>
-                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                      }
-                    >
-                      {ticketCategories?.map(cat => (
-                        <Option key={cat.id} value={String(cat.id)}>
-                          {cat.name} (₹{cat.price})
-                        </Option>
-                      ))}
-                    </Select>
-                  </Form.Item>
-                )}
 
-                <Form.Item label="Standing Capacity">
-                  <InputNumber
-                    min={1}
-                    style={{ width: '100%' }}
-                    value={selectedElement.capacity || 100}
+              {isAssignMode && ticketCategories?.length > 0 && (
+                <Form.Item label="Assign Ticket Category to All Seats">
+                  <Select
+                    value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
                     onChange={(value) => {
-                      updateSection(selectedElement.id, { capacity: value });
-                      setSelectedElement({ ...selectedElement, capacity: value });
-                    }}
-                  />
-                </Form.Item>
-
-                <div className="p-3 bg-light rounded">
-                  <div className="mb-1"><Text strong>Type:</Text> Standing</div>
-
-                  <Text type="secondary" className="d-block">
-                    <strong>💡 Tip:</strong> Standing sections have tickets only — no rows or seats.
-                  </Text>
-                </div>
-              </>
-            ) : (
-              <>
-                {/* Removed !isAssignMode restriction to allow adding rows in assign mode */}
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  block
-                  onClick={() => addRowToSection(selectedElement.id)}
-                  className="mb-3"
-                >
-                  Add Row
-                </Button>
-
-                <div className="p-3 bg-light rounded">
-                  <div className="mb-1"><Text strong>Rows:</Text> {selectedElement.rows.length}</div>
-                  <div className="mb-2"><Text strong>Total Seats:</Text> {selectedElement.rows.reduce((total, row) => total + row.seats.length, 0)}</div>
-                  <Text type="secondary" className="d-block">
-                    <strong>💡 Tip:</strong> Click and drag to move. Use corner handles to resize.
-                  </Text>
-                </div>
-              </>
-            )}
-          </Form>
-        )}
-
-        {/* Row Editor */}
-        {selectedType === 'row' && selectedElement && (
-          <Form layout="vertical" className="editor-form">
-            {(() => {
-              const regularSeats = (selectedElement.seats || []).filter(seat => seat.type !== 'blank');
-              const lockedSeatsCount = regularSeats.filter(seat => seat.status !== 'available').length;
-              const minSeatsAllowed = Math.max(1, lockedSeatsCount);
-              return (
-                <>
-                  <Form.Item label="Row Title">
-                    <Input
-                      value={selectedElement.title}
-                      onChange={(e) => {
-                        setSelectedElement({ ...selectedElement, title: e.target.value });
-                      }}
-                      onBlur={(e) => {
-                        const nextTitle = e.target.value;
-                        updateRow(selectedElement.sectionId, selectedElement.id, { title: nextTitle });
-                      }}
-                    />
-                  </Form.Item>
-
-                  <Form.Item
-                    label="Number of Seats"
-                  // help={isAssignMode && "Layout is locked in ticket assignment mode"} // Removed isAssignMode help
-                  >
-                    <InputNumber
-                      min={minSeatsAllowed}
-                      max={100}
-                      value={selectedElement.numberOfSeats}
-                      onChange={(value) => {
-                        const nextValue = Math.max(minSeatsAllowed, parseInt(value || 0, 10) || minSeatsAllowed);
-                        setSelectedElement({ ...selectedElement, numberOfSeats: nextValue });
-                      }}
-                      onBlur={() => {
-                        const nextValue = Math.max(
-                          minSeatsAllowed,
-                          parseInt(selectedElement.numberOfSeats || 0, 10) || minSeatsAllowed
-                        );
-                        updateRow(selectedElement.sectionId, selectedElement.id, { numberOfSeats: nextValue });
-                      }}
-                      className="w-100"
-                    />
-                  </Form.Item>
-
-                  <Form.Item label="Row Alignment">
-                    <Select
-                      value={selectedElement.alignment || 'center'}
-                      onChange={(value) => {
-                        updateRow(selectedElement.sectionId, selectedElement.id, { alignment: value });
-                        setSelectedElement({ ...selectedElement, alignment: value });
-                      }}
-                    >
-                      <Option value="start">Start</Option>
-                      <Option value="center">Center</Option>
-                      <Option value="end">End</Option>
-                    </Select>
-                  </Form.Item>
-                </>
-              );
-            })()}
-   <Form.Item
-              label="Seat Color (Row)"
-              extra="Apply color to all seats in this row."
-            >
-              <SeatColorSelector
-                value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
-                onChange={(color) => {
-                  setSections(sections.map((section) => {
-                    if (section.id !== selectedElement.sectionId) return section;
-                    return {
-                      ...section,
-                      rows: section.rows.map((row) => {
-                        if (row.id !== selectedElement.id) return row;
-                        return {
-                          ...row,
-                          seatColor: color,
-                          seats: row.seats.map((seat) => ({
-                            ...seat,
-                            seatColor: color,
-                            customSeatColor: false
-                          }))
-                        };
-                      })
-                    };
-                  }));
-                  setSelectedElement({ ...selectedElement, seatColor: color });
-                }}
-              />
-            </Form.Item>
-            {/* Removed !isAssignMode restriction for row icon selector */}
-            <Form.Item
-              label="Row Seat Icon"
-              help="Apply icon to all seats in this row"
-            >
-              <Row gutter={[16, 10]}>
-                {/* Default numeric seat */}
-                <Col span={4}>
-                  <div
-                    onClick={() => {
-                      setSections(sections?.map(section => {
-                        if (section?.id === selectedElement?.sectionId) {
+                      // Update the row's ticket category and override ALL seats (including custom ones)
+                      setSections(sections.map(section => {
+                        if (section.id === selectedElement.sectionId) {
                           return {
                             ...section,
-                            rows: section?.rows?.map(row => {
-                              if (row?.id === selectedElement?.id) {
+                            rows: section.rows.map(row => {
+                              if (row.id === selectedElement.id) {
                                 return {
                                   ...row,
-                                  defaultIcon: null,
-                                  seats: (row?.seats || [])?.map(seat => ({
-                                    ...seat,
-                                    icon: null,
-                                    customIcon: false
-                                  }))
+                                  ticketCategory: value,
+                                  seats: row.seats.map(seat => {
+                                    if (seat.type === 'blank') {
+                                      return {
+                                        ...seat,
+                                        ticketCategory: null,
+                                        status: 'unavailable',
+                                        customTicket: false
+                                      };
+                                    }
+
+                                    if (seat.status !== 'available') {
+                                      return seat;
+                                    }
+
+                                    return {
+                                      ...seat,
+                                      ticketCategory: value,
+                                      status: seat.status || 'available',
+                                      customTicket: false // Reset custom flag
+                                    };
+                                  })
                                 };
                               }
                               return row;
@@ -644,178 +799,61 @@ const RightPanel = (props) => {
                         }
                         return section;
                       }));
-                      setSelectedElement({ ...selectedElement, defaultIcon: null });
+
+                      setSelectedElement({ ...selectedElement, ticketCategory: value });
                     }}
-                    className="border border-secondary rounded d-flex align-items-center justify-content-center"
-                    style={{
-                      width: 38,
-                      height: 38,
-                      cursor: 'pointer',
-                      background: !selectedElement.defaultIcon ? 'var(--primary-color)' : 'transparent',
-                      color: '#ffffff',
-                      fontSize: 16,
-                      fontWeight: 600,
-                    }}
-                    title="Default (Numbers)"
+                    placeholder="Select a ticket category"
+                    allowClear
+                    showSearch
+                    optionFilterProp="children"
+                    filterOption={(input, option) =>
+                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                    }
                   >
-                    1
-                  </div>
-                </Col>
-                {seatIcons?.map(iconObj => {
-                  const IconComponent = getIconComponent(iconObj?.icon);
-                  const isActive = selectedElement.defaultIcon === iconObj?.icon;
-
-                  return (
-                    <Col span={4} key={iconObj?.id}>
-                      <div
-                        className="border border-secondary rounded d-flex align-items-center justify-content-center"
-                        onClick={() => {
-                          setSections(sections?.map(section => {
-                            if (section?.id === selectedElement?.sectionId) {
-                              return {
-                                ...section,
-                                rows: section?.rows?.map(row => {
-                                  if (row?.id === selectedElement?.id) {
-                                    return {
-                                      ...row,
-                                      defaultIcon: iconObj.icon,
-                                      seats: row?.seats?.map(seat => ({
-                                        ...seat,
-                                        icon: iconObj.icon,
-                                        customIcon: false
-                                      }))
-                                    };
-                                  }
-                                  return row;
-                                })
-                              };
-                            }
-                            return section;
-                          }));
-                          setSelectedElement({ ...selectedElement, defaultIcon: iconObj.icon });
-                        }}
-                        style={{
-                          width: 38,
-                          height: 38,
-                          border: isActive
-                            ? '2px solid var(--primary-color)'
-                            : '1px solid #d9d9d9',
-                          cursor: 'pointer',
-                          background: isActive ? 'var(--primary-color)' : 'transparent',
-                          color: '#ffffff',
-                          fontSize: 22,
-                        }}
-                        title={iconObj.name}
-                      >
-                        <IconComponent />
-                      </div>
-                    </Col>
-                  );
-                })}
-              </Row>
-            </Form.Item>
-
-           
-
-            {isAssignMode && ticketCategories?.length > 0 && (
-              <Form.Item label="Assign Ticket Category to All Seats">
-                <Select
-                  value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
-                  onChange={(value) => {
-                    // Update the row's ticket category and override ALL seats (including custom ones)
-                    setSections(sections.map(section => {
-                      if (section.id === selectedElement.sectionId) {
-                        return {
-                          ...section,
-                          rows: section.rows.map(row => {
-                            if (row.id === selectedElement.id) {
-                              return {
-                                ...row,
-                                ticketCategory: value,
-                                seats: row.seats.map(seat => {
-                                  if (seat.type === 'blank') {
-                                    return {
-                                      ...seat,
-                                      ticketCategory: null,
-                                      status: 'unavailable',
-                                      customTicket: false
-                                    };
-                                  }
-
-                                  if (seat.status !== 'available') {
-                                    return seat;
-                                  }
-
-                                  return {
-                                    ...seat,
-                                    ticketCategory: value,
-                                    status: seat.status || 'available',
-                                    customTicket: false // Reset custom flag
-                                  };
-                                })
-                              };
-                            }
-                            return row;
-                          })
-                        };
-                      }
-                      return section;
-                    }));
-
-                    setSelectedElement({ ...selectedElement, ticketCategory: value });
-                  }}
-                  placeholder="Select a ticket category"
-                  allowClear
-                  showSearch
-                  optionFilterProp="children"
-                  filterOption={(input, option) =>
-                    option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                  }
-                >
-                  {ticketCategories?.map(cat => (
-                    <Option key={cat.id} value={String(cat.id)}>
-                      {cat.name} (₹{cat.price})
-                    </Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            )}
+                    {ticketCategories?.map(cat => (
+                      <Option key={cat.id} value={String(cat.id)}>
+                        {cat.name} (₹{cat.price})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              )}
 
 
-            {selectedElement.shape !== 'straight' && (
-              <Form.Item label="Curve Amount" initialValue={95}>
+              {selectedElement.shape !== 'straight' && (
+                <Form.Item label="Curve Amount" initialValue={95}>
+                  <Slider
+                    min={20}
+                    max={100}
+                    value={selectedElement.curve || 95}
+                    onChange={(value) => {
+                      updateRow(selectedElement.sectionId, selectedElement.id, { curve: value });
+                      setSelectedElement({ ...selectedElement, curve: value });
+                    }}
+                    tooltip={{ formatter: (value) => `${value}px` }}
+                  />
+                </Form.Item>
+              )}
+
+              <Form.Item label="Row Spacing">
                 <Slider
-                  min={20}
-                  max={100}
-                  value={selectedElement.curve || 95}
+                  min={30}
+                  max={80}
+                  value={selectedElement.spacing}
                   onChange={(value) => {
-                    updateRow(selectedElement.sectionId, selectedElement.id, { curve: value });
-                    setSelectedElement({ ...selectedElement, curve: value });
+                    updateRow(selectedElement.sectionId, selectedElement.id, { spacing: value });
+                    setSelectedElement({ ...selectedElement, spacing: value });
                   }}
                   tooltip={{ formatter: (value) => `${value}px` }}
                 />
               </Form.Item>
-            )}
 
-            <Form.Item label="Row Spacing">
-              <Slider
-                min={30}
-                max={80}
-                value={selectedElement.spacing}
-                onChange={(value) => {
-                  updateRow(selectedElement.sectionId, selectedElement.id, { spacing: value });
-                  setSelectedElement({ ...selectedElement, spacing: value });
-                }}
-                tooltip={{ formatter: (value) => `${value}px` }}
-              />
-            </Form.Item>
-
-            {/* Removed !isAssignMode restriction for gap management */}
-            {/* <Divider style={{ margin: '16px 0' }} /> */}
-            <Form.Item label="Add Blank Seat/Gap" help="Create spacing between seats">
-              <Space direction="vertical" style={{ width: '100%' }} size="small">
-                {/* Method 1: Input seat number */}
-                {/* <Input
+              {/* Removed !isAssignMode restriction for gap management */}
+              {/* <Divider style={{ margin: '16px 0' }} /> */}
+              <Form.Item label="Add Blank Seat/Gap" help="Create spacing between seats">
+                <Space direction="vertical" style={{ width: '100%' }} size="small">
+                  {/* Method 1: Input seat number */}
+                  {/* <Input
                       type="number"
                       placeholder="Enter seat number"
                       value={gapAfterSeatNumber}
@@ -824,114 +862,114 @@ const RightPanel = (props) => {
                       max={selectedElement.numberOfSeats}
                     /> */}
 
-                {/* Method 2: Select from dropdown */}
-                <Select
-                  showSearch
-                  placeholder="Or select seat"
-                  value={gapAfterSeatNumber || undefined}
-                  onChange={setGapAfterSeatNumber}
-                  style={{ width: '100%' }}
-                  allowClear
-                >
-                  {selectedElement.seats
-                    ?.filter(s => s.type !== 'blank')
-                    .map(seat => (
-                      <Option key={seat.id} value={seat.number}>
-                        After Seat {seat.label}
-                      </Option>
-                    ))
-                  }
-                </Select>
-
-                {/* Number of gaps to add */}
-                <Form.Item label="Number of Gaps" className="mb-2">
-                  <InputNumber
-                    min={1}
-                    max={10}
-                    value={numberOfGaps}
-                    onChange={setNumberOfGaps}
+                  {/* Method 2: Select from dropdown */}
+                  <Select
+                    showSearch
+                    placeholder="Or select seat"
+                    value={gapAfterSeatNumber || undefined}
+                    onChange={setGapAfterSeatNumber}
                     style={{ width: '100%' }}
-                  />
-                </Form.Item>
-
-                {/* Apply to all rows checkbox */}
-                <Checkbox
-                  checked={applyGapToAllRows}
-                  onChange={(e) => setApplyGapToAllRows(e.target.checked)}
-                >
-                  Apply to all rows in this section
-                </Checkbox>
-
-                {/* Action buttons */}
-                <Space style={{ width: '100%' }}>
-                  <Button
-                    type="primary"
-                    size="small"
-                    icon={<PlusOutlined />}
-                    onClick={() => {
-                      if (gapAfterSeatNumber && addBlankSeatToRow) {
-                        addBlankSeatToRow(
-                          selectedElement.sectionId,
-                          selectedElement.id,
-                          parseInt(gapAfterSeatNumber),
-                          applyGapToAllRows,
-                          numberOfGaps
-                        );
-                      }
-                    }}
-                    disabled={!gapAfterSeatNumber}
+                    allowClear
                   >
-                    Add {numberOfGaps > 1 ? `${numberOfGaps} Gaps` : 'Gap'}
-                  </Button>
+                    {selectedElement.seats
+                      ?.filter(s => s.type !== 'blank')
+                      .map(seat => (
+                        <Option key={seat.id} value={seat.number}>
+                          After Seat {seat.label}
+                        </Option>
+                      ))
+                    }
+                  </Select>
 
-                  <Button
-                    size="small"
-                    danger
-                    onClick={() => {
-                      if (removeAllGapsFromRow) {
-                        removeAllGapsFromRow(
-                          selectedElement.sectionId,
-                          selectedElement.id,
-                          applyGapToAllRows
-                        );
-                      }
-                    }}
+                  {/* Number of gaps to add */}
+                  <Form.Item label="Number of Gaps" className="mb-2">
+                    <InputNumber
+                      min={1}
+                      max={10}
+                      value={numberOfGaps}
+                      onChange={setNumberOfGaps}
+                      style={{ width: '100%' }}
+                    />
+                  </Form.Item>
+
+                  {/* Apply to all rows checkbox */}
+                  <Checkbox
+                    checked={applyGapToAllRows}
+                    onChange={(e) => setApplyGapToAllRows(e.target.checked)}
                   >
-                    Remove All Gaps
-                  </Button>
+                    Apply to all rows in this section
+                  </Checkbox>
+
+                  {/* Action buttons */}
+                  <Space style={{ width: '100%' }}>
+                    <Button
+                      type="primary"
+                      size="small"
+                      icon={<PlusOutlined />}
+                      onClick={() => {
+                        if (gapAfterSeatNumber && addBlankSeatToRow) {
+                          addBlankSeatToRow(
+                            selectedElement.sectionId,
+                            selectedElement.id,
+                            parseInt(gapAfterSeatNumber),
+                            applyGapToAllRows,
+                            numberOfGaps
+                          );
+                        }
+                      }}
+                      disabled={!gapAfterSeatNumber}
+                    >
+                      Add {numberOfGaps > 1 ? `${numberOfGaps} Gaps` : 'Gap'}
+                    </Button>
+
+                    <Button
+                      size="small"
+                      danger
+                      onClick={() => {
+                        if (removeAllGapsFromRow) {
+                          removeAllGapsFromRow(
+                            selectedElement.sectionId,
+                            selectedElement.id,
+                            applyGapToAllRows
+                          );
+                        }
+                      }}
+                    >
+                      Remove All Gaps
+                    </Button>
+                  </Space>
                 </Space>
-              </Space>
-            </Form.Item>
+              </Form.Item>
 
-            {/* Show current gaps */}
-            {selectedElement.seats?.some(s => s.type === 'blank') && (
-              <Alert
-                message={
-                  <div>
-                    <div><strong>Current gaps: {selectedElement.seats.filter(s => s.type === 'blank').length}</strong></div>
-                    <div className="mt-1" style={{ fontSize: '12px' }}>
-                      Gaps after seats: {
-                        selectedElement.seats
-                          .filter((s, idx) => s.type === 'blank' && idx > 0)
-                          .map((s, idx) => {
-                            const prevSeat = selectedElement.seats[selectedElement.seats.indexOf(s) - 1];
-                            return prevSeat.type === 'regular' ? prevSeat.number : null;
-                          })
-                          .filter((num, idx, arr) => num !== null && arr.indexOf(num) === idx) // Remove duplicates
-                          .join(', ')
-                      }
+              {/* Show current gaps */}
+              {selectedElement.seats?.some(s => s.type === 'blank') && (
+                <Alert
+                  message={
+                    <div>
+                      <div><strong>Current gaps: {selectedElement.seats.filter(s => s.type === 'blank').length}</strong></div>
+                      <div className="mt-1" style={{ fontSize: '12px' }}>
+                        Gaps after seats: {
+                          selectedElement.seats
+                            .filter((s, idx) => s.type === 'blank' && idx > 0)
+                            .map((s, idx) => {
+                              const prevSeat = selectedElement.seats[selectedElement.seats.indexOf(s) - 1];
+                              return prevSeat.type === 'regular' ? prevSeat.number : null;
+                            })
+                            .filter((num, idx, arr) => num !== null && arr.indexOf(num) === idx) // Remove duplicates
+                            .join(', ')
+                        }
+                      </div>
                     </div>
-                  </div>
-                }
-                type="info"
-                showIcon
-                className="mt-2"
-              />
-            )}
+                  }
+                  type="info"
+                  showIcon
+                  className="mt-2"
+                />
+              )}
 
-            <div className="p-3 bg-light rounded">
-              <div className="mb-1"><Text strong>Total Seats in Row:</Text> {selectedElement.seats?.length || 0}</div>
-              {/* {selectedElement.seats && selectedElement.seats.length > 0 && (
+              <div className="p-3 bg-light rounded">
+                <div className="mb-1"><Text strong>Total Seats in Row:</Text> {selectedElement.seats?.length || 0}</div>
+                {/* {selectedElement.seats && selectedElement.seats.length > 0 && (
                 <div>
                   <Text strong>Seat Size:</Text> {selectedElement.seats[0].radius}px radius
                   {selectedElement.seats[0].radius < 8 && (
@@ -944,8 +982,9 @@ const RightPanel = (props) => {
                   )}
                 </div>
               )} */}
-            </div>
-          </Form>
+              </div>
+            </Form>
+          </PermissionChecker>
         )}
 
         {/* Seat Editor */}
@@ -953,56 +992,65 @@ const RightPanel = (props) => {
           <Form layout="vertical" className="editor-form">
             {isMultiSeatEdit && (
               <>
-                <Alert
-                  message={`${selectedSeatIds.length} seats selected`}
-                  description="Bulk actions below will apply to all selected seats."
-                  type="info"
-                  showIcon
-                  className="mb-3"
-                />
+                {(() => {
+                  const selectedLabels = sections
+                    .flatMap(s => s.rows?.flatMap(r => r.seats?.filter(seat => selectedSeatIds.includes(seat.id)).map(seat => seat.label) || []) || [])
+                    .filter(Boolean);
+                  return (
+                    <Alert
+                      message={`${selectedSeatIds.length} seat${selectedSeatIds.length > 1 ? 's' : ''} selected`}
+                      description={selectedLabels.length > 0 ? `Selected: ${selectedLabels.join(', ')}` : null}
+                      type="info"
+                      showIcon
+                      className="mb-3"
+                    />
+                  );
+                })()}
 
-                <Form.Item label="Seat Color (Bulk)">
-                  <SeatColorSelector
-                    value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
-                    onChange={(color) => {
-                      updateMultipleSeats?.(selectedSeatIds, { seatColor: color, customSeatColor: true });
-                      setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
-                    }}
-                  />
-                </Form.Item>
-
-                <Form.Item label="Seat Icon (Bulk)">
-                  <SeatIconSelect
-                    placeholder="Apply icon to selected seats"
-                    value={selectedElement.icon}
-                    onChange={(nextIcon) => {
-                      updateMultipleSeats?.(selectedSeatIds, { icon: nextIcon, customIcon: true });
-                      setSelectedElement({ ...selectedElement, icon: nextIcon, customIcon: true });
-                    }}
-                  />
-                </Form.Item>
-
-                {isAssignMode && ticketCategories?.length > 0 && (
-                  <Form.Item label="Ticket Category (Bulk)">
-                    <Select
-                      placeholder="Apply ticket to selected seats"
-                      allowClear
-                      onChange={(value) => {
-                        updateMultipleSeats?.(selectedSeatIds, {
-                          ticketCategory: value || null,
-                          customTicket: true,
-                          status: 'available'
-                        });
+                <PermissionChecker permission={UPDATE_SEATING_PERMISSION}>
+                  <Form.Item label="Seat Color (Bulk)">
+                    <SeatColorSelector
+                      value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                      onChange={(color) => {
+                        updateMultipleSeats?.(selectedSeatIds, { seatColor: color, customSeatColor: true });
+                        setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
                       }}
-                    >
-                      {ticketCategories?.map(cat => (
-                        <Option key={cat.id} value={String(cat.id)}>
-                          {cat.name} (₹{cat.price})
-                        </Option>
-                      ))}
-                    </Select>
+                    />
                   </Form.Item>
-                )}
+
+                  <Form.Item label="Seat Icon (Bulk)">
+                    <SeatIconSelect
+                      placeholder="Apply icon to selected seats"
+                      value={selectedElement.icon}
+                      onChange={(nextIcon) => {
+                        updateMultipleSeats?.(selectedSeatIds, { icon: nextIcon, customIcon: true });
+                        setSelectedElement({ ...selectedElement, icon: nextIcon, customIcon: true });
+                      }}
+                    />
+                  </Form.Item>
+
+                  {isAssignMode && ticketCategories?.length > 0 && (
+                    <Form.Item label="Ticket Category (Bulk)">
+                      <Select
+                        placeholder="Apply ticket to selected seats"
+                        allowClear
+                        onChange={(value) => {
+                          updateMultipleSeats?.(selectedSeatIds, {
+                            ticketCategory: value || null,
+                            customTicket: true,
+                            status: 'available'
+                          });
+                        }}
+                      >
+                        {ticketCategories?.map(cat => (
+                          <Option key={cat.id} value={String(cat.id)}>
+                            {cat.name} (₹{cat.price})
+                          </Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                  )}
+                </PermissionChecker>
 
                 <Form.Item label="Seat Status (Bulk)">
                   <Select
@@ -1053,80 +1101,79 @@ const RightPanel = (props) => {
                 const isSeatLockedForEdit = isAssignMode && selectedElement.status !== 'available';
                 return (
                   <>
-                    <Form.Item label="">
-                      <Input
-                        // disabled={isAssignMode} // Removed restriction
-                        disabled={isSeatLockedForEdit}
-                        value={selectedElement.label}
-                        onChange={(e) => {
-                          const label = e.target.value;
-                          updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, { label });
-                          setSelectedElement({ ...selectedElement, label });
-                        }}
-                      />
-                    </Form.Item>
-
-                    <Form.Item
-                      label="Seat Icon"
-                    >
-                      <SeatIconSelect
-                        placeholder="Select icon for this seat"
-                        value={selectedElement.icon}
-                        disabled={isSeatLockedForEdit}
-                        onChange={(nextIcon) => {
-                          updateSeat(
-                            selectedElement.sectionId,
-                            selectedElement.rowId,
-                            selectedElement.id,
-                            { icon: nextIcon, customIcon: true }
-                          );
-                          setSelectedElement({ ...selectedElement, icon: nextIcon, customIcon: true });
-                        }}
-                      />
-                      {selectedElement.customIcon && (
-                        <Alert
-                          message="Custom icon set. This will be overridden if row-level icon is changed."
-                          type="info"
-                          icon={<InfoCircleOutlined />}
-                          showIcon
-                          className="mt-2"
+                    <PermissionChecker permission={UPDATE_SEATING_PERMISSION}>
+                      <Form.Item label="">
+                        <Input
+                          disabled={isSeatLockedForEdit}
+                          value={selectedElement.label}
+                          onChange={(e) => {
+                            const label = e.target.value;
+                            updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, { label });
+                            setSelectedElement({ ...selectedElement, label });
+                          }}
                         />
+                      </Form.Item>
+
+                      <Form.Item label="Seat Icon">
+                        <SeatIconSelect
+                          placeholder="Select icon for this seat"
+                          value={selectedElement.icon}
+                          disabled={isSeatLockedForEdit}
+                          onChange={(nextIcon) => {
+                            updateSeat(
+                              selectedElement.sectionId,
+                              selectedElement.rowId,
+                              selectedElement.id,
+                              { icon: nextIcon, customIcon: true }
+                            );
+                            setSelectedElement({ ...selectedElement, icon: nextIcon, customIcon: true });
+                          }}
+                        />
+                        {selectedElement.customIcon && (
+                          <Alert
+                            message="Custom icon set. This will be overridden if row-level icon is changed."
+                            type="info"
+                            icon={<InfoCircleOutlined />}
+                            showIcon
+                            className="mt-2"
+                          />
+                        )}
+                      </Form.Item>
+
+                      {isAssignMode && ticketCategories?.length > 0 && (
+                        <>
+                          <Form.Item label="Ticket Category">
+                            <Select
+                              value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
+                              placeholder="select ticket"
+                              allowClear
+                              disabled={isSeatLockedForEdit}
+                              onChange={(value) => {
+                                updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, {
+                                  ticketCategory: value,
+                                  customTicket: true,
+                                  status: selectedElement.status || 'available'
+                                });
+                                setSelectedElement({
+                                  ...selectedElement,
+                                  ticketCategory: value,
+                                  customTicket: true,
+                                  status: selectedElement.status || 'available'
+                                });
+                              }}
+                            >
+                              {ticketCategories?.map(cat => (
+                                <Option key={cat.id} value={String(cat.id)}>
+                                  {cat.name} (₹{cat.price})
+                                </Option>
+                              ))}
+                            </Select>
+                          </Form.Item>
+                        </>
                       )}
-                    </Form.Item>
+                    </PermissionChecker>
 
-                    {isAssignMode && ticketCategories?.length > 0 && (
-                      <>
-                        <Form.Item label="Ticket Category">
-                          <Select
-                            value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
-                            placeholder="select ticket"
-                            allowClear
-                            disabled={isSeatLockedForEdit}
-                            onChange={(value) => {
-                              updateSeat(selectedElement.sectionId, selectedElement.rowId, selectedElement.id, {
-                                ticketCategory: value,
-                                customTicket: true, // Mark as custom when individually assigned
-                                status: selectedElement.status || 'available' // Maintain existing status
-                              });
-                              setSelectedElement({
-                                ...selectedElement,
-                                ticketCategory: value,
-                                customTicket: true,
-                                status: selectedElement.status || 'available'
-                              });
-                            }}
-                          >
-                            {ticketCategories?.map(cat => (
-                              <Option key={cat.id} value={String(cat.id)}>
-                                {cat.name} (₹{cat.price})
-                              </Option>
-                            ))}
-                          </Select>
-                        </Form.Item>
-
-                      </>
-                    )}
-
+                    {/* Seat Status — visible to ALL users */}
                     <Form.Item label="Seat Status">
                       <Select
                         value={selectedElement.status || undefined}
@@ -1144,25 +1191,25 @@ const RightPanel = (props) => {
                       />
                     </Form.Item>
 
-                    <Form.Item
-                      label="Seat Color (Single Seat)"
-                    >
-                      <SeatColorSelector
-                        value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
-                        onChange={(color) => {
-                          updateSeat(
-                            selectedElement.sectionId,
-                            selectedElement.rowId,
-                            selectedElement.id,
-                            { seatColor: color, customSeatColor: true }
-                          );
-                          setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
-                        }}
-                      />
-                    </Form.Item>
-                        <div className="d-flex align-items-center ">
-                          <Text className="m-0 mr-2">Seat:</Text> {selectedElement.label} {selectedElement.status}
-                        </div>
+                    <PermissionChecker permission={UPDATE_SEATING_PERMISSION}>
+                      <Form.Item label="Seat Color (Single Seat)">
+                        <SeatColorSelector
+                          value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                          onChange={(color) => {
+                            updateSeat(
+                              selectedElement.sectionId,
+                              selectedElement.rowId,
+                              selectedElement.id,
+                              { seatColor: color, customSeatColor: true }
+                            );
+                            setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
+                          }}
+                        />
+                      </Form.Item>
+                    </PermissionChecker>
+                    <div className="d-flex align-items-center ">
+                      <Text className="m-0 mr-2">Seat:</Text> {selectedElement.label} {selectedElement.status}
+                    </div>
                   </>
                 );
               })()

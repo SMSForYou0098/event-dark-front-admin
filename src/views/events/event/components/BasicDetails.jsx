@@ -388,7 +388,7 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
 
       {/* <Col xs={24} md={12}> */}
 
-      <VanueList form={form} />
+      <VanueList form={form} span={12} />
       {/* </Col> */}
 
       {/* Description */}

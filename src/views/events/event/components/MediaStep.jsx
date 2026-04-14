@@ -3,6 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { Form, Input, Row, Col, Space, Image, Button } from 'antd';
 import { PlusOutlined, DeleteOutlined, PictureOutlined } from '@ant-design/icons';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 
 const MediaStep = ({ form }) => {
   // Modal visibility states for each picker
@@ -168,7 +169,7 @@ const MediaStep = ({ form }) => {
           <Form.Item
             name="youtube_url"
             label="YouTube Video URL"
-            rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+            rules={VALIDATION_RULES.URL}
           >
             <Input placeholder="https://youtube.com/watch?v=..." size="large" />
           </Form.Item>
@@ -178,7 +179,7 @@ const MediaStep = ({ form }) => {
           <Form.Item
             name="instagram_media_url"
             label="Instagram URL"
-            rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+            rules={VALIDATION_RULES.URL}
           >
             <Input placeholder="https://instagram.com/p/..." size="large" />
           </Form.Item>
