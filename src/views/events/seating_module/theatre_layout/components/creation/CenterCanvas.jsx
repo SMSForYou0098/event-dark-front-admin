@@ -424,210 +424,278 @@ const CenterCanvas = (props) => {
             const isSingleSelected = selectedElement?.id === section.id && selectedType === 'section';
             const isMultiSelected = selectedSectionIds.includes(section.id);
             return (
-            <DraggableSection
-              key={section.id}
-              section={section}
-              isSelected={isSingleSelected}
-              isMultiSelected={isMultiSelected}
-              isInteractive={!isReportMode}
-              setIsDraggingElement={setIsDraggingElement}
-              onSelect={(e) => {
-                if (isReportMode) return;
-                const evt = e?.evt || e;
-                if (evt?.shiftKey) {
+              <DraggableSection
+                key={section.id}
+                section={section}
+                isSelected={isSingleSelected}
+                isMultiSelected={isMultiSelected}
+                isInteractive={!isReportMode}
+                setIsDraggingElement={setIsDraggingElement}
+                onSelect={(e) => {
+                  if (isReportMode) return;
+                  const evt = e?.evt || e;
+                  if (evt?.shiftKey) {
+                    setSelectedSeatIds([]);
+                    setSelectedSectionIds(prev =>
+                      prev.includes(section.id)
+                        ? prev.filter(id => id !== section.id)
+                        : [...prev, section.id]
+                    );
+                    return;
+                  }
                   setSelectedSeatIds([]);
-                  setSelectedSectionIds(prev =>
-                    prev.includes(section.id)
-                      ? prev.filter(id => id !== section.id)
-                      : [...prev, section.id]
-                  );
-                  return;
-                }
-                setSelectedSeatIds([]);
-                setSelectedSectionIds([]);
-                setSelectedElement(section);
-                setSelectedType('section');
-              }}
-              onDragStart={(e, dragNode) => {
-                if (isReportMode) return;
-                if (isMultiSelected && selectedSectionIds.length > 1) {
-                  const node = dragNode ?? e.target;
-                  const startX = node.x();
-                  const startY = node.y();
-                  const positions = {};
-                  selectedSectionIds.forEach(id => {
-                    const s = sections.find(sec => sec.id === id);
-                    if (s) positions[id] = { x: s.x, y: s.y };
-                  });
-                  positions.__origin = { x: startX, y: startY };
-                  dragStartPositions.current = positions;
-                }
-              }}
-              onDragMove={(e, dragNode) => {
-                if (isReportMode) return;
-                if (!(isMultiSelected && selectedSectionIds.length > 1)) return;
-                const origin = dragStartPositions.current.__origin;
-                if (!origin) return;
-                const node = dragNode ?? e.target;
-                pendingMultiDrag.current = { draggedId: section.id, x: node.x(), y: node.y() };
-                if (multiDragRaf.current != null) return;
-                multiDragRaf.current = requestAnimationFrame(() => {
-                  multiDragRaf.current = null;
-                  const p = pendingMultiDrag.current;
-                  const o = dragStartPositions.current.__origin;
-                  if (!p || !o) return;
-                  const dx = p.x - o.x;
-                  const dy = p.y - o.y;
-                  setSections(prev => prev.map(s => {
-                    if (!selectedSectionIds.includes(s.id)) return s;
-                    if (s.id === p.draggedId) return { ...s, x: p.x, y: p.y };
-                    const startPos = dragStartPositions.current[s.id];
-                    if (!startPos) return s;
-                    return { ...s, x: startPos.x + dx, y: startPos.y + dy };
-                  }));
-                });
-              }}
-              onDragEnd={(pos) => {
-                if (isReportMode) return;
-                if (multiDragRaf.current != null) {
-                  cancelAnimationFrame(multiDragRaf.current);
-                  multiDragRaf.current = null;
-                }
-                pendingMultiDrag.current = null;
-                if (isMultiSelected && selectedSectionIds.length > 1) {
+                  setSelectedSectionIds([]);
+                  setSelectedElement(section);
+                  setSelectedType('section');
+                }}
+                onDragStart={(e, dragNode) => {
+                  if (isReportMode) return;
+                  if (isMultiSelected && selectedSectionIds.length > 1) {
+                    const node = dragNode ?? e.target;
+                    const startX = node.x();
+                    const startY = node.y();
+                    const positions = {};
+                    selectedSectionIds.forEach(id => {
+                      const s = sections.find(sec => sec.id === id);
+                      if (s) positions[id] = { x: s.x, y: s.y };
+                    });
+                    positions.__origin = { x: startX, y: startY };
+                    dragStartPositions.current = positions;
+                  }
+                }}
+                onDragMove={(e, dragNode) => {
+                  if (isReportMode) return;
+                  if (!(isMultiSelected && selectedSectionIds.length > 1)) return;
                   const origin = dragStartPositions.current.__origin;
-                  if (origin) {
-                    const dx = pos.x - origin.x;
-                    const dy = pos.y - origin.y;
-                    const startById = { ...dragStartPositions.current };
-                    delete startById.__origin;
+                  if (!origin) return;
+                  const node = dragNode ?? e.target;
+                  pendingMultiDrag.current = { draggedId: section.id, x: node.x(), y: node.y() };
+                  if (multiDragRaf.current != null) return;
+                  multiDragRaf.current = requestAnimationFrame(() => {
+                    multiDragRaf.current = null;
+                    const p = pendingMultiDrag.current;
+                    const o = dragStartPositions.current.__origin;
+                    if (!p || !o) return;
+                    const dx = p.x - o.x;
+                    const dy = p.y - o.y;
                     setSections(prev => prev.map(s => {
                       if (!selectedSectionIds.includes(s.id)) return s;
-                      if (s.id === section.id) return { ...s, x: pos.x, y: pos.y };
-                      const startPos = startById[s.id];
+                      if (s.id === p.draggedId) return { ...s, x: p.x, y: p.y };
+                      const startPos = dragStartPositions.current[s.id];
                       if (!startPos) return s;
                       return { ...s, x: startPos.x + dx, y: startPos.y + dy };
                     }));
-                    if (selectedType === 'section' && selectedElement?.id && selectedSectionIds.includes(selectedElement.id)) {
-                      const sid = selectedElement.id;
-                      if (sid === section.id) {
-                        setSelectedElement(prev => (prev ? { ...prev, x: pos.x, y: pos.y } : prev));
-                      } else {
-                        const sp = startById[sid];
-                        if (sp) {
-                          setSelectedElement(prev => (prev ? { ...prev, x: sp.x + dx, y: sp.y + dy } : prev));
+                  });
+                }}
+                onDragEnd={(pos) => {
+                  if (isReportMode) return;
+                  if (multiDragRaf.current != null) {
+                    cancelAnimationFrame(multiDragRaf.current);
+                    multiDragRaf.current = null;
+                  }
+                  pendingMultiDrag.current = null;
+                  if (isMultiSelected && selectedSectionIds.length > 1) {
+                    const origin = dragStartPositions.current.__origin;
+                    if (origin) {
+                      const dx = pos.x - origin.x;
+                      const dy = pos.y - origin.y;
+                      const startById = { ...dragStartPositions.current };
+                      delete startById.__origin;
+                      setSections(prev => prev.map(s => {
+                        if (!selectedSectionIds.includes(s.id)) return s;
+                        if (s.id === section.id) return { ...s, x: pos.x, y: pos.y };
+                        const startPos = startById[s.id];
+                        if (!startPos) return s;
+                        return { ...s, x: startPos.x + dx, y: startPos.y + dy };
+                      }));
+                      if (selectedType === 'section' && selectedElement?.id && selectedSectionIds.includes(selectedElement.id)) {
+                        const sid = selectedElement.id;
+                        if (sid === section.id) {
+                          setSelectedElement(prev => (prev ? { ...prev, x: pos.x, y: pos.y } : prev));
+                        } else {
+                          const sp = startById[sid];
+                          if (sp) {
+                            setSelectedElement(prev => (prev ? { ...prev, x: sp.x + dx, y: sp.y + dy } : prev));
+                          }
                         }
                       }
                     }
+                    dragStartPositions.current = {};
+                    return;
                   }
-                  dragStartPositions.current = {};
-                  return;
-                }
-                updateSection(section.id, pos);
-                if (selectedElement?.id === section.id && selectedType === 'section') {
-                  setSelectedElement({ ...section, ...pos });
-                }
-              }}
-              onTransformEnd={(transform) => {
-                if (isReportMode) return;
-                updateSection(section.id, transform);
-                if (selectedElement?.id === section.id && selectedType === 'section') {
-                  setSelectedElement({ ...section, ...transform });
-                }
-              }}
-            >
+                  updateSection(section.id, pos);
+                  if (selectedElement?.id === section.id && selectedType === 'section') {
+                    setSelectedElement({ ...section, ...pos });
+                  }
+                }}
+                onTransformEnd={(transform) => {
+                  if (isReportMode) return;
+                  updateSection(section.id, transform);
+                  if (selectedElement?.id === section.id && selectedType === 'section') {
+                    setSelectedElement({ ...section, ...transform });
+                  }
+                }}
+              >
 
-              {/* Standing Section - No rows/seats, just ticket info */}
-              {section.type === 'Standing' && (
-                <Group>
-                  <Rect
-                    x={4}
-                    y={34}
-                    width={Math.max(section.width - 8, 0)}
-                    height={Math.max(section.height - 38, 0)}
-                    fill="rgba(181, 21, 21, 0.15)"
-                    cornerRadius={8}
-                  />
-                  <Text
-                    x={4}
-                    y={section.height / 2 - 20}
-                    width={Math.max(section.width - 8, 0)}
-                    text={`🎫 STANDING AREA`}
-                    fontSize={16}
-                    fill="#FFFFFF"
-                    fontStyle="bold"
-                    align="center"
-                  />
-
-                </Group>
-              )}
-
-              {/* Rows and Seats (non-standing sections) */}
-              {section.type !== 'Standing' && section.rows.map(row => {
-                // Safety check for row seats
-                if (!row.seats || row.seats.length === 0) return null;
-
-                const firstSeatY = row.seats[0]?.y ?? 50;
-                const isRowSelected = selectedType === 'row' && selectedElement?.id === row.id;
-
-                let minX = 0, minY = 0, maxX = 0, maxY = 0;
-                if (isRowSelected) {
-                  minX = Math.min(0, ...row.seats.map(s => (s.x || 0) - (s.radius || 12)));
-                  minY = Math.min((firstSeatY), ...row.seats.map(s => (s.y || 0) - (s.radius || 12)));
-                  maxX = Math.max(30, ...row.seats.map(s => (s.x || 0) + (s.radius || 12)));
-                  maxY = Math.max((firstSeatY + 15), ...row.seats.map(s => (s.y || 0) + (s.radius || 12)));
-                }
-
-                return (
-                  <Group key={row.id}>
-                    {isRowSelected && (
-                      <Rect
-                        x={minX}
-                        y={minY}
-                        width={(maxX - minX)}
-                        height={(maxY - minY)}
-                        fill={PRIMARY}
-                        stroke={PRIMARY}
-                        strokeWidth={1}
-                        opacity={0.2}
-                        cornerRadius={8}
-                        listening={false}
-                      />
-                    )}
+                {/* Standing Section - No rows/seats, just ticket info */}
+                {section.type === 'Standing' && (
+                  <Group>
+                    <Rect
+                      x={4}
+                      y={34}
+                      width={Math.max(section.width - 8, 0)}
+                      height={Math.max(section.height - 38, 0)}
+                      fill="rgba(181, 21, 21, 0.15)"
+                      cornerRadius={8}
+                    />
                     <Text
-                      x={10}
-                      y={firstSeatY - 5}
-                      text={row.title}
-                      fontSize={14}
+                      x={4}
+                      y={section.height / 2 - 20}
+                      width={Math.max(section.width - 8, 0)}
+                      text={`🎫 STANDING AREA`}
+                      fontSize={16}
                       fill="#FFFFFF"
                       fontStyle="bold"
-                      listening={false}
+                      align="center"
                     />
 
-                    {row.seats.map(seat => {
-                      // Safety checks for seat properties
-                      if (!seat || typeof seat.x !== 'number' || typeof seat.y !== 'number' || typeof seat.radius !== 'number') {
-                        console.warn('Invalid seat data:', seat);
-                        return null;
-                      }
+                  </Group>
+                )}
 
-                      // Handle blank seats (gaps) differently
-                      if (seat.type === 'blank') {
+                {/* Rows and Seats (non-standing sections) */}
+                {section.type !== 'Standing' && section.rows.map(row => {
+                  // Safety check for row seats
+                  if (!row.seats || row.seats.length === 0) return null;
+
+                  const firstSeatY = row.seats[0]?.y ?? 50;
+                  const isRowSelected = selectedType === 'row' && selectedElement?.id === row.id;
+                  // Right title: start 10px after last seat's right edge (mirrors left title's 10px gap)
+                  const lastSeat = row.seats[row.seats.length - 1];
+                  const lastSeatRightEdge = lastSeat ? (lastSeat.x || 0) + (lastSeat.radius || 12) : 0;
+                  const rightTitleX = lastSeatRightEdge + 10;
+                  const rightTitleWidth = Math.max(20, section.width - 5 - rightTitleX);
+
+                  let minX = 0, minY = 0, maxX = 0, maxY = 0;
+                  if (isRowSelected) {
+                    minX = Math.min(0, ...row.seats.map(s => (s.x || 0) - (s.radius || 12)));
+                    minY = Math.min((firstSeatY), ...row.seats.map(s => (s.y || 0) - (s.radius || 12)));
+                    maxX = Math.max(30, ...row.seats.map(s => (s.x || 0) + (s.radius || 12)));
+                    maxY = Math.max((firstSeatY + 15), ...row.seats.map(s => (s.y || 0) + (s.radius || 12)));
+                  }
+
+                  return (
+                    <Group key={row.id}>
+                      {isRowSelected && (
+                        <Rect
+                          x={minX}
+                          y={minY}
+                          width={(maxX - minX)}
+                          height={(maxY - minY)}
+                          fill={PRIMARY}
+                          stroke={PRIMARY}
+                          strokeWidth={1}
+                          opacity={0.2}
+                          cornerRadius={8}
+                          listening={false}
+                        />
+                      )}
+                      <Text
+                        x={10}
+                        y={firstSeatY - 5}
+                        text={row.title}
+                        fontSize={14}
+                        fill="#FFFFFF"
+                        fontStyle="bold"
+                        listening={false}
+                      />
+                      <Text
+                        x={rightTitleX}
+                        y={firstSeatY - 5}
+                        width={rightTitleWidth}
+                        text={row.title}
+                        fontSize={14}
+                        fill="#FFFFFF"
+                        fontStyle="bold"
+                        align="left"
+                        listening={false}
+                      />
+
+                      {row.seats.map(seat => {
+                        // Safety checks for seat properties
+                        if (!seat || typeof seat.x !== 'number' || typeof seat.y !== 'number' || typeof seat.radius !== 'number') {
+                          console.warn('Invalid seat data:', seat);
+                          return null;
+                        }
+
+                        // Handle blank seats (gaps) differently
+                        if (seat.type === 'blank') {
+                          return (
+                            <Group key={seat.id}>
+                              <Rect
+                                x={seat.x - seat.radius}
+                                y={seat.y - seat.radius}
+                                width={seat.radius * 2}
+                                height={seat.radius * 2}
+                                fill="transparent"
+                                stroke="#666"
+                                strokeWidth={1}
+                                dash={[3, 3]}
+                                cornerRadius={4}
+                                onMouseEnter={(e) => {
+                                  const container = e.target.getStage().container();
+                                  container.style.cursor = 'pointer';
+                                }}
+                                onMouseLeave={(e) => {
+                                  const container = e.target.getStage().container();
+                                  container.style.cursor = 'default';
+                                }}
+                                onClick={(e) => {
+                                  if (isReportMode) return;
+                                  e.cancelBubble = true;
+                                  setSelectedSectionIds([]);
+                                  setSelectedSeatIds([seat.id]);
+                                  setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
+                                  setSelectedType('seat');
+                                }}
+                                opacity={0.3}
+                              />
+                            </Group>
+                          );
+                        }
+
+                        // In assign mode, seats are selectable for status corrections.
+                        const isUnavailable = isAssignMode && seat.status !== 'available';
+                        const isDisabled = seat.status === 'disabled';
+                        const canSelectSeat = true;
+                        const seatOpacity = isUnavailable ? 0.3 : 1;
+                        const resolvedSeatColor = seat.seatColor || row.seatColor || section.seatColor || PRIMARY;
+                        const statusStyle = SEAT_STATUS_STYLES[seat.status];
+                        const parsedStatusBorder = statusStyle ? parseBorderStyle(statusStyle.border) : null;
+                        const seatFillColor = statusStyle
+                          ? statusStyle.background
+                          : getBackgroundWithOpacity(resolvedSeatColor, 0.2);
+                        const isSeatSelected = selectedType === 'seat' && selectedSeatIds.includes(seat.id);
+                        const selectedSeatFillColor = statusStyle
+                          ? statusStyle.background
+                          : getBackgroundWithOpacity(resolvedSeatColor, 0.45);
+                        const seatStrokeColor = statusStyle ? parsedStatusBorder.color : resolvedSeatColor;
+                        const seatStrokeWidth = statusStyle ? parsedStatusBorder.width : (isSeatSelected ? 2 : 1);
+                        const seatLabelColor = statusStyle?.color || '#FFFFFF';
+
                         return (
-                          <Group key={seat.id}>
+                          <Group key={seat.id} opacity={seatOpacity}>
                             <Rect
                               x={seat.x - seat.radius}
                               y={seat.y - seat.radius}
                               width={seat.radius * 2}
                               height={seat.radius * 2}
-                              fill="transparent"
-                              stroke="#666"
-                              strokeWidth={1}
-                              dash={[3, 3]}
+                              fill={isSeatSelected ? selectedSeatFillColor : seatFillColor}
+                              stroke={seatStrokeColor}
+                              strokeWidth={seatStrokeWidth}
                               cornerRadius={4}
                               onMouseEnter={(e) => {
                                 const container = e.target.getStage().container();
-                                container.style.cursor = 'pointer';
+                                container.style.cursor = statusStyle?.cursor || 'pointer';
                               }}
                               onMouseLeave={(e) => {
                                 const container = e.target.getStage().container();
@@ -636,126 +704,74 @@ const CenterCanvas = (props) => {
                               onClick={(e) => {
                                 if (isReportMode) return;
                                 e.cancelBubble = true;
+                                if (!canSelectSeat) return;
                                 setSelectedSectionIds([]);
+                                const isMultiSelectGesture = e.evt?.shiftKey || e.evt?.ctrlKey || e.evt?.metaKey;
+                                if (isMultiSelectGesture) {
+                                  const currentlySelected = selectedSeatIds.includes(seat.id);
+                                  const nextSeatIds = currentlySelected
+                                    ? selectedSeatIds.filter((id) => id !== seat.id)
+                                    : [...selectedSeatIds, seat.id];
+
+                                  if (nextSeatIds.length === 0) {
+                                    setSelectedSeatIds([]);
+                                    setSelectedElement(null);
+                                    setSelectedType(null);
+                                    return;
+                                  }
+
+                                  setSelectedSeatIds(nextSeatIds);
+                                  setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
+                                  setSelectedType('seat');
+                                  return;
+                                }
                                 setSelectedSeatIds([seat.id]);
                                 setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
                                 setSelectedType('seat');
                               }}
-                              opacity={0.3}
                             />
+                            {seat.icon ? (
+                              <IconImage
+                                iconName={seat.icon}
+                                x={seat.x}
+                                y={seat.y}
+                                size={seat.radius * 1.2}
+                                opacity={1} // Icon inherits group opacity
+                              />
+                            ) : (
+                              <Text
+                                x={seat.x - seat.radius}
+                                y={seat.y - 4}
+                                width={seat.radius * 2}
+                                text={seat.number.toString()}
+                                fontSize={10}
+                                fill={seatLabelColor}
+                                align="center"
+                                verticalAlign="middle"
+                                listening={false}
+                              />
+                            )}
+                            {isDisabled && (
+                              <Line
+                                points={[
+                                  seat.x - seat.radius * 0.7,
+                                  seat.y - seat.radius * 0.7,
+                                  seat.x + seat.radius * 0.7,
+                                  seat.y + seat.radius * 0.7
+                                ]}
+                                stroke="#F44336"
+                                strokeWidth={2}
+                                listening={false}
+                              />
+                            )}
                           </Group>
                         );
-                      }
-
-                      // In assign mode, seats are selectable for status corrections.
-                      const isUnavailable = isAssignMode && seat.status !== 'available';
-                      const isDisabled = seat.status === 'disabled';
-                      const canSelectSeat = true;
-                      const seatOpacity = isUnavailable ? 0.3 : 1;
-                      const resolvedSeatColor = seat.seatColor || row.seatColor || section.seatColor || PRIMARY;
-                      const statusStyle = SEAT_STATUS_STYLES[seat.status];
-                      const parsedStatusBorder = statusStyle ? parseBorderStyle(statusStyle.border) : null;
-                      const seatFillColor = statusStyle
-                        ? statusStyle.background
-                        : getBackgroundWithOpacity(resolvedSeatColor, 0.2);
-                      const isSeatSelected = selectedType === 'seat' && selectedSeatIds.includes(seat.id);
-                      const selectedSeatFillColor = statusStyle
-                        ? statusStyle.background
-                        : getBackgroundWithOpacity(resolvedSeatColor, 0.45);
-                      const seatStrokeColor = statusStyle ? parsedStatusBorder.color : resolvedSeatColor;
-                      const seatStrokeWidth = statusStyle ? parsedStatusBorder.width : (isSeatSelected ? 2 : 1);
-                      const seatLabelColor = statusStyle?.color || '#FFFFFF';
-
-                      return (
-                        <Group key={seat.id} opacity={seatOpacity}>
-                          <Rect
-                            x={seat.x - seat.radius}
-                            y={seat.y - seat.radius}
-                            width={seat.radius * 2}
-                            height={seat.radius * 2}
-                            fill={isSeatSelected ? selectedSeatFillColor : seatFillColor}
-                            stroke={seatStrokeColor}
-                            strokeWidth={seatStrokeWidth}
-                            cornerRadius={4}
-                            onMouseEnter={(e) => {
-                              const container = e.target.getStage().container();
-                              container.style.cursor = statusStyle?.cursor || 'pointer';
-                            }}
-                            onMouseLeave={(e) => {
-                              const container = e.target.getStage().container();
-                              container.style.cursor = 'default';
-                            }}
-                            onClick={(e) => {
-                              if (isReportMode) return;
-                              e.cancelBubble = true;
-                              if (!canSelectSeat) return;
-                              setSelectedSectionIds([]);
-                              const isMultiSelectGesture = e.evt?.shiftKey || e.evt?.ctrlKey || e.evt?.metaKey;
-                              if (isMultiSelectGesture) {
-                                const currentlySelected = selectedSeatIds.includes(seat.id);
-                                const nextSeatIds = currentlySelected
-                                  ? selectedSeatIds.filter((id) => id !== seat.id)
-                                  : [...selectedSeatIds, seat.id];
-
-                                if (nextSeatIds.length === 0) {
-                                  setSelectedSeatIds([]);
-                                  setSelectedElement(null);
-                                  setSelectedType(null);
-                                  return;
-                                }
-
-                                setSelectedSeatIds(nextSeatIds);
-                                setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
-                                setSelectedType('seat');
-                                return;
-                              }
-                              setSelectedSeatIds([seat.id]);
-                              setSelectedElement({ ...seat, sectionId: section.id, rowId: row.id });
-                              setSelectedType('seat');
-                            }}
-                          />
-                          {seat.icon ? (
-                            <IconImage
-                              iconName={seat.icon}
-                              x={seat.x}
-                              y={seat.y}
-                              size={seat.radius * 1.2}
-                              opacity={1} // Icon inherits group opacity
-                            />
-                          ) : (
-                            <Text
-                              x={seat.x - seat.radius}
-                              y={seat.y - 4}
-                              width={seat.radius * 2}
-                              text={seat.number.toString()}
-                              fontSize={10}
-                              fill={seatLabelColor}
-                              align="center"
-                              verticalAlign="middle"
-                              listening={false}
-                            />
-                          )}
-                          {isDisabled && (
-                            <Line
-                              points={[
-                                seat.x - seat.radius * 0.7,
-                                seat.y - seat.radius * 0.7,
-                                seat.x + seat.radius * 0.7,
-                                seat.y + seat.radius * 0.7
-                              ]}
-                              stroke="#F44336"
-                              strokeWidth={2}
-                              listening={false}
-                            />
-                          )}
-                        </Group>
-                      );
-                    })}
-                  </Group>
-                );
-              })}
-            </DraggableSection>
-          );
+                      })}
+                    </Group>
+                  );
+                })}
+              </DraggableSection>
+            );
           })}
         </Layer>
       </Stage>
