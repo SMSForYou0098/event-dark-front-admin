@@ -12,7 +12,7 @@ const BookingLayout = forwardRef((props, ref) => {
     const { layoutId, eventId, setSelectedTkts, allowMultiple = false } = props;
     const stageRef = useRef(null);
     const { UserData, isMobile } = useMyContext();
-
+    
     // Custom booking hook
     const {
         selectedSeats,
