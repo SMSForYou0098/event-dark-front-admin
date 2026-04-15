@@ -25,7 +25,7 @@ const AgentPOSDashboardLayout = ({ type }) => {
     type
   );
 
-  const canViewAgentBookings = usePermission(PERMISSIONS.VIEW_AGENT_BOOKINGS);
+  const canViewAgentBookings = usePermission(PERMISSIONS.VIEW_AGENT_REPORTS);
   const canViewPOSBookings = usePermission(PERMISSIONS.VIEW_POS_BOOKINGS);
 
   const getLast7DaysWeekdays = () => {
