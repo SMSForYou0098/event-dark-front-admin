@@ -6,6 +6,7 @@ import apiClient from 'auth/FetchInterceptor';
 import { useMyContext } from 'Context/MyContextProvider';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 import Utils from 'utils';
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 
 const { TextArea } = Input;
 
@@ -198,7 +199,7 @@ const ArtistCrewModal = ({
                             <Form.Item
                                 label="Name"
                                 name="name"
-                                rules={[{ required: true, message: 'Please enter name' }]}
+                                rules={[...VALIDATION_RULES.NAME]}
                             >
                                 <Input
                                     prefix={<UserOutlined />}
@@ -214,12 +215,7 @@ const ArtistCrewModal = ({
                                     <Form.Item
                                         label="Email"
                                         name="email"
-                                        rules={[
-                                            {
-                                                type: 'email',
-                                                message: 'Please enter a valid email'
-                                            }
-                                        ]}
+                                        rules={[...VALIDATION_RULES.EMAIL]}
                                     >
                                         <Input
                                             prefix={<MailOutlined />}
@@ -231,12 +227,7 @@ const ArtistCrewModal = ({
                                     <Form.Item
                                         label="Phone Number"
                                         name="number"
-                                        rules={[
-                                            {
-                                                pattern: /^\d{10,12}$/,
-                                                message: 'Phone number must be 10-12 digits'
-                                            }
-                                        ]}
+                                        rules={[...VALIDATION_RULES.MOBILE]}
                                     >
                                         <Input
                                             prefix={<PhoneOutlined />}
@@ -252,7 +243,18 @@ const ArtistCrewModal = ({
                                     <Form.Item
                                         label="Category"
                                         name="category"
-                                        rules={[{ required: true, message: 'Please select category' }]}
+                                        rules={[
+                                            { required: true, message: 'Please select category' },
+                                            {
+                                                validator: (_, value) => {
+                                                    if (!value || value.length === 0) return Promise.resolve();
+                                                    const validPattern = /^[A-Za-z0-9]+(?:[ .\-&][A-Za-z0-9]+)*$/;
+                                                    const invalid = value.find(v => !validPattern.test(v));
+                                                    if (invalid) return Promise.reject(new Error('Category can only contain letters, numbers, spaces, dots, hyphens or &. No consecutive special characters.'));
+                                                    return Promise.resolve();
+                                                }
+                                            }
+                                        ]}
                                     >
                                         <Select
                                             showSearch
@@ -262,6 +264,19 @@ const ArtistCrewModal = ({
                                             mode="tags"
                                             maxTagCount={1}
                                             maxCount={1}
+                                            onInputKeyDown={(e) => {
+                                                const allowed = /^[A-Za-z0-9 .\-&]$/;
+                                                if (e.key.length === 1 && !allowed.test(e.key)) {
+                                                    e.preventDefault();
+                                                    return;
+                                                }
+                                                // Prevent consecutive separators (space, dot, hyphen, &)
+                                                const separators = [' ', '.', '-', '&'];
+                                                const currentVal = e.target.value || '';
+                                                if (separators.includes(e.key) && (currentVal.length === 0 || separators.includes(currentVal.slice(-1)))) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
                                             onChange={(value) => {
                                                 const newValue = value.length > 0 ? [value[value.length - 1]] : [];
                                                 setSelectedCategory(newValue);

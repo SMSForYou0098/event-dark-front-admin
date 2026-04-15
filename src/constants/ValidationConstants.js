@@ -52,8 +52,12 @@ export const VALIDATION_REGEX = {
 
     // Category Name: Only letters, numbers, spaces, dots, hyphens, and parentheses
     CATEGORY_NAME: /^[A-Za-z0-9]+(?:[ .-][A-Za-z0-9]+)*$/,
+
     // URL validation: Supports http, https, and optional www
     URL: /^(https?:\/\/)?(www\.)?([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}(:\d{1,5})?(\/[^\s]*)?$/,
+
+    // Title validation 
+    TITLE: /^[a-zA-Z0-9\s]+$/
 
 };
 
@@ -78,6 +82,7 @@ export const VALIDATION_MESSAGES = {
     ACCOUNT_NUMBER: 'Account number must contain only numbers',
     IFSC: 'Please enter a valid IFSC code (e.g., SBIN0001234)',
     REQUIRED: (field) => `Please enter ${field}`,
+    TITLE: (field) => `Please enter ${field}`,
 };
 
 /**
@@ -172,7 +177,16 @@ export const VALIDATION_RULES = {
         { pattern: VALIDATION_REGEX.CATEGORY_NAME, message: VALIDATION_MESSAGES.CATEGORY_NAME }
     ],
 
-
+    // Factory function — pass your field label to get dynamic error messages
+    // Usage: rules={VALIDATION_RULES.TITLE('Category Title')}
+    //        rules={VALIDATION_RULES.TITLE('Event Title')}
+    //        rules={VALIDATION_RULES.TITLE()} // defaults to 'Title'
+    TITLE: (label = 'Title') => [
+        { required: true, message: `Please enter ${label.toLowerCase()}` },
+        { min: 2, message: `${label} must be at least 2 characters` },
+        { max: 255, message: `${label} must be max 255 characters` },
+        { pattern: VALIDATION_REGEX.TITLE, message: `${label} must contain only letters and spaces` }
+    ]
 
 };
 

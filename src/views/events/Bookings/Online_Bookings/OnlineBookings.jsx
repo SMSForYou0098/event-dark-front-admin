@@ -430,17 +430,17 @@ const OnlineBookings = memo(({ type, seatingChartBooking = false, isRefund = fal
       ]
       : []),
     ...(type !== 'free' && userRole === 'Admin' ? [
-      {
-        title: "Mode",
-        dataIndex: "payment_method",
-        key: "payment_method",
-        align: "center",
-        render: (_, record) =>
-          record?.bookings?.[0]?.payment_log?.mode ||
-          record?.payment_log?.mode ||
-          record?.payment_method ||
-          "",
-      },
+      // {
+      //   title: "Mode",
+      //   dataIndex: "payment_method",
+      //   key: "payment_method",
+      //   align: "center",
+      //   render: (_, record) =>
+      //     record?.bookings?.[0]?.payment_log?.mode ||
+      //     record?.payment_log?.mode ||
+      //     record?.payment_method ||
+      //     "",
+      // },
       {
         title: "PG",
         dataIndex: "gateway",

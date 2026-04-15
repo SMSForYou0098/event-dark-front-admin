@@ -363,12 +363,13 @@ const ArtistStep = ({ form, isEdit, artistList = [], eventId, id }) => {
         width={900}
       >
         <Space direction="vertical" className="w-100">
+          {/* Search Bar  */}
           <Flex justifyContent="between" gap="10px">
             <Input
               placeholder="Search by name or role..."
               prefix={<SearchOutlined />}
               value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
+              onChange={(e) => setSearchText(e.target.value.replace(/[^a-zA-Z0-9]/g, ''))}
               className="flex-grow-1"
             />
             <Button type="primary" icon={<PlusOutlined />} size="large" onClick={handleCreateArtist}>

@@ -352,6 +352,13 @@ const Users = () => {
       ]
       : []),
     {
+      title: "Channel",
+      dataIndex: "user_channel",
+      key: "user_channel",
+      align: "center",
+      searchable: false,
+    },
+    {
       title: "Auth",
       dataIndex: "authentication",
       key: "authentication",

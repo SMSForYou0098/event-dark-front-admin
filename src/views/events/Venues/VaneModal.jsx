@@ -5,6 +5,7 @@ import { PlusOutlined, PictureOutlined, DeleteOutlined, CloseOutlined } from '@a
 import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 
 const { TextArea } = Input;
 
@@ -194,7 +195,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             <Form.Item
                                 label="Venue Name"
                                 name="name"
-                                rules={[{ required: true, message: 'Please enter venue name' }]}
+                                rules={[...VALIDATION_RULES.TITLE('Venue Name')]}
                             >
                                 <Input placeholder="Enter venue name" />
                             </Form.Item>
@@ -260,14 +261,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                 name="address"
                                 rules={[
                                     { required: true, message: 'Please enter address' },
-                                    {
-                                        validator: (_, value) => {
-                                            if (value && value.includes(',')) {
-                                                return Promise.reject('Avoid using commas (,), use | instead');
-                                            }
-                                            return Promise.resolve();
-                                        }
-                                    }
+                                    ...VALIDATION_RULES.ADDRESS
                                 ]}
                             >
                                 <Input.TextArea

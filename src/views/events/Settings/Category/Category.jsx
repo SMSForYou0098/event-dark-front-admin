@@ -25,6 +25,7 @@ import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalle
 import Utils from 'utils';
 import PermissionChecker from 'layouts/PermissionChecker';
 import Flex from "components/shared-components/Flex";
+import { VALIDATION_RULES } from "constants/ValidationConstants";
 
 const Category = () => {
   const queryClient = useQueryClient();
@@ -377,7 +378,7 @@ const Category = () => {
             <Form.Item
               label="Title"
               name="title"
-              rules={[{ required: true, message: "Title is required" }]}
+              rules={[...VALIDATION_RULES.TITLE('Title')]}
             >
               <Input placeholder="Enter category title" />
             </Form.Item>

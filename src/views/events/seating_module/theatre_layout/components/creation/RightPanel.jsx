@@ -1008,15 +1008,17 @@ const RightPanel = (props) => {
                 })()}
 
                 <PermissionChecker permission={UPDATE_SEATING_PERMISSION}>
-                  <Form.Item label="Seat Color (Bulk)">
-                    <SeatColorSelector
-                      value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
-                      onChange={(color) => {
-                        updateMultipleSeats?.(selectedSeatIds, { seatColor: color, customSeatColor: true });
-                        setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
-                      }}
-                    />
-                  </Form.Item>
+                  {selectedElement.status === 'available' && (
+                    <Form.Item label="Seat Color (Bulk)">
+                      <SeatColorSelector
+                        value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                        onChange={(color) => {
+                          updateMultipleSeats?.(selectedSeatIds, { seatColor: color, customSeatColor: true });
+                          setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
+                        }}
+                      />
+                    </Form.Item>
+                  )}
 
                   <Form.Item label="Seat Icon (Bulk)">
                     <SeatIconSelect
@@ -1191,22 +1193,24 @@ const RightPanel = (props) => {
                       />
                     </Form.Item>
 
-                    <PermissionChecker permission={UPDATE_SEATING_PERMISSION}>
-                      <Form.Item label="Seat Color (Single Seat)">
-                        <SeatColorSelector
-                          value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
-                          onChange={(color) => {
-                            updateSeat(
-                              selectedElement.sectionId,
-                              selectedElement.rowId,
-                              selectedElement.id,
-                              { seatColor: color, customSeatColor: true }
-                            );
-                            setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
-                          }}
-                        />
-                      </Form.Item>
-                    </PermissionChecker>
+                    {selectedElement.status === 'available' && (
+                      <PermissionChecker permission={UPDATE_SEATING_PERMISSION}>
+                        <Form.Item label="Seat Color (Single Seat)">
+                          <SeatColorSelector
+                            value={selectedElement.seatColor || SEAT_COLOR_OPTIONS[0]}
+                            onChange={(color) => {
+                              updateSeat(
+                                selectedElement.sectionId,
+                                selectedElement.rowId,
+                                selectedElement.id,
+                                { seatColor: color, customSeatColor: true }
+                              );
+                              setSelectedElement({ ...selectedElement, seatColor: color, customSeatColor: true });
+                            }}
+                          />
+                        </Form.Item>
+                      </PermissionChecker>
+                    )}
                     <div className="d-flex align-items-center ">
                       <Text className="m-0 mr-2">Seat:</Text> {selectedElement.label} {selectedElement.status}
                     </div>
