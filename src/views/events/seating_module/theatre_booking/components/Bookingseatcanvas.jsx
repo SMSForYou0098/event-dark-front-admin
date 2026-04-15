@@ -399,7 +399,7 @@ const Seat = memo(({
         : (statusStyle?.background || seatColor);
     const seatStroke = isInteractiveSeat ? seatColor : (parsedStatusBorder?.stroke || 'transparent');
     const strokeWidth = isInteractiveSeat ? (isSelected ? 2 : 1) : (parsedStatusBorder?.strokeWidth || 0);
-    const seatTextColor = statusStyle?.color || THEME.textPrimary;
+    const seatTextColor = isSelected ? THEME.textPrimary : (isInteractiveSeat ? seatColor : (statusStyle?.color || THEME.textPrimary));
 
     return (
         <Group x={x} y={y} opacity={seatOpacity}>
@@ -417,7 +417,7 @@ const Seat = memo(({
                 shadowOpacity={0.6}
                 onClick={handleInteraction}
                 onTap={handleInteraction}
-                listening={isClickable}
+                listening={true}
                 perfectDrawEnabled={false}
                 shadowForStrokeEnabled={false}
                 hitStrokeWidth={IS_MOBILE ? 14 : 6}
@@ -816,7 +816,6 @@ const BookingSeatCanvas = ({
     onSeatClick,
     onStandingSectionClick,
     handleWheel: externalHandleWheel,
-    setStagePosition: externalSetStagePosition,
     primaryColor = PRIMARY,
     layoutId
 }) => {
@@ -963,12 +962,13 @@ const BookingSeatCanvas = ({
         const seatAbsY = section.y + seat.y;
 
         const ZOOM_THRESHOLD = 0.75;
-        const TARGET_ZOOM = 1.15;
+        const TARGET_ZOOM = 2; // Zoom in more when coming from full zoom-out
         const cur = scaleRef.current;
 
         const targetScale = cur < ZOOM_THRESHOLD ? TARGET_ZOOM : cur;
         const targetPos = {
-            x: dimensions.width / 2 - seatAbsX * targetScale,
+            // Shift anchor slightly right (0.58 vs 0.5) so seat doesn't appear left-heavy
+            x: dimensions.width * 0.58 - seatAbsX * targetScale,
             y: dimensions.height / 2 - seatAbsY * targetScale,
         };
 
@@ -1022,7 +1022,7 @@ const BookingSeatCanvas = ({
     // Calculate initial view
     const getInitialView = useCallback(() => {
         const bounds = getLayoutBounds(stage, displaySections);
-        const padding = IS_MOBILE ? 40 : 80;
+        const padding = IS_MOBILE ? 40 : 40;
 
         const scaleX = (dimensions.width - padding * 2) / bounds.width;
         const scaleY = (dimensions.height - padding * 2) / bounds.height;
@@ -1130,12 +1130,9 @@ const BookingSeatCanvas = ({
         setPosition(initialPos);
         scaleRef.current = initialScale;
         positionRef.current = initialPos;
-
-        if (externalSetStagePosition) externalSetStagePosition(initialPos);
-
         setIsReady(true);
         hasInitialized.current = true;
-    }, [stage, sections, displaySections, dimensions, stageRef, externalSetStagePosition, getInitialView, layoutId]);
+    }, [stage, sections, displaySections, dimensions, stageRef, getInitialView, layoutId]);
 
     // Mouse wheel zoom
     const handleWheel = useCallback((e) => {
@@ -1145,12 +1142,14 @@ const BookingSeatCanvas = ({
         const stageInstance = stageRef.current;
         if (!stageInstance) return;
 
-        const oldScale = scale;
+        // Read from refs — avoids stale closures and skips extra React re-renders mid-gesture
+        const oldScale = scaleRef.current;
+        const curPos = positionRef.current;
         const pointer = stageInstance.getPointerPosition();
 
         const mousePointTo = {
-            x: (pointer.x - position.x) / oldScale,
-            y: (pointer.y - position.y) / oldScale,
+            x: (pointer.x - curPos.x) / oldScale,
+            y: (pointer.y - curPos.y) / oldScale,
         };
 
         const direction = e.evt.deltaY > 0 ? -1 : 1;
@@ -1162,13 +1161,16 @@ const BookingSeatCanvas = ({
             y: pointer.y - mousePointTo.y * clampedScale,
         };
 
+        // Update refs immediately (no re-render lag) and state for final commit
+        scaleRef.current = clampedScale;
+        positionRef.current = newPos;
         setScale(clampedScale);
         setPosition(newPos);
 
         if (externalHandleWheel) {
             externalHandleWheel(e);
         }
-    }, [scale, position, stageRef, externalHandleWheel]);
+    }, [stageRef, externalHandleWheel]);
 
     // ========================================================================
     // KONVA MULTI-TOUCH HANDLERS
@@ -1280,11 +1282,7 @@ const BookingSeatCanvas = ({
     const handleDragEnd = useCallback((e) => {
         const pos = e.target.position();
         setPosition(pos);
-
-        if (externalSetStagePosition) {
-            externalSetStagePosition(pos);
-        }
-    }, [externalSetStagePosition]);
+    }, []);
 
     // Zoom button handlers (animated)
     const handleZoomIn = useCallback(() => {
@@ -1346,14 +1344,18 @@ const BookingSeatCanvas = ({
         if (selectedSeatIds.has(seat.id)) return 'Selected';
         if (seat.status === 'booked') return 'Booked';
         if (seat.status === 'hold' || seat.status === 'locked') return 'Locked';
+        if (seat.status === 'reserved') return 'Reserved';
         if (seat.status === 'disabled') return 'Disabled';
         return 'Available';
     }, [selectedSeatIds]);
 
     const getSeatStatusColor = useCallback((seat) => {
-        if (selectedSeatIds.has(seat.id)) return THEME.textMuted;
-        if (seat.status === 'booked' || seat.status === 'hold' || seat.status === 'locked' || seat.status === 'disabled') return THEME.textMuted;
-        return '#22c55e'; // green for available
+        if (selectedSeatIds.has(seat.id)) return '#22c55e';           // green — selected
+        if (seat.status === 'booked') return '#ef4444';                // red — booked
+        if (seat.status === 'hold' || seat.status === 'locked') return '#f97316'; // amber — locked
+        if (seat.status === 'reserved') return '#f59e0b';              // orange — reserved
+        if (seat.status === 'disabled') return THEME.textMuted;        // grey — disabled
+        return '#22c55e'; // green — available
     }, [selectedSeatIds]);
 
     return (
@@ -1492,7 +1494,7 @@ const BookingSeatCanvas = ({
             )}
 
             {/* ── Bottom bar: legend + section chips ── */}
-            {isReady && sections.length > 0 && (
+            {/* {isReady && sections.length > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1512,8 +1514,7 @@ const BookingSeatCanvas = ({
                         maxWidth: 'calc(100% - 24px)',
                     }}
                 >
-                    {/* Legend row */}
-                    {/* <div className="d-flex" style={{ gap: 14 }}>
+                    <div className="d-flex" style={{ gap: 14 }}>
                         {[
                             { color: SEAT_COLORS.available, label: 'Available', border: true },
                             { color: SEAT_COLORS.selected, label: 'Selected' },
@@ -1530,9 +1531,8 @@ const BookingSeatCanvas = ({
                                 <span style={{ color: THEME.textPrimary, fontSize: 12 }}>{item.label}</span>
                             </div>
                         ))}
-                    </div> */}
+                    </div>
 
-                    {/* Section chips (only when 2+ sections) */}
                     {sections.length >= 2 && (
                         <div className="d-flex flex-wrap" style={{ gap: 6 }}>
                             <span style={{ color: THEME.textMuted, fontSize: 11, lineHeight: '24px', marginRight: 2 }}>
@@ -1558,7 +1558,7 @@ const BookingSeatCanvas = ({
                         </div>
                     )}
                 </motion.div>
-            )}
+            )} */}
 
             {/* ── Mobile pinch hint ── */}
             {IS_MOBILE && showHint && isReady && (
@@ -1595,32 +1595,32 @@ const BookingSeatCanvas = ({
                     onMouseLeave={() => setHoveredSeat(null)}
                     style={{
                         position: 'absolute',
-                        top: hoveredSeat.y - 90,
+                        top: hoveredSeat.y - 100,
                         left: hoveredSeat.x,
                         transform: 'translateX(-50%)',
                         ...OVERLAY_STYLE,
-                        padding: '10px 14px',
+                        padding: '10px 16px',
                         zIndex: 20,
                         pointerEvents: 'auto',
-                        minWidth: 110,
+                        minWidth: 130,
                         color: THEME.textPrimary,
                     }}
                 >
-                    <Typography.Text strong style={{ color: THEME.textPrimary, fontSize: 13 }}>
+                    <Typography.Text strong style={{ color: THEME.textPrimary, fontSize: 15 }}>
                         {formatSeatDisplayLabel(hoveredSeat.rowTitle, hoveredSeat.seat?.number)}
                     </Typography.Text>
 
                     {hoveredSeat.seat.ticket && (
                         <>
-                            <div style={{ color: THEME.textMuted, fontSize: 11, marginTop: 2 }}>
+                            <div style={{ color: THEME.textMuted, fontSize: 13, marginTop: 3 }}>
                                 {hoveredSeat.seat.ticket.name}
                             </div>
-                            <div style={{ color: THEME.primary, fontWeight: 600, fontSize: 13, marginTop: 2 }}>
+                            <div style={{ color: THEME.primary, fontWeight: 600, fontSize: 15, marginTop: 3 }}>
                                 &#8377;{hoveredSeat.seat.ticket.price}
                             </div>
                             <div style={{
-                                fontSize: 11,
-                                marginTop: 2,
+                                fontSize: 13,
+                                marginTop: 3,
                                 fontWeight: 600,
                                 color: getSeatStatusColor(hoveredSeat.seat),
                                 textTransform: 'capitalize',
