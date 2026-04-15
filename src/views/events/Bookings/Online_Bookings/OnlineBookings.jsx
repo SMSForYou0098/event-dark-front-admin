@@ -204,7 +204,7 @@ const OnlineBookings = memo(({ type, seatingChartBooking = false, isRefund = fal
       content: "Would you like to group the tickets or keep them individual?",
       icon: <AlertCircle size={24} color="#1890ff" />,
       okText: "Group",
-      cancelText: "Individual",
+      cancelText: "Single",
       onOk: () => {
         setTicketType({ type: "combine" });
         setShow(true);

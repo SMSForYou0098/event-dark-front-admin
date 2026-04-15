@@ -1,7 +1,6 @@
 // Users.js
 import React, { useCallback, useState } from "react";
 import {
-  Tag,
   Button,
   Space,
   Modal,
@@ -306,7 +305,7 @@ const Users = () => {
       title: "ID",
       dataIndex: "id",
       key: "id",
-      width: "6%",
+      width: 40,
       render: (text, record, index) => index + 1,
       searchable: false,
     },
@@ -314,6 +313,7 @@ const Users = () => {
       title: "Name",
       dataIndex: "name",
       key: "name",
+      width: 150,
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
     },
@@ -323,6 +323,8 @@ const Users = () => {
           title: "Contact",
           dataIndex: "contact",
           key: "contact",
+          width: 100,
+          align: "center",
           searchable: true,
           render: (cell) => {
             const contactStr = cell?.toString() || "";
@@ -340,6 +342,7 @@ const Users = () => {
           dataIndex: "email",
           key: "email",
           align: "center",
+          width: 100,
           searchable: true,
           render: (email) => {
             if (!email) return "N/A";
@@ -355,6 +358,7 @@ const Users = () => {
       title: "Channel",
       dataIndex: "user_channel",
       key: "user_channel",
+      width: 100,
       align: "center",
       searchable: false,
     },
@@ -362,6 +366,7 @@ const Users = () => {
       title: "Auth",
       dataIndex: "authentication",
       key: "authentication",
+      width: 100,
       align: "center",
       render: (cell) => (parseInt(cell) === 1 ? "Password" : "OTP"),
       searchable: false,
@@ -502,7 +507,7 @@ const Users = () => {
           title: "Actions",
           key: "actions",
           fixed: "right",
-          width: 150,
+          width: 60,
           render: (_, record) => {
             const isDisabled = record?.is_deleted || record?.status === "1";
 

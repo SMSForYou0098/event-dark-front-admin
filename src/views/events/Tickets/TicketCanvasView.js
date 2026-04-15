@@ -27,16 +27,16 @@ const TicketCanvasView = forwardRef((props, ref) => {
   const {
     showDetails,
     ticketNumber,
-    ticketLabel,
     preloadedImage,
     onReady,
     onError,
     ticketData,
+    ticketLabel
   } = props;
 
   // Default to true so event name, date, time, venue etc. render when not explicitly disabled
 
-  const { convertTo12HourFormat, formatDateRange } = useMyContext();
+  const { convertTo12HourFormat } = useMyContext();
   const canvasRef = useRef(null);
   const fabricCanvasRef = useRef(null);
 
@@ -75,7 +75,7 @@ const TicketCanvasView = forwardRef((props, ref) => {
         .filter(Boolean)
         .join(', ')
       : null;
-  const number =
+  const seatNumber =
     seatNames ||
     ticketData?.seat_name ||
     ticketData?.event_seat_status?.seat_name ||
@@ -84,23 +84,7 @@ const TicketCanvasView = forwardRef((props, ref) => {
   const address = venue?.address || event?.address || 'Address Not Specified';
   // Format date range: comma-separated "2026-02-03,2026-02-05" → "3 Feb 2026 to 5 Feb 2026"
   const formattedDate = ticketData?.booking_date || event?.date_range;
-  // const date = (() => {
-  //   if (!dateRangeSource) return 'Date Not Available';
-  //   const parts = String(dateRangeSource).split(',').map((s) => s.trim()).filter(Boolean);
-  //   const formatOne = (isoStr) => {
-  //     if (!isoStr) return '';
-  //     const d = new Date(isoStr);
-  //     if (Number.isNaN(d.getTime())) return isoStr;
-  //     const day = d.getDate();
-  //     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  //     const month = months[d.getMonth()];
-  //     const year = d.getFullYear();
-  //     return `${day} ${month} ${year}`;
-  //   };
-  //   if (parts.length === 0) return formatDateRange?.(dateRangeSource) || 'Date Not Available';
-  //   if (parts.length === 1) return formatOne(parts[0]) || formatDateRange?.(dateRangeSource) || 'Date Not Available';
-  //   return `${formatOne(parts[0])} to ${formatOne(parts[1])}`;
-  // })();
+  
 
   const date = (() => {
     if (!formattedDate) return 'Date Not Available';
@@ -156,6 +140,7 @@ const TicketCanvasView = forwardRef((props, ref) => {
     // different year
     return `${start.day} ${start.month} ${start.year} to ${end.day} ${end.month} ${end.year}`;
   })();
+
   const time =
     convertTo12HourFormat?.(event?.start_time) || 'Time Not Set';
   const OrderId = ticketData?.order_id || ticketData?.token || 'N/A';
@@ -326,11 +311,16 @@ const TicketCanvasView = forwardRef((props, ref) => {
         // currentY += 30;
 
         // Label (I) or (G)
-        if (props.ticketLabel) {
-          centerText(props.ticketLabel + (ticketNumber ? ' ' + ticketNumber : ''), 12, 'Arial', canvas, currentY, { fontWeight: 'bold', fill: '#000' });
+        if (ticketLabel) {
+          centerText(ticketLabel + (ticketNumber ? ' ' + ticketNumber : ''), 12, 'Arial', canvas, currentY, { fontWeight: 'bold', fill: '#000' });
           currentY += 30;
         } else {
           currentY += 10;
+        }
+        // User number/seat
+        if (seatNumber !== 'N/A') {
+          centerText(`Seat: ${seatNumber}`, 15, 'Arial', canvas, currentY);
+          currentY += 30;
         }
         if (showDetails) {
 
@@ -338,11 +328,7 @@ const TicketCanvasView = forwardRef((props, ref) => {
           centerText(` ${bookingType}`, 10, 'Arial', canvas, currentY);
           currentY += 30;
 
-          // User number/seat
-          if (number !== 'N/A') {
-            centerText(`Seat: ${number}`, 15, 'Arial', canvas, currentY);
-            currentY += 30;
-          }
+          
 
           // Date Column (FIRST)
           const dateStartX = 40;
@@ -495,12 +481,13 @@ const TicketCanvasView = forwardRef((props, ref) => {
       }
     };
   }, [
+    gate,
     imageUrl,
     qrDataUrl,
     showDetails,
     ticketName,
     userName,
-    number,
+    seatNumber,
     address,
     date,
     time,

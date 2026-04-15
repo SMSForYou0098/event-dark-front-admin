@@ -9,8 +9,6 @@ import {
   Slider,
   Typography,
   Alert,
-  Col,
-  Row,
   Checkbox
 } from "antd";
 
@@ -567,38 +565,34 @@ const RightPanel = (props) => {
                 const regularSeats = (selectedElement.seats || []).filter(seat => seat.type !== 'blank');
                 const lockedSeatsCount = regularSeats.filter(seat => seat.status !== 'available').length;
                 const minSeatsAllowed = Math.max(1, lockedSeatsCount);
+                const rowTitleValue = selectedElement.title ?? '';
+                const rowSeatsValue = Math.max(
+                  minSeatsAllowed,
+                  parseInt(selectedElement.numberOfSeats ?? regularSeats.length, 10) || minSeatsAllowed
+                );
                 return (
                   <>
                     <Form.Item label="Row Title">
                       <Input
-                        value={selectedElement.title}
+                        value={rowTitleValue}
                         onChange={(e) => {
-                          setSelectedElement({ ...selectedElement, title: e.target.value });
-                        }}
-                        onBlur={(e) => {
-                          const nextTitle = e.target.value;
+                          const nextTitle = e.target.value ?? '';
+                          setSelectedElement({ ...selectedElement, title: nextTitle });
                           updateRow(selectedElement.sectionId, selectedElement.id, { title: nextTitle });
                         }}
                       />
                     </Form.Item>
-
                     <Form.Item
                       label="Number of Seats"
                     // help={isAssignMode && "Layout is locked in ticket assignment mode"} // Removed isAssignMode help
                     >
                       <InputNumber
                         min={minSeatsAllowed}
-                        max={100}
-                        value={selectedElement.numberOfSeats}
+                        max={50}
+                        value={rowSeatsValue}
                         onChange={(value) => {
                           const nextValue = Math.max(minSeatsAllowed, parseInt(value || 0, 10) || minSeatsAllowed);
                           setSelectedElement({ ...selectedElement, numberOfSeats: nextValue });
-                        }}
-                        onBlur={() => {
-                          const nextValue = Math.max(
-                            minSeatsAllowed,
-                            parseInt(selectedElement.numberOfSeats || 0, 10) || minSeatsAllowed
-                          );
                           updateRow(selectedElement.sectionId, selectedElement.id, { numberOfSeats: nextValue });
                         }}
                         className="w-100"
@@ -655,102 +649,31 @@ const RightPanel = (props) => {
                 label="Row Seat Icon"
                 help="Apply icon to all seats in this row"
               >
-                <Row gutter={[16, 10]}>
-                  {/* Default numeric seat */}
-                  <Col span={4}>
-                    <div
-                      onClick={() => {
-                        setSections(sections?.map(section => {
-                          if (section?.id === selectedElement?.sectionId) {
-                            return {
-                              ...section,
-                              rows: section?.rows?.map(row => {
-                                if (row?.id === selectedElement?.id) {
-                                  return {
-                                    ...row,
-                                    defaultIcon: null,
-                                    seats: (row?.seats || [])?.map(seat => ({
-                                      ...seat,
-                                      icon: null,
-                                      customIcon: false
-                                    }))
-                                  };
-                                }
-                                return row;
-                              })
-                            };
-                          }
-                          return section;
-                        }));
-                        setSelectedElement({ ...selectedElement, defaultIcon: null });
-                      }}
-                      className="border border-secondary rounded d-flex align-items-center justify-content-center"
-                      style={{
-                        width: 38,
-                        height: 38,
-                        cursor: 'pointer',
-                        background: !selectedElement.defaultIcon ? 'var(--primary-color)' : 'transparent',
-                        color: '#ffffff',
-                        fontSize: 16,
-                        fontWeight: 600,
-                      }}
-                      title="Default (Numbers)"
-                    >
-                      1
-                    </div>
-                  </Col>
-                  {seatIcons?.map(iconObj => {
-                    const IconComponent = getIconComponent(iconObj?.icon);
-                    const isActive = selectedElement.defaultIcon === iconObj?.icon;
-
-                    return (
-                      <Col span={4} key={iconObj?.id}>
-                        <div
-                          className="border border-secondary rounded d-flex align-items-center justify-content-center"
-                          onClick={() => {
-                            setSections(sections?.map(section => {
-                              if (section?.id === selectedElement?.sectionId) {
-                                return {
-                                  ...section,
-                                  rows: section?.rows?.map(row => {
-                                    if (row?.id === selectedElement?.id) {
-                                      return {
-                                        ...row,
-                                        defaultIcon: iconObj.icon,
-                                        seats: row?.seats?.map(seat => ({
-                                          ...seat,
-                                          icon: iconObj.icon,
-                                          customIcon: false
-                                        }))
-                                      };
-                                    }
-                                    return row;
-                                  })
-                                };
-                              }
-                              return section;
-                            }));
-                            setSelectedElement({ ...selectedElement, defaultIcon: iconObj.icon });
-                          }}
-                          style={{
-                            width: 38,
-                            height: 38,
-                            border: isActive
-                              ? '2px solid var(--primary-color)'
-                              : '1px solid #d9d9d9',
-                            cursor: 'pointer',
-                            background: isActive ? 'var(--primary-color)' : 'transparent',
-                            color: '#ffffff',
-                            fontSize: 22,
-                          }}
-                          title={iconObj.name}
-                        >
-                          <IconComponent />
-                        </div>
-                      </Col>
-                    );
-                  })}
-                </Row>
+                <SeatIconSelect
+                  placeholder="Select icon for all seats in row"
+                  value={selectedElement.defaultIcon}
+                  onChange={(nextIcon) => {
+                    setSections(sections?.map(section => {
+                      if (section?.id !== selectedElement?.sectionId) return section;
+                      return {
+                        ...section,
+                        rows: section?.rows?.map(row => {
+                          if (row?.id !== selectedElement?.id) return row;
+                          return {
+                            ...row,
+                            defaultIcon: nextIcon || null,
+                            seats: (row?.seats || [])?.map(seat => ({
+                              ...seat,
+                              icon: nextIcon || null,
+                              customIcon: false
+                            }))
+                          };
+                        })
+                      };
+                    }));
+                    setSelectedElement({ ...selectedElement, defaultIcon: nextIcon || null });
+                  }}
+                />
               </Form.Item>
 
 
