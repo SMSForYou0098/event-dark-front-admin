@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Form, Row, Col, Switch, Card, Button, Modal, List, Typography, Tag } from 'antd';
 import { ArrowRightOutlined, CheckCircleFilled } from '@ant-design/icons';
-import TicketManager from 'views/events/Tickets/TicketManager/TicketManager';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import { useNavigate } from 'react-router-dom';
 import ContentSelect from './ContentSelect';
 const { Text } = Typography;
 
-const TicketsStep = ({ eventId, eventName, layouts, eventLayoutId, contentList, contentLoading, orgId, form }) => {
+const TicketsStep = ({ eventId, layouts, eventLayoutId, contentList, contentLoading, orgId, form }) => {
   const navigate = useNavigate();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
   const venueId = form.getFieldValue('venue_id');

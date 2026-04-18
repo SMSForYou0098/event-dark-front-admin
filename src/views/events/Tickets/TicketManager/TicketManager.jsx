@@ -96,20 +96,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         staleTime: 2 * 60 * 1000,
     });
 
-    // Fetch access areas
-    const { data: areas = [] } = useQuery({
-        queryKey: ['access-areas', eventId],
-        queryFn: async () => {
-            if (!eventId) return [];
-            const response = await apiClient.get(`accessarea-list/${eventId}`);
-            return (response.data || []).map(area => ({
-                value: area.id,
-                label: area.title
-            }));
-        },
-        enabled: !!eventId,
-        staleTime: 5 * 60 * 1000,
-    });
 
     // Fetch promocodes
     const { data: promocodes = [] } = useQuery({
@@ -126,18 +112,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
         staleTime: 5 * 60 * 1000,
     });
 
-    // Fetch currencies
-    const { data: currencies = [] } = useQuery({
-        queryKey: ['currencies'],
-        queryFn: async () => {
-            const response = await axios.get('https://api.exchangerate-api.com/v4/latest/INR');
-            return Object.keys(response.data.rates).map(cur => ({
-                value: cur,
-                label: cur
-            }));
-        },
-        staleTime: 30 * 60 * 1000,
-    });
 
     // Currency conversion
     useEffect(() => {
@@ -279,6 +253,11 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             setSelectedMediaUrl('');
         }
     };
+
+    const handleCloseModal = useCallback(() => {
+        setModalVisible(false);
+        setMediaPickerOpen(false);
+    }, []);
 
     // Handle Submit
     const handleSubmit = async (values) => {
@@ -589,12 +568,13 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
             <Modal
                 title={editMode ? 'Edit Ticket' : 'Create New Ticket'}
                 open={modalVisible}
-                onCancel={() => setModalVisible(false)}
+                onCancel={handleCloseModal}
                 onOk={() => form.submit()}
                 confirmLoading={submitting}
                 width={'80%'}
                 okText={editMode ? 'Update' : 'Create'}
                 style={{ top: 20 }}
+                destroyOnClose
             >
                 <Row gutter={16}>
                     <Col xs={24} md={20} xl={20} style={{ maxHeight: '65vh', overflow: 'auto' }}>

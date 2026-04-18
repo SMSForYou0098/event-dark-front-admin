@@ -16,7 +16,6 @@ import {
     FormOutlined,
     ControlOutlined,
     FieldTimeOutlined,
-    TagsOutlined,
     EnvironmentOutlined,
     PictureOutlined,
     GlobalOutlined,
@@ -27,7 +26,6 @@ import dayjs from 'dayjs';
 import BasicDetailsStep from './components/BasicDetails';
 import EventControlsStep from './components/EventControls';
 import TimingStep from './components/Timing';
-import TicketsStep from './components/Tickets';
 import MediaStep from './components/MediaStep';
 import SEOStep from './components/SEOStep';
 import PublishStep from './components/PublishStep';
