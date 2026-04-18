@@ -244,38 +244,8 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
         <Form.Item
           name="name"
           label="Event Name"
-          rules={[
-            { required: true, message: "Please enter event name" },
-            { min: 3, message: "Event name must be at least 3 characters" },
-            {
-              validator: (_, value) => {
-                if (!value) return Promise.resolve();
-
-                // Suggestion: Block consecutive spaces, hyphens, or underscores
-                if (/[ _-]{2,}/.test(value)) {
-                  return Promise.reject(new Error("Consecutive spaces, hyphens, or underscores are not allowed."));
-                }
-
-                // Suggestion: Ensure the first character is a letter or number!
-                if (/^[ _-]/.test(value)) {
-                  return Promise.reject(new Error("Event Name cannot start with a space or symbol."));
-                }
-
-                // Allow letters (any language), digits, spaces, hyphen and underscore only.
-                // Disallow dot (.) and other special characters because they cause issues with Easebuzz.
-                const valid = /^[\p{L}0-9 _-]+$/u.test(value);
-                return valid
-                  ? Promise.resolve()
-                  : Promise.reject(
-                    new Error(
-                      "Only letters, numbers and spaces are allowed — hyphen (-) and underscore (_) are also permitted. Dots (.) and other special characters are not allowed."
-                    )
-                  );
-              },
-            },
-          ]}
-          getValueFromEvent={(e) => e.target.value.replace(/[^\p{L}0-9 _-]/gu, '')}
-
+          validateTrigger={["onChange", "onBlur"]}
+          rules={VALIDATION_RULES.EVENT_NAME}
         >
           <Input placeholder="Enter Event Name" />
         </Form.Item>

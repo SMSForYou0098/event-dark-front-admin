@@ -160,11 +160,6 @@ const ContentFormModal = ({
             return;
         }
 
-        if (/\s{2,}/.test(plainText)) {
-            setContentError('Consecutive spaces are not allowed');
-            return;
-        }
-
         if (/[!@#$%^&*_+={}\[\]:;"'<>,.?/\\|`~\-]{2,}/.test(plainText)) {
             setContentError('Consecutive special characters are not allowed');
             return;

@@ -295,7 +295,7 @@ const ServerLogs = () => {
                 loading={loadingLogs}
                 showRefresh={false}
                 enableSearch={true}
-                serverSide={true}
+                // serverSide={true}
                 pagination={logMeta}
                 onPaginationChange={onPaginationChange}
                 tableProps={{

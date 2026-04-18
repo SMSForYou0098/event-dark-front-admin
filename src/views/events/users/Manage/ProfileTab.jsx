@@ -1166,14 +1166,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                         <Form.Item
                                             label="Organisation"
                                             name="organisation"
-                                            rules={[
-                                                { required: true, message: 'Please enter organisation' },
-                                                { min: 3, message: 'Organisation must be at least 3 characters' },
-                                                {
-                                                    pattern: /^[a-zA-Z0-9\s]+$/,
-                                                    message: 'Organisation can only contain letters, numbers and spaces'
-                                                }
-                                            ]}
+                                            validateTrigger={["onChange", "onBlur"]}
+                                            rules={VALIDATION_RULES.ORGANISATION}
                                         >
                                             <Input placeholder="Enter organisation" />
                                         </Form.Item>

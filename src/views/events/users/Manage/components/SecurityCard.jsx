@@ -79,8 +79,8 @@ const SecurityCard = ({
                                     })
                                 ]}
                             >
-                                <Input.Password 
-                                    placeholder="Re-enter password" 
+                                <Input.Password
+                                    placeholder="Re-enter password"
                                     onKeyDown={(e) => e.key === ' ' && e.preventDefault()}
                                 />
                             </Form.Item>

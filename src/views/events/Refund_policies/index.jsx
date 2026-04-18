@@ -26,7 +26,10 @@ import { useMyContext } from 'Context/MyContextProvider';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 
+
+
 const RefundPolicies = () => {
+    const { truncateString } = useMyContext();
     // ========================= STATE =========================
     const [modalVisible, setModalVisible] = useState(false);
     const [editingPolicy, setEditingPolicy] = useState(null);
@@ -118,10 +121,10 @@ const RefundPolicies = () => {
             {
                 title: 'Event',
                 dataIndex: ['event', 'name'],
-                render: (eventId) => (
-                    <Tag color={eventId ? 'blue' : 'default'}>
-                        {getEventName(eventId)}
-                    </Tag>
+                render: (name) => (
+                    <Tooltip title={name}>
+                        <span>{truncateString(name, 14)}</span>
+                    </Tooltip>
                 ),
                 searchable: true,
             },

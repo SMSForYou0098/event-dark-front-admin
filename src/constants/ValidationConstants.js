@@ -57,7 +57,8 @@ export const VALIDATION_REGEX = {
     URL: /^(https?:\/\/)?(www\.)?([a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\.)+[a-zA-Z]{2,}(:\d{1,5})?(\/[^\s]*)?$/,
 
     // Title validation 
-    TITLE: /^[a-zA-Z0-9\s]+$/
+    TITLE: /^[a-zA-Z0-9\s]+$/,
+    SPACIAL_CHARACTERS: /[!@#$%^&*()+=\[\]{};':"\\|,<>?/`~]/,
 
 };
 
@@ -129,7 +130,6 @@ export const VALIDATION_RULES = {
         { pattern: VALIDATION_REGEX.CITY, message: VALIDATION_MESSAGES.CITY }
     ],
     ADDRESS: [
-
         {
             validator: (_, value) => {
                 if (!value || !value.trim()) return Promise.resolve();
@@ -172,6 +172,48 @@ export const VALIDATION_RULES = {
         { pattern: VALIDATION_REGEX.ORGANISATION_NAME, message: VALIDATION_MESSAGES.ORGANISATION_NAME }
     ],
 
+    // Organisation field rules.
+    // Allows: letters, digits, spaces, dots, ampersands, hyphens.
+    // Consecutive spaces are not allowed.
+    // Usage: rules={VALIDATION_RULES.ORGANISATION}
+    ORGANISATION: [
+        { required: true, message: 'Please enter organisation' },
+        { min: 3, message: 'Organisation must be at least 3 characters' },
+        { max: 100, message: 'Organisation must be at most 100 characters' },
+        {
+            validator: (_, value) => {
+                if (!value) return Promise.resolve();
+
+                // Block two or more consecutive spaces
+                if (/ {2,}/.test(value)) {
+                    return Promise.reject(new Error('Consecutive spaces are not allowed.'));
+                }
+
+                // Must not start with a space
+                if (/^ /.test(value)) {
+                    return Promise.reject(new Error('Organisation name cannot start with a space.'));
+                }
+
+                // Common special characters not allowed
+                if (VALIDATION_REGEX.SPACIAL_CHARACTERS.test(value)) {
+                    return Promise.reject(new Error('Special characters are not allowed.'));
+                }
+
+                // Block two or more consecutive hyphens (but allow single hyphen, e.g. " - ")
+                if (/-{2,}/.test(value)) {
+                    return Promise.reject(new Error('Multiple consecutive hyphens are not allowed.'));
+                }
+
+                // Only letters, digits, spaces, dots, ampersands and hyphens allowed
+                if (!/^[a-zA-Z0-9\s.&-]+$/.test(value)) {
+                    return Promise.reject(new Error('Organisation can only contain letters, numbers, spaces, dots, & and hyphens.'));
+                }
+
+                return Promise.resolve();
+            },
+        },
+    ],
+
     CATEGORY_NAME: [
         { required: true, message: VALIDATION_MESSAGES.REQUIRED('category name') },
         { pattern: VALIDATION_REGEX.CATEGORY_NAME, message: VALIDATION_MESSAGES.CATEGORY_NAME }
@@ -186,7 +228,53 @@ export const VALIDATION_RULES = {
         { min: 2, message: `${label} must be at least 2 characters` },
         { max: 255, message: `${label} must be max 255 characters` },
         { pattern: VALIDATION_REGEX.TITLE, message: `${label} must contain only letters and spaces` }
-    ]
+    ],
+
+    // Event Name validation rules.
+    // Allows: letters (any language), digits, spaces, hyphens.
+    // " - " (space-hyphen-space) is explicitly permitted.
+    // Dots and other special characters are forbidden (Easebuzz restriction).
+    // Usage: rules={VALIDATION_RULES.EVENT_NAME}
+    EVENT_NAME: [
+        { required: true, message: 'Please enter event name' },
+        { min: 3, message: 'Event name must be at least 3 characters' },
+        {
+            validator: (_, value) => {
+                if (!value) return Promise.resolve();
+
+                // Block two or more consecutive spaces (but allow single space, e.g. " - ")
+                if (/ {2,}/.test(value)) {
+                    return Promise.reject(new Error('Multiple consecutive spaces are not allowed.'));
+                }
+
+                // Block two or more consecutive hyphens (but allow single hyphen, e.g. " - ")
+                if (/-{2,}/.test(value)) {
+                    return Promise.reject(new Error('Multiple consecutive hyphens are not allowed.'));
+                }
+
+                // Name must not start with a space or hyphen
+                if (/^[ -]/.test(value)) {
+                    return Promise.reject(new Error('Event name cannot start with a space or hyphen.'));
+                }
+
+                // Dots cause issues with Easebuzz — disallow them
+                if (/\./.test(value)) {
+                    return Promise.reject(new Error('Dots (.) are not allowed in the event name.'));
+                }
+
+                // Common special characters not allowed
+                if (VALIDATION_REGEX.SPACIAL_CHARACTERS.test(value)) {
+                    return Promise.reject(new Error('Special characters are not allowed.'));
+                }
+
+                // Final check — only letters, digits, spaces and hyphens permitted
+                const valid = /^[\p{L}0-9 -]+$/u.test(value);
+                return valid
+                    ? Promise.resolve()
+                    : Promise.reject(new Error('Only letters, numbers, spaces, and hyphens (-) are allowed.'));
+            },
+        },
+    ],
 
 };
 

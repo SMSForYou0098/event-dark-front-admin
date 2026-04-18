@@ -190,9 +190,10 @@ const EventList = ({ isJunk = false }) => {
     setSortOrder(order || null);
   }, []);
 
-  const hasEditPermission = usePermission('Edit Event');
-  const hasDeletePermission = usePermission('Delete Event');
-  const hasTicketPermission = usePermission('Manage Tickets');
+  const hasEditPermission = usePermission(PERMISSIONS.EDIT_EVENT);
+  const hasDeletePermission = usePermission(PERMISSIONS.DELETE_EVENT);
+  const hasPermanentDeletePermission = usePermission(PERMISSIONS.DELETE_EVENT_PERMANENTLY);
+  const hasTicketPermission = usePermission(PERMISSIONS.VIEW_CATEGORY_TICKETS);
 
   const handleViewEvent = useMemo(() => (row) => {
     const path = `${USERSITE_URL}events/${row?.venue?.city}/${createSlug(row?.user?.organisation)}/${createSlug(row?.name)}/${row?.event_key}`;
@@ -440,13 +441,13 @@ const EventList = ({ isJunk = false }) => {
       },
 
       // Separate Delete column for junk events
-      ...(isJunk ? [{
+      ...((isJunk ? hasPermanentDeletePermission : hasDeletePermission) ? [{
         title: 'Delete',
         key: 'delete',
         align: 'center',
         width: 80,
         render: (_, row) => (
-          <PermissionChecker permission="Delete Event Permanently">
+          isJunk ? (
             <Tooltip title="Delete Permanently">
               <Button
                 type="primary"
@@ -456,15 +457,7 @@ const EventList = ({ isJunk = false }) => {
                 loading={permanentDeleteMutation.isPending}
               />
             </Tooltip>
-          </PermissionChecker>
-        ),
-      }] : [{
-        title: 'Delete',
-        key: 'delete',
-        align: 'center',
-        width: 80,
-        render: (_, row) => (
-          <PermissionChecker permission="Delete Event">
+          ) : (
             <Tooltip title="Delete Event">
               <Button
                 type="primary"
@@ -474,9 +467,9 @@ const EventList = ({ isJunk = false }) => {
                 loading={deleteMutation.isPending}
               />
             </Tooltip>
-          </PermissionChecker>
+          )
         ),
-      }]),
+      }] : []),
       {
         title: 'Action',
         key: 'action',
@@ -570,6 +563,7 @@ const EventList = ({ isJunk = false }) => {
       HandleDelete,
       handleViewEvent,
       hasDeletePermission,
+      hasPermanentDeletePermission,
       hasEditPermission,
       // HandleGateModal,
       createSlug,

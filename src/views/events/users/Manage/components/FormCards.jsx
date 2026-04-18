@@ -52,7 +52,7 @@ const BankingDetailsCard = () => {
                 </Col>
                 <Col xs={24} md={12}>
                     <Form.Item
-                        label="IFSC Code"
+                        label="IFSC Code"   
                         name="bankIfsc"
                         rules={VALIDATION_RULES.IFSC}
                         getValueFromEvent={(e) => e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11)}

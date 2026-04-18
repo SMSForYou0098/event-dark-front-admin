@@ -488,11 +488,11 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
               label: "High Demand",
               tooltip: "Mark this event as high demand",
             },
-            {
-              name: "house_full",
-              label: "House Full",
-              tooltip: "Mark event as sold out",
-            },
+            // {
+            //   name: "house_full",
+            //   label: "House Full",
+            //   tooltip: "Mark event as sold out",
+            // },
             {
               name: "is_sold_out",
               label: "Sold Out",
@@ -670,70 +670,73 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
           }}
         </Form.Item>
       </Card>
+      {/* Group 3: Display Settings + Ticket Settings — side by side */}
+      <Row gutter={ROW_GUTTER} align="stretch">
+        {/* Display Settings — 50% */}
+        <Col xs={24} md={12}>
+          <Card size="small" title="Display Settings" style={{ marginBottom: 16, height: '100%' }}>
+            <Row gutter={ROW_GUTTER}>
+              {[
+                { name: "show_on_home", label: "Display on Home" },
+                {
+                  name: "online_att_sug",
+                  label: "Hide Online Att Sug",
+                },
+                {
+                  name: "offline_att_sug",
+                  label: "Hide Agent Att Sug",
+                },
+              ].map((f) => {
+                const colContent = (
+                  <Col xs={24} sm={12} lg={8} key={f.name}>
+                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking || prev.is_cancelled !== curr.is_cancelled}>
+                      {({ getFieldValue }) => {
+                        const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
+                        const isCancelled = toBoolean(getFieldValue('is_cancelled'));
 
-      {/* Group 3: Display Settings */}
-      <Card size="small" title="Display Settings" style={{ marginBottom: 16 }}>
-        <Row gutter={ROW_GUTTER}>
-          {[
-            { name: "show_on_home", label: "Display on Home" },
-            {
-              name: "online_att_sug",
-              label: "Hide Online Att Sug",
-            },
-            {
-              name: "offline_att_sug",
-              label: "Hide Agent Att Sug",
-            },
-          ].map((f) => {
-            const colContent = (
-              <Col xs={24} sm={12} lg={4} key={f.name}>
-                <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking || prev.is_cancelled !== curr.is_cancelled}>
-                  {({ getFieldValue }) => {
-                    const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
-                    const isCancelled = toBoolean(getFieldValue('is_cancelled'));
+                        // Disable show_on_home if online_booking is false or event is cancelled
+                        const isDisabled = (f.name === 'show_on_home' && (!onlineBookingEnabled || isCancelled));
 
-                    // Disable show_on_home if online_booking is false or event is cancelled
-                    const isDisabled = (f.name === 'show_on_home' && (!onlineBookingEnabled || isCancelled));
+                        return (
+                          <Form.Item
+                            name={f.name}
+                            label={f.label}
+                            tooltip={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : f.tooltip}
+                            valuePropName="checked"
+                            getValueProps={(v) => ({ checked: toBoolean(v) })}
+                            getValueFromEvent={toBooleanValue}
+                            initialValue={f.defaultValue ?? false}
+                          >
+                            <Switch
+                              disabled={isDisabled}
+                              checkedChildren="Yes"
+                              unCheckedChildren="No"
+                            />
+                          </Form.Item>
+                        );
+                      }}
+                    </Form.Item>
+                  </Col>
+                );
 
-                    return (
-                      <Form.Item
-                        name={f.name}
-                        label={f.label}
-                        tooltip={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : f.tooltip}
-                        valuePropName="checked"
-                        getValueProps={(v) => ({ checked: toBoolean(v) })}
-                        getValueFromEvent={toBooleanValue}
-                        initialValue={f.defaultValue ?? false}
-                      >
-                        <Switch
-                          disabled={isDisabled}
-                          checkedChildren="Yes"
-                          unCheckedChildren="No"
-                        />
-                      </Form.Item>
-                    );
-                  }}
-                </Form.Item>
-              </Col>
-            );
+                if (f.name === 'show_on_home') {
+                  return (
+                    <PermissionChecker role="Admin" key={f.name}>
+                      {colContent}
+                    </PermissionChecker>
+                  );
+                }
+                return colContent;
+              })}
+            </Row>
+          </Card>
+        </Col>
 
-            if (f.name === 'show_on_home') {
-              return (
-                <PermissionChecker role="Admin" key={f.name}>
-                  {colContent}
-                </PermissionChecker>
-              );
-            }
-            return colContent;
-          })}
-        </Row>
-      </Card>
-
-      {/* Ticket Settings */}
-      <Row gutter={ROW_GUTTER}>
-        <Col span={24}>
+        {/* Ticket Settings — 50% */}
+        <Col xs={24} md={12} className='mt-10 mt-sm-0'>
           <Card
             title="Ticket Settings"
+            style={{ marginBottom: 16, height: '100%' }}
             extra={
               <Form.Item shouldUpdate noStyle>
                 {() => {
@@ -749,7 +752,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
           >
             <Row gutter={ROW_GUTTER}>
               {switchFields.map((f) => (
-                <Col xs={24} sm={12} lg={4} key={f.name}>
+                <Col xs={24} sm={12} lg={8} key={f.name}>
                   <Form.Item
                     name={f.name}
                     label={f.label}
@@ -764,18 +767,8 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                 </Col>
               ))}
 
-              {/* Ticket Transfer OTP - only show when ticket_transfer is ON */}
-
-              {/* </Row> */}
-
-              {/* show button only when Booking By Seat is selected */}
-
-
-              {/* Multi-Scan Configuration Section */}
-              {/* <Card size="small" title="Multi-Scan Configuration" style={{ marginTop: 16 }}> */}
-              {/* <Row gutter={ROW_GUTTER}> */}
               {/* Multi-Scan Master Switch */}
-              <Col xs={24} sm={12} lg={4}>
+              <Col xs={24} sm={12} lg={8}>
                 <Form.Item
                   name="multi_scan"
                   label="Enable Multi-Scan"
@@ -791,7 +784,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                     onChange={(checked) => {
                       // Clear checkpoints if multi-scan is disabled
                       if (!checked) {
-                        form.setFieldsValue({
+                        form.setFieldsValues({
                           checkpoint_mode: false,
                           checkpoints: [],
                         });
@@ -808,7 +801,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
 
                   return isMultiScanEnabled ? (
                     <>
-                      <Col xs={24} sm={12} lg={6}>
+                      <Col xs={24} sm={12} lg={8}>
                         <Form.Item
                           name="checkpoint_mode"
                           label="Checkpoint Mode"
@@ -826,7 +819,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                               if (checked) {
                                 const currentCheckpoints = getFieldValue('checkpoints');
                                 if (!currentCheckpoints || currentCheckpoints.length === 0) {
-                                  form.setFieldsValue({
+                                  form.setFieldsValues({
                                     checkpoints: [{ label: 'Entry', start_time: null, end_time: null }],
                                   });
                                 }
@@ -842,7 +835,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                           const isSequential = toBoolean(gfv('checkpoint_mode'));
 
                           return !isSequential ? (
-                            <Col xs={24} sm={12} lg={6}>
+                            <Col xs={24} sm={12}>
                               <Form.Item
                                 name="max_scan_count"
                                 label="Scan Count"
@@ -863,26 +856,6 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                           ) : null;
                         }}
                       </Form.Item>
-
-                      {/* Checkpoint Count - only show when checkpoint_mode is ON */}
-                      {/* <Form.Item noStyle shouldUpdate={(prev, curr) => prev.checkpoint_mode !== curr.checkpoint_mode || prev.checkpoints !== curr.checkpoints}>
-                        {({ getFieldValue: gfv }) => {
-                          const isSequential = toBoolean(gfv('checkpoint_mode'));
-                          const checkpoints = gfv('checkpoints') || [];
-
-                          return isSequential ? (
-                            <Col xs={24} sm={12} lg={6}>
-                              <Form.Item label="Checkpoint Count">
-                                <InputNumber
-                                  value={checkpoints.length}
-                                  disabled
-                                  style={{ width: '100%' }}
-                                />
-                              </Form.Item>
-                            </Col>
-                          ) : null;
-                        }}
-                      </Form.Item> */}
                     </>
                   ) : null;
                 }}
@@ -890,8 +863,6 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
             </Row>
 
             {/* Checkpoint List - only show when both multi_scan AND checkpoint_mode are ON */}
-            {/* </Card> */}
-
           </Card>
           <Form.Item noStyle shouldUpdate={(prev, curr) =>
             prev.multi_scan !== curr.multi_scan ||

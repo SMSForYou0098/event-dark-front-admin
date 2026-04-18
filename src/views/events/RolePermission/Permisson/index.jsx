@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -14,6 +14,7 @@ import {
     Collapse,
     Space,
     Empty,
+    Tag,
     message
 } from 'antd';
 import { PlusOutlined, EditOutlined, SaveOutlined, CloseOutlined } from '@ant-design/icons';
@@ -41,6 +42,7 @@ const RolePermission = ({ isUser = false }) => {
     const permissionType = isUser ? 'user' : 'role';
     const navigate = useNavigate();
     const queryClient = useQueryClient();
+    const groupScrollRefs = useRef({});
 
     // Mutations
     const savePermissionsMutation = useMutation({
@@ -149,6 +151,13 @@ const RolePermission = ({ isUser = false }) => {
     useEffect(() => {
         setSelectAll(existPermission?.length === permission?.length);
     }, [existPermission, permission]);
+
+    // Scroll all group containers to top whenever saved permissions reload
+    useEffect(() => {
+        Object.values(groupScrollRefs.current).forEach((el) => {
+            if (el) el.scrollTop = 0;
+        });
+    }, [initialExistPermission]);
 
     const handleMultiSelect = (e) => {
         const isChecked = e.target.checked;
@@ -291,7 +300,9 @@ const RolePermission = ({ isUser = false }) => {
         'POS',
         'Agent',
         'Role',
-        'Layout',
+        'Print',
+        'Stall',
+        'Seating',
         'Venue',
         'Permission',
         'Uncategorized',
@@ -440,53 +451,82 @@ const RolePermission = ({ isUser = false }) => {
                         </Col>
                     ) : (
                         categoriesWithResults.map((category, catIndex) => (
+                            // show permission in grid view
                             <Col key={catIndex} xs={24} sm={12} md={8} lg={6}>
+                                {/* card */}
                                 <Card size="small">
+                                    {/* collapse */}
                                     <Collapse
                                         ghost
                                         defaultActiveKey={['1']}
                                         expandIconPosition="end"
                                     >
+                                        {/* panel */}
                                         <Panel
-                                            header={
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <strong>{category}</strong>
-                                                    {/* <Tag color='orange' className=''>
-                                                        {groupedPermissions[category]?.length}
-                                                    </Tag> */}
-                                                </div>
-                                            }
+                                            header={(() => {
+                                                // total permission count
+                                                const total = groupedPermissions[category]?.length || 0;
+                                                // assigned permission count
+                                                const assigned = selectAll
+                                                    ? total
+                                                    : (groupedPermissions[category]?.filter(item => existPermission.includes(item.id)).length || 0);
+                                                // tag color based on assigned permission count
+                                                const tagColor = assigned === 0 ? 'default' : assigned === total ? 'success' : 'orange';
+                                                return (
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        {/* show category name */}
+                                                        <strong>{category}</strong>
+                                                        {/* show count of assigned and total permission */}
+                                                        <Tag color={tagColor} style={{ marginInlineStart: 8, fontWeight: 600 }}>
+                                                            {assigned} / {total}
+                                                        </Tag>
+                                                    </div>
+                                                );
+                                            })()}
                                             key="1"
                                         >
-                                            <Space direction="vertical" style={{ width: '100%', maxHeight: '15rem', overflow: 'auto' }}>
-                                                {groupedPermissions[category]?.map((item, index) => (
-                                                    <div
-                                                        key={index}
-                                                        style={{
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            alignItems: 'center',
-                                                        }}
-                                                    >
-                                                        <Checkbox
-                                                            onChange={(e) =>
-                                                                handlePermissionChange(item.id, e.target.checked)
-                                                            }
-                                                            checked={
-                                                                existPermission.includes(item.id) || selectAll
-                                                            }
+                                            {/* All permission groups */}
+                                            <div
+                                                ref={(el) => { groupScrollRefs.current[category] = el; }}
+                                                style={{ width: '100%', maxHeight: '15rem', overflowY: 'auto' }}
+                                            >
+                                                <Space direction="vertical" style={{ width: '100%' }}>
+                                                    {/* Sort permission by assigned and unassigned */}
+                                                    {[...(groupedPermissions[category] || [])].sort((a, b) => {
+                                                        const aAssigned = initialExistPermission.includes(a.id) ? 1 : 0;
+                                                        const bAssigned = initialExistPermission.includes(b.id) ? 1 : 0;
+                                                        return bAssigned - aAssigned;
+                                                    }).map((item, index) => (
+                                                        <div
+                                                            key={index}
+                                                            style={{
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                            }}
                                                         >
-                                                            {item.name}
-                                                        </Checkbox>
-                                                        <Button
-                                                            type="text"
-                                                            size="small"
-                                                            icon={<EditOutlined />}
-                                                            onClick={() => HandleEdit(item?.id)}
-                                                        />
-                                                    </div>
-                                                ))}
-                                            </Space>
+                                                            {/* show permission name */}
+                                                            <Checkbox
+                                                                onChange={(e) =>
+                                                                    handlePermissionChange(item.id, e.target.checked)
+                                                                }
+                                                                checked={
+                                                                    existPermission.includes(item.id) || selectAll
+                                                                }
+                                                            >
+                                                                {item.name}
+                                                            </Checkbox>
+                                                            {/* edit button */}
+                                                            <Button
+                                                                type="text"
+                                                                size="small"
+                                                                icon={<EditOutlined />}
+                                                                onClick={() => HandleEdit(item?.id)}
+                                                            />
+                                                        </div>
+                                                    ))}
+                                                </Space>
+                                            </div>
                                         </Panel>
                                     </Collapse>
                                 </Card>
