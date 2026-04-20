@@ -12,6 +12,7 @@ const routeImportMap = {
     // Dashboard
     'dashboard': () => import('views/events/Dashboard/index'),
     'dashboard/gateway': () => import('views/events/Dashboard/Gateway/GatewayReport'),
+    'dashboard/global-report': () => import('views/events/Dashboard/GlobalReport/GlobalReport'),
     'dashboard/org': () => import('views/events/Dashboard/Organizer/dashabord'),
 
     // User Management

@@ -148,3 +148,80 @@ export const RoleSelect = ({
         </>
     );
 };
+
+/**
+ * OrgEventList – reusable event selector driven by an organizer ID.
+ *
+ * Props:
+ *  orgId          – organizer / reporting-user ID (enables the fetch)
+ *  onChange       – called with raw Select value(s)
+ *  onEventsLoaded – called with full event objects when data arrives
+ *                   shape: [{ value, label, tickets }]
+ *  value          – controlled value
+ *  mode           – "multiple" | undefined  (default = single)
+ *  label          – Form.Item label (pass null to hide)
+ *  name           – Form.Item name  (default "event_id")
+ *  rules          – Form.Item validation rules
+ *  disabled       – disables the Select
+ *  selectProps    – extra props forwarded to <Select />
+ *  formItemProps  – extra props forwarded to <Form.Item />
+ */
+export const OrgEventList = ({
+    orgId,
+    onChange,
+    onEventsLoaded,
+    value,
+    mode,
+    label = "Event",
+    name = "event_id",
+    rules,
+    disabled,
+    selectProps = {},
+    type = "Organizer",
+    formItemProps = {},
+}) => {
+    const { data: events = [], isLoading } = useQuery({
+        queryKey: ["org-events", orgId],
+        enabled: Boolean(orgId),
+        queryFn: async () => {
+            const res = await apiClient.get(`org-event/${orgId}?role=${type}`);
+            const list = Array.isArray(res?.data) ? res.data
+                : Array.isArray(res?.events) ? res.events : [];
+            return list.map(event => ({
+                value: event.id,
+                label: event.name,
+                tickets: event.tickets || [],
+            }));
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // Notify parent with full event objects whenever the list loads/changes
+    useMemo(() => {
+        if (onEventsLoaded && events.length > 0) {
+            onEventsLoaded(events);
+        }
+    }, [events]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    return (
+        <Form.Item
+            label={label}
+            name={name}
+            rules={rules}
+            {...formItemProps}
+        >
+            <Select
+                mode={mode}
+                disabled={disabled || !orgId}
+                loading={isLoading}
+                showSearch
+                placeholder={orgId ? `Select event` : `Select organizer first`}
+                options={events}
+                optionFilterProp="label"
+                onChange={onChange}
+                value={value}
+                {...selectProps}
+            />
+        </Form.Item>
+    );
+};

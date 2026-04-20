@@ -99,6 +99,14 @@ export const protectedRoutes = [
         }
     },
     {
+        key: 'global-report',
+        path: `/dashboard/global-report`,
+        component: React.lazy(() => import('views/events/Dashboard/GlobalReport/GlobalReport')),
+        meta: {
+            permissions: [PERMISSIONS.VIEW_DASHBOARD],
+        }
+    },
+    {
         key: 'agreement/preview/:id',
         path: `/agreement/preview/:id`,
         component: React.lazy(() => import('views/events/Agreement/PreviewAgreement')),

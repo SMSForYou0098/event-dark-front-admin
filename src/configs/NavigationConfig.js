@@ -20,6 +20,14 @@ const dashboarSubmenuNav = [
     breadcrumb: false,
     submenu: [],
     permissions: [PERMISSIONS.VIEW_GATEWAY]
+  }, {
+    key: 'global-report',
+    path: '/dashboard/global-report',
+    title: 'Global Report',
+    icon: BarChartOutlined,
+    breadcrumb: false,
+    submenu: [],
+    permissions: [PERMISSIONS.VIEW_DASHBOARD]
   }];
 
 
