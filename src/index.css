@@ -1,10 +1,16 @@
 /* Global fix for Ant Design Select dropdown cutting off the last item */
-.ant-select-dropdown .rc-virtual-list-holder {
-  padding-bottom: 12px !important;
-}
+/* Provides physical mathematical space for virtual list algorithm */
+/* .ant-select-dropdown .rc-virtual-list-holder-inner {
+  padding-bottom: 5px !important;
+} */
 
-.ant-select-dropdown {
+/* .ant-select-dropdown {
   padding-bottom: 8px !important;
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
+} */
+
+/* Make select dropdown tick mark white for selected items */
+.ant-select-item-option-selected .ant-select-item-option-state {
+  color: #fff !important;
 }

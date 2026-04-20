@@ -53,43 +53,54 @@ const OrganizerReport = () => {
                             </Space>
                         </Col>
                         <Col xs={24} lg={16}>
-                            <Row gutter={[12, 12]}>
-                                <Col xs={24} sm={12}>
-                                    <Form layout="vertical">
+                            <Form layout="vertical">
+                                <Row gutter={[12, 12]}>
+                                    <Col xs={24} sm={12}>
                                         <OrganisationList
-                                            label={<Text strong style={{ fontSize: 12 }}>Select Organizer</Text>}
+                                            label={
+                                                <Text strong style={{ fontSize: 12 }}>
+                                                    <span style={{ color: '#fa0509ff' }} className='fs-1'>*</span> Select Organizer
+                                                </Text>
+                                            }
                                             name="organizer"
                                             onChange={handleOrganizerChange}
                                             value={selectedOrganizer}
+                                            required={false}
+                                            rules={[{ required: true, message: 'Please select organizer' }]}
                                             selectProps={{
                                                 allowClear: true,
                                                 size: "medium",
                                             }}
                                             formItemProps={{
+                                                required: false,
                                                 style: { marginBottom: 0 }
                                             }}
                                         />
-                                    </Form>
-                                </Col>
-                                <Col xs={24} sm={12}>
-                                    <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                                        <Text strong style={{ fontSize: 12 }}>
-                                            <CalendarOutlined className="mr-2" />
-                                            Select Event *
-                                        </Text>
-                                        <EventTicketDropdowns
-                                            organizerId={selectedOrganizer}
-                                            role="Organizer"
-                                            selectedEvent={selectedEvent ? { value: selectedEvent } : null}
-                                            onEventChange={handleEventChange}
-                                            showTicketDropdown={false}
-                                            disabled={!selectedOrganizer}
-                                            eventPlaceholder={selectedOrganizer ? "Choose an event" : "Select organizer first"}
-                                            eventSelectStyle={{ width: '100%' }}
-                                        />
-                                    </Space>
-                                </Col>
-                            </Row>
+                                    </Col>
+                                    <Col xs={24} sm={12}>
+                                        <Form.Item
+                                            label={
+                                                <Text strong style={{ fontSize: 12 }}>
+                                                    <span style={{ color: '#fa0509ff' }} className='fs-1'>*</span> <CalendarOutlined className="mr-2" />
+                                                    Select Event
+                                                </Text>
+                                            }
+                                            style={{ marginBottom: 0 }}
+                                        >
+                                            <EventTicketDropdowns
+                                                organizerId={selectedOrganizer}
+                                                role="Organizer"
+                                                selectedEvent={selectedEvent ? { value: selectedEvent } : null}
+                                                onEventChange={handleEventChange}
+                                                showTicketDropdown={false}
+                                                disabled={!selectedOrganizer}
+                                                eventPlaceholder={selectedOrganizer ? "Choose an event" : "Select organizer first"}
+                                                eventSelectStyle={{ width: '100%' }}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </Form>
                         </Col>
                     </Row>
                 </Card>

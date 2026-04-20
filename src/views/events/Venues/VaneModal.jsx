@@ -227,6 +227,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                     options={locationData?.states}
                                     onChange={handleStateChange}
                                     optionFilterProp="label"
+                                    virtual={false}
                                 />
                             </Form.Item>
                         </Col>
@@ -242,6 +243,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                     placeholder="Select city"
                                     options={cities}
                                     optionFilterProp="label"
+                                    virtual={false}
                                 />
                             </Form.Item>
                         </Col>

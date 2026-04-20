@@ -10,11 +10,11 @@ import {
 import apiClient from 'auth/FetchInterceptor';
 import { useMyContext } from '../../../Context/MyContextProvider';
 import DataTable from 'views/events/common/DataTable';
-import usePermission from 'utils/hooks/usePermission';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
 import Utils from 'utils';
 import { OrganisationList } from 'utils/CommonInputs';
+import { VALIDATION_RULES, VALIDATION_FUNCTIONS } from 'constants/ValidationConstants';
 
 const { confirm } = Modal;
 const { Option } = Select;
@@ -314,10 +314,8 @@ const Promocode = memo(() => {
               <Form.Item
                 label="Code"
                 name="code"
-                rules={[
-                  { required: true, message: 'Please enter promo code!' },
-                  { pattern: /^[A-Z0-9]+$/, message: 'Only capital letters and numbers are allowed!' },
-                ]}
+                rules={VALIDATION_RULES.PROMO_CODE('Promo Code')}
+                validateTrigger="onChange"
                 normalize={(value) => value?.toUpperCase().replace(/[^A-Z0-9]/g, '')}
               >
                 <Input
@@ -332,7 +330,8 @@ const Promocode = memo(() => {
               <Form.Item
                 label="Description"
                 name="description"
-                rules={[{ required: true, message: 'Please enter description!' }]}
+                rules={VALIDATION_RULES.DESCRIPTION('Description')}
+                validateTrigger="onChange"
               >
                 <Input placeholder="Enter description" />
               </Form.Item>
@@ -355,7 +354,11 @@ const Promocode = memo(() => {
               <Form.Item
                 label="Discount Value"
                 name="discount_value"
-                rules={[{ required: true, message: 'Please enter discount value!' }]}
+                rules={[
+                  { required: true, message: 'Please enter discount value!' },
+                  VALIDATION_FUNCTIONS.amountOrPercentageValidator('discount_value')
+                ]}
+                validateTrigger="onChange"
               >
                 <Input type="number" placeholder="Enter discount value" />
               </Form.Item>
@@ -365,7 +368,9 @@ const Promocode = memo(() => {
               <Form.Item
                 label="Minimum Spend"
                 name="minimum_spend"
-                rules={[{ required: true, message: 'Please enter minimum spend!' }]}
+                rules={[{ required: true, message: 'Please enter minimum spend!' },
+                VALIDATION_FUNCTIONS.amountOrPercentageValidator('minimum_spend')
+                ]}
               >
                 <Input type="number" placeholder="Enter minimum spend" />
               </Form.Item>

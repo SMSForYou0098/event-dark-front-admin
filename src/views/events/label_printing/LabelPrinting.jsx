@@ -128,17 +128,16 @@ const LabelPrinting = () => {
         {
             key: "upload",
             label: (
-                <Space>
-                    <Upload size={16} />
+                <div className="d-flex align-items-center">
+                    <Upload size={16} className="mr-1" />
                     <span>Upload New</span>
                     {pendingLabels.length > 0 && (
                         <Badge
                             count={pendingLabels.length}
                             size="small"
-                            style={{ marginLeft: 4 }}
                         />
                     )}
-                </Space>
+                </div>
             ),
             children: (
                 <UploadTab
@@ -159,17 +158,17 @@ const LabelPrinting = () => {
         {
             key: "batches",
             label: (
-                <Space>
-                    <Layers size={16} />
+                <div className="d-flex align-items-center">
+                    <Layers size={16} className="mr-1" />
                     <span>Saved Batches</span>
                     {batchGroups.length > 0 && (
                         <Badge
                             count={batchGroups.length}
                             size="small"
-                            style={{ marginLeft: 4 }}
+                            className="ml-2"
                         />
                     )}
-                </Space>
+                </div>
             ),
             children: (
                 <BatchesTab
@@ -187,17 +186,17 @@ const LabelPrinting = () => {
         {
             key: "print",
             label: (
-                <Space>
-                    <Printer size={16} />
+                <div className="d-flex align-items-center">
+                    <Printer size={16} className="mr-1" />
                     <span>Print Labels</span>
                     {selectedRows.length > 0 && (
                         <Badge
                             count={selectedRows.length}
                             size="small"
-                            style={{ marginLeft: 4, backgroundColor: '#52c41a' }}
+                            style={{ backgroundColor: '#52c41a' }}
                         />
                     )}
-                </Space>
+                </div>
             ),
             children: (
                 <PrintTab
@@ -224,10 +223,10 @@ const LabelPrinting = () => {
         {
             key: "instant",
             label: (
-                <Space>
-                    <Zap size={16} />
+                <div className="d-flex align-items-center">
+                    <Zap size={16} className="mr-1" />
                     <span>Instant Print</span>
-                </Space>
+                </div>
             ),
             children: (
                 <InstantPrintTab
@@ -340,28 +339,30 @@ const LabelPrinting = () => {
             {/* Main Content */}
             <Card
                 title={
-                    <div className="d-flex align-items-center gap-2">
-                        <Printer size={20} />
-                        <span>Label Printing</span>
-                    </div>
-                }
-                extra={
-                    <Space>
+                    <div className="d-flex align-items-center gap-3">
+                        <div className="d-flex align-items-center">
+                            <Printer size={20} className="mr-2" />
+                            <span>Label Printing</span>
+                        </div>
                         {isConnected ? (
-                            <Tag color="success">
+                            <Tag color="success" style={{ margin: 0, borderRadius: '6px' }}>
                                 <div className="d-flex align-items-center" style={{ gap: 6 }}>
                                     <CheckCircle size={12} />
                                     <span>Printer Connected</span>
                                 </div>
                             </Tag>
                         ) : (
-                            <Tag color="error">
+                            <Tag color="error" style={{ margin: 0, borderRadius: '6px' }}>
                                 <div className="d-flex align-items-center" style={{ gap: 6 }}>
                                     <XCircle size={12} />
                                     <span>Printer Disconnected</span>
                                 </div>
                             </Tag>
                         )}
+                    </div>
+                }
+                extra={
+                    <Space>
                         {selectedRows.length > 0 && connectionMode !== "browser" && (
                             <Tooltip title="View Printer Code">
                                 <Button

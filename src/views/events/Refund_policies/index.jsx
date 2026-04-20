@@ -12,6 +12,7 @@ import {
     Popconfirm,
     Row,
     Col,
+    Input,
 } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SendOutlined } from '@ant-design/icons';
 import DataTable from '../common/DataTable';
@@ -25,7 +26,7 @@ import {
 import { useMyContext } from 'Context/MyContextProvider';
 import { PERMISSIONS } from 'constants/PermissionConstant';
 import PermissionChecker from 'layouts/PermissionChecker';
-
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
 
 
 const RefundPolicies = () => {
@@ -289,7 +290,8 @@ const RefundPolicies = () => {
                                     label: 'Days Before Event',
                                     type: 'number',
                                     col: { xs: 24, md: 12 },
-                                    props: { min: 0, placeholder: 'e.g., 7' },
+                                    rules: VALIDATION_RULES.NUMBERS_ONLY('Days Before Event'),
+                                    props: { placeholder: 'e.g., 7' },
                                 },
                             ],
                             // Row 2
@@ -299,23 +301,24 @@ const RefundPolicies = () => {
                                     label: 'Refund Percentage',
                                     type: 'number',
                                     col: { xs: 24, md: 12 },
-                                    rules: [{ required: true, message: 'Please enter refund percentage' }],
-                                    props: { min: 0, max: 100, placeholder: 'e.g., 80', addonAfter: '%' },
+                                    rules: VALIDATION_RULES.PERCENTAGE('Refund Percentage'),
+                                    props: { placeholder: 'e.g., 80', suffix: '%' },
                                 },
                                 {
                                     name: 'processing_fee_percentage',
                                     label: 'Processing Fee Percentage',
                                     type: 'number',
                                     col: { xs: 24, md: 12 },
-                                    rules: [{ required: true, message: 'Please enter processing fee percentage' }],
-                                    props: { min: 0, max: 100, placeholder: 'e.g., 80', addonAfter: '%' },
+                                    rules: VALIDATION_RULES.PERCENTAGE('Processing Fee Percentage'),
+                                    props: { placeholder: 'e.g., 80', suffix: '%' },
                                 },
                                 {
                                     name: 'min_processing_fee',
                                     label: 'Minimum Processing Fee',
                                     type: 'number',
                                     col: { xs: 24, md: 12 },
-                                    props: { min: 0, placeholder: 'e.g., 50', addonBefore: '₹' },
+                                    rules: VALIDATION_RULES.NUMBERS_ONLY('Minimum Processing Fee'),
+                                    props: { placeholder: 'e.g., 50', prefix: '₹' },
                                 },
                             ],
                             // Row 3
@@ -325,14 +328,16 @@ const RefundPolicies = () => {
                                     label: 'Auto Approve Below Amount',
                                     type: 'number',
                                     col: { xs: 24, md: 12 },
-                                    props: { min: 0, placeholder: 'e.g., 500', addonBefore: '₹' },
+                                    rules: VALIDATION_RULES.NUMBERS_ONLY('Auto Approve Amount'),
+                                    props: { placeholder: 'e.g., 500', prefix: '₹' },
                                 },
                                 {
                                     name: 'priority',
                                     label: 'Priority (Higher = More Important)',
                                     type: 'number',
                                     col: { xs: 24, md: 12 },
-                                    props: { min: 0, placeholder: 'e.g., 0' },
+                                    rules: VALIDATION_RULES.NUMBERS_ONLY('Priority'),
+                                    props: { placeholder: 'e.g., 0' },
                                 },
                             ],
                             // Row 4 - Switches
@@ -359,7 +364,7 @@ const RefundPolicies = () => {
                                 case 'select':
                                     return <Select {...field.props} />;
                                 case 'number':
-                                    return <InputNumber style={{ width: '100%' }} {...field.props} />;
+                                    return <Input style={{ width: '100%' }} {...field.props} />;
                                 case 'switch':
                                     return <Switch {...field.props} />;
                                 default:
@@ -375,6 +380,7 @@ const RefundPolicies = () => {
                                             name={field.name}
                                             label={field.label}
                                             rules={field.rules}
+                                            validateTrigger="onChange"
                                             valuePropName={field.type === 'switch' ? 'checked' : 'value'}
                                         >
                                             {renderField(field)}

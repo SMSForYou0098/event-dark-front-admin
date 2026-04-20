@@ -276,6 +276,120 @@ export const VALIDATION_RULES = {
         },
     ],
 
+    // Numbers only (no alphabets, no special characters)
+    // Usage: rules={VALIDATION_RULES.NUMBERS_ONLY('Days')}
+    NUMBERS_ONLY: (label = 'value') => [
+        { required: true, message: `Please enter ${label.toLowerCase()}` },
+        {
+            validator: (_, value) => {
+                if (value === undefined || value === null || value === '') return Promise.resolve();
+                const strValue = String(value);
+                if (!/^[0-9]*$/.test(strValue)) {
+                    return Promise.reject('Alphabets and special characters are not allowed');
+                }
+                if (strValue.startsWith('0') && strValue.length > 1) {
+                    return Promise.reject('Value cannot start with 0');
+                }
+                if (strValue.length > 10) {
+                    return Promise.reject('Value cannot exceed 10 digits');
+                }
+                return Promise.resolve();
+            }
+        }
+    ],
+
+    // Percentage validation (0-100)
+    // Usage: rules={VALIDATION_RULES.PERCENTAGE('Refund %')}
+    PERCENTAGE: (label = 'percentage') => [
+        { required: true, message: `Please enter ${label.toLowerCase()}` },
+        {
+            validator: (_, value) => {
+                if (value === undefined || value === null || value === '') return Promise.resolve();
+                const strValue = String(value);
+                if (!/^[0-9]*$/.test(strValue)) {
+                    return Promise.reject('Alphabets and special characters are not allowed');
+                }
+                if (strValue.startsWith('0') && strValue.length > 1) {
+                    return Promise.reject('Value cannot start with 0');
+                }
+                if (strValue.length > 10) {
+                    return Promise.reject('Value cannot exceed 10 digits');
+                }
+                if (Number(value) > 100) {
+                    return Promise.reject('Percentage cannot exceed 100');
+                }
+                return Promise.resolve();
+            }
+        }
+    ],
+
+    // Field Label validation
+    // Usage: rules={VALIDATION_RULES.FIELD_LABEL('Label')}
+    FIELD_LABEL: (label = 'Label') => [
+        { required: true, message: `Please enter ${label.toLowerCase()}` },
+        {
+            validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                const strValue = String(value);
+
+                // 1. Cannot start with space
+                if (strValue.startsWith(' ')) {
+                    return Promise.reject(`${label} cannot start with a space`);
+                }
+
+                // 2. Cannot start with a number
+                if (/^[0-9]/.test(strValue)) {
+                    return Promise.reject(`${label} cannot start with a number`);
+                }
+
+                // 3. No consecutive spaces
+                if (/ {2,}/.test(strValue)) {
+                    return Promise.reject(`${label} cannot contain consecutive spaces`);
+                }
+
+                // 4. No special characters (allow letters, numbers, and spaces)
+                if (!/^[a-zA-Z0-9\s]*$/.test(strValue)) {
+                    return Promise.reject(`${label} should not contain special characters`);
+                }
+
+                return Promise.resolve();
+            }
+        }
+    ],
+
+    // Promo Code validation
+    // Usage: rules={VALIDATION_RULES.PROMO_CODE('Promo Code')}
+    PROMO_CODE: (label = 'Promo code') => [
+        { required: true, message: `Please enter ${label.toLowerCase()}!` },
+        {
+            pattern: /^[A-Z0-9]+$/,
+            message: 'Only capital letters and numbers are allowed!'
+        },
+        { min: 3, message: `${label} must be at least 3 characters!` },
+        { max: 30, message: `${label} cannot exceed 30 characters!` }
+    ],
+
+    // Global Description validation
+    // Usage: rules={VALIDATION_RULES.DESCRIPTION('Description')}
+    DESCRIPTION: (label = 'Description') => [
+        { required: true, message: `Please enter ${label.toLowerCase()}!` },
+        {
+            validator: (_, value) => {
+                if (!value) return Promise.resolve();
+                const str = String(value);
+                if (/^[ /]/.test(str)) {
+                    return Promise.reject(`${label} cannot start with a space or /`);
+                }
+                if (/ {2,}/.test(str) || /\/{2,}/.test(str)) {
+                    return Promise.reject(`Consecutive spaces or slashes are not allowed in ${label.toLowerCase()}`);
+                }
+                if (!/^[a-zA-Z0-9/ ]*$/.test(str)) {
+                    return Promise.reject(`${label} can only contain letters, numbers and forward slashes`);
+                }
+                return Promise.resolve();
+            }
+        }
+    ],
 };
 
 /**

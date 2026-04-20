@@ -133,6 +133,7 @@ const ScannerReportCardToolbar = ({
         style={{ minWidth: 250 }}
         optionFilterProp="label"
         options={events}
+        virtual={false}
       />
       <RangePicker
         value={dateRange}

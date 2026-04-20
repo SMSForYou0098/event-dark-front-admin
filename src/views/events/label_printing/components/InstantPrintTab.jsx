@@ -21,6 +21,7 @@ import {
     SettingsIcon,
     Zap,
     RotateCcw,
+    Eraser,
 } from "lucide-react";
 import { LABEL_SIZES, AVAILABLE_FIELDS } from "./constants";
 
@@ -232,6 +233,7 @@ const InstantPrintTab = ({
                                     notFoundContent={
                                         isLoadingBatches ? "Loading..." : "No batches found"
                                     }
+                                    virtual={false}
                                 >
                                     {batchGroups.map((batch) => {
                                         const batchId = batch.batch_id || batch.batchId;
@@ -287,50 +289,45 @@ const InstantPrintTab = ({
             {/* Fields Input Card */}
             <Card
                 title={
-                    <div className="d-flex align-items-center gap-2">
-                        <Zap size={18} />
-                        <span>Label Details</span>
+                    <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center w-100" style={{ gap: '12px', whiteSpace: 'normal' }}>
+                        <div className="d-flex align-items-center">
+                            <Zap size={18} className="mr-2" />
+                            <span>Label Details</span>
+                        </div>
+                        <div className="d-flex flex-wrap align-items-center" style={{ gap: '8px' }}>
+                            <div className="mr-2">
+                                <Text type="secondary">
+                                    Copies: <Text strong>{copies}</Text>
+                                </Text>
+                            </div>
+                            <Button
+                                type="primary"
+                                size="small"
+                                icon={<PrinterIcon size={16} className="mr-1" />}
+                                disabled={!canPrint}
+                                onClick={handleSaveAndPrint}
+                                loading={isPrinting || isSaving}
+                                className="d-flex align-items-center justify-content-center"
+                            >
+                                Save & Print
+                            </Button>
+                            <Button size="small" onClick={handleResetFontSizes} className="d-flex align-items-center justify-content-center">
+                                <RotateCcw size={14} className="mr-sm-1" />
+                                <span className="d-none d-sm-inline">Reset Sizes</span>
+                            </Button>
+                            <Button size="small" onClick={handleReset} className="d-flex align-items-center justify-content-center">
+                                <Eraser size={14} className="mr-sm-1" />
+                                <span className="d-none d-sm-inline">Clear</span>
+                            </Button>
+                            <Tooltip title="Print Settings">
+                                <Button size="small" onClick={onOpenSettings} className="d-flex align-items-center justify-content-center">
+                                    <SettingsIcon size={14} />
+                                </Button>
+                            </Tooltip>
+                        </div>
                     </div>
                 }
-                extra={
-                    <Space>
-                        <div className="">
-                            <Text type="secondary">
-                                Copies: <Text strong>{copies}</Text>
-                            </Text>
-                        </div>
-                        <Button
-                            type="primary"
-                            size="small"
-                            icon={<PrinterIcon size={18} />}
-                            disabled={!canPrint}
-                            onClick={handleSaveAndPrint}
-                            loading={isPrinting || isSaving}
-                            className="d-flex align-items-center justify-content-center gap-2"
-                        >
-                            Save & Print
-                        </Button>
-                        <Button size="small" onClick={handleResetFontSizes}>
-                            <div className="d-flex align-items-center" style={{ gap: 6 }}>
-                                <RotateCcw size={14} />
-                                <span>Reset Sizes</span>
-                            </div>
-                        </Button>
-                        <Button size="small" onClick={handleReset}>
-                            <div className="d-flex align-items-center" style={{ gap: 6 }}>
-                                <RotateCcw size={14} />
-                                <span>Clear</span>
-                            </div>
-                        </Button>
-                        <Tooltip title="Print Settings">
-                            <Button size="small" onClick={onOpenSettings}>
-                                <div className="d-flex align-items-center">
-                                    <SettingsIcon size={14} />
-                                </div>
-                            </Button>
-                        </Tooltip>
-                    </Space>
-                }
+                headStyle={{ minHeight: 'auto', padding: '12px 16px', display: 'block' }}
                 className="mb-4"
             >
                 <Row gutter={[16, 20]} style={{ fontFamily }}>
@@ -338,8 +335,9 @@ const InstantPrintTab = ({
                         <Col key={field.key} xs={24} sm={12} md={8}>
                             {/* Label */}
                             <div className="mb-1">
-                                <Text strong>{field.label}</Text>
-                                {field.key === 'name' && <Text type="danger"> *</Text>}
+                                <Text strong>
+                                    {field.key === 'name' ? <span style={{ color: '#fa0509ff' }} className='fs-1'>*</span> : ''} {field.label}
+                                </Text>
                             </div>
                             {/* Input */}
                             <Input
@@ -350,7 +348,7 @@ const InstantPrintTab = ({
                             />
                             {/* Size Slider */}
                             <div className="d-flex align-items-center gap-2">
-                                <Text type="secondary" style={{ minWidth: 60, fontSize: 12 }}>
+                                <Text type="secondary" style={{ minWidth: 60, fontSize: 12, marginBottom: 0, marginRight: 5 }}>
                                     Size: {fieldFontSizes[field.key]}pt
                                 </Text>
                                 <Slider
@@ -359,7 +357,7 @@ const InstantPrintTab = ({
                                     step={1}
                                     value={fieldFontSizes[field.key] || field.defaultSize}
                                     onChange={(val) => handleFontSizeChange(field.key, val)}
-                                    style={{ flex: 1 }}
+                                    style={{ flex: 1, margin: '0' }}
                                     tooltip={{ formatter: (val) => `${val}pt` }}
                                 />
                             </div>

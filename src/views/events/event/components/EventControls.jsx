@@ -743,7 +743,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
                   const bookingBySeatValue = form.getFieldValue("bookingBySeat");
                   return toBoolean(bookingBySeatValue) ? (
                     <Button type="primary" onClick={handleManageLayoutClick} size="small" loading={savingControls}>
-                      Ticket Layout
+                      Seating Layout
                     </Button>
                   ) : null;
                 }}

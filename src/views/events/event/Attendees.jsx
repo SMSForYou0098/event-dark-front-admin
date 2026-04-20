@@ -413,6 +413,7 @@ const Attendees = memo(() => {
                 { value: "online", label: "Online" },
                 { value: "offline", label: "Offline" },
               ]}
+              popupClassName="ant-select-dropdown"
             />
             <PermissionChecker permission="Download Attendees">
               <Tooltip title="Download Zip">
@@ -447,7 +448,7 @@ const Attendees = memo(() => {
         <Col span={24}>
           {selectedEvent ? (
             <DataTable
-              title={selectedEvent ? `Attendees - ${selectedEvent.label}` : "Attendees"}
+              title={selectedEvent ? `Atnd - ${selectedEvent.label}` : "Atnd"}
               data={users}
               columns={columns}
               loading={attendeesLoading}

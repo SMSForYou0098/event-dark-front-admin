@@ -387,6 +387,7 @@ const ScanHistory = () => {
         style={{ minWidth: 200 }}
         optionFilterProp="label"
         options={events}
+        virtual={false}
       />
     </Space>
   );

@@ -287,6 +287,7 @@ const ArtistCrewModal = ({
                                                 setSelectedCategory([]);
                                                 form.setFieldValue('category', []);
                                             }}
+                                            virtual={false}
                                         />
                                     </Form.Item>
                                 </Col>

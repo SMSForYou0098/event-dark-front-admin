@@ -56,6 +56,8 @@ const EventTicketDropdowns = ({
           value: ev.value,
           label: ev.label,
         }))}
+        popupClassName="ant-select-dropdown"
+        virtual={false}
       />
       {showTicketDropdown && selectedEvent?.value && (
         <Select
@@ -67,6 +69,8 @@ const EventTicketDropdowns = ({
           showSearch
           optionFilterProp="label"
           options={ticketOptions}
+          popupClassName="ant-select-dropdown"
+          virtual={false}
         />
       )}
     </>

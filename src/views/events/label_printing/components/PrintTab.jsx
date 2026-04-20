@@ -171,6 +171,7 @@ const PrintTab = ({
                                 size="large"
                                 loading={isLoadingBatches}
                                 notFoundContent={isLoadingBatches ? "Loading..." : "No batches"}
+                                virtual={false}
                             />
                         </Form.Item>
                     </Col>

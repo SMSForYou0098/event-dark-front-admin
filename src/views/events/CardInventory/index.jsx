@@ -262,6 +262,7 @@ const CardInventory = () => {
                                 optionFilterProp="label"
                                 options={events}
                                 className="mr-2 mb-2"
+                                virtual={false}
                             />
                             {selectedEventId && canExport && (
                                 <Button

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from "react";
 import { Card, Row, Col, Button, Space, Tag, Popconfirm, Tooltip, Typography, Spin, Progress, Modal, Form, Input, Divider, message } from "antd";
-import { Layers, Eye, Trash2, RefreshCw, Printer, Plus } from "lucide-react";
+import { Layers, Eye, Trash2, RefreshCw, Printer, Plus, FileText } from "lucide-react";
 import DataTable from "../../common/DataTable";
 import { AVAILABLE_FIELDS } from "./constants";
 
@@ -85,10 +85,10 @@ const BatchesTab = ({
             dataIndex: "batch_id",
             key: "batch_id",
             render: (text, record) => (
-                <Space>
-                    <Layers size={14} style={{ color: '#faad14' }} />
-                    <Text strong>{text || record.batchId}</Text>
-                </Space>
+                <div className="d-flex align-items-center">
+                    <Layers size={14} style={{ color: '#faad14', marginRight: '5px' }} />
+                    <Text strong className="mb-0">{text || record.batchId}</Text>
+                </div>
             ),
         },
         {
@@ -106,23 +106,29 @@ const BatchesTab = ({
                 const printed = record.printed_records || record.printed_count || record.printedRecords || 0;
                 const percent = total > 0 ? Math.round((printed / total) * 100) : 0;
                 return (
-                    <Space>
+                    <div className="d-flex align-items-center">
                         <Progress
                             percent={percent}
                             size="small"
-                            style={{ width: 100 }}
+                            style={{ width: 100, marginBottom: 0, marginRight: '10px' }}
                             strokeColor={percent === 100 ? '#52c41a' : '#1677ff'}
                         />
-                        <Text type="secondary">{percent}% {printed}/{total}</Text>
-                    </Space>
+                        <Text type="secondary" className="mb-0">{percent}% {printed}/{total}</Text>
+                    </div>
                 );
-            },
+            }
         },
         {
             title: "Status",
             key: "status",
             align: "center",
             render: (_, record) => {
+                /**
+                 * Determines the printing status of the batch by comparing printed records to total records.
+                 * - Complete: All labels in the batch have been printed (printed == total).
+                 * - Partial: Some, but not all, labels have been printed.
+                 * - Pending: No labels have been printed yet.
+                 */
                 const total = record.total_records || record.total || record.totalRecords || 0;
                 const printed = record.printed_records || record.printed_count || record.printedRecords || 0;
 
@@ -223,32 +229,38 @@ const BatchesTab = ({
             <Row gutter={[16, 16]} className="mb-4">
                 <Col xs={12} sm={6}>
                     <Card size="small">
-                        <Text type="secondary" className="d-block">Total Batches</Text>
-                        <Space>
-                            <Layers size={16} style={{ color: '#faad14' }} />
+                        <Text type="secondary" className="d-block mb-1">Total Batches</Text>
+                        <div className="d-flex align-items-center">
+                            <Layers size={16} style={{ color: '#faad14' }} className="mr-2" />
                             <Title level={4} className="mb-0">{stats.totalBatches}</Title>
-                        </Space>
+                        </div>
                     </Card>
                 </Col>
                 <Col xs={12} sm={6}>
                     <Card size="small">
-                        <Text type="secondary" className="d-block">Total Labels</Text>
-                        <Title level={4} className="mb-0">{stats.totalLabels}</Title>
+                        <Text type="secondary" className="d-block mb-1">Total Labels</Text>
+                        <div className="d-flex align-items-center">
+                            <FileText size={16} style={{ color: '#1677ff' }} className="mr-2" />
+                            <Title level={4} className="mb-0">{stats.totalLabels}</Title>
+                        </div>
                     </Card>
                 </Col>
                 <Col xs={12} sm={6}>
                     <Card size="small">
-                        <Text type="secondary" className="d-block">Printed</Text>
-                        <Space>
-                            <Printer size={16} style={{ color: '#52c41a' }} />
+                        <Text type="secondary" className="d-block mb-1">Printed Labels</Text>
+                        <div className="d-flex align-items-center">
+                            <Printer size={16} style={{ color: '#52c41a' }} className="mr-2" />
                             <Title level={4} className="mb-0" style={{ color: '#52c41a' }}>{stats.printedLabels}</Title>
-                        </Space>
+                        </div>
                     </Card>
                 </Col>
                 <Col xs={12} sm={6}>
                     <Card size="small">
-                        <Text type="secondary" className="d-block">Pending</Text>
-                        <Title level={4} className="mb-0" style={{ color: '#faad14' }}>{stats.pendingLabels}</Title>
+                        <Text type="secondary" className="d-block mb-1">Pending Labels</Text>
+                        <div className="d-flex align-items-center">
+                            <RefreshCw size={16} style={{ color: '#faad14' }} className="mr-2" />
+                            <Title level={4} className="mb-0" style={{ color: '#faad14' }}>{stats.pendingLabels}</Title>
+                        </div>
                     </Card>
                 </Col>
             </Row>

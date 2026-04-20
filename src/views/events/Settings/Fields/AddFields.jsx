@@ -18,6 +18,8 @@ import { PlusOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import { useMyContext } from 'Context/MyContextProvider';
 
+import { VALIDATION_RULES } from 'constants/ValidationConstants';
+
 const { Option } = Select;
 const { TextArea } = Input;
 
@@ -282,10 +284,8 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
         <Form.Item
           name="label"
           label="Label"
-          rules={[
-            { required: true, message: 'Please enter a label' },
-            { whitespace: true, message: 'Label cannot be empty' },
-          ]}
+          rules={VALIDATION_RULES.FIELD_LABEL('Label')}
+          validateTrigger="onChange"
         >
           <Input placeholder="Enter field label" />
         </Form.Item>
@@ -299,6 +299,7 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
             placeholder="Select field type"
             onChange={handleFieldTypeChange}
             options={fieldOptions}
+            virtual={false}
           />
         </Form.Item>
 
