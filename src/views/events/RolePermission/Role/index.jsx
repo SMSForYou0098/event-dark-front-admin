@@ -8,6 +8,7 @@ import api from "auth/FetchInterceptor";
 import Utils from "utils";
 import { PERMISSIONS } from "constants/PermissionConstant";
 import PermissionChecker from "layouts/PermissionChecker";
+import { VALIDATION_RULES } from "constants/ValidationConstants";
 
 const { Search } = Input;
 
@@ -216,10 +217,7 @@ const Roles = memo(() => {
                     <Form.Item
                         label="Name"
                         name="name"
-                        rules={[
-                            { required: true, message: 'Role name is required.' },
-                            { whitespace: true, message: 'Role name cannot be empty.' }
-                        ]}
+                        rules={VALIDATION_RULES.TITLE('Role Name')}
                     >
                         <Input
                             placeholder="Role name"

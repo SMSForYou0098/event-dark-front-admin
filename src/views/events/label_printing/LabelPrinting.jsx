@@ -339,30 +339,28 @@ const LabelPrinting = () => {
             {/* Main Content */}
             <Card
                 title={
-                    <div className="d-flex align-items-center gap-3">
-                        <div className="d-flex align-items-center">
-                            <Printer size={20} className="mr-2" />
-                            <span>Label Printing</span>
-                        </div>
+                    <div className="d-flex align-items-center">
+                        <Printer size={20} className="mr-2" />
+                        <span>Label Printing</span>
+                    </div>
+                }
+                extra={
+                    <Space>
                         {isConnected ? (
-                            <Tag color="success" style={{ margin: 0, borderRadius: '6px' }}>
+                            <Tag color="success">
                                 <div className="d-flex align-items-center" style={{ gap: 6 }}>
                                     <CheckCircle size={12} />
                                     <span>Printer Connected</span>
                                 </div>
                             </Tag>
                         ) : (
-                            <Tag color="error" style={{ margin: 0, borderRadius: '6px' }}>
+                            <Tag color="error">
                                 <div className="d-flex align-items-center" style={{ gap: 6 }}>
                                     <XCircle size={12} />
                                     <span>Printer Disconnected</span>
                                 </div>
                             </Tag>
                         )}
-                    </div>
-                }
-                extra={
-                    <Space>
                         {selectedRows.length > 0 && connectionMode !== "browser" && (
                             <Tooltip title="View Printer Code">
                                 <Button
