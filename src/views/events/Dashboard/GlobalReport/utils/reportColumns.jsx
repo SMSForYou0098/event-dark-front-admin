@@ -74,20 +74,26 @@ export const bookingTypeColumns = [
     key: 'booking_count',
   },
   {
-    title: 'Amount',
-    dataIndex: 'total_amount',
-    key: 'total_amount',
-    render: (value) => formatCurrency(value),
-  },
-  {
     title: 'Tickets',
     dataIndex: 'total_quantity',
     key: 'total_quantity',
   },
   {
+    title: 'Scans',
+    dataIndex: 'total_scans',
+    key: 'total_scans',
+    render: (value) => value ?? 0,
+  },
+  {
     title: 'Discount',
     dataIndex: 'total_discount',
     key: 'total_discount',
+    render: (value) => formatCurrency(value),
+  },
+  {
+    title: 'Amount',
+    dataIndex: 'total_amount',
+    key: 'total_amount',
     render: (value) => formatCurrency(value),
   },
 ];

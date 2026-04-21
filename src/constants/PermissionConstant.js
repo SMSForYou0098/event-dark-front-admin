@@ -1,6 +1,7 @@
 export const PERMISSIONS = {
     // Dashboard
     VIEW_DASHBOARD: "View Dashboard",
+    VIEW_GLOBAL_REPORT: "View Global Report",
     VIEW_GATEWAY: "View Gateway",
     VIEW_INTIMATIONS: "View Intimations",
     VIEW_MEDIA: "View Media",

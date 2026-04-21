@@ -238,6 +238,7 @@ const GlobalReport = () => {
                         onChange={handleChannelChange}
                         value={filters.channel}
                         maxTagCount="responsive"
+                        virtual={false}
                       >
                         <Select.Option value="online">Online</Select.Option>
                         <Select.Option value="offline">Offline</Select.Option>
@@ -256,6 +257,7 @@ const GlobalReport = () => {
                           onChange={handleBookingTypeChange}
                           value={filters.bookingType}
                           maxTagCount="responsive"
+                          virtual={false}
                         >
                           <Select.Option value="agent">Agent</Select.Option>
                           <Select.Option value="pos">POS</Select.Option>

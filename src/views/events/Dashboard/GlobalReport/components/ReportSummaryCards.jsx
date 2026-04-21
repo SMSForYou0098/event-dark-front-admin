@@ -39,53 +39,51 @@ const InlineBreakdownRow = ({ items }) => {
 
 const ReportSummaryCards = ({ reportData, isSingleEventSelected = false }) => {
   const summary = reportData?.summary || {};
-  const online = reportData?.online || {};
-  const offlineTotals = reportData?.offline?.totals || {};
   const scanData = summary?.scan_data || {};
 
   return (
     <Row gutter={[ROW_GUTTER, 16]}>
       <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
         <Card size="small" className="h-100">
-          <Statistic title="Total Bookings" value={Number(summary?.total_bookings || 0)} />
+          <Statistic title="Total Bookings" value={Number(summary?.total_bookings?.total || 0)} />
           <InlineBreakdownRow
             items={[
-              { label: 'Online', value: Number(online?.booking_count || 0) },
-              { label: 'Offline', value: Number(offlineTotals?.booking_count || 0) },
+              { label: 'Online', value: Number(summary?.total_bookings?.online || 0) },
+              { label: 'Offline', value: Number(summary?.total_bookings?.offline || 0) },
             ]}
           />
         </Card>
       </Col>
       <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
         <Card size="small" className="h-100">
+          <Statistic title="Total Tickets" value={Number(summary?.total_quantity?.total || 0)} />
+          <InlineBreakdownRow
+            items={[
+              { label: 'Online', value: Number(summary?.total_quantity?.online || 0) },
+              { label: 'Offline', value: Number(summary?.total_quantity?.offline || 0) },
+            ]}
+          />
+        </Card>
+      </Col>
+       <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
+        <Card size="small" className="h-100">
           <Statistic
             title="Total Amount"
-            value={Number(summary?.total_amount || 0)}
+            value={Number(summary?.total_amount?.total || 0)}
             precision={2}
             prefix="₹"
           />
           <InlineBreakdownRow
             items={[
-              { label: 'Online', value: Number(online?.total_amount || 0) },
-              { label: 'Offline', value: Number(offlineTotals?.total_amount || 0) },
-            ]}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
-        <Card size="small" className="h-100">
-          <Statistic title="Total Tickets" value={Number(summary?.total_quantity || 0)} />
-          <InlineBreakdownRow
-            items={[
-              { label: 'Online', value: Number(online?.total_quantity || 0) },
-              { label: 'Offline', value: Number(offlineTotals?.total_quantity || 0) },
+              { label: 'Online', value: Number(summary?.total_amount?.online || 0) },
+              { label: 'Offline', value: Number(summary?.total_amount?.offline || 0) },
             ]}
           />
         </Card>
       </Col>
       <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 4 : 8}>
         <Card size="small" className="h-100">
-          <Statistic title="Total Scans" value={Number(summary?.total_scan || 0)} />
+          <Statistic title="Total Scans" value={Number(summary?.total_scan?.total || 0)} />
           <InlineBreakdownRow
             items={[
               { label: 'Online', value: Number(scanData?.online || 0) },
@@ -98,14 +96,14 @@ const ReportSummaryCards = ({ reportData, isSingleEventSelected = false }) => {
         <Card size="small" className="h-100">
           <Statistic
             title="Total Discount"
-            value={Number(summary?.total_discount || 0)}
+            value={Number(summary?.total_discount?.total || 0)}
             precision={2}
             prefix="₹"
           />
           <InlineBreakdownRow
             items={[
-              { label: 'Online', value: Number(online?.total_discount || 0) },
-              { label: 'Offline', value: Number(offlineTotals?.total_discount || 0) },
+              { label: 'Online', value: Number(summary?.total_discount?.online || 0) },
+              { label: 'Offline', value: Number(summary?.total_discount?.offline || 0) },
             ]}
           />
         </Card>

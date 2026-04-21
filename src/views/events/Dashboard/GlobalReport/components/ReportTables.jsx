@@ -104,6 +104,39 @@ const ReportTables = ({
       render: (value) => value ?? 0,
     },
     {
+      title: 'Discount',
+      dataIndex: 'total_discount',
+      key: 'total_discount',
+      render: (value) => formatCurrency(value),
+    },
+    {
+      title: 'Amount',
+      dataIndex: 'total_amount',
+      key: 'total_amount',
+      render: (value) => formatCurrency(value),
+    },
+  ];
+
+  const ticketBreakdownColumns = [
+    {
+      title: 'Ticket Name',
+      dataIndex: 'ticket_name',
+      key: 'ticket_name',
+      render: (value) => value || '-',
+    },
+    {
+      title: 'Bookings',
+      dataIndex: 'total_bookings',
+      key: 'total_bookings',
+      render: (value) => value ?? 0,
+    },
+    {
+      title: 'Discount',
+      dataIndex: 'total_discount',
+      key: 'total_discount',
+      render: (value) => formatCurrency(value),
+    },
+    {
       title: 'Amount',
       dataIndex: 'total_amount',
       key: 'total_amount',
@@ -191,6 +224,22 @@ const ReportTables = ({
                               dataSource={section?.data}
                               pagination={false}
                               locale={{ emptyText: section.emptyText }}
+                              expandable={{
+                                expandedRowRender: (record) => {
+                                  const tickets = Array.isArray(record?.tickets) ? record.tickets : [];
+                                  return (
+                                    <Table
+                                      size="small"
+                                      rowKey={(ticket, index) => `${record?.name}-${ticket?.ticket_name || index}`}
+                                      columns={ticketBreakdownColumns}
+                                      dataSource={tickets}
+                                      pagination={false}
+                                      locale={{ emptyText: 'No ticket data for this entry' }}
+                                    />
+                                  );
+                                },
+                                rowExpandable: (record) => Array.isArray(record?.tickets) && record.tickets.length > 0,
+                              }}
                             />
                           </Card>
                         </Col>

@@ -103,7 +103,7 @@ export const protectedRoutes = [
         path: `/dashboard/global-report`,
         component: React.lazy(() => import('views/events/Dashboard/GlobalReport/GlobalReport')),
         meta: {
-            permissions: [PERMISSIONS.VIEW_DASHBOARD],
+            permissions: [PERMISSIONS.VIEW_GLOBAL_REPORT],
         }
     },
     {

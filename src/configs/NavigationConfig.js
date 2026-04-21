@@ -27,7 +27,7 @@ const dashboarSubmenuNav = [
     icon: BarChartOutlined,
     breadcrumb: false,
     submenu: [],
-    permissions: [PERMISSIONS.VIEW_DASHBOARD]
+    permissions: [PERMISSIONS.VIEW_GLOBAL_REPORT]
   }];
 
 
