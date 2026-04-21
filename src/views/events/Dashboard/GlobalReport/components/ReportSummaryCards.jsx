@@ -1,114 +1,183 @@
 import React from 'react';
-import { Card, Col, Row, Statistic, Typography } from 'antd';
+import { Card, Col, Row, Typography, Carousel, Avatar } from 'antd';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
+import { useMyContext } from 'Context/MyContextProvider';
+import {
+  ShoppingOutlined,
+  FileOutlined,
+  DollarOutlined,
+  ScanOutlined,
+  GiftOutlined,
+  PercentageOutlined,
+  CreditCardOutlined,
+} from '@ant-design/icons';
+import Flex from 'components/shared-components/Flex';
+import { getBackgroundWithOpacity } from 'views/events/common/CustomUtil';
+import { Ticket } from 'lucide-react';
 
 const { Text } = Typography;
-const INLINE_BREAKDOWN_FONT_SIZE = 12;
 
-const InlineBreakdownRow = ({ items }) => {
-  const visibleItems = (items || []).filter(Boolean).slice(0, 3);
-  const columnCount = visibleItems.length >= 3 ? 3 : 2;
-  const colProps =
-    columnCount === 3
-      ? { xs: 12, sm: 12, md: 12, lg: 8 }
-      : { xs: 12, sm: 12, md: 12, lg: 12 };
+const ReportSummaryCards = ({ reportData }) => {
+  const { isMobile } = useMyContext();
 
-  return (
-    <Row gutter={[8, 4]} className="mt-1">
-      {visibleItems.map((item) => (
-        <Col key={item.label} {...colProps}>
-          <div className="d-flex align-items-center">
-            <Text
-              type="secondary"
-              style={{ fontSize: INLINE_BREAKDOWN_FONT_SIZE, whiteSpace: 'nowrap' }}
-            >
-              {item.label}:
-            </Text>
-            <Text
-              className="ml-1"
-              style={{ fontSize: INLINE_BREAKDOWN_FONT_SIZE, whiteSpace: 'nowrap' }}
-            >
-              {item.value}
-            </Text>
-          </div>
-        </Col>
-      ))}
-    </Row>
-  );
-};
-
-const ReportSummaryCards = ({ reportData, isSingleEventSelected = false }) => {
   const summary = reportData?.summary || {};
   const scanData = summary?.scan_data || {};
 
+  const cards = [
+    {
+      title: 'Total Bookings',
+      dataKey: 'total_bookings',
+      color: '#1890ff',
+      icon: <ShoppingOutlined />,
+      items: [
+        { label: 'Online', value: Number(summary?.total_bookings?.online || 0) },
+        { label: 'Offline', value: Number(summary?.total_bookings?.offline || 0) },
+      ],
+    },
+    {
+      title: 'Total Tickets',
+      dataKey: 'total_quantity',
+      color: '#52c41a',
+      icon: <Ticket />,
+      items: [
+        { label: 'Online', value: Number(summary?.total_quantity?.online || 0) },
+        { label: 'Offline', value: Number(summary?.total_quantity?.offline || 0) },
+      ],
+    },
+    {
+      title: 'Total Amount',
+      dataKey: 'total_amount',
+      prefix: '₹',
+      precision: 2,
+      color: '#faad14',
+      icon: <DollarOutlined />,
+      items: [
+        { label: 'Online', value: Number(summary?.total_amount?.online || 0) },
+        { label: 'Offline', value: Number(summary?.total_amount?.offline || 0) },
+      ],
+    },
+    {
+      title: 'Total Scans',
+      dataKey: 'total_scan',
+      color: '#eb2f96',
+      icon: <ScanOutlined />,
+      items: [
+        { label: 'Online', value: Number(scanData?.online || 0) },
+        { label: 'Offline', value: Number((scanData?.offline || 0) + (scanData?.pos || 0)) },
+      ],
+    },
+    {
+      title: 'Total Discount',
+      dataKey: 'total_discount',
+      prefix: '₹',
+      precision: 2,
+      color: '#f5222d',
+      icon: <GiftOutlined />,
+      items: [
+        { label: 'Online', value: Number(summary?.total_discount?.online || 0) },
+        { label: 'Offline', value: Number(summary?.total_discount?.offline || 0) },
+      ],
+    },
+    {
+      title: 'Total Commission',
+      dataKey: 'total_commission',
+      prefix: '₹',
+      precision: 2,
+      color: '#722ed1',
+      icon: <PercentageOutlined />,
+      items: [
+        { label: 'Online', value: Number(summary?.total_commission?.online || 0) },
+        { label: 'Offline', value: Number(summary?.total_commission?.offline || 0) },
+      ],
+    },
+    {
+      title: 'Total Convenience Fee',
+      dataKey: 'total_convenience_fee',
+      prefix: '₹',
+      precision: 2,
+      color: '#13c2c2',
+      icon: <CreditCardOutlined />,
+      items: [
+        { label: 'Online', value: Number(summary?.total_convenience_fee?.online || 0) },
+        { label: 'Offline', value: Number(summary?.total_convenience_fee?.offline || 0) },
+      ],
+    },
+  ];
+
+  const cardComponent = (card) => {
+    const hasMultipleValues = card.items.length > 1;
+
+    return (
+      <Card size="small" title={card.title}
+        extra={
+          <Avatar
+            size={40}
+            shape='circle'
+            icon={card.icon}
+            style={{
+              color: card.color,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: getBackgroundWithOpacity(card.color, 0.15)
+            }}
+          />
+        }
+      >
+
+        {/* Main value */}
+        <div style={{ flex: 1 }}>
+          <Text style={{ fontSize: '28px', fontWeight: '600' }}>
+            {card.prefix || ''}
+            {Number(summary?.[card.dataKey]?.total || 0).toFixed(card.precision || 0)}
+          </Text>
+        </div>
+
+        {/* Breakdown items - horizontal layout */}
+        {hasMultipleValues ? (
+          <Flex justifyContent="space-between" alignItems="center" gap={12}>
+            {card.items.map((item) => (
+              <Flex key={item.label} alignItems="center" gap={6} style={{ flex: 1 }}>
+                <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ff4d4f', flexShrink: 0 }} />
+                <Text style={{ fontSize: '11px', margin: '0' }}>
+                  {item.label === 'Online' ? 'ON' : 'OFF'}: {card.prefix || ''}{Number(item.value).toFixed(card.precision || 0)}
+                </Text>
+              </Flex>
+            ))}
+          </Flex>
+        ) : (
+          card.items.map((item) => (
+            <Flex key={item.label} alignItems="center" gap={6}>
+              <div style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#ff4d4f' }} />
+              <Text style={{ fontSize: '11px', margin: '0' }}>
+                {item.label === 'Online' ? 'ON' : 'OFF'}: {card.prefix || ''}{Number(item.value).toFixed(card.precision || 0)}
+              </Text>
+            </Flex>
+          ))
+        )}
+      </Card>
+    );
+  };
+
+  if (isMobile) {
+    return (
+      <Carousel autoplay infinite dots={{ className: 'mt-3' }} style={{ width: '100%' }}>
+        {cards.map((card) => (
+          <div key={card.title} style={{ padding: '0 8px' }}>
+            {cardComponent(card)}
+          </div>
+        ))}
+      </Carousel>
+    );
+  }
+
   return (
     <Row gutter={[ROW_GUTTER, 16]}>
-      <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
-        <Card size="small" className="h-100">
-          <Statistic title="Total Bookings" value={Number(summary?.total_bookings?.total || 0)} />
-          <InlineBreakdownRow
-            items={[
-              { label: 'Online', value: Number(summary?.total_bookings?.online || 0) },
-              { label: 'Offline', value: Number(summary?.total_bookings?.offline || 0) },
-            ]}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
-        <Card size="small" className="h-100">
-          <Statistic title="Total Tickets" value={Number(summary?.total_quantity?.total || 0)} />
-          <InlineBreakdownRow
-            items={[
-              { label: 'Online', value: Number(summary?.total_quantity?.online || 0) },
-              { label: 'Offline', value: Number(summary?.total_quantity?.offline || 0) },
-            ]}
-          />
-        </Card>
-      </Col>
-       <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
-        <Card size="small" className="h-100">
-          <Statistic
-            title="Total Amount"
-            value={Number(summary?.total_amount?.total || 0)}
-            precision={2}
-            prefix="₹"
-          />
-          <InlineBreakdownRow
-            items={[
-              { label: 'Online', value: Number(summary?.total_amount?.online || 0) },
-              { label: 'Offline', value: Number(summary?.total_amount?.offline || 0) },
-            ]}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 4 : 8}>
-        <Card size="small" className="h-100">
-          <Statistic title="Total Scans" value={Number(summary?.total_scan?.total || 0)} />
-          <InlineBreakdownRow
-            items={[
-              { label: 'Online', value: Number(scanData?.online || 0) },
-              { label: 'Offline', value: Number((scanData?.offline || 0) + (scanData?.pos || 0)) },
-            ]}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={8} lg={isSingleEventSelected ? 5 : 8}>
-        <Card size="small" className="h-100">
-          <Statistic
-            title="Total Discount"
-            value={Number(summary?.total_discount?.total || 0)}
-            precision={2}
-            prefix="₹"
-          />
-          <InlineBreakdownRow
-            items={[
-              { label: 'Online', value: Number(summary?.total_discount?.online || 0) },
-              { label: 'Offline', value: Number(summary?.total_discount?.offline || 0) },
-            ]}
-          />
-        </Card>
-      </Col>
-      
+      {cards.map((card) => (
+        <Col key={card.title} xs={24} sm={12} md={8} lg={6} xl={6}>
+          {cardComponent(card)}
+        </Col>
+      ))}
     </Row>
   );
 };

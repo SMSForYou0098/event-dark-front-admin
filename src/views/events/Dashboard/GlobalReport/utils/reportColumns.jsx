@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tag } from 'antd';
 import { formatCurrency } from './reportHelpers';
+import { CHART_COLORS_ANTD } from 'utils/consts';
 
 const capitalizeBookingType = (value) => {
   if (!value) return '-';
@@ -63,9 +64,9 @@ export const bookingTypeColumns = [
     key: 'booking_type',
     width: 140,
     fixed : 'left',
-    render: (value) => {
+    render: (value, record, index) => {
       const truncated = value?.length > 6 ? value.slice(0, 6) + '..' : value;
-      return <Tag>{capitalizeBookingType(truncated)}</Tag>;
+      return <Tag color={CHART_COLORS_ANTD[index % CHART_COLORS_ANTD.length]}>{capitalizeBookingType(truncated)}</Tag>;
     },
   },
   {

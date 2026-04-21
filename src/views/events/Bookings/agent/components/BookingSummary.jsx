@@ -1,4 +1,4 @@
-import React, { Fragment } from 'react';
+import React from 'react';
 import { Button, Card, Typography, List, Space, Avatar, Row, Col, Tag, Divider } from 'antd';
 import { MailOutlined, PhoneOutlined, ShoppingOutlined, TagOutlined, UserOutlined } from '@ant-design/icons';
 import { ROW_GUTTER } from 'constants/ThemeConstant';

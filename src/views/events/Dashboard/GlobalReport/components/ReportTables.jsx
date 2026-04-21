@@ -1,7 +1,9 @@
 import React from 'react';
 import { Card, Col, Row, Table, Typography } from 'antd';
+import ChartComponent from 'components/shared-components/Chart/ChartComponent';
 import { bookingTypeColumns, paymentGatewayColumns, ticketColumns } from '../utils/reportColumns';
 import { formatCurrency, getBookingTypeRows, getUserWiseSales } from '../utils/reportHelpers';
+import { CHART_COLORS } from 'utils/consts';
 
 const { Title } = Typography;
 
@@ -76,8 +78,8 @@ const ReportTables = ({
       key: 'total_bookings',
       render: (value) => value ?? 0,
     },
-     {
-      title : 'Total Tickets',
+    {
+      title: 'Total Tickets',
       dataIndex: 'total_tickets',
       key: 'total_tickets',
       render: (value) => value ?? 0,
@@ -153,9 +155,9 @@ const ReportTables = ({
     },
     {
       key: 'pos',
-      title: 'POS Wise Sales',
+      title: 'POS Sales',
       data: posWiseSales,
-      emptyText: 'No POS wise sales data',
+      emptyText: 'No POS sales data',
     },
     {
       key: 'sponsor',
@@ -168,7 +170,6 @@ const ReportTables = ({
   const hasVisibleUserWiseSales = hasUserWiseSales && visibleUserWiseSalesSections.length > 0;
   const showOfflineSection = showOfflineBookingType || hasVisibleUserWiseSales;
   const visibleSectionCount = [showOnlinePaymentGateways, showOfflineSection].filter(Boolean).length;
-  const sectionLgSpan = visibleSectionCount > 1 ? 12 : 24;
 
   const userWiseColLgSpan =
     visibleUserWiseSalesSections.length <= 1 ? 24 :
@@ -177,79 +178,139 @@ const ReportTables = ({
   return (
     <>
       {visibleSectionCount > 0 && (
+        <Card
+          size="small"
+          className="bg-transparent"
+          title="Sales by Source"
+          extra={
+            <span>
+              Total {formatCurrency(reportData?.summary?.total_amount?.total || 0)}
+            </span>
+          }>
+          <Row gutter={[16, 16]}>
+            {/* Online Gateways */}
+            {showOnlinePaymentGateways && (
+              <Col xs={24} md={12} lg={12}>
+                <Card size="small" title="Online Gateways" className="h-100">
+                  <Row>
+                    <Col span={reportData?.payment_gateways?.length > 0 ? 18 : 24}>
+                      <Table
+                        size="small"
+                        rowKey={(record, index) => `${record?.gateway || 'gateway'}-${index}`}
+                        columns={paymentGatewayColumns}
+                        dataSource={reportData?.payment_gateways || []}
+                        pagination={false}
+                        locale={{ emptyText: 'No payment gateway data' }}
+                      />
+                    </Col>
+                    <Col span={6}>
+                      {Array.isArray(reportData?.payment_gateways) && reportData?.payment_gateways.length > 0 && (
+                        <div>
+                          <ChartComponent
+                            type="donut"
+                            series={reportData?.payment_gateways.map((gw) => Number(gw?.total_amount || 0))}
+                            labels={reportData?.payment_gateways.map((gw) => gw?.gateway || gw?.payment_gateway || 'Unknown')}
+                            colors={CHART_COLORS}
+                            height={200}
+                            legendPosition="bottom"
+                          />
+                        </div>
+                      )}
+                    </Col>
+                  </Row>
+                </Card>
+              </Col>
+            )}
+
+            {/* Offline Types */}
+            {showOfflineBookingType && (
+              <Col xs={24} md={12} lg={12}>
+                <Card size="small" title="Offline Types" className="h-100">
+                  <Row>
+                    <Col span={bookingTypeRows?.length > 0 ? 18 : 24}>
+                      <Table
+                        size="small"
+                        rowKey="key"
+                        columns={bookingTypeColumns}
+                        dataSource={bookingTypeRows}
+                        pagination={false}
+                        locale={{ emptyText: 'No offline booking type data' }}
+                      />
+                    </Col>
+                    <Col span={6}>
+                      {Array.isArray(bookingTypeRows) && bookingTypeRows?.length > 0 && (
+                        <div>
+                          <ChartComponent
+                            type="donut"
+                            series={bookingTypeRows.map((row) => Number(row?.total_amount || 0))}
+                            labels={bookingTypeRows.map((row) => row?.booking_type || row?.type || 'Unknown')}
+                            colors={CHART_COLORS}
+                            height={200}
+                            legendPosition="bottom"
+                          />
+                        </div>
+                      )}
+                    </Col>
+
+                  </Row>
+                </Card>
+              </Col>
+            )}
+
+            {/* Center - Pie Chart */}
+            {/* {showOnlinePaymentGateways && showOfflineBookingType && (
+              <Col xs={24} md={24} lg={4} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ChartComponent
+                  type="donut"
+                  series={[
+                    Number(reportData?.summary?.total_amount?.online || 0),
+                    Number(reportData?.summary?.total_amount?.offline || 0),
+                  ]}
+                  labels={['Online', 'Offline']}
+                  colors={[PRIMARY, SECONDARY]}
+                  height={200}
+                  donutSize="85%"
+                />
+              </Col>
+            )} */}
+          </Row>
+        </Card>
+      )}
+
+      {/* User Wise Sales Section */}
+      {hasVisibleUserWiseSales && (
         <Row gutter={[16, 16]} className="mt-4">
-          {showOnlinePaymentGateways && (
-            <Col xs={24} lg={sectionLgSpan}>
-              <Card size="small" title="Online" className="h-100">
-                <Title level={5} className="mb-2">Payment Gateways</Title>
+          {visibleUserWiseSalesSections.map((section) => (
+            <Col key={section.key} xs={24} lg={userWiseColLgSpan}>
+              <Card size="small">
+                <Title level={5} className="mb-2">{section?.title}</Title>
                 <Table
                   size="small"
-                  rowKey={(record, index) => `${record?.gateway || 'gateway'}-${index}`}
-                  columns={paymentGatewayColumns}
-                  dataSource={reportData?.payment_gateways || []}
+                  rowKey={(record, index) => `${section.key}-${record?.name || index}`}
+                  columns={userWiseSalesColumns}
+                  dataSource={section?.data}
                   pagination={false}
-                  locale={{ emptyText: 'No payment gateway data' }}
+                  locale={{ emptyText: section.emptyText }}
+                  expandable={{
+                    expandedRowRender: (record) => {
+                      const tickets = Array.isArray(record?.tickets) ? record.tickets : [];
+                      return (
+                        <Table
+                          size="small"
+                          rowKey={(ticket, index) => `${record?.name}-${ticket?.ticket_name || index}`}
+                          columns={ticketBreakdownColumns}
+                          dataSource={tickets}
+                          pagination={false}
+                          locale={{ emptyText: 'No ticket data for this entry' }}
+                        />
+                      );
+                    },
+                    rowExpandable: (record) => Array.isArray(record?.tickets) && record.tickets.length > 0,
+                  }}
                 />
               </Card>
             </Col>
-          )}
-
-          {showOfflineSection && (
-            <Col xs={24} lg={sectionLgSpan}>
-              <Card size="small" title="Offline" className="h-100">
-                {showOfflineBookingType && (
-                  <>
-                    <Table
-                      size="small"
-                      rowKey="key"
-                      columns={bookingTypeColumns}
-                      dataSource={bookingTypeRows}
-                      pagination={false}
-                      locale={{ emptyText: 'No offline booking type data' }}
-                    />
-                  </>
-                )}
-
-                {hasVisibleUserWiseSales && (
-                  <>
-                    <Row gutter={[16, 16]} className="mt-3">
-                      {visibleUserWiseSalesSections.map((section) => (
-                        <Col key={section.key} xs={24} lg={userWiseColLgSpan}>
-                          <Card size="small">
-                            <Title level={5} className="mb-2">{section?.title}</Title>
-                            <Table
-                              size="small"
-                              rowKey={(record, index) => `${section.key}-${record?.name || index}`}
-                              columns={userWiseSalesColumns}
-                              dataSource={section?.data}
-                              pagination={false}
-                              locale={{ emptyText: section.emptyText }}
-                              expandable={{
-                                expandedRowRender: (record) => {
-                                  const tickets = Array.isArray(record?.tickets) ? record.tickets : [];
-                                  return (
-                                    <Table
-                                      size="small"
-                                      rowKey={(ticket, index) => `${record?.name}-${ticket?.ticket_name || index}`}
-                                      columns={ticketBreakdownColumns}
-                                      dataSource={tickets}
-                                      pagination={false}
-                                      locale={{ emptyText: 'No ticket data for this entry' }}
-                                    />
-                                  );
-                                },
-                                rowExpandable: (record) => Array.isArray(record?.tickets) && record.tickets.length > 0,
-                              }}
-                            />
-                          </Card>
-                        </Col>
-                      ))}
-                    </Row>
-                  </>
-                )}
-              </Card>
-            </Col>
-          )}
+          ))}
         </Row>
       )}
 
