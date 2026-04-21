@@ -347,7 +347,7 @@ const PosBooking = memo(({ bookingType = 'free', seatingChartBooking = false }) 
         title: '#',
         key: 'index',
         align: 'center',
-        width: 20,
+        width: 40,
         render: (_, __, index) => index + 1,
       },
       {

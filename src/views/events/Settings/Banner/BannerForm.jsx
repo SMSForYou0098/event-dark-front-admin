@@ -428,14 +428,14 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
 
             {/* Organization Dropdown */}
             {bannerType === 'organization' && (
-              <Col xs={24} md={12}>
+              <Col xs={24} md={12} lg={8}>
                 <OrganisationList onChange={handleOrgChange} />
               </Col>
             )}
 
             {/* Category Dropdown */}
             {showCategoryField && (
-              <Col xs={24} md={12}>
+              <Col xs={24} md={12} lg={8}>
                 <Form.Item
                   label="Category"
                   name="category"
@@ -458,7 +458,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
 
             {/* Event Dropdown */}
             {showEventDropdown && (
-              <Col xs={24} md={12}>
+              <Col xs={24} md={12} lg={8}>
                 <Form.Item
                   label="Event"
                   name="event_id"

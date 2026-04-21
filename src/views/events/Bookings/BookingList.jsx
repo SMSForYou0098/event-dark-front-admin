@@ -268,7 +268,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
                 title: "#",
                 key: "index",
                 align: "center",
-                width: isNested ? 50 : 15,
+                width: isNested ? 50 : 25,
                 render: (_, __, index) => index + 1,
             });
         }
@@ -526,7 +526,7 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
             key: 'actions',
             align: 'center',
             fixed: isNested ? undefined : 'right',
-            width: isMobile ? 70 : 120,
+            width: isMobile ? 70 : 150,
             render: (_, record) => {
                 const isDisabled = record?.is_deleted === true || record?.status === true;
                 const actions = [

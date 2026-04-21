@@ -142,14 +142,20 @@ const MultiScanCheckpoints = ({ form }) => {
     };
 
     return (
-        <Card size="small" title={`Checkpoint Configuration ${checkpoints?.length > 0 ? `(${checkpoints?.length})` : ''}`} style={{ marginTop: 16 }}
+        <Card
+            size="small"
+            title={<div className="fw-bold fs-3">Checkpoint Configuration {checkpoints?.length > 0 ? `(${checkpoints?.length})` : ''}</div>}
+            className="border-secondary"
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}
+            headStyle={{ borderBottom: '1px solid #303030' }}
         // extra={
         //     <Tooltip title="Sort checkpoints by start time">
         //         <Button
-        //             type="text"
+        //             type="link"
         //             icon={<SortAscendingOutlined />}
         //             onClick={sortCheckpointsByTime}
         //             size="small"
+        //             style={{ color: '#1890ff' }}
         //         >
         //             Sort by Time
         //         </Button>
@@ -173,7 +179,7 @@ const MultiScanCheckpoints = ({ form }) => {
                     <>
                         {fields.map(({ key, name, ...restField }, index) => (
                             <div key={key}>
-                                {index > 0 && <Divider style={{ margin: '12px 0' }} />}
+                                {index > 0 && <hr className="my-3 border-secondary" />}
                                 <Row gutter={16} align="top">
                                     {/* Hidden field to preserve id for updates */}
                                     <Form.Item name={[name, 'id']} hidden>
@@ -213,6 +219,7 @@ const MultiScanCheckpoints = ({ form }) => {
                                                 format={FMT_T}
                                                 style={{ width: '100%' }}
                                                 placeholder="Start"
+                                                allowClear={false}
                                                 onChange={revalidateAll}
                                             />
                                         </Form.Item>
@@ -237,6 +244,7 @@ const MultiScanCheckpoints = ({ form }) => {
                                                 format={FMT_T}
                                                 style={{ width: '100%' }}
                                                 placeholder="End"
+                                                allowClear={false}
                                                 onChange={revalidateAll}
                                             />
                                         </Form.Item>

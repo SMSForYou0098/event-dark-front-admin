@@ -24,7 +24,7 @@ export const TEXT_FIELDS = [
   {
     name: 'external_url',
     label: 'External URL',
-    span: { xs: 24, md: 12 },
+    span: { xs: 24, md: 12, lg: 8 },
     rules: [
       {
         type: 'url',
@@ -36,7 +36,7 @@ export const TEXT_FIELDS = [
   {
     name: 'media_url',
     label: 'Media URL (YouTube/Social)',
-    span: { xs: 24, md: 12 },
+    span: { xs: 24, md: 12, lg: 8 },
     rules: [
       {
         type: 'url',
@@ -71,7 +71,7 @@ export const IMAGE_FIELDS = [
   {
     name: 'images',
     label: 'Banner Image (1980*450)',
-    span: { xs: 12, md: 8 },
+    span: { xs: 24, md: 12 },
     stateKey: 'bannerImage',
     uploadText: '',
     required: true,
@@ -79,17 +79,17 @@ export const IMAGE_FIELDS = [
   {
     name: 'sm_image',
     label: 'Small Image (1980*750)',
-    span: { xs: 12, md: 8 },
+    span: { xs: 24, md: 12 },
     stateKey: 'smImage',
     uploadText: '',
   },
-  {
-    name: 'md_image',
-    label: 'Medium Image (1980*750)',
-    span: { xs: 12, md: 8 },
-    stateKey: 'mdImage',
-    uploadText: '',
-  },
+  // {
+  //   name: 'md_image',
+  //   label: 'Medium Image (1980*750)',
+  //   span: { xs: 12, md: 8 },
+  //   stateKey: 'mdImage',
+  //   uploadText: '',
+  // },
 ];
 
 

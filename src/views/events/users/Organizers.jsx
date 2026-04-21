@@ -313,44 +313,9 @@ const Organizers = () => {
   const actionColumns = [];
 
   actionColumns.push({
-    title: 'Actions',
-    key: 'actions',
-    fixed: 'right',
-    width: '100px',
-    align: 'center',
-    render: (_, record) => (
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-        <PermissionChecker permission={PERMISSIONS.IMPERSONATE}>
-          <Button
-            type="primary"
-            icon={<LogIn size={14} />}
-            onClick={() => impersonateLogin(record.id)}
-            loading={impersonateMutation.isPending}
-            disabled={mutationLoading || record?.status === "0" || record?.status === 0}
-            size="small"
-          />
-        </PermissionChecker>
-
-        <PermissionChecker permission={[PERMISSIONS.UPDATE_USER, PERMISSIONS.EDIT_USER]}>
-          <Tooltip title="Edit User">
-            <Button
-              type="default"
-              icon={<Settings size={14} />}
-              onClick={() => navigate(`/users/edit/${record.id}`)}
-              size="small"
-              disabled={mutationLoading}
-            />
-          </Tooltip>
-        </PermissionChecker>
-      </div>
-    ),
-  });
-
-  actionColumns.push({
     title: 'Delete',
     key: 'delete',
-    // fixed: 'right',
-    width: '80px',
+    width: '60px',
     align: 'center',
     render: (_, record) => (
       <PermissionChecker permission={PERMISSIONS.DELETE_USER}>
@@ -365,6 +330,40 @@ const Organizers = () => {
           />
         </Tooltip>
       </PermissionChecker>
+    ),
+  });
+
+  actionColumns.push({
+    title: 'Actions',
+    key: 'actions',
+    fixed: 'right',
+    width: '100px',
+    align: 'center',
+    render: (_, record) => (
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+        <PermissionChecker permission={[PERMISSIONS.UPDATE_USER, PERMISSIONS.EDIT_USER]}>
+          <Tooltip title="Edit User">
+            <Button
+              type="default"
+              icon={<Settings size={14} />}
+              onClick={() => navigate(`/users/edit/${record.id}`)}
+              size="small"
+              disabled={mutationLoading}
+            />
+          </Tooltip>
+        </PermissionChecker>
+
+        <PermissionChecker permission={PERMISSIONS.IMPERSONATE}>
+          <Button
+            type="primary"
+            icon={<LogIn size={14} />}
+            onClick={() => impersonateLogin(record.id)}
+            loading={impersonateMutation.isPending}
+            disabled={mutationLoading || record?.status === "0" || record?.status === 0}
+            size="small"
+          />
+        </PermissionChecker>
+      </div>
     ),
   });
 
@@ -390,6 +389,7 @@ const Organizers = () => {
             <Select
               placeholder="Select Role"
               value={selectedRole}
+              showSearch
               onChange={(value) => {
                 setSelectedRole(value);
                 setCurrentPage(1);

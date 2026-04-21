@@ -21,7 +21,6 @@ const toBooleanValue = (checked) => Boolean(checked);
 
 const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layouts, eventLayoutId, eventId, venue_id, eventHasAttendee, onSaveControls, stallId }) => {
 
-  const { userRole } = useMyContext();
   const [isLayoutModalVisible, setIsLayoutModalVisible] = useState(false);
   const [modalLayouts, setModalLayouts] = useState(null);
   const [modalEventLayoutId, setModalEventLayoutId] = useState(null);
@@ -39,7 +38,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
   const attendeeRequired = Form.useWatch('attendee_required', form);
   const isAttendeeRequired = toBoolean(attendeeRequired);
 
-  // Get categoryId from form - 'category' field is set in both BasicDetails and Controls steps
+  // Watch categoryId from form - 'category' field is set in both BasicDetails and Controls steps
   const categoryId = Form.useWatch('category', form);
 
   // Fetch category details whenever categoryId is available (not dependent on switch)
@@ -382,78 +381,147 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
 
       {/* Switch Section - Grouped */}
 
-      {/* Group 1: Booking Channels */}
-      <Card size="small" title="Booking Channels" style={{ marginBottom: 16 }}>
-        <Row gutter={ROW_GUTTER}>
-          {[
-            {
-              name: "online_booking",
-              label: "Online",
-              tooltip: "Allow online ticket bookings",
-              defaultValue: true,
-            },
-            {
-              name: "agent_booking",
-              label: "Agent",
-              tooltip: "Allow agent ticket bookings",
-              defaultValue: true,
-            },
-            {
-              name: "pos_booking",
-              label: "POS",
-              tooltip: "Allow POS ticket bookings",
-              defaultValue: true,
-            },
-            {
-              name: "complimentary_booking",
-              label: "Complimentary",
-              tooltip: "Allow complimentary ticket bookings",
-              defaultValue: true,
-            },
-            {
-              name: "sponsor_booking",
-              label: "Sponsor",
-              tooltip: "Allow sponsor ticket bookings",
-              defaultValue: true,
-            },
-          ].map((f) => (
-            <Col xs={24} sm={12} lg={4} key={f.name}>
-              <Form.Item noStyle shouldUpdate={(prev, curr) => prev.is_cancelled !== curr.is_cancelled}>
-                {({ getFieldValue }) => {
-                  const isCancelled = toBoolean(getFieldValue('is_cancelled'));
+      {/* Row 1: Booking Channels + Display Settings */}
+      <Row gutter={[ROW_GUTTER, 26]} align="stretch" style={{ marginBottom: 16 }}>
+        <Col xs={24} xl={12}>
+          <Card size="small" title="Booking Channels" style={{ height: '100%' }}>
+            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.is_cancelled !== curr.is_cancelled}>
+              {({ getFieldValue }) => {
+                const isCancelled = toBoolean(getFieldValue('is_cancelled'));
 
-                  return (
-                    <Form.Item
-                      name={f.name}
-                      label={f.label}
-                      tooltip={isCancelled ? "Event is cancelled" : f.tooltip}
-                      valuePropName="checked"
-                      getValueProps={(v) => ({ checked: toBoolean(v) })}
-                      getValueFromEvent={toBooleanValue}
-                      initialValue={f.defaultValue ?? false}
-                    >
-                      <Switch
-                        disabled={isCancelled}
-                        checkedChildren="Yes"
-                        unCheckedChildren="No"
-                        onChange={(checked) => {
-                          // Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
-                          if (f.name === 'online_booking' && !checked) {
-                            form.setFieldValue('event_feature', false);
-                            form.setFieldValue('show_on_home', false);
-                          }
-                        }}
-                      />
-                    </Form.Item>
-                  );
-                }}
-              </Form.Item>
-            </Col>
-          ))}
-        </Row>
-      </Card>
+                return (
+                  <Row gutter={ROW_GUTTER}>
+                    {[
+                      {
+                        name: "online_booking",
+                        label: "Online",
+                        tooltip: "Allow online ticket bookings",
+                        defaultValue: true,
+                      },
+                      {
+                        name: "agent_booking",
+                        label: "Agent",
+                        tooltip: "Allow agent ticket bookings",
+                        defaultValue: true,
+                      },
+                      {
+                        name: "pos_booking",
+                        label: "POS",
+                        tooltip: "Allow POS ticket bookings",
+                        defaultValue: true,
+                      },
+                      {
+                        name: "complimentary_booking",
+                        label: "Complimentary",
+                        tooltip: "Allow complimentary ticket bookings",
+                        defaultValue: true,
+                      },
+                      {
+                        name: "sponsor_booking",
+                        label: "Sponsor",
+                        tooltip: "Allow sponsor ticket bookings",
+                        defaultValue: true,
+                      },
+                    ].map((f) => (
+                      <Col xs={12} sm={6} lg={4} key={f.name}>
+                        <Form.Item
+                          name={f.name}
+                          label={f.label}
+                          tooltip={isCancelled ? "Event is cancelled" : f.tooltip}
+                          valuePropName="checked"
+                          getValueProps={(v) => ({ checked: toBoolean(v) })}
+                          getValueFromEvent={toBooleanValue}
+                          initialValue={f.defaultValue ?? false}
+                        >
+                          <Switch
+                            disabled={isCancelled}
+                            checkedChildren="Yes"
+                            unCheckedChildren="No"
+                            onChange={(checked) => {
+                              // 1. Update the switch's own value instantly
+                              form.setFieldValue(f.name, checked);
 
-      {/* Group 2: Event Status */}
+                              // 2. Dependency: If online_booking is turned OFF, turn off event_feature and show_on_home too
+                              if (f.name === 'online_booking' && !checked) {
+                                form.setFieldValue('event_feature', false);
+                                form.setFieldValue('show_on_home', false);
+                              }
+                            }}
+                          />
+                        </Form.Item>
+                      </Col>
+                    ))}
+                  </Row>
+                );
+              }}
+            </Form.Item>
+          </Card>
+        </Col>
+
+        {/* Display Settings */}
+        <Col xs={24} xl={12} className="mt-10 mt-xl-0">
+          <Card size="small" title="Display Settings" style={{ height: '100%' }}>
+            <Form.Item noStyle shouldUpdate={(prev, curr) =>
+              prev.online_booking !== curr.online_booking ||
+              prev.is_cancelled !== curr.is_cancelled
+            }>
+              {({ getFieldValue }) => {
+                const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
+                const isCancelled = toBoolean(getFieldValue('is_cancelled'));
+
+                return (
+                  <Row gutter={ROW_GUTTER}>
+                    {[
+                      { name: "show_on_home", label: "Display on Home" },
+                      { name: "online_att_sug", label: "Hide Online Att Sug" },
+                      { name: "offline_att_sug", label: "Hide Agent Att Sug" },
+                    ].map((f) => {
+                      // Disable show_on_home only if event is cancelled
+                      const isDisabled = (f.name === 'show_on_home' && isCancelled);
+
+                      const colContent = (
+                        <Col xs={12} md={8} key={f.name}>
+                          <Form.Item
+                            name={f.name}
+                            label={f.label}
+                            tooltip={isDisabled ? "Event is cancelled" : f.tooltip}
+                            valuePropName="checked"
+                            getValueProps={(v) => ({ checked: toBoolean(v) })}
+                            getValueFromEvent={toBooleanValue}
+                            initialValue={f.defaultValue ?? false}
+                          >
+                            <Switch
+                              disabled={isDisabled}
+                              checkedChildren="Yes"
+                              unCheckedChildren="No"
+                              onChange={(checked) => {
+                                form.setFieldValue(f.name, checked);
+
+                                // If Display on Home is turned ON, turn on Online Booking and turn off High Demand
+                                if (f.name === 'show_on_home' && checked) {
+                                  form.setFieldValue('online_booking', true);
+                                  form.setFieldValue('event_feature', false);
+                                }
+                              }}
+                            />
+                          </Form.Item>
+                        </Col>
+                      );
+
+                      if (f.name === 'show_on_home') {
+                        return <PermissionChecker role="Admin" key={f.name}>{colContent}</PermissionChecker>;
+                      }
+                      return colContent;
+                    })}
+                  </Row>
+                );
+              }}
+            </Form.Item>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Group 2: Event Settings */}
       <Card
         size="small"
         title="Event Settings"
@@ -475,151 +543,135 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
           </Form.Item>
         }
       >
-        <Row gutter={ROW_GUTTER}>
-          {[
-            {
-              name: "status",
-              label: "Event Status",
-              tooltip: "Enable or disable event",
-              onLabels: ["Active", "Inactive"],
-            },
-            {
-              name: "event_feature",
-              label: "High Demand",
-              tooltip: "Mark this event as high demand",
-            },
-            // {
-            //   name: "house_full",
-            //   label: "House Full",
-            //   tooltip: "Mark event as sold out",
-            // },
-            {
-              name: "is_sold_out",
-              label: "Sold Out",
-              tooltip: "Mark event as sold out",
-            },
-            {
-              name: "is_cancelled",
-              label: "Event Cancelled",
-              tooltip: "Mark event as cancelled",
-            },
-            {
-              name: "is_postponed",
-              label: "Event Postponed",
-              tooltip: "Mark event as postponed",
-            },
-            {
-              name: "is_approval_required",
-              label: "Approval Required",
-              tooltip: "Require admin approval for bookings",
-            },
-            {
-              name: "attendee_required",
-              label: "Attendee Required",
-              // onChange: (checked) => handleBookingTypeChange('attendee_required', checked),
-            },
-            {
-              name: "ticket_transfer",
-              label: "Ticket Transfer",
-              tooltip: "Allow users to transfer their tickets to others",
-            },
-            {
-              name: "use_preprinted_cards",
-              label: "Use Preprinted Cards",
-              tooltip: "Enable use of preprinted cards for this event",
-            },
-            {
-              name: "refund",
-              label: "Refund",
-              tooltip: "Allow refunds for this event",
-            },
-            {
-              name: "rating",
-              label: "Rating",
-              tooltip: "Allow users to rate this event",
-            },
-            {
-              name: "stall_layout",
-              label: "Stall Layout",
-              tooltip: "Enable or disable stall layout for this event",
-            },
-          ]
-            .map((f) => {
-              // Define mutually exclusive fields
-              const exclusiveFields = ['is_cancelled', 'is_sold_out', 'is_postponed'];
-              const isExclusive = exclusiveFields.includes(f.name);
+        <Form.Item noStyle shouldUpdate={(prev, curr) =>
+          prev.online_booking !== curr.online_booking ||
+          prev.is_cancelled !== curr.is_cancelled
+        }>
+          {({ getFieldValue }) => {
+            const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
+            const isCancelled = toBoolean(getFieldValue('is_cancelled'));
 
-              const colContent = (
-                <Col xs={24} sm={12} lg={4} key={f.name}>
-                  <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking}>
-                    {({ getFieldValue }) => {
-                      const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
+            return (
+              <Row gutter={ROW_GUTTER}>
+                {[
+                  {
+                    name: "status",
+                    label: "Event Status",
+                    tooltip: "Enable or disable event",
+                    onLabels: ["Active", "Inactive"],
+                  },
+                  {
+                    name: "event_feature",
+                    label: "High Demand",
+                    tooltip: "Mark this event as high demand",
+                  },
+                  {
+                    name: "is_sold_out",
+                    label: "Sold Out",
+                    tooltip: "Mark event as sold out",
+                  },
+                  {
+                    name: "is_cancelled",
+                    label: "Event Cancelled",
+                    tooltip: "Mark event as cancelled",
+                  },
+                  {
+                    name: "is_postponed",
+                    label: "Event Postponed",
+                    tooltip: "Mark event as postponed",
+                  },
+                  {
+                    name: "is_approval_required",
+                    label: "Approval Required",
+                    tooltip: "Require admin approval for bookings",
+                  },
+                  {
+                    name: "attendee_required",
+                    label: "Attendee Required",
+                  },
+                  {
+                    name: "ticket_transfer",
+                    label: "Ticket Transfer",
+                    tooltip: "Allow users to transfer their tickets to others",
+                  },
+                  {
+                    name: "use_preprinted_cards",
+                    label: "Use Preprinted Cards",
+                    tooltip: "Enable use of preprinted cards for this event",
+                  },
+                  {
+                    name: "refund",
+                    label: "Refund",
+                    tooltip: "Allow refunds for this event",
+                  },
+                  {
+                    name: "rating",
+                    label: "Rating",
+                    tooltip: "Allow users to rate this event",
+                  },
+                  {
+                    name: "stall_layout",
+                    label: "Stall Layout",
+                    tooltip: "Enable or disable stall layout for this event",
+                  },
+                ].map((f) => {
+                  // Define mutually exclusive fields
+                  const exclusiveFields = ['is_cancelled', 'is_sold_out', 'is_postponed'];
+                  const isExclusive = exclusiveFields.includes(f.name);
 
-                      // Disable event_feature if online_booking is false
-                      const isDisabled = f.name === 'event_feature' && !onlineBookingEnabled;
+                  // Disable event_feature if event is cancelled
+                  const isDisabled = f.name === 'event_feature' && isCancelled;
 
-                      return (
-                        <Form.Item
-                          name={f.name}
-                          label={f.label}
-                          tooltip={isDisabled ? "Online booking must be enabled" : f.tooltip}
-                          valuePropName="checked"
-                          getValueProps={(v) => ({ checked: toBoolean(v) })}
-                          getValueFromEvent={toBooleanValue}
-                          initialValue={f.defaultValue ?? false}
-                        >
-                          <Switch
-                            disabled={isDisabled}
-                            checkedChildren={f.onLabels?.[0] || "Yes"}
-                            unCheckedChildren={f.onLabels?.[1] || "No"}
-                            onChange={(checked) => {
-                              // If this is one of the exclusive fields and it's being turned ON
-                              if (isExclusive && checked) {
-                                // Turn off the other exclusive fields
-                                exclusiveFields.forEach((fieldName) => {
-                                  if (fieldName !== f.name) {
-                                    form.setFieldValue(fieldName, false);
-                                  }
-                                });
-                              }
+                  const colContent = (
+                    <Col xs={12} md={6} xl={4} key={f.name}>
+                      <Form.Item
+                        name={f.name}
+                        label={f.label}
+                        tooltip={isDisabled ? "Event is cancelled" : f.tooltip}
+                        valuePropName="checked"
+                        getValueProps={(v) => ({ checked: toBoolean(v) })}
+                        getValueFromEvent={toBooleanValue}
+                        initialValue={f.defaultValue ?? false}
+                      >
+                        <Switch
+                          disabled={isDisabled}
+                          checkedChildren={f.onLabels?.[0] || "Yes"}
+                          unCheckedChildren={f.onLabels?.[1] || "No"}
+                          onChange={(checked) => {
+                            // Update values instantly
+                            form.setFieldValue(f.name, checked);
 
-                              // When Event Cancelled is turned ON, turn off all appropriate switches
-                              if (f.name === 'is_cancelled' && checked) {
-                                const fieldsToTurnOff = [
-                                  'online_booking',
-                                  'agent_booking',
-                                  'pos_booking',
-                                  'complimentary_booking',
-                                  'sponsor_booking',
-                                  'status',
-                                  'house_full',
-                                  'show_on_home',
-                                  'event_feature'
-                                ];
+                            // If High Demand is turned ON, turn on Online Booking and turn off Display on Home
+                            if (f.name === 'event_feature' && checked) {
+                              form.setFieldValue('online_booking', true);
+                              form.setFieldValue('show_on_home', false);
+                            }
 
-                                fieldsToTurnOff.forEach((fieldName) => {
-                                  form.setFieldValue(fieldName, false);
-                                });
-                              }
-                            }}
-                          />
-                        </Form.Item>
-                      );
-                    }}
-                  </Form.Item>
-                </Col>
-              );
+                            if (isExclusive && checked) {
+                              exclusiveFields.forEach((fieldName) => {
+                                if (fieldName !== f.name) form.setFieldValue(fieldName, false);
+                              });
+                            }
 
-              if (f.name === 'event_feature') {
-                return (
-                  <PermissionChecker role="Admin" key={f.name}>
-                    {colContent}
-                  </PermissionChecker>
-                );
-              }
-              return colContent;
-            })}
-        </Row>
+                            if (f.name === 'is_cancelled' && checked) {
+                              const fieldsToTurnOff = ['online_booking', 'agent_booking', 'pos_booking', 'complimentary_booking', 'sponsor_booking', 'status', 'show_on_home', 'event_feature'];
+                              fieldsToTurnOff.forEach(name => form.setFieldValue(name, false));
+                            }
+                          }}
+                        />
+                      </Form.Item>
+                    </Col>
+                  );
+
+                  if (f.name === 'event_feature') {
+                    return <PermissionChecker role="Admin" key={f.name}>{colContent}</PermissionChecker>;
+                  }
+                  return colContent;
+                })}
+              </Row>
+            );
+          }}
+        </Form.Item>
         {/* Expected Date - Only show when event is postponed */}
         <Form.Item noStyle shouldUpdate={(prev, curr) => prev.is_postponed !== curr.is_postponed}>
           {({ getFieldValue }) => {
@@ -669,283 +721,234 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
             ) : null;
           }}
         </Form.Item>
-      </Card>
-      {/* Group 3: Display Settings + Ticket Settings — side by side */}
-      <Row gutter={ROW_GUTTER} align="stretch">
-        {/* Display Settings — 50% */}
-        <Col xs={24} md={12}>
-          <Card size="small" title="Display Settings" style={{ marginBottom: 16, height: '100%' }}>
-            <Row gutter={ROW_GUTTER}>
-              {[
-                { name: "show_on_home", label: "Display on Home" },
-                {
-                  name: "online_att_sug",
-                  label: "Hide Online Att Sug",
-                },
-                {
-                  name: "offline_att_sug",
-                  label: "Hide Agent Att Sug",
-                },
-              ].map((f) => {
-                const colContent = (
-                  <Col xs={24} sm={12} lg={8} key={f.name}>
-                    <Form.Item noStyle shouldUpdate={(prev, curr) => prev.online_booking !== curr.online_booking || prev.is_cancelled !== curr.is_cancelled}>
-                      {({ getFieldValue }) => {
-                        const onlineBookingEnabled = toBoolean(getFieldValue('online_booking'));
-                        const isCancelled = toBoolean(getFieldValue('is_cancelled'));
-
-                        // Disable show_on_home if online_booking is false or event is cancelled
-                        const isDisabled = (f.name === 'show_on_home' && (!onlineBookingEnabled || isCancelled));
-
-                        return (
-                          <Form.Item
-                            name={f.name}
-                            label={f.label}
-                            tooltip={isDisabled ? (isCancelled ? "Event is cancelled" : "Online booking is disabled") : f.tooltip}
-                            valuePropName="checked"
-                            getValueProps={(v) => ({ checked: toBoolean(v) })}
-                            getValueFromEvent={toBooleanValue}
-                            initialValue={f.defaultValue ?? false}
-                          >
-                            <Switch
-                              disabled={isDisabled}
-                              checkedChildren="Yes"
-                              unCheckedChildren="No"
-                            />
-                          </Form.Item>
-                        );
-                      }}
-                    </Form.Item>
-                  </Col>
-                );
-
-                if (f.name === 'show_on_home') {
-                  return (
-                    <PermissionChecker role="Admin" key={f.name}>
-                      {colContent}
-                    </PermissionChecker>
-                  );
-                }
-                return colContent;
-              })}
-            </Row>
-          </Card>
-        </Col>
-
-        {/* Ticket Settings — 50% */}
-        <Col xs={24} md={12} className='mt-10 mt-sm-0'>
-          <Card
-            title="Ticket Settings"
-            style={{ marginBottom: 16, height: '100%' }}
-            extra={
-              <Form.Item shouldUpdate noStyle>
-                {() => {
-                  const bookingBySeatValue = form.getFieldValue("bookingBySeat");
-                  return toBoolean(bookingBySeatValue) ? (
-                    <Button type="primary" onClick={handleManageLayoutClick} size="small" loading={savingControls}>
-                      Seating Layout
-                    </Button>
-                  ) : null;
-                }}
-              </Form.Item>
-            }
-          >
-            <Row gutter={ROW_GUTTER}>
-              {switchFields.map((f) => (
-                <Col xs={24} sm={12} lg={8} key={f.name}>
-                  <Form.Item
-                    name={f.name}
-                    label={f.label}
-                    tooltip={f.tooltip}
-                    valuePropName="checked"
-                    getValueProps={(v) => ({ checked: toBoolean(v) })}
-                    getValueFromEvent={f.onChange || toBooleanValue}
-                    initialValue={f.initialValue}
-                  >
-                    <Switch checkedChildren="Yes" unCheckedChildren="No" />
-                  </Form.Item>
-                </Col>
-              ))}
-
-              {/* Multi-Scan Master Switch */}
-              <Col xs={24} sm={12} lg={8}>
-                <Form.Item
-                  name="multi_scan"
-                  label="Enable Multi-Scan"
-                  tooltip="Allow multiple scans for different checkpoints"
-                  valuePropName="checked"
-                  getValueProps={(v) => ({ checked: toBoolean(v) })}
-                  getValueFromEvent={toBooleanValue}
-                  initialValue={false}
+        {/* Attendee Fields Section - Show when attendee_required is ON and category has no fields */}
+        {
+          shouldShowSelectFields && (
+            <Card
+              size="small"
+              title={
+                <Space>
+                  <span>Attendee Fields</span>
+                  {categoryDetailsLoading && <Tag>Loading...</Tag>}
+                </Space>
+              }
+              extra={
+                <Button
+                  type="primary"
+                  icon={selectedFieldIds.length > 0 ? <EditOutlined /> : <PlusOutlined />}
+                  onClick={() => setSelectFieldsModalOpen(true)}
+                  size="small"
                 >
-                  <Switch
-                    checkedChildren="Yes"
-                    unCheckedChildren="No"
-                    onChange={(checked) => {
-                      // Clear checkpoints if multi-scan is disabled
-                      if (!checked) {
-                        form.setFieldsValues({
-                          checkpoint_mode: false,
-                          checkpoints: [],
-                        });
-                      }
-                    }}
-                  />
-                </Form.Item>
-              </Col>
+                  {selectedFieldIds.length > 0 ? 'Edit Fields' : 'Add Fields'}
+                </Button>
+              }
+              className="border-secondary mt-3"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
+              headStyle={{ borderBottom: '1px solid #303030' }}
+            >
+              {/* Show selected fields */}
+              {selectedFieldIds.length > 0 ? (
+                <div className="d-flex flex-wrap gap-2">
+                  {selectedFieldsData.map((field) => (
+                    <div key={field.id} className="d-flex align-items-center gap-2">
+                      <Tag
+                        color="green"
+                        closable
+                        onClose={() => handleRemoveField(field.id)}
+                        className="py-1 px-2 m-0"
+                      >
+                        {field.lable || field.field_name}
+                      </Tag>
+                      {fieldNotes[field.id] && (
+                        <span className="text-muted small fst-italic">
+                          — {fieldNotes[field.id]}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty
+                  description="No attendee fields selected"
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  imageStyle={{ height: 40 }}
+                  style={{ margin: 0 }}
+                >
+                  <Button
+                    type="primary"
+                    icon={<PlusOutlined />}
+                    onClick={() => setSelectFieldsModalOpen(true)}
+                  >
+                    Add Attendee Fields
+                  </Button>
+                </Empty>
+              )}
 
-              {/* Sequential Mode Switch - only show when multi_scan is ON */}
-              <Form.Item noStyle shouldUpdate={(prev, curr) => prev.multi_scan !== curr.multi_scan}>
-                {({ getFieldValue }) => {
-                  const isMultiScanEnabled = toBoolean(getFieldValue('multi_scan'));
-
-                  return isMultiScanEnabled ? (
-                    <>
-                      <Col xs={24} sm={12} lg={8}>
-                        <Form.Item
-                          name="checkpoint_mode"
-                          label="Checkpoint Mode"
-                          tooltip="Enable sequential checkpoint validation with time slots"
-                          valuePropName="checked"
-                          getValueProps={(v) => ({ checked: toBoolean(v) })}
-                          getValueFromEvent={toBooleanValue}
-                          initialValue={false}
-                        >
-                          <Switch
-                            checkedChildren="Yes"
-                            unCheckedChildren="No"
-                            onChange={(checked) => {
-                              // Initialize checkpoints when turning on
-                              if (checked) {
-                                const currentCheckpoints = getFieldValue('checkpoints');
-                                if (!currentCheckpoints || currentCheckpoints.length === 0) {
-                                  form.setFieldsValues({
-                                    checkpoints: [{ label: 'Entry', start_time: null, end_time: null }],
-                                  });
-                                }
-                              }
-                            }}
-                          />
-                        </Form.Item>
-                      </Col>
-
-                      {/* Scan Count - only show when multi_scan is ON but checkpoint_mode is OFF */}
-                      <Form.Item noStyle shouldUpdate={(prev, curr) => prev.checkpoint_mode !== curr.checkpoint_mode}>
-                        {({ getFieldValue: gfv }) => {
-                          const isSequential = toBoolean(gfv('checkpoint_mode'));
-
-                          return !isSequential ? (
-                            <Col xs={24} sm={12}>
-                              <Form.Item
-                                name="max_scan_count"
-                                label="Scan Count"
-                                tooltip="Number of times a ticket can be scanned"
-                                rules={[
-                                  { required: true, message: 'Please enter scan count' },
-                                  { type: 'number', min: 1, message: 'Must be at least 1' },
-                                ]}
-                                initialValue={1}
-                              >
-                                <InputNumber
-                                  min={1}
-                                  style={{ width: '100%' }}
-                                  placeholder="Enter scan count"
-                                />
-                              </Form.Item>
-                            </Col>
-                          ) : null;
-                        }}
-                      </Form.Item>
-                    </>
-                  ) : null;
-                }}
+              {/* Hidden form field for attendee_fields payload */}
+              <Form.Item name="attendee_fields" hidden>
+                <input />
               </Form.Item>
-            </Row>
+            </Card>
+          )
+        }
+      </Card>
 
-            {/* Checkpoint List - only show when both multi_scan AND checkpoint_mode are ON */}
-          </Card>
-          <Form.Item noStyle shouldUpdate={(prev, curr) =>
-            prev.multi_scan !== curr.multi_scan ||
-            prev.checkpoint_mode !== curr.checkpoint_mode
-          }>
-            {({ getFieldValue }) => {
-              const isMultiScanEnabled = toBoolean(getFieldValue('multi_scan'));
-              const isSequential = toBoolean(getFieldValue('checkpoint_mode'));
-
-              return isMultiScanEnabled && isSequential ? (
-                <MultiScanCheckpoints form={form} />
+      {/* Ticket Settings */}
+      <Card
+        title="Ticket Settings"
+        style={{ marginBottom: 16 }}
+        extra={
+          <Form.Item shouldUpdate noStyle>
+            {() => {
+              const bookingBySeatValue = form.getFieldValue("bookingBySeat");
+              return toBoolean(bookingBySeatValue) ? (
+                <Button type="primary" onClick={handleManageLayoutClick} size="small" loading={savingControls}>
+                  Seating Layout
+                </Button>
               ) : null;
             }}
           </Form.Item>
-        </Col>
-      </Row>
-
-      {/* Attendee Fields Section - Show when attendee_required is ON and category has no fields */}
-      {
-        shouldShowSelectFields && (
-          <Card
-            size="small"
-            title={
-              <Space>
-                <span>Attendee Fields</span>
-                {categoryDetailsLoading && <Tag>Loading...</Tag>}
-              </Space>
-            }
-            extra={
-              <Button
-                type="primary"
-                icon={selectedFieldIds.length > 0 ? <EditOutlined /> : <PlusOutlined />}
-                onClick={() => setSelectFieldsModalOpen(true)}
-                size="small"
+        }
+      >
+        <Row gutter={ROW_GUTTER}>
+          {switchFields.map((f) => (
+            <Col xs={12} md={6} xl={4} key={f.name}>
+              <Form.Item
+                name={f.name}
+                label={f.label}
+                tooltip={f.tooltip}
+                valuePropName="checked"
+                getValueProps={(v) => ({ checked: toBoolean(v) })}
+                getValueFromEvent={f.onChange || toBooleanValue}
+                initialValue={f.initialValue}
               >
-                {selectedFieldIds.length > 0 ? 'Edit Fields' : 'Add Fields'}
-              </Button>
-            }
-            style={{ marginTop: 16 }}
-          >
-            {/* Show selected fields */}
-            {selectedFieldIds.length > 0 ? (
-              <div className="d-flex flex-wrap gap-2">
-                {selectedFieldsData.map((field) => (
-                  <div key={field.id} className="d-flex align-items-center gap-2">
-                    <Tag
-                      color="green"
-                      closable
-                      onClose={() => handleRemoveField(field.id)}
-                      className="py-1 px-2 m-0"
-                    >
-                      {field.lable || field.field_name}
-                    </Tag>
-                    {fieldNotes[field.id] && (
-                      <span className="text-muted small fst-italic">
-                        — {fieldNotes[field.id]}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <Empty
-                description="No attendee fields selected"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-              >
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => setSelectFieldsModalOpen(true)}
-                >
-                  Add Attendee Fields
-                </Button>
-              </Empty>
-            )}
+                <Switch checkedChildren="Yes" unCheckedChildren="No" />
+              </Form.Item>
+            </Col>
+          ))}
 
-            {/* Hidden form field for attendee_fields payload */}
-            <Form.Item name="attendee_fields" hidden>
-              <input />
+          {/* Multi-Scan Master Switch */}
+          <Col xs={12} md={6} xl={4}>
+            <Form.Item
+              name="multi_scan"
+              label="Enable Multi-Scan"
+              tooltip="Allow multiple scans for different checkpoints"
+              valuePropName="checked"
+              getValueProps={(v) => ({ checked: toBoolean(v) })}
+              getValueFromEvent={toBooleanValue}
+              initialValue={false}
+            >
+              <Switch
+                checkedChildren="Yes"
+                unCheckedChildren="No"
+                onChange={(checked) => {
+                  // Update the switch's own value
+                  form.setFieldValue('multi_scan', checked);
+
+                  // If Multi-Scan is turned ON, turn on Online Booking too
+                  if (checked) {
+                    form.setFieldValue('online_booking', true);
+                  }
+
+                  // Clear checkpoints if multi-scan is disabled
+                  if (!checked) {
+                    form.setFieldsValues({
+                      checkpoint_mode: false,
+                      checkpoints: [],
+                    });
+                  }
+                }}
+              />
             </Form.Item>
-          </Card>
-        )
-      }
+          </Col>
+
+          {/* Sequential Mode Switch - only show when multi_scan is ON */}
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.multi_scan !== curr.multi_scan}>
+            {({ getFieldValue }) => {
+              const isMultiScanEnabled = toBoolean(getFieldValue('multi_scan'));
+
+              return isMultiScanEnabled ? (
+                <>
+                  <Col xs={12} md={6} xl={4}>
+                    <Form.Item
+                      name="checkpoint_mode"
+                      label="Checkpoint Mode"
+                      tooltip="Enable sequential checkpoint validation with time slots"
+                      valuePropName="checked"
+                      getValueProps={(v) => ({ checked: toBoolean(v) })}
+                      getValueFromEvent={toBooleanValue}
+                      initialValue={false}
+                    >
+                      <Switch
+                        checkedChildren="Yes"
+                        unCheckedChildren="No"
+                        onChange={(checked) => {
+                          // Initialize checkpoints when turning on
+                          if (checked) {
+                            const currentCheckpoints = getFieldValue('checkpoints');
+                            if (!currentCheckpoints || currentCheckpoints.length === 0) {
+                              form.setFieldsValues({
+                                checkpoints: [{ label: 'Entry', start_time: null, end_time: null }],
+                              });
+                            }
+                          }
+                        }}
+                      />
+                    </Form.Item>
+                  </Col>
+
+                  {/* Scan Count - only show when multi_scan is ON but checkpoint_mode is OFF */}
+                  <Form.Item noStyle shouldUpdate={(prev, curr) => prev.checkpoint_mode !== curr.checkpoint_mode}>
+                    {({ getFieldValue: gfv }) => {
+                      const isSequential = toBoolean(gfv('checkpoint_mode'));
+
+                      return !isSequential ? (
+                        <Col xs={24} sm={12} md={6} lg={4}>
+                          <Form.Item
+                            name="max_scan_count"
+                            label="Scan Count"
+                            tooltip="Number of times a ticket can be scanned"
+                            rules={[
+                              { required: true, message: 'Please enter scan count' },
+                              { type: 'number', min: 1, message: 'Must be at least 1' },
+                            ]}
+                            initialValue={1}
+                          >
+                            <InputNumber
+                              min={1}
+                              style={{ width: '100%' }}
+                              placeholder="Enter scan count"
+                            />
+                          </Form.Item>
+                        </Col>
+                      ) : null;
+                    }}
+                  </Form.Item>
+                </>
+              ) : null;
+            }}
+          </Form.Item>
+        </Row>
+
+        {/* Checkpoint List - only show when both multi_scan AND checkpoint_mode are ON */}
+        <Form.Item noStyle shouldUpdate={(prev, curr) =>
+          prev.multi_scan !== curr.multi_scan ||
+          prev.checkpoint_mode !== curr.checkpoint_mode
+        }>
+          {({ getFieldValue }) => {
+            const isMultiScanEnabled = toBoolean(getFieldValue('multi_scan'));
+            const isSequential = toBoolean(getFieldValue('checkpoint_mode'));
+
+            return isMultiScanEnabled && isSequential ? (
+              <div>
+                <MultiScanCheckpoints form={form} />
+              </div>
+            ) : null;
+          }}
+        </Form.Item>
+      </Card>
+
+
 
       {/* Select Fields Drawer for Attendee Fields */}
       <SelectFields
@@ -993,7 +996,7 @@ const EventControlsStep = ({ form, orgId, id, contentList, contentLoading, layou
           }}
         />
       </Modal>
-    </Space>
+    </Space >
   );
 };
 

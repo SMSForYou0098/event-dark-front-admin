@@ -338,7 +338,7 @@ const OnlineBookings = memo(({ type, seatingChartBooking = false, isRefund = fal
       title: "#",
       dataIndex: "id",
       key: "index",
-      width: 50,
+      width: "50px",
       align: "center",
       render: (_, __, index) => index + 1,
     },
