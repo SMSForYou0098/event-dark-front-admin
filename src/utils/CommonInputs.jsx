@@ -5,6 +5,14 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { ORGANIZER_ALLOWED_ROLES } from "./consts";
 
+// Common dropdown renderer to prevent clipping at the bottom
+export const renderDropdownWithPadding = (menu) => (
+    <>
+        {menu}
+        <div style={{ paddingBottom: '1px' }} />
+    </>
+);
+
 export const OrganisationList = ({ onChange, disabled, label = "Organization", name = "org_id", rules, value, selectProps = {}, formItemProps = {} }) => {
     const { data: users = [], isLoading } = useQuery({
         queryKey: ["users-list"],
@@ -36,11 +44,7 @@ export const OrganisationList = ({ onChange, disabled, label = "Organization", n
                 optionFilterProp="label"
                 onChange={onChange}
                 value={value}
-                onInputKeyDown={(e) => {
-                    if (e.key.length === 1 && !/^[a-zA-Z\s]+$/.test(e.key)) {
-                        e.preventDefault();
-                    }
-                }}
+                dropdownRender={renderDropdownWithPadding}
                 {...selectProps}
             />
         </Form.Item>
@@ -126,11 +130,7 @@ export const RoleSelect = ({
                     value={value}
                     showSearch
                     optionFilterProp="label"
-                    onInputKeyDown={(e) => {
-                        if (e.key.length === 1 && !/^[a-zA-Z\s]+$/.test(e.key)) {
-                            e.preventDefault();
-                        }
-                    }}
+                    dropdownRender={renderDropdownWithPadding}
                     {...selectProps}
                 />
             </Form.Item>
@@ -220,6 +220,7 @@ export const OrgEventList = ({
                 optionFilterProp="label"
                 onChange={onChange}
                 value={value}
+                dropdownRender={renderDropdownWithPadding}
                 {...selectProps}
             />
         </Form.Item>

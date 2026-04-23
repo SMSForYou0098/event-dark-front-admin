@@ -641,7 +641,8 @@ const stallManagementNav = {
   icon: ShopOutlined,
   breadcrumb: false,
   submenu: stallManagementSubmenu,
-  roles: ["Admin", "Organizer"]
+  roles: ["Admin", "Organizer"],
+  permissions: [PERMISSIONS.VIEW_STALL_APPLICATIONS]
 };
 
 // Scan Submenu
@@ -711,7 +712,7 @@ const salesOperationsSubmenu = [
     icon: MailOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"],
+    roles: ["Admin", "Organizer"],
     permissions: [PERMISSIONS.VIEW_USER_INQUIRIES]
   },
   {
@@ -721,7 +722,7 @@ const salesOperationsSubmenu = [
     icon: CheckOutlined,
     breadcrumb: false,
     submenu: [],
-    roles: ["Admin"],
+    roles: ["Admin", "Organizer"],
     permissions: [PERMISSIONS.VIEW_APPROVE_REVIEWS]
   },
 ];
@@ -733,7 +734,10 @@ const salesOperationsNav = {
   icon: CommentOutlined,
   breadcrumb: false,
   submenu: salesOperationsSubmenu,
-  roles: ["Admin", "Organizer"]
+  roles: ["Admin", "Organizer"],
+  permissions: [
+    PERMISSIONS.VIEW_OPERATIONS_SUPPORT
+  ]
 };
 
 // Reporting Submenu

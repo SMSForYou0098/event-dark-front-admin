@@ -1,7 +1,6 @@
 export const PERMISSIONS = {
     // Dashboard
     VIEW_DASHBOARD: "View Dashboard",
-    VIEW_GLOBAL_REPORT: "View Global Report",
     VIEW_GATEWAY: "View Gateway",
     VIEW_INTIMATIONS: "View Intimations",
     VIEW_MEDIA: "View Media",
@@ -107,6 +106,7 @@ export const PERMISSIONS = {
 
 
     // Operations & Support
+    VIEW_OPERATIONS_SUPPORT: "View Operations Support",
     VIEW_BOX_OFFICE: "View Box Office",
     VIEW_USER_INQUIRIES: "View User Inquiries",
     VIEW_APPROVE_REVIEWS: "View Approve Reviews",
@@ -158,7 +158,9 @@ export const PERMISSIONS = {
     MANAGE_SEATING_LAYOUT_SECTIONS: "Manage Seating Layout Sections",
     UPDATE_SEATING_LAYOUT_SECTIONS: "Update Seating Layout Sections",
 
-
+    // Global report
+    VIEW_GLOBAL_REPORT: "View Global Report",
+    VIEW_GLOBAL_REPORT_PAYOUT: "View Global Report Payout",
 
 };
 

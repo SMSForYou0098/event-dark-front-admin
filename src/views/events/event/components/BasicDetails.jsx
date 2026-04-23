@@ -234,7 +234,6 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
             notFoundContent={catLoading ? "Loading..." : "No categories found"}
-            onInputKeyDown={(e) => VALIDATION_FUNCTIONS.preventSpecialCharsInSelect(e, /^[a-zA-Z0-9\s.-]+$/)}
           />
         </Form.Item>
       </Col>

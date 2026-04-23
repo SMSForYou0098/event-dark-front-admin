@@ -475,7 +475,7 @@ const EventList = ({ isJunk = false }) => {
         key: 'action',
         align: 'center',
         fixed: 'right',
-        width: 130,
+        width: 150,
         render: (_, row) => {
           if (isJunk) {
             // Only restore action in Action column for junk

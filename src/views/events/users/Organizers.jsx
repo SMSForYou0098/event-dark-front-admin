@@ -1,7 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import { Button, message, Image, Tooltip, Modal, Select } from 'antd';
 import { User, Mail, LogIn, PlusIcon, Settings, Trash2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMyContext } from '../../../Context/MyContextProvider';
 import DataTable from '../common/DataTable';
 import { authenticated, updateUser, logout } from '../../../store/slices/authSlice';
@@ -13,6 +13,7 @@ import PermissionChecker from 'layouts/PermissionChecker';
 import { withAccess } from '../common/withAccess';
 import Utils from 'utils';
 import { PERMISSIONS } from 'constants/PermissionConstant';
+import { renderDropdownWithPadding } from 'utils/CommonInputs';
 
 const Organizers = () => {
   const {
@@ -28,9 +29,15 @@ const Organizers = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [dateRange, setDateRange] = useState(null);
   const [error, setError] = useState(null);
-  const [selectedRole, setSelectedRole] = useState(userRole === 'Admin' ? 'Organizer' : 'POS');
+
+  // Initialize from URL search params or fallback to default
+  const defaultRole = userRole === 'Admin' ? 'Organizer' : 'POS';
+  const initialRole = searchParams.get('role') || defaultRole;
+
+  const [selectedRole, setSelectedRole] = useState(initialRole);
   const [mutationLoading, setMutationLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
@@ -393,8 +400,10 @@ const Organizers = () => {
               onChange={(value) => {
                 setSelectedRole(value);
                 setCurrentPage(1);
+                setSearchParams({ role: value });
               }}
               style={{ minWidth: 150 }}
+              dropdownRender={renderDropdownWithPadding}
             >
               {roles
                 .filter(role =>

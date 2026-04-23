@@ -174,7 +174,6 @@ export const VanueList = ({
             optionRender={renderOption}
             filterOption={handleFilter}
             notFoundContent={venueLoading ? <Spin size="small" /> : customNotFoundContent}
-            onInputKeyDown={(e) => VALIDATION_FUNCTIONS.preventSpecialCharsInSelect(e, /^[a-zA-Z0-9\s.-]+$/)}
             {...(!form && {
                 value: venueLoading ? undefined : (value ? String(value) : undefined),
                 onChange: handleChange

@@ -65,7 +65,7 @@ export const VALIDATION_REGEX = {
 export const VALIDATION_MESSAGES = {
     GST: 'Please enter a valid GST number (e.g., 22AAAAA0000A1Z5)',
     PAN: 'Please enter a valid PAN number (e.g., ABCDE1234F)',
-    MOBILE: 'Please enter a valid 10-digit mobile number',
+    MOBILE: 'Please enter a valid 10-digit phone number',
     PINCODE: 'Please enter a valid 6-digit pincode',
     EMAIL: 'Please enter a valid email address',
     NAME: 'Name must contain only letters and spaces',

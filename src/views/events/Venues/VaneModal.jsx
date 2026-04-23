@@ -261,13 +261,14 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                             <Form.Item
                                 label="Address"
                                 name="address"
+                                getValueFromEvent={(e) => e.target.value.replace(/,/g, '|')}
                                 rules={[
                                     { required: true, message: 'Please enter address' },
                                     ...VALIDATION_RULES.ADDRESS
                                 ]}
                             >
                                 <Input.TextArea
-                                    placeholder="Enter full address (use | instead of comma)"
+                                    placeholder="Enter full address"
                                 />
                             </Form.Item>
                         </Col>

@@ -24,7 +24,7 @@ export const TEXT_FIELDS = [
   {
     name: 'external_url',
     label: 'External URL',
-    span: { xs: 24, md: 12, lg: 8 },
+    span: { xs: 24, md: 12, lg: 6 },
     rules: [
       {
         type: 'url',
@@ -36,7 +36,7 @@ export const TEXT_FIELDS = [
   {
     name: 'media_url',
     label: 'Media URL (YouTube/Social)',
-    span: { xs: 24, md: 12, lg: 8 },
+    span: { xs: 24, md: 12, lg: 6 },
     rules: [
       {
         type: 'url',

@@ -106,6 +106,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
       form.setFieldsValue({
         banner_type: type,
         category: categoryId,
+        org_id: data.org_id ? String(data.org_id) : undefined,
         title: data.title,
         description: data.description,
         sub_description: data.sub_description,
@@ -428,14 +429,14 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
 
             {/* Organization Dropdown */}
             {bannerType === 'organization' && (
-              <Col xs={24} md={12} lg={8}>
+              <Col xs={24} md={12} lg={6}>
                 <OrganisationList onChange={handleOrgChange} />
               </Col>
             )}
 
             {/* Category Dropdown */}
             {showCategoryField && (
-              <Col xs={24} md={12} lg={8}>
+              <Col xs={24} md={12} lg={6}>
                 <Form.Item
                   label="Category"
                   name="category"
@@ -458,7 +459,7 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
 
             {/* Event Dropdown */}
             {showEventDropdown && (
-              <Col xs={24} md={12} lg={8}>
+              <Col xs={24} md={12} lg={6}>
                 <Form.Item
                   label="Event"
                   name="event_id"

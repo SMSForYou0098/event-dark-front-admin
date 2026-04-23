@@ -17,7 +17,7 @@ import {
   Trash2,
   PlusIcon,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMyContext } from "../../../Context/MyContextProvider";
 import DataTable from "../common/DataTable";
 import api from "auth/FetchInterceptor";
@@ -44,7 +44,15 @@ const Users = () => {
   } = useMyContext();
   const dispatch = useDispatch();
 
-  const [dateRange, setDateRange] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialStartDate = searchParams.get('startDate');
+  const initialEndDate = searchParams.get('endDate');
+
+  const [dateRange, setDateRange] = useState(
+    initialStartDate && initialEndDate 
+      ? { startDate: initialStartDate, endDate: initialEndDate } 
+      : null
+  );
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [mutationLoading, setMutationLoading] = useState(false);
 
@@ -246,15 +254,26 @@ const Users = () => {
   // Handle date range change
   const handleDateRangeChange = useCallback((dates) => {
     setCurrentPage(1); // Reset to first page on date change
-    setDateRange(
-      dates
-        ? {
+    const newRange = dates
+      ? {
           startDate: dates[0].format("YYYY-MM-DD"),
           endDate: dates[1].format("YYYY-MM-DD"),
         }
-        : null
-    );
-  }, []);
+      : null;
+    
+    setDateRange(newRange);
+
+    // Update URL params
+    const newParams = new URLSearchParams(searchParams);
+    if (newRange) {
+      newParams.set('startDate', newRange.startDate);
+      newParams.set('endDate', newRange.endDate);
+    } else {
+      newParams.delete('startDate');
+      newParams.delete('endDate');
+    }
+    setSearchParams(newParams);
+  }, [searchParams, setSearchParams]);
 
   // Handle pagination change (for backend pagination)
   const handlePaginationChange = useCallback((page, newPageSize) => {

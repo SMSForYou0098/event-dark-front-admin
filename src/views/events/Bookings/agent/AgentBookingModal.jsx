@@ -396,7 +396,10 @@ const AgentBookingModal = (props) => {
                       placeholder="Enter Address"
                       rows={2}
                       value={userDetails.address}
-                      onChange={(e) => setUserDetails(prev => ({ ...prev, address: e.target.value }))}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/,/g, '|');
+                        setUserDetails(prev => ({ ...prev, address: value }));
+                      }}
                       disabled={isExist && !isEditing}
                     />
                   </Form.Item>

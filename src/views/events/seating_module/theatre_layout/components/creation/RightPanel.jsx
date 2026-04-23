@@ -178,6 +178,33 @@ const RightPanel = (props) => {
 
   const isMultiSeatEdit = selectedType === 'seat' && selectedSeatIds.length > 1;
 
+  // Two separate sets for cross-type disabling:
+  //  - standingTicketIds: tickets used by Standing sections
+  //    → disabled in regular seat / row / section dropdowns
+  //  - seatingTicketIds: tickets used by regular seats
+  //    → disabled in Standing section dropdowns
+  // Seat-vs-seat and standing-vs-standing have NO restriction.
+  const { standingTicketIds, seatingTicketIds } = React.useMemo(() => {
+    const standing = new Set();
+    const seating = new Set();
+    sections.forEach(section => {
+      if (section.type === 'Standing') {
+        const id = section.ticketCategory || section.ticket?.id;
+        if (id) standing.add(String(id));
+      } else {
+        section.rows?.forEach(row => {
+          row.seats?.forEach(seat => {
+            if (seat.type !== 'blank') {
+              const id = seat.ticketCategory || seat.ticket?.id;
+              if (id) seating.add(String(id));
+            }
+          });
+        });
+      }
+    });
+    return { standingTicketIds: standing, seatingTicketIds: seating };
+  }, [sections]);
+
   return (
     <div className="right-panel bg-custom-secondary" style={{ minHeight: 'calc(100vh - 100px)', overflowX: 'hidden', overflowY: 'auto' }}>
       <div className="panel-header">
@@ -408,7 +435,7 @@ const RightPanel = (props) => {
                 </Form.Item>
               )}
 
-              {selectedElement.type !== 'Standing' && isAssignMode && ticketCategories?.length > 0 && (
+              {selectedElement.type !== 'Standing' && isAssignMode &&  (
                 <Form.Item
                   label="Assign Ticket to Entire Section"
                   extra="Applies to all rows and available seats. Gaps stay unassigned; unavailable seats are unchanged."
@@ -463,11 +490,19 @@ const RightPanel = (props) => {
                       option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
                     }
                   >
-                    {ticketCategories?.map((cat) => (
-                      <Option key={cat.id} value={String(cat.id)}>
-                        {cat.name} (₹{cat.price})
-                      </Option>
-                    ))}
+                    {ticketCategories?.map((cat) => {
+                      const catId = String(cat.id);
+                      const currentVal = selectedElement.ticketCategory
+                        ? String(selectedElement.ticketCategory)
+                        : selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined;
+                      // Regular section — disable tickets already used by Standing sections
+                      const isDisabled = standingTicketIds.has(catId) && catId !== currentVal;
+                      return (
+                        <Option key={cat.id} value={catId} label={`${cat.name} (₹${cat.price})`} disabled={isDisabled}>
+                          {cat.name} (₹{cat.price}){isDisabled ? ' (used in standing)' : ''}
+                        </Option>
+                      );
+                    })}
                   </Select>
                 </Form.Item>
               )}
@@ -476,7 +511,7 @@ const RightPanel = (props) => {
                 <>
 
 
-                  {isAssignMode && ticketCategories?.length > 0 && (
+                  {isAssignMode &&  (
                     <Form.Item label="Assign Ticket Category">
                       <Select
                         value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
@@ -487,31 +522,29 @@ const RightPanel = (props) => {
                         placeholder="Select a ticket category"
                         allowClear
                         showSearch
-                        optionFilterProp="children"
+                        optionFilterProp="label"
                         filterOption={(input, option) =>
-                          option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                          (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                         }
                       >
-                        {ticketCategories?.map(cat => (
-                          <Option key={cat.id} value={String(cat.id)}>
-                            {cat.name} (₹{cat.price})
-                          </Option>
-                        ))}
+                        {ticketCategories?.map(cat => {
+                          const catId = String(cat.id);
+                          const currentVal = selectedElement.ticketCategory
+                            ? String(selectedElement.ticketCategory)
+                            : selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined;
+                          // Standing section — disable tickets already used by regular seats
+                          const isDisabled = seatingTicketIds.has(catId) && catId !== currentVal;
+                          return (
+                            <Option key={cat.id} value={catId} label={`${cat.name} (₹${cat.price})`} disabled={isDisabled}>
+                              {cat.name} (₹{cat.price}){isDisabled ? ' (used in seating)' : ''}
+                            </Option>
+                          );
+                        })}
                       </Select>
                     </Form.Item>
                   )}
 
-                  <Form.Item label="Standing Capacity">
-                    <InputNumber
-                      min={1}
-                      style={{ width: '100%' }}
-                      value={selectedElement.capacity || 100}
-                      onChange={(value) => {
-                        updateSection(selectedElement.id, { capacity: value });
-                        setSelectedElement({ ...selectedElement, capacity: value });
-                      }}
-                    />
-                  </Form.Item>
+
 
                   <div className="p-3 bg-light rounded">
                     <div className="mb-1"><Text strong>Type:</Text> Standing</div>
@@ -678,7 +711,7 @@ const RightPanel = (props) => {
 
 
 
-              {isAssignMode && ticketCategories?.length > 0 && (
+              {isAssignMode &&  (
                 <Form.Item label="Assign Ticket Category to All Seats">
                   <Select
                     value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
@@ -728,16 +761,24 @@ const RightPanel = (props) => {
                     placeholder="Select a ticket category"
                     allowClear
                     showSearch
-                    optionFilterProp="children"
+                    optionFilterProp="label"
                     filterOption={(input, option) =>
-                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                      (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
                     }
                   >
-                    {ticketCategories?.map(cat => (
-                      <Option key={cat.id} value={String(cat.id)}>
-                        {cat.name} (₹{cat.price})
-                      </Option>
-                    ))}
+                    {ticketCategories?.map(cat => {
+                      const catId = String(cat.id);
+                      const currentVal = selectedElement.ticketCategory
+                        ? String(selectedElement.ticketCategory)
+                        : selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined;
+                      // Row (regular) — disable tickets already used by Standing sections
+                      const isDisabled = standingTicketIds.has(catId) && catId !== currentVal;
+                      return (
+                        <Option key={cat.id} value={catId} label={`${cat.name} (₹${cat.price})`} disabled={isDisabled}>
+                          {cat.name} (₹{cat.price}){isDisabled ? ' (used in standing)' : ''}
+                        </Option>
+                      );
+                    })}
                   </Select>
                 </Form.Item>
               )}
@@ -954,7 +995,7 @@ const RightPanel = (props) => {
                     />
                   </Form.Item>
 
-                  {isAssignMode && ticketCategories?.length > 0 && (
+                  {isAssignMode &&  (
                     <Form.Item label="Ticket Category (Bulk)">
                       <Select
                         placeholder="Apply ticket to selected seats"
@@ -967,11 +1008,16 @@ const RightPanel = (props) => {
                           });
                         }}
                       >
-                        {ticketCategories?.map(cat => (
-                          <Option key={cat.id} value={String(cat.id)}>
-                            {cat.name} (₹{cat.price})
-                          </Option>
-                        ))}
+                        {ticketCategories?.map(cat => {
+                          const catId = String(cat.id);
+                          // Multi-seat (regular seats) — disable tickets already used by Standing sections
+                          const isDisabled = standingTicketIds.has(catId);
+                          return (
+                            <Option key={cat.id} value={catId} label={`${cat.name} (₹${cat.price})`} disabled={isDisabled}>
+                              {cat.name} (₹{cat.price}){isDisabled ? ' (used in standing)' : ''}
+                            </Option>
+                          );
+                        })}
                       </Select>
                     </Form.Item>
                   )}
@@ -1065,7 +1111,7 @@ const RightPanel = (props) => {
                         )}
                       </Form.Item>
 
-                      {isAssignMode && ticketCategories?.length > 0 && (
+                      {isAssignMode &&  (
                         <>
                           <Form.Item label="Ticket Category">
                             <Select
@@ -1087,11 +1133,19 @@ const RightPanel = (props) => {
                                 });
                               }}
                             >
-                              {ticketCategories?.map(cat => (
-                                <Option key={cat.id} value={String(cat.id)}>
-                                  {cat.name} (₹{cat.price})
-                                </Option>
-                              ))}
+                              {ticketCategories?.map(cat => {
+                                const catId = String(cat.id);
+                                const currentVal = selectedElement.ticketCategory
+                                  ? String(selectedElement.ticketCategory)
+                                  : selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined;
+                                // Single seat (regular) — disable tickets already used by Standing sections
+                                const isDisabled = standingTicketIds.has(catId) && catId !== currentVal;
+                                return (
+                                  <Option key={cat.id} value={catId} label={`${cat.name} (₹${cat.price})`} disabled={isDisabled}>
+                                    {cat.name} (₹{cat.price}){isDisabled ? ' (used in standing)' : ''}
+                                  </Option>
+                                );
+                              })}
                             </Select>
                           </Form.Item>
                         </>

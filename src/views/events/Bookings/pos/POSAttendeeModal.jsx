@@ -3,6 +3,7 @@ import { Modal, Button, Form, Input, Radio, Space, Typography } from "antd";
 import { useMyContext } from "../../../../Context/MyContextProvider";
 import axios from "axios";
 import Utils from "../../../../utils";
+import { VALIDATION_RULES } from "constants/ValidationConstants";
 
 const { Text } = Typography;
 
@@ -166,10 +167,7 @@ const POSAttendeeModal = (props) => {
           <Form.Item
             name="name"
             label="Name"
-            rules={[
-              { required: true, message: 'Please enter name' },
-              { whitespace: true, message: 'Name cannot be empty' }
-            ]}
+            rules={VALIDATION_RULES.NAME}
           >
             <Input
               placeholder={isLoadingUser ? "Loading..." : "Enter Name"}

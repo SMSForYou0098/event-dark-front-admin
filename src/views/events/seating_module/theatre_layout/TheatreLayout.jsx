@@ -543,7 +543,7 @@ const AuditoriumLayoutDesigner = () => {
           id: generateId('row'),
           title: generateRowTitle(rowNumber),
           numberOfSeats: 10,
-          ticketCategory: ticketCategories?.length > 0 ? ticketCategories[0].id : null,
+          ticketCategory: null,
           seatColor: section.seatColor || PRIMARY,
           shape: 'straight',
           curve: 0,
@@ -631,7 +631,7 @@ const AuditoriumLayoutDesigner = () => {
         x,
         y,
         type: 'regular', // NEW: Seat type - 'regular' or 'blank'
-        ticketCategory: row.ticketCategory,
+        ticketCategory: null,
         status: 'available',
         radius: seatRadius,
         icon: row.defaultIcon || null, // NEW: Inherit row's default icon

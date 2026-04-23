@@ -1370,7 +1370,7 @@ const BookingSeatCanvas = ({
                 width: '100%',
                 height: '100%',
                 minHeight: dimensions.height,
-                backgroundColor: THEME.canvasBg,
+                // backgroundColor: THEME.canvasBg,
                 overflow: 'hidden',
                 touchAction: 'none',
                 position: 'relative',

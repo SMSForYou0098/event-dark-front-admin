@@ -17,6 +17,7 @@ import {
   ReloadOutlined,
   CloudUploadOutlined,
   FilterOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import Highlighter from "react-highlight-words";
 import dayjs from "dayjs";
@@ -386,60 +387,102 @@ const DataTable = ({
     : columns;
 
   // Desktop header controls
-  const renderDesktopHeaderControls = () => (
-    <Space wrap size="middle">
+  const renderDesktopHeaderControls = (hideExtra = false) => (
+    <div
+      style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '16px',
+        justifyContent: isMobile ? 'flex-start' : 'flex-end',
+        width: '100%'
+      }}
+    >
       {showSearch && (
-        <Input
-          placeholder={searchPlaceholder}
-          prefix={<SearchOutlined />}
-          value={displaySearchText}
-          onChange={(e) => handleGlobalSearch(e.target.value)}
-          allowClear
-          style={{ width: isTablet ? 200 : 250 }}
-        />
+        <div style={{ width: isMobile ? '100%' : 'auto' }}>
+          <Input
+            placeholder={searchPlaceholder}
+            prefix={<SearchOutlined />}
+            value={displaySearchText}
+            onChange={(e) => handleGlobalSearch(e.target.value)}
+            allowClear
+            style={{ width: isMobile ? '100%' : (isTablet ? 200 : 250) }}
+          />
+        </div>
       )}
       {showDateRange && (
-        <RangePicker
-          value={
-            dateRange
-              ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
-              : null
-          }
-          onChange={handleDateRangeChange}
-          format="YYYY-MM-DD"
-          placeholder={["Start Date", "End Date"]}
-          style={{ width: isTablet ? 240 : 280 }}
-          size={isTablet ? "small" : "middle"}
-        />
-      )}
-      {showRefresh && (
-        <Tooltip
-          title={countdown ? `Wait ${countdown}s to refresh` : "Refresh Data"}
-        >
-          <Button
-            type="primary"
-            onClick={handleRefreshWithCooldown}
-            disabled={loading || countdown !== null}
+        <div style={{ width: isMobile ? '100%' : 'auto' }}>
+          <RangePicker
+            value={
+              dateRange
+                ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
+                : null
+            }
+            onChange={handleDateRangeChange}
+            format="YYYY-MM-DD"
+            placeholder={["Start Date", "End Date"]}
+            style={{ width: isMobile ? '100%' : (isTablet ? 240 : 280), height: "40px" }}
             size={isTablet ? "small" : "middle"}
-          >
-            {loading ? <Spin size="small" /> : countdown || <ReloadOutlined />}
-          </Button>
-        </Tooltip>
-      )}
-      {enableExport && ExportPermission && exportRoute && (
-        <Tooltip title="Export Data">
-          <Button
-            type="primary"
-            icon={<CloudUploadOutlined />}
-            onClick={handleExport}
-            loading={exportLoading}
-            disabled={exportLoading}
-            size={isTablet ? "small" : "middle"}
+            allowClear={true}
+            clearIcon={<CloseOutlined />}
+            cellRender={(current, { originNode, type }) => {
+              // Only handle date cells
+              if (type !== 'date' || !dayjs.isDayjs(current)) return originNode;
+              const isToday = current.isSame(dayjs(), 'day');
+              if (!isToday) return originNode;
+
+              const isRangeStart = dateRange?.startDate
+                ? current.isSame(dayjs(dateRange.startDate), 'day')
+                : false;
+              const isRangeEnd = dateRange?.endDate
+                ? current.isSame(dayjs(dateRange.endDate), 'day')
+                : false;
+
+              // Force red selected background for today when it is a range endpoint
+              if (isRangeStart || isRangeEnd) {
+                return React.cloneElement(originNode, {
+                  style: {
+                    ...(originNode.props?.style || {}),
+                    backgroundColor: '#b51515',
+                    color: '#fff',
+                    borderRadius: '4px',
+                    border: 'none',
+                  },
+                });
+              }
+              return originNode;
+            }}
           />
-        </Tooltip>
+        </div>
       )}
-      {extraHeaderContent}
-    </Space>
+      <Space size="middle">
+        {showRefresh && (
+          <Tooltip
+            title={countdown ? `Wait ${countdown}s to refresh` : "Refresh Data"}
+          >
+            <Button
+              type="primary"
+              onClick={handleRefreshWithCooldown}
+              disabled={loading || countdown !== null}
+            >
+              {loading ? <Spin size="small" /> : countdown || <ReloadOutlined />}
+            </Button>
+          </Tooltip>
+        )}
+        {enableExport && ExportPermission && exportRoute && (
+          <Tooltip title="Export Data">
+            <Button
+              type="primary"
+              icon={<CloudUploadOutlined />}
+              onClick={handleExport}
+              loading={exportLoading}
+              disabled={exportLoading}
+
+            />
+          </Tooltip>
+        )}
+        {!hideExtra && extraHeaderContent}
+      </Space>
+    </div>
   );
 
   // Error display
@@ -480,29 +523,31 @@ const DataTable = ({
     <Card
       bordered={false}
       title={
-        <Flex flexDirection="column" gap={16} flexWrap="nowrap">
-          <Flex justifyContent="space-between" alignItems="center" width="100%">
-            <span className="font-weight-bold">{title}</span>
-            <div className="action">
-              <span className="d-block d-sm-none">
-                <Space size="small">
-                  {extraHeaderContent}
-                  <Button
-                    icon={<FilterOutlined />}
-                    type="text"
-                    onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
-                  />
-                </Space>
-              </span>
-              <span className="d-none d-sm-block">
-                {renderDesktopHeaderControls()}
-              </span>
-            </div>
+        <>
+          <Flex flexDirection="column" gap={16} flexWrap="nowrap">
+            <Flex justifyContent="space-between" alignItems="center" width="100%" flexWrap="wrap" gap={16}>
+              <span className="font-weight-bold">{title}</span>
+              <div className="action">
+                <span className="d-block d-sm-none">
+                  <Space size="small">
+                    {extraHeaderContent}
+                    <Button
+                      icon={<FilterOutlined />}
+                      type="text"
+                      onClick={() => setFilterDrawerVisible(!filterDrawerVisible)}
+                    />
+                  </Space>
+                </span>
+                <span className="d-none d-sm-block">
+                  {renderDesktopHeaderControls(false)}
+                </span>
+              </div>
+            </Flex>
+            <span className="d-block d-sm-none" style={{ width: '100%' }}>
+              {filterDrawerVisible && renderDesktopHeaderControls(true)}
+            </span>
           </Flex>
-          <span className="d-block d-sm-none">
-            {filterDrawerVisible && renderDesktopHeaderControls()}
-          </span>
-        </Flex>
+        </>
       }
     >
       <div className="table-responsive">
