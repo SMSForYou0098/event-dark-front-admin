@@ -35,7 +35,11 @@ export const paymentGatewayColumns = [
     title: 'Gateway',
     dataIndex: 'gateway',
     key: 'gateway',
-    render: (value) => value || '-',
+    // render: (value) => value || '-',
+     render: (value, record, index) => {
+      const truncated = value?.length > 6 ? value.slice(0, 6) + '..' : value;
+      return <Tag color={CHART_COLORS_ANTD[index % CHART_COLORS_ANTD.length]}>{capitalizeBookingType(truncated)}</Tag>;
+    },
   },
   {
     title: 'Bookings',

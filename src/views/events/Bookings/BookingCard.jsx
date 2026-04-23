@@ -260,8 +260,6 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
       {/* Right side actions */}
       {showAction && (
         <div className="d-flex justify-content-between align-items-center">
-
-
           <TicketActions
             onSendTickets={handleOpenTransferDrawer}
             item={booking}
@@ -292,6 +290,8 @@ const BookingCard = React.memo(({ booking, compact = false, showAction, isBoxOff
     </div>
   ), [
     menuItems,
+    id,
+    handleTicketPreview,
     onMenuClick,
     isBoxOffice,
     booking,

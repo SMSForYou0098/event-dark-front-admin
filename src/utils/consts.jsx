@@ -2,7 +2,7 @@ export const API_ENDPOINT_URL = process.env.REACT_APP_API_ENDPOINT_URL || 'http:
 export const USERSITE_URL = process.env.REACT_APP_USERSITE_URL || 'http://localhost:3000/';
 
 export const PRIMARY = '#b51515';
-export const SECONDARY = '#13c2c2';
+export const SECONDARY = '#0d0d0d';
 
 // Chart & UI Colors - Unified mapping for both ApexCharts (hex) and Ant Design Tag (color names)
 export const COLOR_MAP = {
