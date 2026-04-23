@@ -168,7 +168,7 @@ const EventHtmlExporter = ({
         title={`PDF Preview - ${eventData?.name || 'Event'}`}
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
-        width={1000}
+        width={'100vw'}
         footer={(
           <Space>
             <Button icon={<PrinterOutlined />} onClick={printPreview}>
