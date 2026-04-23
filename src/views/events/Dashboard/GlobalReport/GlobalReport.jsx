@@ -11,6 +11,7 @@ import ReportTables from './components/ReportTables';
 import EventWiseAccordion from './components/EventWiseAccordion';
 import { buildGlobalReportPayload, getChannelCardVisibility } from './utils/reportHelpers';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
+import usePermission from 'utils/hooks/usePermission';
 
 const { Title, Text } = Typography;
 
@@ -22,6 +23,8 @@ const GlobalReport = () => {
   const [submittedEventNames, setSubmittedEventNames] = useState([]);
   const [eventOptions, setEventOptions] = useState([]);
   const [layoutMode, setLayoutMode] = useState('balanced');
+  const canExportGlobalReport = usePermission(PERMISSIONS.VIEW_GLOBAL_REPORT);
+
 
   const { mutate: submitGlobalReport, isPending: isSubmitting } = useMutation({
     mutationFn: async (payload) => {
@@ -112,7 +115,7 @@ const GlobalReport = () => {
     submitGlobalReport(payload);
   };
 
-  const { showOfflineCard } = getChannelCardVisibility(submittedChannels);
+  const { showOnlineCard, showOfflineCard } = getChannelCardVisibility(submittedChannels);
   const hasEventWiseData = Array.isArray(reportData?.events) && reportData.events.length > 0;
   const selectedEventCount = submittedEventIds.length;
   const showEventWiseSplit = hasEventWiseData && selectedEventCount !== 1;
@@ -140,7 +143,7 @@ const GlobalReport = () => {
 
   return (
     <PermissionChecker permission={PERMISSIONS.VIEW_DASHBOARD}>
-      <div className="p-3">
+      <div>
         <Card
           title={
             <Title level={4} className="mb-0">
@@ -186,18 +189,18 @@ const GlobalReport = () => {
                     </Button.Group>
                   </Space>
                 )}
-              <Tooltip title={!filters.orgId ? 'Select organization first' : ''}>
-                <span>
-                  <Button
-                    type="primary"
-                    loading={isSubmitting}
-                    disabled={!filters.orgId}
-                    onClick={() => form.submit()}
-                  >
-                    Submit
-                  </Button>
-                </span>
-              </Tooltip>
+                <Tooltip title={!filters.orgId ? 'Select organization first' : ''}>
+                  <span>
+                    <Button
+                      type="primary"
+                      loading={isSubmitting}
+                      disabled={!filters.orgId}
+                      onClick={() => form.submit()}
+                    >
+                      Submit
+                    </Button>
+                  </span>
+                </Tooltip>
               </Space>
             </>
           }
@@ -346,6 +349,7 @@ const GlobalReport = () => {
               <Card
                 size="small"
                 title={"Report Summary & Details - " + selectedEventNamesText}
+
               >
                 {/* <Title level={5} className="mb-3">Report Result</Title> */}
 
@@ -363,6 +367,7 @@ const GlobalReport = () => {
                     <ReportTables
                       reportData={reportData}
                       showTickets={!showEventWiseSplit}
+                      showOnlinePaymentGateways={showOnlineCard}
                       showOfflineBookingType={showOfflineCard}
                     />
                   </>
@@ -375,6 +380,7 @@ const GlobalReport = () => {
                   <EventWiseAccordion
                     events={reportData?.events || []}
                     submittedChannels={submittedChannels}
+                    canExport={canExportGlobalReport}
                   />
                 </Card>
               </Col>

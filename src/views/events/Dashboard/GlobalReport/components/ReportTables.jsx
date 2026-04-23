@@ -1,9 +1,10 @@
 import React from 'react';
-import { Card, Col, Row, Table, Typography } from 'antd';
+import { Card, Col, Row, Table, Typography, Progress } from 'antd';
 import ChartComponent from 'components/shared-components/Chart/ChartComponent';
 import { bookingTypeColumns, paymentGatewayColumns, ticketColumns } from '../utils/reportColumns';
 import { formatCurrency, getBookingTypeRows, getUserWiseSales } from '../utils/reportHelpers';
-import { CHART_COLORS } from 'utils/consts';
+import { CHART_COLORS, PRIMARY } from 'utils/consts';
+import Flex from 'components/shared-components/Flex';
 
 const { Title } = Typography;
 
@@ -12,6 +13,7 @@ const ReportTables = ({
   showTickets = true,
   showOfflineBookingType = true,
   showOnlinePaymentGateways = true,
+  pdfMode = false,
 }) => {
   const bookingTypeRows = getBookingTypeRows(reportData);
   const { hasPayload: hasUserWiseSales, agentWiseSales, posWiseSales, sponsorWiseSales } = getUserWiseSales(reportData);
@@ -38,32 +40,61 @@ const ReportTables = ({
     };
   });
 
-  const ticketSummaryColumns = [
-    {
-      title: 'Ticket Name',
-      dataIndex: 'name',
-      key: 'name',
-    },
-    {
-      title: 'Total Bookings',
-      dataIndex: 'total_bookings',
-      key: 'total_bookings',
-      render: (value) => value ?? 0,
-    },
-    {
-      title: 'Total Tickets',
-      dataIndex: 'total_tickets',
-      key: 'total_tickets',
-      render: (value) => value ?? 0,
+const ticketSummaryColumns = [
+  {
+    title: 'Ticket Name',
+    dataIndex: 'name',
+    key: 'name',
+  },
+  {
+    title: 'Total Bookings',
+    dataIndex: 'total_bookings',
+    key: 'total_bookings',
+    render: (value) => value ?? 0,
+  },
+  {
+    title: 'Total Sold',
+    dataIndex: 'total_tickets',
+    key: 'total_tickets',
+    render: (value) => value ?? 0,
+  },
+  {
+    title: 'Total Tickets',
+    dataIndex: 'quantity',
+    key: 'quantity',
+    render: (value) => value ?? 0,
+  },
+  {
+    title: 'Sales',
+    dataIndex: 'total_amount',
+    key: 'total_amount',
+    render: (value, record) => {
+      const totalTicketsSold = record?.total_tickets || 0;
+      const totalQuantity = record?.quantity || 0;
+      const percentage = totalQuantity > 0
+        ? ((Number(totalTicketsSold) / totalQuantity) * 100).toFixed(1)
+        : 0;
 
+      return (
+        <Flex align="center" gap={8}>
+          <div style={{ flex: 1 }}>
+            <Progress
+             strokeColor={{
+              '0%': PRIMARY,
+              '100%': 'rgb(94, 17, 21)',
+              }}
+              type="line"
+              status="active"
+              percent={Math.min(parseFloat(percentage), 100)}
+              showInfo={false}
+            />
+          </div>
+          <span>{percentage}%</span>
+        </Flex>
+      );
     },
-    {
-      title: 'Total Amount',
-      dataIndex: 'total_amount',
-      key: 'total_amount',
-      render: (value) => formatCurrency(value),
-    },
-  ];
+  },
+];
 
   const ticketBookingColumns = [
     {
@@ -175,25 +206,40 @@ const ReportTables = ({
     visibleUserWiseSalesSections.length <= 1 ? 24 :
       visibleUserWiseSalesSections.length === 2 ? 12 : 8;
 
+  const channelColProps = pdfMode
+    ? { span: 12 }
+    : { xs: 24, md: 12, lg: 12 };
+
+  const userWiseColProps = pdfMode
+    ? { span: userWiseColLgSpan }
+    : { xs: 24, lg: userWiseColLgSpan };
+
   return (
     <>
       {visibleSectionCount > 0 && (
         <Card
+          data-pdf-section={pdfMode ? 'true' : undefined}
           size="small"
           className="bg-transparent"
           title="Sales by Source"
           extra={
-            <span>
-              Total {formatCurrency(reportData?.summary?.total_amount?.total || 0)}
+            <span className='fw-bold'>
+              {formatCurrency(reportData?.summary?.total_amount?.total || 0)}
             </span>
           }>
           <Row gutter={[16, 16]}>
             {/* Online Gateways */}
             {showOnlinePaymentGateways && (
-              <Col xs={24} md={12} lg={12}>
-                <Card size="small" title="Online Gateways" className="h-100">
+              <Col {...channelColProps}>
+                <Card size="small" title="Online Gateways"
+                  extra={
+                    <span className="fw-bold">
+                      {formatCurrency(reportData?.summary?.total_amount?.online || 0)}
+                      </span>
+                  }
+                >
                   <Row>
-                    <Col span={reportData?.payment_gateways?.length > 0 ? 18 : 24}>
+                    <Col lg={reportData?.payment_gateways?.length > 0 ? 18 : 24}>
                       <Table
                         size="small"
                         rowKey={(record, index) => `${record?.gateway || 'gateway'}-${index}`}
@@ -203,7 +249,7 @@ const ReportTables = ({
                         locale={{ emptyText: 'No payment gateway data' }}
                       />
                     </Col>
-                    <Col span={6}>
+                    <Col lg={6} xs={24}>
                       {Array.isArray(reportData?.payment_gateways) && reportData?.payment_gateways.length > 0 && (
                         <div>
                           <ChartComponent
@@ -224,10 +270,16 @@ const ReportTables = ({
 
             {/* Offline Types */}
             {showOfflineBookingType && (
-              <Col xs={24} md={12} lg={12}>
-                <Card size="small" title="Offline Types" className="h-100">
+              <Col {...channelColProps}>
+                <Card size="small" title="Offline Types"
+                  extra={
+                    <span className="fw-bold">
+                      {formatCurrency(reportData?.summary?.total_amount?.offline || 0)}
+                      </span>
+                  }
+                >
                   <Row>
-                    <Col span={bookingTypeRows?.length > 0 ? 18 : 24}>
+                    <Col lg={bookingTypeRows?.length > 0 ? 18 : 24}>
                       <Table
                         size="small"
                         rowKey="key"
@@ -237,7 +289,7 @@ const ReportTables = ({
                         locale={{ emptyText: 'No offline booking type data' }}
                       />
                     </Col>
-                    <Col span={6}>
+                    <Col lg={6} xs={24}>
                       {Array.isArray(bookingTypeRows) && bookingTypeRows?.length > 0 && (
                         <div>
                           <ChartComponent
@@ -281,8 +333,8 @@ const ReportTables = ({
       {hasVisibleUserWiseSales && (
         <Row gutter={[16, 16]} className="mt-4">
           {visibleUserWiseSalesSections.map((section) => (
-            <Col key={section.key} xs={24} lg={userWiseColLgSpan}>
-              <Card size="small">
+            <Col key={section.key} {...userWiseColProps}>
+              <Card size="small" data-pdf-section={pdfMode ? 'true' : undefined}>
                 <Title level={5} className="mb-2">{section?.title}</Title>
                 <Table
                   size="small"
@@ -315,7 +367,7 @@ const ReportTables = ({
       )}
 
       {showTickets && (
-        <Card title="Ticket Wise Sales" className="mt-3">
+        <Card title="Ticket Wise Sales" className="mt-3" data-pdf-section={pdfMode ? 'true' : undefined}>
           {isTicketBreakdownShape ? (
             <Table
               size="small"
