@@ -9,6 +9,7 @@ import { OrgEventList, OrganisationList } from 'utils/CommonInputs';
 import ReportSummaryCards from './components/ReportSummaryCards';
 import ReportTables from './components/ReportTables';
 import EventWiseAccordion from './components/EventWiseAccordion';
+import EventHtmlExporter from './components/EventHtmlExporter';
 import { buildGlobalReportPayload, getChannelCardVisibility } from './utils/reportHelpers';
 import { ROW_GUTTER } from 'constants/ThemeConstant';
 import usePermission from 'utils/hooks/usePermission';
@@ -349,7 +350,14 @@ const GlobalReport = () => {
               <Card
                 size="small"
                 title={"Report Summary & Details - " + selectedEventNamesText}
-
+                extra={
+                  (selectedEventCount === 1 && canExportGlobalReport) && (
+                    <EventHtmlExporter
+                      eventData={reportData}
+                      buttonSize="small"
+                    />
+                  )
+                }
               >
                 {/* <Title level={5} className="mb-3">Report Result</Title> */}
 
