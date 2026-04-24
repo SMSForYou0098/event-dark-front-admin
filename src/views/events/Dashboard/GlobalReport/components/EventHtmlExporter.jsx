@@ -163,7 +163,6 @@ const EventHtmlExporter = ({
       >
         Export
       </Button>
-
       <Modal
         title={`PDF Preview - ${eventData?.name || 'Event'}`}
         open={isModalOpen}
