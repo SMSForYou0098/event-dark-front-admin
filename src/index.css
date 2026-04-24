@@ -1,14 +1,20 @@
-/* Global fix for Ant Design Select dropdown cutting off the last item */
-/* Provides physical mathematical space for virtual list algorithm */
-/* .ant-select-dropdown .rc-virtual-list-holder-inner {
-  padding-bottom: 5px !important;
-} */
+/*
+ * Global Select dropdown clipping fix.
+ * NOTE: Dark-theme colors/glassmorphism styles for .ant-select-dropdown
+ *       are intentionally kept in public/css/custom.css so they are injected
+ *       by ThemeSwitcherProvider AFTER antd's reset.css on both local & live.
+ *       Putting those rules here would cause them to load BEFORE the theme CSS
+ *       and get overridden on the live server.
+ */
 
-/* .ant-select-dropdown {
-  padding-bottom: 8px !important;
-  border-bottom-left-radius: 8px;
-  border-bottom-right-radius: 8px;
-} */
+/* Ensure the virtual-list holder has enough bottom room to show the last item */
+.ant-select-dropdown .rc-virtual-list-holder {
+  padding-bottom: 4px !important;
+}
+
+.ant-select-dropdown .rc-virtual-list-holder-inner {
+  padding-bottom: 6px !important;
+}
 
 /* Make select dropdown tick mark white for selected items */
 .ant-select-item-option-selected .ant-select-item-option-state {

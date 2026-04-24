@@ -7,10 +7,10 @@ import { ORGANIZER_ALLOWED_ROLES } from "./consts";
 
 // Common dropdown renderer to prevent clipping at the bottom
 export const renderDropdownWithPadding = (menu) => (
-    <>
+    <div className="select-dropdown-container">
         {menu}
         <div style={{ paddingBottom: '1px' }} />
-    </>
+    </div>
 );
 
 export const OrganisationList = ({ onChange, disabled, label = "Organization", name = "org_id", rules, value, selectProps = {}, formItemProps = {} }) => {

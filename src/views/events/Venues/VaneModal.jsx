@@ -6,6 +6,7 @@ import { useMyContext } from 'Context/MyContextProvider';
 import apiClient from 'auth/FetchInterceptor';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 import { VALIDATION_RULES } from 'constants/ValidationConstants';
+import { renderDropdownWithPadding } from 'utils/CommonInputs';
 
 const { TextArea } = Input;
 
@@ -211,6 +212,8 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                     showSearch
                                     placeholder="Select venue type"
                                     options={VENUE_TYPES.map(type => ({ value: type, label: type }))}
+                                    virtual={false}
+                                    dropdownRender={renderDropdownWithPadding}
                                 />
                             </Form.Item>
                         </Col>

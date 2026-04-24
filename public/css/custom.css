@@ -235,6 +235,21 @@ input[type=number] {
 
 }
 
+/* Fix: prevent virtual-scroll list from clipping the last item */
+.ant-select-dropdown .rc-virtual-list-holder {
+  padding-bottom: 4px !important;
+}
+
+.ant-select-dropdown .rc-virtual-list-holder-inner {
+  padding-bottom: 6px !important;
+}
+
+/* Selected item tick mark white */
+.ant-select-item-option-selected .ant-select-item-option-state {
+  color: #fff !important;
+}
+
+
 
 /* Enhanced Popover */
 .ant-popover-content {
