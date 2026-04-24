@@ -252,6 +252,8 @@ const BoxOffice = () => {
                                 number.includes(searchLower)
                             );
                         }}
+                        popupClassName="ant-select-dropdown"
+                        virtual={false}
                     />
                     <Text type="secondary" className="d-block mt-3">
                         User can search via name, mobile number or email

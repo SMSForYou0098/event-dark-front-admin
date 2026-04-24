@@ -223,6 +223,8 @@ const TickeScanFeilds = ({
                   onChange={setScanType}
                   style={{ width: 180 }}
                   placeholder="Select Scan Type"
+                  popupClassName="ant-select-dropdown"
+                  virtual={false}
                 >
                   <Option value="">Select Type</Option>
                   <Option value="verify">Verify Ticket</Option>

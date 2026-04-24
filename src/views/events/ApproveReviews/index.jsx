@@ -227,6 +227,8 @@ const ApproveReviews = () => {
                             style={{ width: 250 }}
                             showSearch
                             optionFilterProp="label"
+                            popupClassName="ant-select-dropdown"
+                            virtual={false}
                         />
                         <Select
                             value={statusFilter}
@@ -234,6 +236,8 @@ const ApproveReviews = () => {
                             options={statusOptions}
                             style={{ width: 140 }}
                             placeholder="Filter Status"
+                            popupClassName="ant-select-dropdown"
+                            virtual={false}
                         />
                     </Space>
                 }

@@ -44,7 +44,8 @@ export const OrganisationList = ({ onChange, disabled, label = "Organization", n
                 optionFilterProp="label"
                 onChange={onChange}
                 value={value}
-                dropdownRender={renderDropdownWithPadding}
+                popupClassName="ant-select-dropdown"
+                virtual={false}
                 {...selectProps}
             />
         </Form.Item>
@@ -130,7 +131,8 @@ export const RoleSelect = ({
                     value={value}
                     showSearch
                     optionFilterProp="label"
-                    dropdownRender={renderDropdownWithPadding}
+                    popupClassName="ant-select-dropdown"
+                    virtual={false}
                     {...selectProps}
                 />
             </Form.Item>
@@ -220,7 +222,8 @@ export const OrgEventList = ({
                 optionFilterProp="label"
                 onChange={onChange}
                 value={value}
-                dropdownRender={renderDropdownWithPadding}
+                popupClassName="ant-select-dropdown"
+                virtual={false}
                 {...selectProps}
             />
         </Form.Item>

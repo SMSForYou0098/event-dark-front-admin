@@ -35,20 +35,20 @@ function App() {
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
           <MyContextProvider>
-          <PrinterProvider>
+            <PrinterProvider>
 
-          <QueryClientProvider client={queryClient}>
-            <BrowserRouter>
-              <ThemeSwitcherProvider
-                themeMap={themes}
-                defaultTheme={THEME_CONFIG.currentTheme}
-                insertionPoint="styles-insertion-point"
-              >
-                <Layouts />
-              </ThemeSwitcherProvider>
-            </BrowserRouter>
-          </QueryClientProvider>
-          </PrinterProvider>
+              <QueryClientProvider client={queryClient}>
+                <BrowserRouter>
+                  <ThemeSwitcherProvider
+                    themeMap={themes}
+                    defaultTheme={THEME_CONFIG.currentTheme}
+                    insertionPoint="styles-insertion-point"
+                  >
+                    <Layouts />
+                  </ThemeSwitcherProvider>
+                </BrowserRouter>
+              </QueryClientProvider>
+            </PrinterProvider>
           </MyContextProvider>
         </PersistGate>
       </Provider>

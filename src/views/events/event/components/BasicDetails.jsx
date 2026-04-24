@@ -234,6 +234,8 @@ const BasicDetailsStep = ({ form, isEdit, eventFields = [], }) => {
               (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
             }
             notFoundContent={catLoading ? "Loading..." : "No categories found"}
+            popupClassName="ant-select-dropdown"
+            virtual={false}
           />
         </Form.Item>
       </Col>

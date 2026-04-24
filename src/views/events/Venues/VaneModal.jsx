@@ -212,8 +212,8 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                     showSearch
                                     placeholder="Select venue type"
                                     options={VENUE_TYPES.map(type => ({ value: type, label: type }))}
+                                    popupClassName="ant-select-dropdown"
                                     virtual={false}
-                                    dropdownRender={renderDropdownWithPadding}
                                 />
                             </Form.Item>
                         </Col>
@@ -230,6 +230,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                     options={locationData?.states}
                                     onChange={handleStateChange}
                                     optionFilterProp="label"
+                                    popupClassName="ant-select-dropdown"
                                     virtual={false}
                                 />
                             </Form.Item>
@@ -246,6 +247,7 @@ const VenueModal = ({ open, onCancel, mode = 'create', venueData = null }) => {
                                     placeholder="Select city"
                                     options={cities}
                                     optionFilterProp="label"
+                                    popupClassName="ant-select-dropdown"
                                     virtual={false}
                                 />
                             </Form.Item>

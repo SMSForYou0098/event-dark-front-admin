@@ -251,6 +251,7 @@ const OrgUserDetailedReport = ({ type: propType }) => {
                                             { value: 'sponsor', label: 'Sponsor' },
                                             { value: 'pos', label: 'POS' },
                                         ]}
+                                        
                                     />
                                 </Form.Item>
                             )}

@@ -262,6 +262,7 @@ const CardInventory = () => {
                                 optionFilterProp="label"
                                 options={events}
                                 className="mr-2 mb-2"
+                                popupClassName="ant-select-dropdown"
                                 virtual={false}
                             />
                             {selectedEventId && canExport && (
@@ -408,6 +409,8 @@ const CardInventory = () => {
                                                     { label: 'Unassign', value: 'unassign' },
                                                     { label: 'All', value: 'all' },
                                                 ]}
+                                                popupClassName="ant-select-dropdown"
+                                                virtual={false}
                                             />
                                             {createTokensMutation.data?.data && (
                                                 <Alert

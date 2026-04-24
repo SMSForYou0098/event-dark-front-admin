@@ -403,7 +403,8 @@ const Organizers = () => {
                 setSearchParams({ role: value });
               }}
               style={{ minWidth: 150 }}
-              dropdownRender={renderDropdownWithPadding}
+              popupClassName="ant-select-dropdown"
+              virtual={false}
             >
               {roles
                 .filter(role =>

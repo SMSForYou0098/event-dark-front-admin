@@ -387,6 +387,7 @@ const ScanHistory = () => {
         style={{ minWidth: 200 }}
         optionFilterProp="label"
         options={events}
+        popupClassName="ant-select-dropdown"
         virtual={false}
       />
     </Space>

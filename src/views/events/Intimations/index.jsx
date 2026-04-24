@@ -173,6 +173,8 @@ const Intimations = memo(() => {
                                             eventsLoading ? <Spin size="small" /> : 'No events found'
                                         }
                                         status={eventsError ? 'error' : undefined}
+                                        popupClassName="ant-select-dropdown"
+                                        virtual={false}
                                     />
                                 </Form.Item>
                                 {eventsError && (
@@ -225,6 +227,8 @@ const Intimations = memo(() => {
                                             { value: 'agent', label: 'Agent' },
                                             { value: 'all', label: 'All' },
                                         ]}
+                                        popupClassName="ant-select-dropdown"
+                                        virtual={false}
                                     />
                                 </Form.Item>
                             </Col>

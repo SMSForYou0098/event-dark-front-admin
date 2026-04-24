@@ -225,6 +225,8 @@ const AgentCredit = ({ id }) => {
                                                 )
                                             }
                                             allowClear
+                                            popupClassName="ant-select-dropdown"
+                                            virtual={false}
                                         />
                                         <Text type="secondary" className="d-block">
                                             User can search via name, mobile number or email

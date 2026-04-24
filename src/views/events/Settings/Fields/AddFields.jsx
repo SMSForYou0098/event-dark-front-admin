@@ -299,6 +299,7 @@ const AddFields = ({ open, onClose, editState, editData, onSuccess }) => {
             placeholder="Select field type"
             onChange={handleFieldTypeChange}
             options={fieldOptions}
+            popupClassName="ant-select-dropdown"
             virtual={false}
           />
         </Form.Item>

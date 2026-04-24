@@ -178,6 +178,8 @@ export const VanueList = ({
                 value: venueLoading ? undefined : (value ? String(value) : undefined),
                 onChange: handleChange
             })}
+            popupClassName="ant-select-dropdown"
+            virtual={false}
         />
     );
 

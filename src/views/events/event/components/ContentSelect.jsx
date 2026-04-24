@@ -216,6 +216,8 @@ export const ContentSelect = ({
                   }
                   style={{ width: "100%" }}
                   suffixIcon={contentLoading ? <Spin size="small" /> : undefined}
+                  popupClassName="ant-select-dropdown"
+                  virtual={false}
                 />
               </Form.Item>
 

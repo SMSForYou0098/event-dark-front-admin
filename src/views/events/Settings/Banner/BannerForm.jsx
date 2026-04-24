@@ -452,6 +452,8 @@ const BannerForm = ({ mode = 'create', id, bannerData, onSuccess, onCancel, visi
                     }))}
                     optionFilterProp="label"
                     onChange={handleCategoryChange}
+                    popupClassName="ant-select-dropdown"
+                    virtual={false}
                   />
                 </Form.Item>
               </Col>

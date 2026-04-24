@@ -1361,6 +1361,8 @@ const ProfileTab = ({ mode, handleSubmit, id = null, setSelectedRole, setUserNum
                                                         </>
                                                     );
                                                 }}
+                                                popupClassName="ant-select-dropdown"
+                                                virtual={false}
                                             />
                                         </Form.Item>
                                     </Col>

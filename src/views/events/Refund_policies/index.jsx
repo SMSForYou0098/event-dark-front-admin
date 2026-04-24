@@ -362,7 +362,11 @@ const RefundPolicies = () => {
                         const renderField = (field) => {
                             switch (field.type) {
                                 case 'select':
-                                    return <Select {...field.props} />;
+                                    return <Select
+                                        {...field.props}
+                                        popupClassName="ant-select-dropdown"
+                                        virtual={false}
+                                    />;
                                 case 'number':
                                     return <Input style={{ width: '100%' }} {...field.props} />;
                                 case 'switch':

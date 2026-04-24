@@ -562,6 +562,8 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                     placeholder="Select role"
                                                     value={formState.roleId}
                                                     onChange={handleRoleChange}
+                                                    popupClassName="ant-select-dropdown"
+                                                    virtual={false}
                                                 >
                                                     {roles?.map((item) => (
                                                         <Option key={item.id} value={item.id}>
@@ -675,6 +677,8 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                             onChange={handleReportingUserChange}
                                                             optionFilterProp="label"
                                                             showSearch
+                                                            popupClassName="ant-select-dropdown"
+                                                            virtual={false}
                                                         />
                                                     </Form.Item>
                                                 </Col>
@@ -695,6 +699,8 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                             onChange={handleGateChange}
                                                             optionFilterProp="label"
                                                             showSearch
+                                                            popupClassName="ant-select-dropdown"
+                                                            virtual={false}
                                                         />
                                                     </Form.Item>
                                                 </Col>
@@ -723,6 +729,8 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                                 onChange={handleEventChange}
                                                                 optionFilterProp="label"
                                                                 showSearch
+                                                                popupClassName="ant-select-dropdown"
+                                                                virtual={false}
                                                             />
                                                         </Form.Item>
                                                     </Col>
@@ -740,6 +748,8 @@ const UserForm = memo(({ mode = "edit" }) => {
                                                                     filterOption={customTicketFilter}
                                                                     showSearch
                                                                     disabled={selectedEvents.length === 0}
+                                                                    popupClassName="ant-select-dropdown"
+                                                                    virtual={false}
                                                                 >
                                                                     {ticketGroup.map(eventGroup => (
                                                                         <Select.OptGroup
