@@ -196,7 +196,6 @@ const DraggableSection = ({ section, isSelected, isMultiSelected, onSelect, onDr
         draggable={isInteractive}
         x={section.x}
         y={section.y}
-        listening={isInteractive}
         onClick={isInteractive ? onSelect : undefined}
         onTap={isInteractive ? onSelect : undefined}
         onDragStart={(e) => {
@@ -337,7 +336,7 @@ const IconImage = ({ iconName, x, y, size = 20, opacity = 1 }) => {
 };
 
 const CenterCanvas = (props) => {
-  const { stageRef, canvasScale, showGrid, stage, setStage, sections, setSections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition, isAssignMode, selectedSectionIds, setSelectedSectionIds, selectedSeatIds = [], setSelectedSeatIds, isReportMode = false } = props;
+  const { stageRef, canvasScale, showGrid, stage, setStage, sections, setSections, updateSection, selectedType, selectedElement, setSelectedElement, setSelectedType, handleCanvasClick, handleWheel, setStagePosition, isAssignMode, selectedSectionIds, setSelectedSectionIds, selectedSeatIds = [], setSelectedSeatIds, isReportMode = false, canEdit = true } = props;
 
   const layerRef = useRef();
   const [isDraggingElement, setIsDraggingElement] = useState(false);
@@ -389,7 +388,7 @@ const CenterCanvas = (props) => {
             stage={stage}
             isSelected={selectedType === 'stage' && selectedElement?.position === stage.position}
             setIsDraggingElement={setIsDraggingElement}
-            isInteractive={!isReportMode}
+            isInteractive={!isReportMode && canEdit}
             onSelect={() => {
               setSelectedElement(stage);
               setSelectedType('stage');
@@ -429,10 +428,12 @@ const CenterCanvas = (props) => {
                 section={section}
                 isSelected={isSingleSelected}
                 isMultiSelected={isMultiSelected}
-                isInteractive={!isReportMode}
+                isInteractive={!isReportMode && canEdit}
                 setIsDraggingElement={setIsDraggingElement}
                 onSelect={(e) => {
                   if (isReportMode) return;
+                  // Without canEdit, section selection is blocked — user must click individual seats
+                  if (!canEdit) return;
                   const evt = e?.evt || e;
                   if (evt?.shiftKey) {
                     setSelectedSeatIds([]);

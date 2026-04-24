@@ -1574,6 +1574,7 @@ const AuditoriumLayoutDesigner = () => {
 
       {isReportMode ? (
         <Row align="middle" gutter={10} wrap={false} className='mb-4'>
+          {/* if its assign true then show event name */}
           <Col>
             <Tooltip title="Zoom in">
               <Button icon={<ZoomInOutlined />} onClick={() => handleZoom(true)} />
@@ -1742,6 +1743,7 @@ const AuditoriumLayoutDesigner = () => {
             setSelectedSectionIds={setSelectedSectionIds}
             selectedSeatIds={selectedSeatIds}
             setSelectedSeatIds={setSelectedSeatIds}
+            canEdit={hasManageSectionPermission}
           />
         </Col>
         {!isReportMode && (
@@ -1766,6 +1768,7 @@ const AuditoriumLayoutDesigner = () => {
               applyAlignmentToSectionRows={applyAlignmentToSectionRows}
               selectedSeatIds={selectedSeatIds}
               updateMultipleSeats={updateMultipleSeats}
+              canEdit={hasManageSectionPermission}
             />
           </Col>
         )}
