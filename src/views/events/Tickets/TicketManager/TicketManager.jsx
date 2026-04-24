@@ -327,7 +327,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 refetchTickets();
             }
         } catch (error) {
-            message.error(error.response?.data?.message || 'Failed to save ticket');
+            // message.error(error.response?.data?.message || 'Failed to save ticket');
         } finally {
             setSubmitting(false);
         }

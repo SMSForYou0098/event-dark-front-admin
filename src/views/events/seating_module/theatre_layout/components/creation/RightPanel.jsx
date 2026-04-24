@@ -435,7 +435,7 @@ const RightPanel = (props) => {
                 </Form.Item>
               )}
 
-              {selectedElement.type !== 'Standing' && isAssignMode &&  (
+              {selectedElement.type !== 'Standing' && isAssignMode && (
                 <Form.Item
                   label="Assign Ticket to Entire Section"
                   extra="Applies to all rows and available seats. Gaps stay unassigned; unavailable seats are unchanged."
@@ -511,7 +511,7 @@ const RightPanel = (props) => {
                 <>
 
 
-                  {isAssignMode &&  (
+                  {isAssignMode && (
                     <Form.Item label="Assign Ticket Category">
                       <Select
                         value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
@@ -711,7 +711,7 @@ const RightPanel = (props) => {
 
 
 
-              {isAssignMode &&  (
+              {isAssignMode && (
                 <Form.Item label="Assign Ticket Category to All Seats">
                   <Select
                     value={selectedElement.ticketCategory ? String(selectedElement.ticketCategory) : (selectedElement.ticket?.id ? String(selectedElement.ticket.id) : undefined)}
@@ -995,7 +995,7 @@ const RightPanel = (props) => {
                     />
                   </Form.Item>
 
-                  {isAssignMode &&  (
+                  {isAssignMode && (
                     <Form.Item label="Ticket Category (Bulk)">
                       <Select
                         placeholder="Apply ticket to selected seats"
@@ -1111,7 +1111,7 @@ const RightPanel = (props) => {
                         )}
                       </Form.Item>
 
-                      {isAssignMode &&  (
+                      {isAssignMode && (
                         <>
                           <Form.Item label="Ticket Category">
                             <Select
