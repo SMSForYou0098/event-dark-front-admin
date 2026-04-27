@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react'
 import { Row, Button } from 'antd'
 import { PrinterOutlined } from '@ant-design/icons'
-import axios from 'axios'
 import { useQuery } from '@tanstack/react-query'
 import { useMyContext } from 'Context/MyContextProvider'
 import StatSection from 'views/events/Dashboard/components/StatSection'
@@ -9,14 +8,14 @@ import EventCards from './EventCards'
 import SummaryPrintModal from './SummaryPrintModal'
 import api from 'auth/FetchInterceptor'
 
-const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = false }) => {
+const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = false , bookingType }) => {
     const { isMobile } = useMyContext()
     const [showPrintModal, setShowPrintModal] = useState(false)
 
     // Helper function to determine the booking type parameter
-    const getTypeParam = (bookingType) => {
+    const getTypeParam = (type) => {
         const currentPath = window.location.pathname
-        const bookingTypeLower = bookingType.toLowerCase()
+        const bookingTypeLower = type.toLowerCase()
 
         if (currentPath.includes('amusement')) {
             if (bookingTypeLower.includes('online')) return 'amusement-online'
@@ -34,7 +33,7 @@ const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = fal
             'POS': 'pos'
         }
 
-        return typeMap[bookingType] || bookingType.toLowerCase()
+        return typeMap[type] || type.toLowerCase()
     }
 
     // Helper function to format date parameters
@@ -71,10 +70,10 @@ const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = fal
         nb: 0,
         ticketSales: [],
     } } = useQuery({
-        queryKey: ['dashboardSummary', type, date, seatingChartBooking],
+        queryKey: ['dashboardSummary', type, date, seatingChartBooking, bookingType],
         queryFn: async () => {
             const typeParam = getTypeParam(type);
-            const url = `bookings/summary/${typeParam}`;
+            const url = `bookings/summary/${typeParam}?payment_type=${bookingType || ''}&seating=${seatingChartBooking ? 'true' : 'false'}`;
 
             const params = {};
             const dateParam = formatDateParams(date);
@@ -126,10 +125,10 @@ const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = fal
 
     // Fetch event-wise sales data using TanStack Query
     const { data: ticketSales = [] } = useQuery({
-        queryKey: ['eventWiseSales', type, date],
+        queryKey: ['eventWiseSales', type, date, bookingType],
         queryFn: async () => {
             const typeParam = getTypeParam(type);
-            const url = `bookings/event-wise-sales/${typeParam}`;
+            const url = `bookings/event-wise-sales/${typeParam}?payment_type=${bookingType || ''}&seating=${seatingChartBooking ? 'true' : 'false'}`;
 
             const params = {};
             const dateParam = formatDateParams(date);
@@ -160,18 +159,23 @@ const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = fal
     })
 
     // Combine counts with ticketSales for backward compatibility
-    const countsWithTicketSales = {
+    const countsWithTicketSales = useMemo(() => ({
         ...counts,
         ticketSales
-    }
+    }), [counts, ticketSales])
 
     const onlineCardData = useMemo(() => {
-        const baseData = [
-            { title: "Amount", value: Number(countsWithTicketSales.totalAmount) },
-            { title: "Discount", value: Number(countsWithTicketSales.totalDiscount) },
-            { title: "Bookings", value: Number(countsWithTicketSales.totalBookings), hideCurrency: true },
-            { title: "Tickets", value: Number(countsWithTicketSales.totalTickets), hideCurrency: true },
-        ]
+        const baseData = bookingType === 'free' 
+            ? [
+                { title: "Bookings", value: Number(countsWithTicketSales.totalBookings), hideCurrency: true },
+                { title: "Tickets", value: Number(countsWithTicketSales.totalTickets), hideCurrency: true },
+            ]
+            : [
+                { title: "Amount", value: Number(countsWithTicketSales.totalAmount) },
+                { title: "Discount", value: Number(countsWithTicketSales.totalDiscount) },
+                { title: "Bookings", value: Number(countsWithTicketSales.totalBookings), hideCurrency: true },
+                { title: "Tickets", value: Number(countsWithTicketSales.totalTickets), hideCurrency: true },
+            ]
 
         const gatewayData = showGatewayAmount ? [
             { title: "InstaMojo", value: Number(countsWithTicketSales.instamojoTotalAmount), hideCurrency: false },
@@ -182,24 +186,29 @@ const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = fal
         ].filter(gateway => gateway.value > 0) : []
 
         return [...gatewayData, ...baseData]
-    }, [countsWithTicketSales, showGatewayAmount])
+    }, [countsWithTicketSales, showGatewayAmount, bookingType])
 
     const offlineCardData = useMemo(() => {
-        const baseData = [
-            { title: "Amount", value: Number(countsWithTicketSales.totalAmount || 0) },
-            { title: "Discount", value: Number(countsWithTicketSales.totalDiscount || 0) },
-            { title: "Bookings", value: Number(countsWithTicketSales.totalBookings || 0), hideCurrency: true },
-            { title: "Tickets", value: Number(countsWithTicketSales.totalTickets || 0), hideCurrency: true },
-        ]
+        const baseData = bookingType === 'free'
+            ? [
+                { title: "Bookings", value: Number(countsWithTicketSales.totalBookings || 0), hideCurrency: true },
+                { title: "Tickets", value: Number(countsWithTicketSales.totalTickets || 0), hideCurrency: true },
+            ]
+            : [
+                { title: "Amount", value: Number(countsWithTicketSales.totalAmount || 0) },
+                { title: "Discount", value: Number(countsWithTicketSales.totalDiscount || 0) },
+                { title: "Bookings", value: Number(countsWithTicketSales.totalBookings || 0), hideCurrency: true },
+                { title: "Tickets", value: Number(countsWithTicketSales.totalTickets || 0), hideCurrency: true },
+            ]
 
-        const paymentMethods = [
+        const paymentMethods = bookingType === 'free' ? [] : [
             { title: "UPI", value: Number(countsWithTicketSales.upi || 0), hideCurrency: false },
             { title: "Cash", value: Number(countsWithTicketSales.cash || 0), hideCurrency: false },
             { title: "Net Banking", value: Number(countsWithTicketSales.nb || 0), hideCurrency: false },
         ].filter(method => method.value > 0)
 
         return [...baseData, ...paymentMethods]
-    }, [countsWithTicketSales])
+    }, [countsWithTicketSales, bookingType])
 
     const dataToShow = type === 'online' ? onlineCardData : offlineCardData
 
@@ -207,7 +216,7 @@ const BookingCount = ({ type, date, showGatewayAmount, seatingChartBooking = fal
 
     return (
         <>
-            <Row gutter={[16, 16]} align="middle" justify="space-between" style={{ marginBottom: 16 }}>
+            <Row gutter={[16, 16]} align="middle" justify="space-between">
                 <StatSection
                     stats={dataToShow}
                     colConfig={{ xs: 24, sm: 12, md: 6, lg: 4 }}

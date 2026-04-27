@@ -41,12 +41,14 @@ export const ExpandDataTable = ({
   onSearch,
   onSortChange,
   searchValue = "",
+  bookingType,
   // Expansion props
   onExpand: externalOnExpand,
   expandedRowKeys: externalExpandedRowKeys,
   // Custom stats component props
   statsComponent: StatsComponent = null,
   showReportSwitch = true,
+  seatingChartBooking = false,
 }) => {
   const [internalExpandedRowKeys, setInternalExpandedRowKeys] = useState([]);
   const expandedRowKeys = externalExpandedRowKeys || internalExpandedRowKeys;
@@ -278,6 +280,8 @@ export const ExpandDataTable = ({
     ? columns.map((col) => (col.searchable ? { ...col, ...getColumnSearchProps(col.dataIndex) } : col))
     : columns;
 
+  const hasTableData = ((serverSide ? data : filteredData) || []).length > 0;
+
   // Date range handler
   const handleDateRangeChange = (dates) => {
     onDateRangeChange?.(dates);
@@ -419,7 +423,7 @@ export const ExpandDataTable = ({
         </Tooltip>
       )}
       {extraHeaderContent}
-      {showReportSwitch && (
+      {showReportSwitch && hasTableData && (
         <Switch
           checked={showGatewayReport}
           onChange={(checked) => setShowGatewayReport(checked)}
@@ -470,7 +474,13 @@ export const ExpandDataTable = ({
       {showGatewayReport && (
         StatsComponent
           ? <StatsComponent dateRange={dateRange} />
-          : <BookingCount date={dateRange} showGatewayAmount={showGatewayReport} type={type} />
+          : <BookingCount
+            date={dateRange}
+            showGatewayAmount={showGatewayReport}
+            type={type}
+            bookingType={bookingType}
+            seatingChartBooking={seatingChartBooking}
+          />
       )}
       <Card
         bordered={false}

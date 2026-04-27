@@ -45,23 +45,24 @@ const StatSection = ({
         ));
     };
 
+    // Don't render if no stats data
+    if (!stats || stats.length === 0) {
+        return null;
+    }
+
     return (
         <Col {...containerCol}>
+            {title && (
+                <Title
+                    level={4}
+                    className={extraHeader ? 'd-flex justify-content-between mb-3' : 'mt-0 mb-3'}
+                >
+                    {title}
+                    {extraHeader}
+                </Title>
+            )}
             <Row gutter={[16, 16]}>
-                <Col span={24}>
-                    <Title
-                        level={4}
-                        className={extraHeader ? 'd-flex justify-content-between mb-3' : 'mt-0 mb-3'}
-                    >
-                        {title}
-                        {extraHeader}
-                    </Title>
-                </Col>
-                <Col span={24}>
-                    <Row gutter={[16, 16]}>
-                        {renderContent()}
-                    </Row>
-                </Col>
+                {renderContent()}
             </Row>
         </Col>
     );
