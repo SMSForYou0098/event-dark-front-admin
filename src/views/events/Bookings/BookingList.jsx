@@ -1,4 +1,4 @@
-import React, { memo, Fragment, useState, useCallback, useMemo, useRef, useEffect } from "react";
+import React, { memo, Fragment, useState, useCallback, useMemo, useEffect } from "react";
 import { Send, Ticket, PlusIcon } from 'lucide-react';
 import { Button, Tag, Space, Tooltip, Dropdown, Switch, message, Modal } from 'antd';
 import { MoreOutlined, QuestionCircleOutlined, LoadingOutlined, CloseOutlined, CheckOutlined, BlockOutlined, TeamOutlined } from '@ant-design/icons';
@@ -7,7 +7,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from "react-router-dom";
 import api from 'auth/FetchInterceptor';
 import TicketDrawer from "../Tickets/modals/TicketDrawer";
-import { downloadTickets } from "../Tickets/ticketUtils";
 import { ExpandDataTable } from "../common/ExpandDataTable";
 import PermissionChecker from "layouts/PermissionChecker";
 import { resendTickets } from "./agent/utils";
@@ -24,12 +23,10 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
     const [ticketData, setTicketData] = useState([]);
     const [ticketType, setTicketType] = useState();
     const [show, setShow] = useState(false);
-    const [loading, setLoading] = useState(false);
     // id of the row currently processing resend -> shows spinner only for that row
     const [loadingId, setLoadingId] = useState(null);
     const [ticketOptionModal, setTicketOptionModal] = useState({ visible: false, hasMultiple: false });
     const [attendeeDrawer, setAttendeeDrawer] = useState(null);
-    const ticketRefs = useRef([]);
 
     // Backend pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -782,6 +779,9 @@ const BookingList = memo(({ type = 'agent', bookingType = 'free', seatingChartBo
                 error={error}
                 enableExport={true}
                 type={type}
+                
+                bookingType={bookingType}
+                seatingChartBooking={seatingChartBooking}
                 exportPayload={seatingChartBooking ? { seating: true } : {}}
             />
 

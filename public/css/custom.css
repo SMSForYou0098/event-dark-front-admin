@@ -596,3 +596,8 @@ table tr border change:where(.css-dev-only-do-not-override-1u1move).ant-table-wr
 :where(.css-dev-only-do-not-override-1u1move).ant-collapse>.ant-collapse-item >.ant-collapse-header{
   align-items: center !important;
 }
+
+/* carousel dots */
+:where(.css-dev-only-do-not-override-1u1move).ant-carousel .slick-dots {
+  bottom: 0 !important;
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Typography, Empty, Carousel, Row, Col, Collapse } from 'antd';
+import { Typography, Empty, Carousel, Row, Col, Collapse, Card } from 'antd';
 import { LeftOutlined, RightOutlined } from '@ant-design/icons';
+import { PRIMARY } from 'utils/consts';
 
 const { Text } = Typography;
 
@@ -10,26 +11,8 @@ const EventCards = ({ data = [] }) => {
 
   const formatCurrency = (value) => `₹${(Number(value) || 0).toLocaleString('en-IN')}`;
 
-  const sampleData = [
-    {
-      name: 'VADODARA MARATHON - SAAREE RUN',
-      tickets: [{ name: 'RUN TICKET', count: 54, total_amount: 0 }]
-    },
-    {
-      name: 'Neon Midnight Party',
-      tickets: [{ name: 'SILVER', count: 2, total_amount: 798 }]
-    },
-    {
-      name: 'Dr Kumar Vishwas Live',
-      tickets: [                      
-        { name: 'SILVER', count: 13, total_amount: 13000 },
-        { name: 'GOLD', count: 2, total_amount: 3000 },
-        { name: 'PLATINUM', count: 8, total_amount: 15000 }
-      ]
-    }
-  ];
 
-  const displayData = Array.isArray(data) && data.length > 0 ? data : sampleData;
+  const displayData = Array.isArray(data) && data.length > 0 ? data : [];
 
   useEffect(() => {
     const handleResize = () => {
@@ -54,6 +37,10 @@ const EventCards = ({ data = [] }) => {
     slides.push(displayData.slice(i, i + cardsPerSlide));
   }
 
+  const hasCarouselArrows = slides.length > 1;
+  const shouldAddArrowGap = hasCarouselArrows && (cardsPerSlide === 4 || cardsPerSlide === 1);
+  const carouselSideGap = shouldAddArrowGap ? 64 : 0;
+
   const TicketTable = ({ tickets }) => {
     const filtered = (tickets || []).filter(t => Number(t?.count) > 0);
     if (filtered.length === 0) return <Empty description="No tickets sold" />;
@@ -61,7 +48,7 @@ const EventCards = ({ data = [] }) => {
     return (
       <div>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr', padding: '8px 12px', borderBottom: '1px solid #f0f0f0', }}>
-          <Text style={{ fontSize: 12,  fontWeight: 600 }}>Ticket</Text>
+          <Text style={{ fontSize: 12, fontWeight: 600 }}>Ticket</Text>
           <Text style={{ fontSize: 12, fontWeight: 600, textAlign: 'center' }}>Qty</Text>
           <Text style={{ fontSize: 12, fontWeight: 600, textAlign: 'right' }}>Amount</Text>
         </div>
@@ -88,7 +75,7 @@ const EventCards = ({ data = [] }) => {
         width: 36,
         height: 36,
         borderRadius: '50%',
-        backgroundColor: '#b51515',
+        backgroundColor: PRIMARY,
         border: 'none',
         display: 'flex',
         alignItems: 'center',
@@ -101,37 +88,51 @@ const EventCards = ({ data = [] }) => {
   );
 
   return (
-    <div style={{ position: 'relative', padding: 16 }}>
-      {slides.length > 1 && (
+    <div style={{
+      position: 'relative',
+      padding: '16px 0',
+    }}>
+      {hasCarouselArrows && (
         <>
           <NavigationButton direction="left" onClick={() => carouselRef.current?.prev()} />
           <NavigationButton direction="right" onClick={() => carouselRef.current?.next()} />
         </>
       )}
 
-      <Carousel ref={carouselRef} dots={false} infinite={slides.length > 1} slidesToShow={1} slidesToScroll={1}>
-        {slides.map((slide, sIdx) => (
-          <div key={sIdx}>
-            <Row gutter={[16, 16]} style={{ padding: '8px 4px' }}>
-              {slide.map((event, eIdx) => (
-                <Col key={eIdx} xs={24} sm={12} md={12} lg={24 / cardsPerSlide}>
-                  <Collapse bordered={false} expandIconPosition="end" className="event-accordion">
-                    <Collapse.Panel
-                      key={event.name || eIdx}
-                      header={<Text style={{ fontSize: 14, fontWeight: 600 }} ellipsis={{ tooltip: event?.name }}>{event?.name}</Text>}
-                      extra={null}
-                    >
-                      <TicketTable tickets={event?.tickets || []} />
-                    </Collapse.Panel>
-                  </Collapse>
-                </Col>
-              ))}
-            </Row>
-          </div>
-        ))}
-      </Carousel>
+      <div style={{ marginLeft: carouselSideGap, marginRight: carouselSideGap }}>
+        <Carousel ref={carouselRef} dots={false} infinite={hasCarouselArrows} slidesToShow={1} slidesToScroll={1}>
+          {slides.map((slide, sIdx) => (
+            <div key={sIdx}>
+              <Row gutter={[16, 16]}>
+                {slide.map((event, eIdx) => (
+                  <Col key={eIdx} xs={24} sm={12} md={12} lg={24 / cardsPerSlide}>
+                    <Card className='p-0 m-0' bodyStyle={{ padding: '0px 10px' }}>
+                      <Collapse bordered={false} expandIconPosition="end" className="event-accordion">
+                        <Collapse.Panel
+                          key={event?.name || eIdx}
+                          header={
+                            <Text
+                              style={{ margin: 0, fontWeight: 600 }}
+                              ellipsis={{ tooltip: event?.name }}
+                            >
+                              {event?.name}
+                            </Text>
+                          }
+                          extra={null}
+                        >
+                          <TicketTable tickets={event?.tickets || []} />
+                        </Collapse.Panel>
+                      </Collapse>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          ))}
+        </Carousel>
+      </div>
 
-      
+
     </div>
   );
 };
