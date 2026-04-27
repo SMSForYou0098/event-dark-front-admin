@@ -19,18 +19,40 @@
 
 .ant-picker-panel-container {
     background: transparent !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
     border: 1px solid var(--border-secondary) !important;
     border-radius: 12px !important;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
     color: var(--text-color) !important;
+    /*
+     * FIX 1 — Alignment: backdrop-filter on this element creates a CSS
+     * "containing block", making Ant Design's position:absolute popup
+     * calculate offsets relative to this container instead of <body>.
+     * Moving it to ::before avoids the containing-block side-effect.
+     *
+     * FIX 2 — Hover shift: overflow:hidden prevents range-hover ::before
+     * pseudo-elements from expanding beyond the panel boundary and
+     * pushing the calendar sideways.
+     */
+    position: relative !important;
+    overflow: hidden !important;
 
     @media screen and (max-width: 425px) {
         max-width: 25rem !important;
-        overflow-x: auto !important;
     }
 }
+
+/* Glassmorphism blur — on pseudo-element so it doesn't create a containing block */
+.ant-picker-panel-container::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border-radius: inherit !important;
+    z-index: -1 !important;
+    pointer-events: none !important;
+}
+
 
 /* Date picker panel styling */
 .ant-picker-panel {

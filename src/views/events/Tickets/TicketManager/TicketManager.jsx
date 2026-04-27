@@ -1,7 +1,7 @@
 // TicketManager.jsx
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-    Modal, Form, Input, Select, Button, Space,
+    Modal, Drawer, Form, Input, Select, Button, Space,
     Switch, DatePicker, InputNumber, Row, Col, Alert, message,
     Tag, Tooltip, Image, Card, Typography
 } from 'antd';
@@ -18,6 +18,8 @@ import PermissionChecker from 'layouts/PermissionChecker';
 import { useQuery } from '@tanstack/react-query';
 import { MediaGalleryPickerModal } from 'components/shared-components/MediaGalleryPicker';
 import usePermission from 'utils/hooks/usePermission';
+import ResponsiveDrawer from 'components/shared-components/ResponsiveDrawer';
+import Flex from 'components/shared-components/Flex';
 
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
@@ -356,7 +358,6 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
     };
 
     const switchesConfig = [
-        { label: 'Sale', name: 'sale' },
         {
             label: 'Sold Out',
             name: 'sold_out',
@@ -379,10 +380,12 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 if (checked) form.setFieldsValue({ sold_out: false, booking_not_open: false });
             }
         },
-        { label: 'Modify Area', name: 'modify_access_area' },
+        // { label: 'Modify Area', name: 'modify_access_area' },
         { label: 'Active', name: 'status' },
         { label: 'Allow Agent', name: 'allow_agent' },
         { label: 'Allow POS', name: 'allow_pos' },
+        { label: 'Sale', name: 'sale' },
+
     ];
 
     // Check sale value change
@@ -565,19 +568,25 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 }
             `}</style>
 
-            <Modal
+            <ResponsiveDrawer
                 title={editMode ? 'Edit Ticket' : 'Create New Ticket'}
                 open={modalVisible}
-                onCancel={handleCloseModal}
-                onOk={() => form.submit()}
-                confirmLoading={submitting}
-                width={'80%'}
-                okText={editMode ? 'Update' : 'Create'}
-                style={{ top: 20 }}
+                onClose={handleCloseModal}
+                desktopWidth={'85%'}
                 destroyOnClose
+                footer={
+                    <div style={{ textAlign: 'right' }}>
+                        <Space>
+                            <Button onClick={handleCloseModal}>Cancel</Button>
+                            <Button type="primary" onClick={() => form.submit()} loading={submitting}>
+                                {editMode ? 'Update' : 'Create'}
+                            </Button>
+                        </Space>
+                    </div>
+                }
             >
-                <Row gutter={16}>
-                    <Col xs={24} md={20} xl={20} style={{ maxHeight: '65vh', overflow: 'auto' }}>
+                <Row gutter={24}>
+                    <Col xs={24} md={18} xl={17}>
                         <Form
                             form={form}
                             layout="vertical"
@@ -585,28 +594,61 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                             initialValues={{ currency: 'INR', status: true, taxes: 'Inclusive' }}
                         >
                             <Row gutter={16}>
-                                <Col xs={24} md={6}>
-                                    <Form.Item label="Ticket Title" name="ticket_title" rules={[{ required: true }]}>
+                                <Col xs={24} md={8}>
+                                    <Form.Item label="Title" name="ticket_title" rules={[{ required: true }]}>
                                         <Input />
                                     </Form.Item>
                                 </Col>
-                                {/* <Col xs={24} md={6}>
-                                    <Form.Item label="Currency" name="currency" rules={[{ required: true }]}>
-                                        <Select options={currencies} />
-                                    </Form.Item>
-                                </Col> */}
-                                <Col xs={24} md={6}>
+                                <Col xs={24} md={8}>
                                     <Form.Item label="Price" name="price" rules={[{ required: true }]}>
                                         <Input type='number' min={0} onChange={handlePriceChange} />
                                     </Form.Item>
                                 </Col>
+                                {/* <Col xs={24} md={6}>
+                                    <Form.Item label="Tax Type" name="taxes" rules={[{ required: true }]}>
+                                        <Select options={TAX_TYPES} />
+                                    </Form.Item>
+                                </Col> */}
+                                <Col xs={24} md={8}>
+                                    <Form.Item
+                                        label="Total Quantity"
+                                        name="quantity"
+                                        rules={[
+                                            { required: true, message: 'Please enter total quantity' },
+                                            ({ getFieldValue }) => ({
+                                                validator(_, value) {
+                                                    const selectionLimit = getFieldValue('selection_limit');
+                                                    const bookingPerCustomer = getFieldValue('booking_per_customer');
+
+                                                    if (!value) return Promise.resolve();
+
+                                                    const numValue = Number(value);
+                                                    const numSelection = Number(selectionLimit);
+                                                    const numBooking = Number(bookingPerCustomer);
+
+                                                    if (selectionLimit && numValue < numSelection) {
+                                                        return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to ticket selection limit (${selectionLimit})`));
+                                                    }
+
+                                                    if (bookingPerCustomer && numValue < numBooking) {
+                                                        return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to booking limit per user (${bookingPerCustomer})`));
+                                                    }
+
+                                                    return Promise.resolve();
+                                                },
+                                            }),
+                                        ]}
+                                    >
+                                        <InputNumber style={{ width: '100%' }} min={1} />
+                                    </Form.Item>
+                                </Col>
 
                                 {selectedCurrency !== 'INR' && convertedPrice && (
-                                    <Col xs={24}><Alert message={`~ ₹${convertedPrice}`} type="info" showIcon /></Col>
+                                    <Col xs={24}><Alert message={`~ ₹${convertedPrice}`} type="info" showIcon className="mb-3" /></Col>
                                 )}
 
                                 {usePreprintedCards ? (
-                                    <Col xs={24} md={6}>
+                                    <Col xs={24} md={8}>
                                         <Form.Item
                                             label="Card Prefix"
                                             name="prefix"
@@ -618,42 +660,10 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                 ) : (
                                     <>
 
-                                        <Col xs={24} md={6}>
+
+                                        <Col xs={24} md={8}>
                                             <Form.Item
-                                                label="Total Quantity"
-                                                name="quantity"
-                                                rules={[
-                                                    { required: true, message: 'Please enter total quantity' },
-                                                    ({ getFieldValue }) => ({
-                                                        validator(_, value) {
-                                                            const selectionLimit = getFieldValue('selection_limit');
-                                                            const bookingPerCustomer = getFieldValue('booking_per_customer');
-
-                                                            if (!value) return Promise.resolve();
-
-                                                            const numValue = Number(value);
-                                                            const numSelection = Number(selectionLimit);
-                                                            const numBooking = Number(bookingPerCustomer);
-
-                                                            if (selectionLimit && numValue < numSelection) {
-                                                                return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to ticket selection limit (${selectionLimit})`));
-                                                            }
-
-                                                            if (bookingPerCustomer && numValue < numBooking) {
-                                                                return Promise.reject(new Error(`Total quantity (${value}) must be greater than or equal to booking limit per user (${bookingPerCustomer})`));
-                                                            }
-
-                                                            return Promise.resolve();
-                                                        },
-                                                    }),
-                                                ]}
-                                            >
-                                                <InputNumber style={{ width: '100%' }} min={1} />
-                                            </Form.Item>
-                                        </Col>
-                                        <Col xs={24} md={6}>
-                                            <Form.Item
-                                                label="Ticket Selection Limit"
+                                                label="Selection Limit"
                                                 name="selection_limit"
                                                 rules={[
                                                     { required: true, message: 'Please enter ticket selection limit' },
@@ -676,7 +686,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                                 <InputNumber style={{ width: '100%' }} min={1} />
                                             </Form.Item>
                                         </Col>
-                                        <Col xs={24} md={6}>
+                                        <Col xs={24} md={8}>
                                             <Form.Item
                                                 label="Booking Limit Per User"
                                                 name="booking_per_customer"
@@ -713,7 +723,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     </>
                                 )}
                                 {
-                                    usePreprintedCards && !editMode && <Col xs={24} md={6}>
+                                    usePreprintedCards && !editMode && <Col xs={24} md={8}>
                                         <Form.Item
                                             label="Booking Limit Per User"
                                             name="booking_per_customer"
@@ -749,109 +759,54 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                                     </Col>
                                 }
 
-                                <Col xs={24} md={6}>
-                                    <Form.Item label="Tax Type" name="taxes" rules={[{ required: true }]}>
-                                        <Select options={TAX_TYPES} />
-                                    </Form.Item>
-                                </Col>
-                                {/* <Col xs={24} md={8}>
-                                    <Form.Item label="Access Areas" name="access_area">
-                                        <Select mode="multiple" options={areas} />
-                                    </Form.Item>
-                                </Col> */}
-                                <Col xs={24} md={6}>
+                                <Col xs={24} md={8}>
                                     <Form.Item label="Promocodes" name="promocode_codes">
                                         <Select mode="multiple" options={promocodes} />
                                     </Form.Item>
                                 </Col>
 
 
-                                <Col xs={24} md={12}>
+                                <Col span={24}>
                                     <Form.Item label="Description" name="ticket_description">
-                                        <TextArea rows={3} />
+                                        <TextArea rows={2} />
                                     </Form.Item>
                                 </Col>
 
-
-                                {/* Ticket Background Image Section */}
-                                <Col xs={24} md={6}>
-                                    <Form.Item label="Ticket Background Image">
-                                        <Card size="small" style={{ textAlign: 'center', borderColor: selectedMediaUrl ? '#1890ff' : '#d9d9d9' }}>
-                                            {selectedMediaUrl ? (
-                                                <div style={{ position: 'relative' }}>
-                                                    <Image src={selectedMediaUrl} height={100} style={{ objectFit: 'contain' }} />
-                                                    <div style={{ marginTop: 8 }}>
-                                                        <Space>
-                                                            <Button size="small" icon={<PictureOutlined />} onClick={() => setMediaPickerOpen(true)}>Change</Button>
-                                                            <Button size="small" danger icon={<DeleteOutlined />} onClick={() => setSelectedMediaUrl('')}>Remove</Button>
-                                                        </Space>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div style={{ padding: 10 }}>
-                                                    <Button onClick={() => setMediaPickerOpen(true)} icon={<PictureOutlined />}>Select from Gallery</Button>
-                                                </div>
-                                            )}
-                                        </Card>
-                                    </Form.Item>
-                                </Col>
-                                {/* Fallback Ticket Selection */}
-                                <Col xs={24} md={6}>
-                                    <Form.Item label="Or Select Fallback Image">
-                                        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', opacity: selectedMediaUrl ? 0.5 : 1, transition: '0.3s' }}>
-                                            {fallbackTickets.map((ticket) => (
-                                                <div
-                                                    key={ticket.id}
-                                                    onClick={() => !selectedMediaUrl && handleFallbackSelect(ticket.id)}
-                                                    style={{
-                                                        cursor: selectedMediaUrl ? 'not-allowed' : 'pointer',
-                                                        border: selectedFallbackTicket === ticket.id
-                                                            ? '3px solid #1890ff'
-                                                            : '2px solid #f0f0f0',
-                                                        borderRadius: 8,
-                                                        padding: 2,
-                                                        position: 'relative',
-                                                        opacity: selectedFallbackTicket === ticket.id ? 1 : 0.7,
-                                                        transition: 'all 0.2s',
-                                                    }}
-                                                >
-                                                    {ticket.default && <Tag color="green" style={{ position: 'absolute', top: 4, right: 4, zIndex: 1, fontSize: 10, lineHeight: '14px', height: 16, padding: '0 4px' }}>Default</Tag>}
-                                                    {selectedFallbackTicket === ticket.id && (
-                                                        <div style={{ position: 'absolute', bottom: -6, right: -6, background: '#1890ff', borderRadius: '50%', padding: 2, color: 'white', zIndex: 2 }}>
-                                                            <CheckOutlined style={{ fontSize: 10 }} />
-                                                        </div>
-                                                    )}
-                                                    <Image
-                                                        src={ticket.image}
-                                                        width={60}
-                                                        height={100}
-                                                        style={{ objectFit: 'cover', borderRadius: 4 }}
-                                                        preview={false}
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                        {selectedMediaUrl && <Text type="secondary" style={{ fontSize: 12 }}>* Disable custom image to select fallback</Text>}
-                                    </Form.Item>
-                                </Col>
 
                                 <Col xs={24}>
-                                    <Card size="small">
-                                        <div className="d-flex flex-wrap justify-content-evenly align-items-start gap-3 py-2">
-                                            {switchesConfig.map(config => (
-                                                <Form.Item
-                                                    key={config.name}
-                                                    label={config.label}
-                                                    name={config.name}
-                                                    valuePropName="checked"
-                                                    className="mb-0 d-flex flex-column align-items-center"
-                                                    style={{ minWidth: '80px' }}
-                                                >
-                                                    <Switch onChange={config.onChange} />
-                                                </Form.Item>
-                                            ))}
+                                    <div className="d-flex justify-content-between align-items-center mb-3">
+                                        <div className="d-flex align-items-center">
+                                            <h5>Options</h5>
                                         </div>
-                                    </Card>
+                                        <Form.Item shouldUpdate={(prev, curr) => switchesConfig.some(c => prev[c.name] !== curr[c.name])} noStyle>
+                                            {({ getFieldsValue }) => {
+                                                const vals = getFieldsValue(switchesConfig.map(c => c.name));
+                                                const activeCount = Object.values(vals).filter(Boolean).length;
+                                                return activeCount > 0 ? (
+                                                    <Tag color="red"> <span className="text-primary">{activeCount} Active</span> </Tag>
+                                                ) : <span />;
+                                            }}
+                                        </Form.Item>
+                                    </div>
+                                    <Row gutter={[16, 16]}>
+                                        {switchesConfig.map(config => (
+                                            <Col key={config.name} xs={24} sm={12} md={8} lg={6}>
+                                                <Card size="small" className="m-0" bordered={false} bodyStyle={{ padding: '12px 16px' }}>
+                                                    <Flex justifyContent='space-between'>
+                                                        <Typography.Text className='m-0'>{config.label}</Typography.Text>
+                                                        <Form.Item
+                                                            name={config.name}
+                                                            valuePropName="checked"
+                                                            className="mb-0"
+                                                            noStyle
+                                                        >
+                                                            <Switch onChange={config.onChange} size="small" />
+                                                        </Form.Item>
+                                                    </Flex>
+                                                </Card>
+                                            </Col>
+                                        ))}
+                                    </Row>
                                 </Col>
 
                                 <Col xs={24} className='py-2' ref={saleSectionRef} hidden={!saleEnabled}>
@@ -952,14 +907,89 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                             </Row>
                         </Form>
                     </Col>
+                    <Col xs={24} md={18} xl={3} className="d-none d-md-block">
+                        <Card className='m-0 bg-transparent p-0' title="Fallback Image">
+                            <Row>
+                                {/* Ticket Background Image Section */}
+                                {/* <Col xs={24}>
+                                    <Form.Item label="Ticket Background Image">
+                                        <Card size="small" style={{ textAlign: 'center', background: 'none' }} bodyStyle={{ background: 'none' }}>
+                                            <Space>
+                                                <Button size="small" icon={<PictureOutlined />} onClick={() => setMediaPickerOpen(true)}>Change</Button>
+                                                <Button type='primary' size="small" danger icon={<DeleteOutlined />} onClick={() => setSelectedMediaUrl('')}>Remove</Button>
+                                            </Space>
+                                            {selectedMediaUrl ? (
+                                                <div style={{ position: 'relative' }}>
+                                                    <Image src={selectedMediaUrl} preview={false} height={100} style={{ objectFit: 'contain' }} />
+                                                    <div style={{ marginTop: 8 }}>
+
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div style={{ padding: 10 }}>
+                                                    <Button type="primary" onClick={() => setMediaPickerOpen(true)} icon={<PictureOutlined />}>Select from Gallery</Button>
+                                                </div>
+                                            )}
+                                        </Card>
+                                    </Form.Item>
+                                </Col> */}
+                                {/* Fallback Ticket Selection */}
+                                <Col xs={24}>
+                                    <Form.Item>
+                                        <Flex flexDirection="column" alignItems="center" gap={12} flexWrap="wrap" style={{ opacity: selectedMediaUrl ? 0.5 : 1, transition: '0.3s' }}>
+                                            {fallbackTickets.map((ticket) => (
+                                                <div
+                                                    key={ticket.id}
+                                                    onClick={() => !selectedMediaUrl && handleFallbackSelect(ticket.id)}
+                                                    style={{
+                                                        cursor: selectedMediaUrl ? 'not-allowed' : 'pointer',
+                                                        border: selectedFallbackTicket === ticket.id
+                                                            ? '3px solid var(--primary-color)'
+                                                            : null,
+                                                        borderRadius: 8,
+                                                        padding: 2,
+                                                        position: 'relative',
+                                                        opacity: selectedFallbackTicket === ticket.id ? 1 : 0.7,
+                                                        transition: 'all 0.2s',
+                                                    }}
+                                                >
+                                                    {ticket.default && <Tag color="green" style={{ position: 'absolute', top: 4, right: 4, zIndex: 1, fontSize: 10, lineHeight: '14px', height: 16, padding: '0 4px' }}>Default</Tag>}
+                                                    {selectedFallbackTicket === ticket.id && (
+                                                        <div style={{ position: 'absolute', bottom: -6, right: -6, background: 'var(--primary-color)', borderRadius: '50%', padding: 2, color: 'white', zIndex: 2 }}>
+                                                            <CheckOutlined style={{ fontSize: 10 }} />
+                                                        </div>
+                                                    )}
+                                                    <Image
+                                                        src={ticket.image}
+                                                        width={60}
+                                                        height={100}
+                                                        style={{ objectFit: 'cover', borderRadius: 4 }}
+                                                        preview={false}
+                                                    />
+                                                </div>
+                                            ))}
+                                        </Flex>
+                                        {/* {selectedMediaUrl && <Text type="secondary" style={{ fontSize: 12 }}>* Disable custom image to select fallback</Text>} */}
+                                    </Form.Item>
+                                </Col>
+                            </Row>
+                        </Card>
+                    </Col>
 
                     {/* Preview Panel */}
-                    <Col xs={24} md={4} xl={4} className="d-none d-sm-block">
-                        <div className="bg-light p-3 rounded text-center">
-                            <h6 className="mb-3">Preview</h6>
+                    <Col xs={24} md={6} xl={4} className="d-none d-md-block">
+                        <Flex justifyContent='center' gap={6}>
+                            {selectedMediaUrl ? <>
+                                <Button size="small" icon={<PictureOutlined />} onClick={() => setMediaPickerOpen(true)}>Change</Button>
+                                <Button type='primary' size="small" danger icon={<DeleteOutlined />} onClick={() => setSelectedMediaUrl('')}>Remove</Button>
+                            </> : <Button type="primary" onClick={() => setMediaPickerOpen(true)} icon={<PictureOutlined />}>Select from Gallery</Button>}
+                        </Flex>
+                        <div className="bg-light p-3 rounded text-center" style={{ position: 'sticky', top: 20 }}>
+                            {/* <h6 className="mb-3">Preview</h6> */}
                             <Image
                                 src={getCurrentPreviewImage()}
                                 alt="Preview"
+                                preview={false}
                                 width={'100%'}
                                 style={{ borderRadius: 8, maxWidth: 300, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                             />
@@ -967,7 +997,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                         </div>
                     </Col>
                 </Row>
-            </Modal>
+            </ResponsiveDrawer>
 
             <MediaGalleryPickerModal
                 open={mediaPickerOpen}
@@ -975,7 +1005,7 @@ const TicketManager = ({ eventId, eventName, showEventName = true }) => {
                 onSelect={handleMediaSelect}
                 multiple={false}
                 title="Select Ticket Background"
-                dimensionValidation={{ width: 300, height: 750, strict: true }}
+                dimensionValidation={{ width: "60vh", height: 750, strict: true }}
                 value={selectedMediaUrl}
             />
         </>

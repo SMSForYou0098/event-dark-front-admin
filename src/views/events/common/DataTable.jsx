@@ -176,6 +176,27 @@ const DataTable = ({
 
 
   const searchInput = useRef(null);
+  const pickerContainerRef = useRef(null);
+
+  // JS-based popup positioning fix.
+  // Ant Design calculates left/top using getBoundingClientRect, but backdrop-filter
+  // on table sticky cells creates CSS stacking contexts that corrupt that calculation.
+  // We override by reading the trigger's real position and setting top/left directly.
+  const repositionPickerPopup = useCallback(() => {
+    requestAnimationFrame(() => {
+      const trigger = pickerContainerRef.current?.querySelector('.ant-picker');
+      const dropdown = document.querySelector('.ant-picker-dropdown:not(.ant-picker-dropdown-hidden)');
+      if (!trigger || !dropdown) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft || 0;
+
+      dropdown.style.top = `${rect.bottom + scrollTop + 4}px`;
+      dropdown.style.left = `${rect.left + scrollLeft}px`;
+      dropdown.style.right = 'auto';
+    });
+  }, []);
 
   const screens = useBreakpoint();
   const isMobile = !screens.md;
@@ -183,7 +204,8 @@ const DataTable = ({
   const isSmallMobile = !screens.sm;
 
   const handleDateRangeChange = (dates) => {
-    onDateRangeChange?.(dates);
+    // Pass the raw dates array through — each consumer normalizes it themselves
+    onDateRangeChange?.(dates || null);
   };
   const [lastRefreshTime, setLastRefreshTime] = useState(null);
   const [countdown, setCountdown] = useState(null);
@@ -410,13 +432,26 @@ const DataTable = ({
         </div>
       )}
       {showDateRange && (
-        <div style={{ width: isMobile ? '100%' : 'auto' }}>
+        <div ref={pickerContainerRef} style={{ width: isMobile ? '100%' : 'auto' }}>
           <RangePicker
-            value={
-              dateRange
-                ? [dayjs(dateRange.startDate), dayjs(dateRange.endDate)]
-                : null
-            }
+            value={(() => {
+              if (!dateRange) return null;
+              // Shape A: raw dayjs array [d1, d2] passed back from a previous change
+              if (Array.isArray(dateRange)) {
+                return [
+                  dateRange[0] ? dayjs(dateRange[0]) : null,
+                  dateRange[1] ? dayjs(dateRange[1]) : null,
+                ];
+              }
+              // Shape B: { startDate, endDate } object (e.g. from URL params)
+              if (dateRange.startDate) {
+                return [
+                  dayjs(dateRange.startDate),
+                  dateRange.endDate ? dayjs(dateRange.endDate) : null,
+                ];
+              }
+              return null;
+            })()}
             onChange={handleDateRangeChange}
             format="YYYY-MM-DD"
             placeholder={["Start Date", "End Date"]}
@@ -424,6 +459,9 @@ const DataTable = ({
             size={isTablet ? "small" : "middle"}
             allowClear={true}
             clearIcon={<CloseOutlined />}
+            getPopupContainer={() => document.body}
+            autoAdjustOverflow={false}
+            onOpenChange={(open) => { if (open) repositionPickerPopup(); }}
             cellRender={(current, { originNode, type }) => {
               // Only handle date cells
               if (type !== 'date' || !dayjs.isDayjs(current)) return originNode;

@@ -49,8 +49,8 @@ const Users = () => {
   const initialEndDate = searchParams.get('endDate');
 
   const [dateRange, setDateRange] = useState(
-    initialStartDate && initialEndDate 
-      ? { startDate: initialStartDate, endDate: initialEndDate } 
+    initialStartDate && initialEndDate
+      ? { startDate: initialStartDate, endDate: initialEndDate }
       : null
   );
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -256,11 +256,11 @@ const Users = () => {
     setCurrentPage(1); // Reset to first page on date change
     const newRange = dates
       ? {
-          startDate: dates[0].format("YYYY-MM-DD"),
-          endDate: dates[1].format("YYYY-MM-DD"),
-        }
+        startDate: dates[0].format("YYYY-MM-DD"),
+        endDate: dates[1].format("YYYY-MM-DD"),
+      }
       : null;
-    
+
     setDateRange(newRange);
 
     // Update URL params
@@ -495,7 +495,7 @@ const Users = () => {
           title: "Delete",
           key: "delete",
           // fixed: "right",
-          width: 80,
+          width: "30px",
           align: "center",
           render: (_, record) => {
             const isDisabled = record?.is_deleted || record?.status === "1";
@@ -526,7 +526,8 @@ const Users = () => {
           title: "Actions",
           key: "actions",
           fixed: "right",
-          width: 60,
+          align: "center",
+          width: "50px",
           render: (_, record) => {
             const isDisabled = record?.is_deleted || record?.status === "1";
 

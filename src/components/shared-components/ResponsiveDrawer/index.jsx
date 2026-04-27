@@ -1,23 +1,27 @@
 import React from "react";
-import { Drawer } from "antd";
-import { useMyContext } from "Context/MyContextProvider";
+import { Drawer, Grid } from "antd";
+
+const { useBreakpoint } = Grid;
 
 const ResponsiveDrawer = ({
   mobilePlacement = "bottom",
   desktopPlacement = "right",
   mobileWidth = "100%",
   desktopWidth = 520,
-  mobileHeight = "85vh",
+  mobileHeight = "90vh",
   desktopHeight,
   width,
   height,
   ...props
 }) => {
-  const { isMobile } = useMyContext();
+  const screens = useBreakpoint();
 
-  const resolvedPlacement = isMobile ? mobilePlacement : desktopPlacement;
-  const resolvedWidth = width ?? (isMobile ? mobileWidth : desktopWidth);
-  const resolvedHeight = height ?? (isMobile ? mobileHeight : desktopHeight);
+  // If screens.lg is false, it's a mobile or tablet screen (<992px)
+  const isSmallScreen = screens.lg === false;
+
+  const resolvedPlacement = isSmallScreen ? mobilePlacement : desktopPlacement;
+  const resolvedWidth = width ?? (isSmallScreen ? mobileWidth : desktopWidth);
+  const resolvedHeight = height ?? (isSmallScreen ? mobileHeight : desktopHeight);
 
   return (
     <Drawer

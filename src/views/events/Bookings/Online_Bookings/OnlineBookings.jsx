@@ -588,7 +588,7 @@ const OnlineBookings = memo(({ type, seatingChartBooking = false, isRefund = fal
     ...((type === 'paid' && !seatingChartBooking)
       ? [
         {
-          title: "Approval test",
+          title: "Approval",
           key: "approval",
           align: "center",
           render: (_, record) => {

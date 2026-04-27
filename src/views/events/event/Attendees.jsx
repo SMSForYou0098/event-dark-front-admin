@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useEffect,
 } from "react";
-import { Row, Col, Image, Button, Modal, Typography, Tooltip, Select, Card, Empty, message } from "antd";
+import { Row, Col, Image, Button, Modal, Typography, Tooltip, Select, message } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { Eye, IdCard, Download } from "lucide-react";
 import DataTable from "../common/DataTable";
@@ -103,13 +103,11 @@ const Attendees = memo(() => {
 
   // Format date range for API: "YYYY-MM-DD, YYYY-MM-DD"
   const formattedDateForApi = useMemo(() => {
-    if (!dateRange) return undefined;
-    if (Array.isArray(dateRange)) {
-      return dateRange
-        .map((d) => (typeof d === "string" ? d.slice(0, 10) : d?.format?.("YYYY-MM-DD") ?? String(d).slice(0, 10)))
-        .join(", ");
+    if (!dateRange?.startDate) return undefined;
+    if (dateRange.endDate) {
+      return `${dateRange.startDate}, ${dateRange.endDate}`;
     }
-    return dateRange;
+    return dateRange.startDate;
   }, [dateRange]);
 
   // Fetch attendees for selected event (POST with type, ticket_id, event_id, page, per_page)
@@ -446,71 +444,59 @@ const Attendees = memo(() => {
     <Fragment>
       <Row>
         <Col span={24}>
-          {selectedEvent ? (
-            <DataTable
-              title={selectedEvent ? `Atnd - ${selectedEvent.label}` : "Atnd"}
-              data={users}
-              columns={columns}
-              loading={attendeesLoading}
-              emptyText={
-                !selectedEvent
-                  ? "Please select an event to view attendees"
-                  : "No attendees found"
+          <DataTable
+            title={selectedEvent ? `Atnd - ${selectedEvent.label}` : "Attendees"}
+            data={users}
+            columns={columns}
+            loading={attendeesLoading}
+            emptyText={
+              !selectedEvent
+                ? "Please select an event to view attendees"
+                : "No attendees found"
+            }
+            enableSearch
+            showSearch
+            showRefresh
+            showDateRange
+            exportRoute={
+              selectedEvent?.value
+                ? `export-attendee`
+                : undefined
+            }
+            exportPayload={{
+              event_id: selectedEvent?.value,
+              type: attendeeType,
+              ticket_id: selectedTicketId,
+              date: formattedDateForApi,
+            }}
+            onDateRangeChange={(dates) => {
+              if (!dates || !dates[0]) {
+                setDateRange(null);
+              } else {
+                setDateRange({
+                  startDate: dates[0]?.format?.("YYYY-MM-DD") ?? null,
+                  endDate: dates[1]?.format?.("YYYY-MM-DD") ?? null,
+                });
               }
-              enableSearch
-              showSearch
-              showRefresh
-              showDateRange
-              exportRoute={
-                selectedEvent?.value
-                  ? `export-attendee`
-                  : undefined
-              }
-              exportPayload={{
-                event_id: selectedEvent?.value,
-                type: attendeeType,
-                ticket_id: selectedTicketId,
-                date: formattedDateForApi,
-              }}
-              onDateRangeChange={(dr) => setDateRange(dr)}
-              dateRange={dateRange}
-              onRefresh={() => refetchAttendees()}
-              extraHeaderContent={ExtraHeaderContent}
-              enableExport={Boolean(selectedEvent?.value)}
-              ExportPermission={Boolean(selectedEvent?.value)}
-              serverSide={Boolean(attendeesPagination)}
-              pagination={attendeesPagination}
-              onPaginationChange={(newPage, newPageSize) => {
-                setPage(newPage);
-                setPerPage(newPageSize);
-              }}
-              onSearch={(value) => {
-                setSearchQuery(value ?? "");
-                setPage(1);
-              }}
-              searchValue={searchQuery}
-            />
-          ) : (
-            <Card title="Attendees">
-              <div className="text-center">
-                {ExtraHeaderContent}
-                <div style={{ marginTop: 24, padding: '40px 20px' }}>
-                  <Empty
-                    description={
-                      <div>
-                        <h4>
-                          No Event Selected
-                        </h4>
-                        <p>
-                          Please select an event from the dropdown above to view attendees data
-                        </p>
-                      </div>
-                    }
-                  />
-                </div>
-              </div>
-            </Card>
-          )}
+            }}
+            dateRange={dateRange}
+            onRefresh={() => refetchAttendees()}
+            extraHeaderContent={ExtraHeaderContent}
+            enableExport={Boolean(selectedEvent?.value)}
+            ExportPermission={Boolean(selectedEvent?.value)}
+            serverSide={Boolean(attendeesPagination)}
+            pagination={attendeesPagination}
+            onPaginationChange={(newPage, newPageSize) => {
+              setPage(newPage);
+              setPerPage(newPageSize);
+            }}
+            onSearch={(value) => {
+              setSearchQuery(value ?? "");
+              setPage(1);
+            }}
+            searchValue={searchQuery}
+          />
+
         </Col>
 
         <TicketModal

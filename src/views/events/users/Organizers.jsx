@@ -264,6 +264,7 @@ const Organizers = () => {
       key: 'name',
       sorter: (a, b) => a.name?.localeCompare(b.name),
       searchable: true,
+      align: "center",
       render: (name) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'left' }}>
           <User size={16} className="text-primary" />
@@ -276,6 +277,7 @@ const Organizers = () => {
       dataIndex: 'email',
       key: 'email',
       searchable: true,
+      align: "center",
       render: (email) => email ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'left' }}>
           <Mail size={16} className="text-primary" />
@@ -309,6 +311,7 @@ const Organizers = () => {
       title: 'Created At',
       dataIndex: 'created_at',
       key: 'created_at',
+      align: "center",
       render: (date) => date ? new Date(date).toLocaleDateString('en-GB', {
         day: '2-digit',
         month: 'short',

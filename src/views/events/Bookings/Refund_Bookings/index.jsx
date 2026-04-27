@@ -150,29 +150,32 @@ const RefundBookings = ({ seatingChartBooking = false }) => {
                 title: '#',
                 render: (_, __, i) => i + 1,
                 width: 60,
+                align: 'center',
             },
             {
                 title: 'Name',
                 dataIndex: ['user', 'name'],
-                searchable: true,
+                align: 'center',
                 render: (_, record) => record.user?.name || record.booking?.name || '-',
             },
             {
                 title: 'Email',
                 dataIndex: ['user', 'email'],
-                searchable: true,
+                align: 'center',
                 render: (_, record) => record.user?.email || record.booking?.email || '-',
                 // ellipsis: true,
+
             },
             {
                 title: 'Event',
                 dataIndex: ['booking', 'event', 'name'],
-                searchable: true,
+                align: 'center',
                 render: (name) => name || '-',
             },
             {
                 title: 'Ticket',
                 dataIndex: ['booking', 'ticket', 'name'],
+                align: 'center',
                 render: (name) => name || '-',
             },
             ...(seatingChartBooking
@@ -196,17 +199,20 @@ const RefundBookings = ({ seatingChartBooking = false }) => {
             {
                 title: 'Amt',
                 dataIndex: 'original_amount',
+                align: 'center',
                 render: (amount) => `₹${amount}`,
                 sorter: (a, b) => a.original_amount - b.original_amount,
             },
             {
                 title: 'R Amt',
                 dataIndex: 'refund_amount',
+                align: 'center',
                 render: (amount) => <span className="text-success fw-medium">₹{amount}</span>,
                 sorter: (a, b) => a.refund_amount - b.refund_amount,
             },
             {
                 title: 'Diff',
+                align: 'center',
                 render: (_, record) => {
                     const difference = (record.original_amount || 0) - (record.refund_amount || 0);
                     return <span className="text-warning fw-medium">₹{difference}</span>;
@@ -243,6 +249,7 @@ const RefundBookings = ({ seatingChartBooking = false }) => {
             {
                 title: 'Status',
                 dataIndex: 'refund_status',
+                align: 'center',
                 render: (status) => {
                     const statusMap = {
                         pending: { text: 'Pending', color: 'warning' },
@@ -266,6 +273,7 @@ const RefundBookings = ({ seatingChartBooking = false }) => {
             {
                 title: 'Reason',
                 dataIndex: 'refund_reason',
+                align: 'center',
                 render: (reason) => reason || '-',
                 ellipsis: true,
             },
@@ -278,21 +286,25 @@ const RefundBookings = ({ seatingChartBooking = false }) => {
             {
                 title: 'Gateway',
                 dataIndex: 'gateway',
+                align: 'center',
                 render: (gateway) => gateway ? gateway.toUpperCase() : '-',
             },
             {
                 title: 'ARN',
                 dataIndex: 'refund_arn',
+                align: 'center',
                 render: (arn) => arn || '-',
             },
             {
                 title: 'Initiated By',
                 dataIndex: 'initiated_by',
+                align: 'center',
                 render: (initiatedBy) => initiatedBy || '-',
             },
             {
                 title: 'Initiated At',
                 dataIndex: 'created_at',
+                align: 'center',
                 render: (date) => formatDateTime(date),
                 sorter: (a, b) => new Date(a.created_at) - new Date(b.created_at),
             },
